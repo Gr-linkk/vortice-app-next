@@ -47,7 +47,7 @@ class _CreateWorkOrderScreenState extends ConsumerState<CreateWorkOrderScreen> {
   WorkOrderJobType _jobType = WorkOrderJobType.repair;
   String? _selectedAssetId;
   String? _selectedEngineId;
-  String? _selectedTechId;
+  List<String> _selectedTechIds = const [];
   String? _selectedChecklistTemplateId;
   DateTime? _scheduledDate;
 
@@ -138,14 +138,14 @@ class _CreateWorkOrderScreenState extends ConsumerState<CreateWorkOrderScreen> {
       'description':
           _descCtrl.text.trim().isNotEmpty ? _descCtrl.text.trim() : null,
       'job_type': _jobType.dbValue,
-      'status': _selectedTechId != null
+      'status': _selectedTechIds.isNotEmpty
           ? WorkOrderStatus.assigned.dbValue
           : WorkOrderStatus.draft.dbValue,
       'created_by': profile.id,
       'client_id': selectedAsset.clientId,
       'asset_id': _selectedAssetId,
       if (_selectedEngineId != null) 'engine_id': _selectedEngineId,
-      if (_selectedTechId != null) 'assigned_to': _selectedTechId,
+      if (_selectedTechIds.isNotEmpty) 'assigned_to': _selectedTechIds.first,
       if (_selectedChecklistTemplateId != null)
         'checklist_template_id': _selectedChecklistTemplateId,
       'scheduled_date': _scheduledDate?.toIso8601String().split('T').first,
@@ -155,7 +155,7 @@ class _CreateWorkOrderScreenState extends ConsumerState<CreateWorkOrderScreen> {
 
     final success = await ref
         .read(workOrderControllerProvider.notifier)
-        .createWorkOrder(data);
+        .createWorkOrder(data, assignedProfileIds: _selectedTechIds);
 
     if (success && mounted) context.pop();
     if (!success && mounted) {
@@ -166,6 +166,85 @@ class _CreateWorkOrderScreenState extends ConsumerState<CreateWorkOrderScreen> {
           backgroundColor: AppColors.error,
         ),
       );
+    }
+  }
+
+  Future<void> _pickTechnicians(List<Map<String, dynamic>> employees) async {
+    final selected = Set<String>.from(_selectedTechIds);
+
+    final result = await showModalBottomSheet<List<String>>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: AppColors.surface,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setModalState) {
+            return SafeArea(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Text(
+                      'Assigned Technicians',
+                      style: Theme.of(context).textTheme.titleMedium,
+                    ),
+                    const SizedBox(height: 12),
+                    Flexible(
+                      child: SingleChildScrollView(
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: employees.map((employee) {
+                            final id = employee['id'] as String;
+                            final name =
+                                (employee['full_name'] as String?)?.trim().isNotEmpty == true
+                                    ? employee['full_name'] as String
+                                    : 'Unnamed tech';
+                            return CheckboxListTile(
+                              value: selected.contains(id),
+                              controlAffinity: ListTileControlAffinity.leading,
+                              contentPadding: EdgeInsets.zero,
+                              title: Text(name),
+                              onChanged: (checked) {
+                                setModalState(() {
+                                  if (checked == true) {
+                                    selected.add(id);
+                                  } else {
+                                    selected.remove(id);
+                                  }
+                                });
+                              },
+                            );
+                          }).toList(),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    ElevatedButton(
+                      onPressed: () => Navigator.pop(
+                        context,
+                        employees
+                            .map((employee) => employee['id'] as String)
+                            .where(selected.contains)
+                            .toList(),
+                      ),
+                      child: const Text('Done'),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+
+    if (result != null) {
+      setState(() => _selectedTechIds = result);
     }
   }
 
@@ -358,28 +437,48 @@ class _CreateWorkOrderScreenState extends ConsumerState<CreateWorkOrderScreen> {
                 loading: () =>
                     const Center(child: CircularProgressIndicator()),
                 error: (_, __) => const SizedBox.shrink(),
-                data: (employees) => DropdownButtonFormField<String?>(
-                  value: _selectedTechId,
-                  decoration: const InputDecoration(
-                    labelText: 'Assigned Technician',
-                    prefixIcon: Icon(Icons.person_outline),
-                  ),
-                  dropdownColor: AppColors.surfaceVariant,
-                  items: [
-                    const DropdownMenuItem(
-                      value: null,
-                      child: Text('Unassigned',
-                          style:
-                              TextStyle(color: AppColors.textSecondary)),
-                    ),
-                    ...employees.map((e) => DropdownMenuItem(
-                          value: e['id'] as String,
+                data: (employees) {
+                  final selectedNames = employees
+                      .where((employee) =>
+                          _selectedTechIds.contains(employee['id'] as String))
+                      .map((employee) =>
+                          (employee['full_name'] as String?)?.trim().isNotEmpty == true
+                              ? employee['full_name'] as String
+                              : 'Unnamed tech')
+                      .toList();
+
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      OutlinedButton.icon(
+                        onPressed: () => _pickTechnicians(employees),
+                        icon: const Icon(Icons.people_outline),
+                        label: Text(
+                          selectedNames.isEmpty
+                              ? 'Assign technicians'
+                              : 'Assigned (${selectedNames.length})',
+                        ),
+                      ),
+                      if (selectedNames.isNotEmpty) ...[
+                        const SizedBox(height: 8),
+                        Wrap(
+                          spacing: 8,
+                          runSpacing: 8,
+                          children: selectedNames
+                              .map((name) => Chip(label: Text(name)))
+                              .toList(),
+                        ),
+                      ] else
+                        const Padding(
+                          padding: EdgeInsets.only(top: 8),
                           child: Text(
-                              (e['full_name'] as String?) ?? ''),
-                        )),
-                  ],
-                  onChanged: (v) => setState(() => _selectedTechId = v),
-                ),
+                            'No technicians assigned yet',
+                            style: TextStyle(color: AppColors.textSecondary),
+                          ),
+                        ),
+                    ],
+                  );
+                },
               ),
 
               // ── SCHEDULING ────────────────────────────────────────

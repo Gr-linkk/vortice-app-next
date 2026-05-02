@@ -4,6 +4,7 @@ import 'package:vortice_app/core/constants.dart';
 import 'package:vortice_app/core/supabase_client.dart';
 import 'package:vortice_app/db/database.dart';
 import 'package:vortice_app/models/work_order.dart';
+import 'package:vortice_app/models/work_order_assignment.dart';
 
 final workOrdersProvider = FutureProvider<List<WorkOrder>>((ref) async {
   final db = ref.watch(databaseProvider);
@@ -66,12 +67,39 @@ class WorkOrderController extends StateNotifier<AsyncValue<void>> {
   final Ref _ref;
   WorkOrderController(this._ref) : super(const AsyncData(null));
 
-  Future<bool> createWorkOrder(Map<String, dynamic> data) async {
+  Future<bool> createWorkOrder(
+    Map<String, dynamic> data, {
+    List<String> assignedProfileIds = const [],
+  }) async {
     state = const AsyncLoading();
     bool success = false;
     state = await AsyncValue.guard(() async {
-      await supabase.from(AppConstants.tWorkOrders).insert(data);
+      final workOrder = await supabase
+          .from(AppConstants.tWorkOrders)
+          .insert(data)
+          .select('id')
+          .single();
+
+      final workOrderId = workOrder['id'] as String;
+
+      if (assignedProfileIds.isNotEmpty) {
+        await supabase.from(AppConstants.tWorkOrderAssignments).insert(
+              assignedProfileIds
+                  .map(
+                    (profileId) => {
+                      'work_order_id': workOrderId,
+                      'profile_id': profileId,
+                      'role': 'tech',
+                    },
+                  )
+                  .toList(),
+            );
+      }
+
       _ref.invalidate(workOrdersProvider);
+      _ref.invalidate(workOrderByIdProvider(workOrderId));
+      _ref.invalidate(workOrderAssignmentsProvider(workOrderId));
+      _ref.invalidate(workOrderAssignmentNamesProvider(workOrderId));
       success = true;
     });
     return success;
@@ -93,13 +121,41 @@ class WorkOrderController extends StateNotifier<AsyncValue<void>> {
     return success;
   }
 
-  Future<bool> updateWorkOrder(String id, Map<String, dynamic> data) async {
+  Future<bool> updateWorkOrder(
+    String id,
+    Map<String, dynamic> data, {
+    List<String>? assignedProfileIds,
+  }) async {
     state = const AsyncLoading();
     bool success = false;
     state = await AsyncValue.guard(() async {
       await supabase.from(AppConstants.tWorkOrders).update(data).eq('id', id);
+
+      if (assignedProfileIds != null) {
+        await supabase
+            .from(AppConstants.tWorkOrderAssignments)
+            .delete()
+            .eq('work_order_id', id);
+
+        if (assignedProfileIds.isNotEmpty) {
+          await supabase.from(AppConstants.tWorkOrderAssignments).insert(
+                assignedProfileIds
+                    .map(
+                      (profileId) => {
+                        'work_order_id': id,
+                        'profile_id': profileId,
+                        'role': 'tech',
+                      },
+                    )
+                    .toList(),
+              );
+        }
+      }
+
       _ref.invalidate(workOrdersProvider);
       _ref.invalidate(workOrderByIdProvider(id));
+      _ref.invalidate(workOrderAssignmentsProvider(id));
+      _ref.invalidate(workOrderAssignmentNamesProvider(id));
       success = true;
     });
     return success;
@@ -180,4 +236,36 @@ final profileNameProvider =
       .eq('id', profileId)
       .maybeSingle();
   return data?['full_name'] as String?;
+});
+
+final workOrderAssignmentsProvider =
+    FutureProvider.family<List<WorkOrderAssignment>, String>((ref, workOrderId) async {
+  final data = await supabase
+      .from(AppConstants.tWorkOrderAssignments)
+      .select()
+      .eq('work_order_id', workOrderId)
+      .order('created_at');
+
+  return (data as List)
+      .map((row) => WorkOrderAssignment.fromJson(row as Map<String, dynamic>))
+      .toList();
+});
+
+final workOrderAssignmentNamesProvider =
+    FutureProvider.family<List<String>, String>((ref, workOrderId) async {
+  final assignments = await ref.watch(workOrderAssignmentsProvider(workOrderId).future);
+  if (assignments.isEmpty) return const [];
+
+  final ids = assignments.map((a) => a.profileId).toList();
+  final rows = await supabase
+      .from(AppConstants.tProfiles)
+      .select('id, full_name')
+      .inFilter('id', ids);
+
+  final namesById = {
+    for (final row in (rows as List).cast<Map<String, dynamic>>())
+      row['id'] as String: (row['full_name'] as String?)?.trim() ?? 'Unnamed tech',
+  };
+
+  return ids.map((id) => namesById[id] ?? 'Unnamed tech').toList();
 });

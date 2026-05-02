@@ -107,6 +107,8 @@ class _WorkOrderBody extends ConsumerWidget {
     final techNameAsync = workOrder.assignedTo != null
         ? ref.watch(profileNameProvider(workOrder.assignedTo!))
         : null;
+    final assignmentNamesAsync =
+        ref.watch(workOrderAssignmentNamesProvider(workOrder.id));
 
     final prefix = switch (profile?.role) {
       UserRole.owner => '/owner',
@@ -202,22 +204,65 @@ class _WorkOrderBody extends ConsumerWidget {
           value: workOrder.jobType.name,
         ),
 
-        // Assigned tech
-        if (techNameAsync != null)
-          techNameAsync.when(
-            loading: () => _InfoRow(
-                icon: Icons.person_outline,
-                label: l10n.assignedTech,
-                value: '...'),
-            error: (_, __) => _InfoRow(
-                icon: Icons.person_outline,
-                label: l10n.assignedTech,
-                value: '—'),
-            data: (name) => _InfoRow(
-                icon: Icons.person_outline,
-                label: l10n.assignedTech,
-                value: name ?? '—'),
-          ),
+        // Assigned tech(s)
+        assignmentNamesAsync.when(
+          loading: () => _InfoRow(
+              icon: Icons.people_outline,
+              label: 'Assigned Techs',
+              value: '...'),
+          error: (_, __) {
+            if (techNameAsync == null) {
+              return _InfoRow(
+                icon: Icons.people_outline,
+                label: 'Assigned Techs',
+                value: '—',
+              );
+            }
+
+            return techNameAsync.when(
+              loading: () => _InfoRow(
+                  icon: Icons.person_outline,
+                  label: l10n.assignedTech,
+                  value: '...'),
+              error: (_, __) => _InfoRow(
+                  icon: Icons.person_outline,
+                  label: l10n.assignedTech,
+                  value: '—'),
+              data: (name) => _InfoRow(
+                  icon: Icons.person_outline,
+                  label: l10n.assignedTech,
+                  value: name ?? '—'),
+            );
+          },
+          data: (names) {
+            if (names.isEmpty) {
+              if (techNameAsync == null) {
+                return const SizedBox.shrink();
+              }
+
+              return techNameAsync.when(
+                loading: () => _InfoRow(
+                    icon: Icons.person_outline,
+                    label: l10n.assignedTech,
+                    value: '...'),
+                error: (_, __) => _InfoRow(
+                    icon: Icons.person_outline,
+                    label: l10n.assignedTech,
+                    value: '—'),
+                data: (name) => _InfoRow(
+                    icon: Icons.person_outline,
+                    label: l10n.assignedTech,
+                    value: name ?? '—'),
+              );
+            }
+
+            return _InfoRow(
+              icon: Icons.people_outline,
+              label: 'Assigned Techs',
+              value: names.join(', '),
+            );
+          },
+        ),
 
         // Scheduled date
         if (workOrder.scheduledDate != null)
@@ -498,7 +543,8 @@ class _EditWorkOrderSheetState extends ConsumerState<_EditWorkOrderSheet> {
   late final TextEditingController _notesCtrl;
   late final TextEditingController _onHoldCtrl;
   late DateTime? _scheduledDate;
-  String? _assignedTo;
+  List<String> _assignedTechIds = const [];
+  bool _didSeedAssignments = false;
 
   @override
   void initState() {
@@ -518,7 +564,7 @@ class _EditWorkOrderSheetState extends ConsumerState<_EditWorkOrderSheet> {
     _notesCtrl = TextEditingController(text: wo.notesInternal ?? '');
     _onHoldCtrl = TextEditingController(text: wo.onHoldReason ?? '');
     _scheduledDate = wo.scheduledDate;
-    _assignedTo = wo.assignedTo;
+    _assignedTechIds = wo.assignedTo != null ? [wo.assignedTo!] : const [];
   }
 
   @override
@@ -552,7 +598,7 @@ class _EditWorkOrderSheetState extends ConsumerState<_EditWorkOrderSheet> {
       'title': _titleCtrl.text.trim(),
       'description':
           _descCtrl.text.trim().isNotEmpty ? _descCtrl.text.trim() : null,
-      'assigned_to': _assignedTo,
+      'assigned_to': _assignedTechIds.isNotEmpty ? _assignedTechIds.first : null,
       'scheduled_date': _scheduledDate?.toIso8601String(),
       'hours_at_start': double.tryParse(_hoursStartCtrl.text.trim()),
       'hours_at_end': double.tryParse(_hoursEndCtrl.text.trim()),
@@ -567,10 +613,93 @@ class _EditWorkOrderSheetState extends ConsumerState<_EditWorkOrderSheet> {
 
     final success = await ref
         .read(workOrderControllerProvider.notifier)
-        .updateWorkOrder(widget.workOrder.id, data);
+        .updateWorkOrder(
+          widget.workOrder.id,
+          data,
+          assignedProfileIds: _assignedTechIds,
+        );
 
     if (success && mounted) {
       Navigator.pop(context);
+    }
+  }
+
+  Future<void> _pickTechnicians(List<Map<String, dynamic>> employees) async {
+    final selected = Set<String>.from(_assignedTechIds);
+
+    final result = await showModalBottomSheet<List<String>>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: AppColors.surface,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setModalState) {
+            return SafeArea(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Text(
+                      'Assigned Technicians',
+                      style: Theme.of(context).textTheme.titleMedium,
+                    ),
+                    const SizedBox(height: 12),
+                    Flexible(
+                      child: SingleChildScrollView(
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: employees.map((employee) {
+                            final id = employee['id'] as String;
+                            final name =
+                                (employee['full_name'] as String?)?.trim().isNotEmpty == true
+                                    ? employee['full_name'] as String
+                                    : 'Unnamed tech';
+                            return CheckboxListTile(
+                              value: selected.contains(id),
+                              controlAffinity: ListTileControlAffinity.leading,
+                              contentPadding: EdgeInsets.zero,
+                              title: Text(name),
+                              onChanged: (checked) {
+                                setModalState(() {
+                                  if (checked == true) {
+                                    selected.add(id);
+                                  } else {
+                                    selected.remove(id);
+                                  }
+                                });
+                              },
+                            );
+                          }).toList(),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    ElevatedButton(
+                      onPressed: () => Navigator.pop(
+                        context,
+                        employees
+                            .map((employee) => employee['id'] as String)
+                            .where(selected.contains)
+                            .toList(),
+                      ),
+                      child: const Text('Done'),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+
+    if (result != null) {
+      setState(() => _assignedTechIds = result);
     }
   }
 
@@ -579,6 +708,21 @@ class _EditWorkOrderSheetState extends ConsumerState<_EditWorkOrderSheet> {
     final l10n = AppLocalizations.of(context);
     final isLoading = ref.watch(workOrderControllerProvider).isLoading;
     final dateFmt = DateFormat.yMMMd();
+    final assignmentsAsync =
+        ref.watch(workOrderAssignmentsProvider(widget.workOrder.id));
+
+    if (!_didSeedAssignments) {
+      assignmentsAsync.whenData((assignments) {
+        _didSeedAssignments = true;
+        final assignmentIds = assignments.map((a) => a.profileId).toList();
+        if (assignmentIds.isNotEmpty) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (!mounted) return;
+            setState(() => _assignedTechIds = assignmentIds);
+          });
+        }
+      });
+    }
 
     return Padding(
       padding: EdgeInsets.fromLTRB(
@@ -606,33 +750,57 @@ class _EditWorkOrderSheetState extends ConsumerState<_EditWorkOrderSheet> {
                 decoration: InputDecoration(labelText: l10n.description),
               ),
               const SizedBox(height: 12),
-              // Tech reassignment dropdown
+              // Tech reassignment
               Consumer(builder: (context, ref, _) {
                 final employeesAsync = ref.watch(employeesProvider);
                 return employeesAsync.when(
                   loading: () => const LinearProgressIndicator(),
                   error: (_, __) => const SizedBox.shrink(),
-                  data: (employees) => DropdownButtonFormField<String?>(
-                    value: _assignedTo,
-                    decoration: InputDecoration(
-                      labelText: l10n.reassignTech,
-                      prefixIcon: const Icon(Icons.person_outline),
-                    ),
-                    dropdownColor: AppColors.surfaceVariant,
-                    items: [
-                      DropdownMenuItem<String?>(
-                        value: null,
-                        child: Text('— ${l10n.noAsset} —',
-                            style: const TextStyle(
-                                color: AppColors.textSecondary)),
-                      ),
-                      ...employees.map((e) => DropdownMenuItem<String?>(
-                            value: e['id'] as String,
-                            child: Text(e['full_name'] as String? ?? '—'),
-                          )),
-                    ],
-                    onChanged: (v) => setState(() => _assignedTo = v),
-                  ),
+                  data: (employees) {
+                    final selectedNames = employees
+                        .where((employee) =>
+                            _assignedTechIds.contains(employee['id'] as String))
+                        .map((employee) =>
+                            (employee['full_name'] as String?)?.trim().isNotEmpty == true
+                                ? employee['full_name'] as String
+                                : 'Unnamed tech')
+                        .toList();
+
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        OutlinedButton.icon(
+                          onPressed: () => _pickTechnicians(employees),
+                          icon: const Icon(Icons.people_outline),
+                          label: Text(
+                            selectedNames.isEmpty
+                                ? l10n.reassignTech
+                                : 'Assigned (${selectedNames.length})',
+                          ),
+                        ),
+                        if (selectedNames.isNotEmpty) ...[
+                          const SizedBox(height: 8),
+                          Wrap(
+                            spacing: 8,
+                            runSpacing: 8,
+                            children: selectedNames
+                                .map((name) => Chip(label: Text(name)))
+                                .toList(),
+                          ),
+                        ] else
+                          Padding(
+                            padding: const EdgeInsets.only(top: 8),
+                            child: Text(
+                              'No technicians assigned',
+                              style: Theme.of(context)
+                                  .textTheme
+                                  .bodySmall
+                                  ?.copyWith(color: AppColors.textSecondary),
+                            ),
+                          ),
+                      ],
+                    );
+                  },
                 );
               }),
               const SizedBox(height: 12),
