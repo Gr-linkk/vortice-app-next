@@ -3,8 +3,7 @@ class AppConstants {
 
   // ── Supabase ──────────────────────────────────────────────────────────────
   static const String supabaseUrl = 'https://REDACTED.supabase.co';
-  static const String supabaseAnonKey =
-      'REDACTED_SUPABASE_KEY';
+  static const String supabaseAnonKey = 'REDACTED_SUPABASE_KEY';
 
   // ── Table names ────────────────────────────────────────────────────────────
   static const String tOrgCodes = 'org_codes';
@@ -25,11 +24,13 @@ class AppConstants {
   static const String tInvoices = 'invoices';
   static const String tMaintenanceRequests = 'maintenance_requests';
   static const String tOperatorChecklistRuns = 'operator_checklist_runs';
-  static const String tOperatorChecklistResponses = 'operator_checklist_responses';
+  static const String tOperatorChecklistResponses =
+      'operator_checklist_responses';
   static const String tServiceReminders = 'service_reminders';
   static const String tHourLogs = 'hour_logs';
   static const String tTelemetryReadings = 'telemetry_readings';
   static const String tTelemetryAlerts = 'telemetry_alerts';
+  static const String tDevices = 'devices';
   static const String tPmPartsRequirements = 'pm_parts_requirements';
   static const String tPartsInventory = 'parts_inventory';
   static const String tNotifications = 'notifications';

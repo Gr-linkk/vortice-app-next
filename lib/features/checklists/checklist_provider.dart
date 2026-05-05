@@ -5,6 +5,80 @@ import 'package:vortice_app/models/checklist_item.dart';
 import 'package:vortice_app/models/checklist_response.dart';
 import 'package:vortice_app/models/checklist_template.dart';
 
+class WorkOrderChecklistSnapshot {
+  final String workOrderId;
+  final String? templateId;
+  final int? templateVersion;
+  final String templateName;
+  final String? templateDescription;
+  final String checklistType;
+  final String? assetTypeId;
+  final int? intervalHours;
+  final String? intervalLabel;
+  final List<ChecklistItem> items;
+
+  const WorkOrderChecklistSnapshot({
+    required this.workOrderId,
+    required this.templateId,
+    required this.templateVersion,
+    required this.templateName,
+    required this.templateDescription,
+    required this.checklistType,
+    required this.assetTypeId,
+    required this.intervalHours,
+    required this.intervalLabel,
+    required this.items,
+  });
+
+  ChecklistTemplate asTemplate() => ChecklistTemplate(
+        id: templateId ?? 'snapshot:$workOrderId',
+        assetTypeId: assetTypeId,
+        checklistType: checklistType,
+        intervalHours: intervalHours,
+        intervalLabel: intervalLabel,
+        name: templateName,
+        description: templateDescription,
+        version: templateVersion ?? 1,
+        isActive: true,
+      );
+
+  factory WorkOrderChecklistSnapshot.fromJson(Map<String, dynamic> json) {
+    final itemsJson = (json['items_json'] as List?) ?? const [];
+    return WorkOrderChecklistSnapshot(
+      workOrderId: json['work_order_id'] as String,
+      templateId: json['template_id'] as String?,
+      templateVersion: (json['template_version'] as num?)?.toInt(),
+      templateName: json['template_name'] as String? ?? 'Checklist',
+      templateDescription: json['template_description'] as String?,
+      checklistType: json['checklist_type'] as String? ?? 'pm',
+      assetTypeId: json['asset_type_id'] as String?,
+      intervalHours: (json['interval_hours'] as num?)?.toInt(),
+      intervalLabel: json['interval_label'] as String?,
+      items: itemsJson
+          .whereType<Map>()
+          .map((raw) => Map<String, dynamic>.from(raw))
+          .map(ChecklistItem.fromJson)
+          .toList(),
+    );
+  }
+}
+
+final workOrderChecklistSnapshotProvider =
+    FutureProvider.family<WorkOrderChecklistSnapshot?, String>(
+        (ref, workOrderId) async {
+  try {
+    final data = await supabase
+        .from('work_order_checklist_snapshots')
+        .select()
+        .eq('work_order_id', workOrderId)
+        .maybeSingle();
+    if (data == null) return null;
+    return WorkOrderChecklistSnapshot.fromJson(data);
+  } catch (_) {
+    return null;
+  }
+});
+
 final checklistTemplatesProvider =
     FutureProvider<List<ChecklistTemplate>>((ref) async {
   final data = await supabase
@@ -102,9 +176,7 @@ class ChecklistController extends StateNotifier<AsyncValue<void>> {
               })
           .toList();
       if (rows.isNotEmpty) {
-        await supabase
-            .from(AppConstants.tChecklistResponses)
-            .insert(rows);
+        await supabase.from(AppConstants.tChecklistResponses).insert(rows);
       }
       _ref.invalidate(checklistResponsesProvider(workOrderId));
       _ref.invalidate(checklistHasResponsesProvider(workOrderId));

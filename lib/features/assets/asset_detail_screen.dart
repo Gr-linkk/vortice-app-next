@@ -6,6 +6,7 @@ import 'package:vortice_app/core/theme.dart';
 import 'package:vortice_app/features/assets/asset_provider.dart';
 import 'package:vortice_app/features/auth/auth_provider.dart';
 import 'package:vortice_app/features/engines/engine_provider.dart';
+import 'package:vortice_app/features/service_intervals/service_interval_provider.dart';
 import 'package:vortice_app/features/telemetry/telemetry_provider.dart';
 import 'package:vortice_app/features/telemetry/device_pairing_screen.dart';
 import 'package:vortice_app/features/subscription/tier_gate.dart';
@@ -13,6 +14,7 @@ import 'package:vortice_app/l10n/app_localizations.dart';
 import 'package:vortice_app/features/assets/edit_asset_screen.dart';
 import 'package:vortice_app/models/asset.dart';
 import 'package:vortice_app/models/asset_engine.dart';
+import 'package:vortice_app/models/asset_service_interval.dart';
 import 'package:vortice_app/features/clients/client_provider.dart';
 import 'package:vortice_app/models/profile.dart';
 import 'package:vortice_app/models/subscription_tier.dart';
@@ -69,8 +71,7 @@ class AssetDetailScreen extends ConsumerWidget {
                         TextButton(
                           onPressed: () => ctx.pop(true),
                           child: Text(l10n.delete,
-                              style:
-                                  const TextStyle(color: AppColors.error)),
+                              style: const TextStyle(color: AppColors.error)),
                         ),
                       ],
                     ),
@@ -188,12 +189,19 @@ class _AssetDetailBody extends ConsumerWidget {
         _DetailRow(label: l10n.serialNumber, value: asset.serialNumber),
         _DetailRow(label: l10n.year, value: asset.year?.toString()),
         _DetailRow(label: l10n.location, value: asset.location),
-        if (role == UserRole.owner)
-          _ClientAssignRow(asset: asset),
+        if (role == UserRole.owner) _ClientAssignRow(asset: asset),
         // Engines card (owner only)
         if (role == UserRole.owner) ...[
           const SizedBox(height: 16),
           _EnginesCard(assetId: asset.id, routePrefix: prefix),
+        ],
+        if (_canSeeMaintenancePlan(role)) ...[
+          const SizedBox(height: 16),
+          _MaintenancePlanCard(
+            assetId: asset.id,
+            routePrefix: prefix,
+            readOnly: role != UserRole.owner,
+          ),
         ],
         // Device status strip + Live Telemetry
         const SizedBox(height: 16),
@@ -281,6 +289,81 @@ class _EnginesCard extends ConsumerWidget {
   }
 }
 
+bool _canSeeMaintenancePlan(UserRole? role) => switch (role) {
+      UserRole.owner ||
+      UserRole.client ||
+      UserRole.clientAdmin ||
+      UserRole.clientMechanic =>
+        true,
+      _ => false,
+    };
+
+class _MaintenancePlanCard extends ConsumerWidget {
+  final String assetId;
+  final String routePrefix;
+  final bool readOnly;
+
+  const _MaintenancePlanCard({
+    required this.assetId,
+    required this.routePrefix,
+    required this.readOnly,
+  });
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final intervalsAsync = ref.watch(serviceIntervalsProvider(assetId));
+    final intervals = intervalsAsync.valueOrNull ?? <AssetServiceInterval>[];
+    final visibleCount = readOnly
+        ? intervals.where((interval) => interval.enabled).length
+        : intervals.length;
+    final withParts = intervals
+        .where((interval) =>
+            (!readOnly || interval.enabled) &&
+            interval.checklistTemplateId != null)
+        .length;
+    final route = readOnly
+        ? '$routePrefix/assets/$assetId/maintenance-plan'
+        : '$routePrefix/assets/$assetId/service-intervals';
+
+    return InkWell(
+      borderRadius: BorderRadius.circular(12),
+      onTap: () => context.push(route),
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: AppColors.surface,
+          borderRadius: BorderRadius.circular(12),
+          border: const Border.fromBorderSide(
+              BorderSide(color: AppColors.cardBorder)),
+        ),
+        child: Row(
+          children: [
+            const Icon(Icons.event_note_outlined, color: AppColors.primary),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(readOnly ? 'Parts & Maintenance' : 'Maintenance Plan',
+                      style: Theme.of(context).textTheme.titleSmall),
+                  Text(
+                    intervalsAsync.isLoading
+                        ? 'Loading intervals...'
+                        : '$visibleCount interval${visibleCount == 1 ? '' : 's'} • $withParts kit${withParts == 1 ? '' : 's'}',
+                    style: const TextStyle(
+                        color: AppColors.textSecondary, fontSize: 12),
+                  ),
+                ],
+              ),
+            ),
+            const Icon(Icons.chevron_right, color: AppColors.textSecondary),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 class _DetailRow extends StatelessWidget {
   final String label;
   final String? value;
@@ -299,13 +382,15 @@ class _DetailRow extends StatelessWidget {
             width: 120,
             child: Text(
               label,
-              style: const TextStyle(color: AppColors.textSecondary, fontSize: 13),
+              style:
+                  const TextStyle(color: AppColors.textSecondary, fontSize: 13),
             ),
           ),
           Expanded(
             child: Text(
               value!,
-              style: const TextStyle(color: AppColors.textPrimary, fontSize: 13),
+              style:
+                  const TextStyle(color: AppColors.textPrimary, fontSize: 13),
             ),
           ),
         ],
@@ -325,7 +410,8 @@ class _TelemetrySection extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context);
     final enginesAsync = ref.watch(enginesForAssetProvider(assetId));
-    final showTelemetry = hasTier(ref.watch(profileProvider).valueOrNull, SubscriptionTier.telemetry);
+    final showTelemetry = hasTier(
+        ref.watch(profileProvider).valueOrNull, SubscriptionTier.telemetry);
     return Column(
       children: [
         if (!showTelemetry)
@@ -339,12 +425,14 @@ class _TelemetrySection extends ConsumerWidget {
             ),
             child: Row(
               children: [
-                const Icon(Icons.lock_outline, color: AppColors.warning, size: 16),
+                const Icon(Icons.lock_outline,
+                    color: AppColors.warning, size: 16),
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
                     l10n.upgradeMessage(SubscriptionTier.telemetry.displayName),
-                    style: const TextStyle(color: AppColors.warning, fontSize: 12),
+                    style:
+                        const TextStyle(color: AppColors.warning, fontSize: 12),
                   ),
                 ),
               ],
@@ -356,8 +444,10 @@ class _TelemetrySection extends ConsumerWidget {
           ...enginesAsync.when(
             loading: () => const [],
             error: (_, __) => const [],
-            data: (engines) =>
-                engines.map((e) => _EngineTelemCard(engine: e, routePrefix: routePrefix)).toList(),
+            data: (engines) => engines
+                .map((e) =>
+                    _EngineTelemCard(engine: e, routePrefix: routePrefix))
+                .toList(),
           )
         else
           ...enginesAsync.when(
@@ -382,19 +472,23 @@ class _LimitedEngineCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: AppColors.surface,
         borderRadius: BorderRadius.circular(12),
-        border: const Border.fromBorderSide(BorderSide(color: AppColors.cardBorder)),
+        border: const Border.fromBorderSide(
+            BorderSide(color: AppColors.cardBorder)),
       ),
       child: Row(
         children: [
-          const Icon(Icons.engineering, color: AppColors.textSecondary, size: 18),
+          const Icon(Icons.engineering,
+              color: AppColors.textSecondary, size: 18),
           const SizedBox(width: 8),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(engine.label, style: Theme.of(context).textTheme.titleSmall),
+                Text(engine.label,
+                    style: Theme.of(context).textTheme.titleSmall),
                 Text(AppLocalizations.of(context).noTelemetry,
-                    style: const TextStyle(color: AppColors.textSecondary, fontSize: 12)),
+                    style: const TextStyle(
+                        color: AppColors.textSecondary, fontSize: 12)),
               ],
             ),
           ),
@@ -446,8 +540,8 @@ class _EngineTelemCard extends ConsumerWidget {
                   decoration: BoxDecoration(
                     color: AppColors.warning.withOpacity(0.2),
                     borderRadius: BorderRadius.circular(10),
-                    border: Border.all(
-                        color: AppColors.warning.withOpacity(0.5)),
+                    border:
+                        Border.all(color: AppColors.warning.withOpacity(0.5)),
                   ),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
@@ -510,8 +604,7 @@ class _EngineTelemCard extends ConsumerWidget {
                     runSpacing: 10,
                     children: [
                       if (reading.rpm != null)
-                        _TeleStat(l10n.rpm,
-                            reading.rpm!.toStringAsFixed(0)),
+                        _TeleStat(l10n.rpm, reading.rpm!.toStringAsFixed(0)),
                       if (reading.coolantTemp != null)
                         _TeleStat(l10n.coolantTemp,
                             '${reading.coolantTemp!.toStringAsFixed(1)}°C'),
@@ -537,8 +630,8 @@ class _EngineTelemCard extends ConsumerWidget {
           Align(
             alignment: Alignment.centerRight,
             child: TextButton.icon(
-              onPressed: () => context.push(
-                  '$routePrefix/engines/${engine.id}/telemetry'),
+              onPressed: () =>
+                  context.push('$routePrefix/engines/${engine.id}/telemetry'),
               icon: const Icon(Icons.history, size: 14),
               label: Text(l10n.telemetryHistory,
                   style: const TextStyle(fontSize: 12)),
@@ -564,7 +657,8 @@ class _ClientAssignRow extends ConsumerWidget {
       loading: () => const SizedBox.shrink(),
       error: (_, __) => const SizedBox.shrink(),
       data: (clients) {
-        final assigned = clients.where((c) => c.id == asset.clientId).firstOrNull;
+        final assigned =
+            clients.where((c) => c.id == asset.clientId).firstOrNull;
 
         return Padding(
           padding: const EdgeInsets.symmetric(vertical: 6),
@@ -575,21 +669,26 @@ class _ClientAssignRow extends ConsumerWidget {
                 width: 120,
                 child: Text(
                   'Client',
-                  style: const TextStyle(color: AppColors.textSecondary, fontSize: 13),
+                  style: const TextStyle(
+                      color: AppColors.textSecondary, fontSize: 13),
                 ),
               ),
               Expanded(
                 child: Text(
                   assigned?.fullName ?? 'Unassigned',
                   style: TextStyle(
-                    color: assigned != null ? AppColors.textPrimary : AppColors.textSecondary,
+                    color: assigned != null
+                        ? AppColors.textPrimary
+                        : AppColors.textSecondary,
                     fontSize: 13,
                   ),
                 ),
               ),
               TextButton(
-                style: TextButton.styleFrom(padding: const EdgeInsets.symmetric(horizontal: 8)),
-                onPressed: () => _showReassignSheet(context, ref, clients, asset.clientId),
+                style: TextButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(horizontal: 8)),
+                onPressed: () =>
+                    _showReassignSheet(context, ref, clients, asset.clientId),
                 child: const Text('Reassign', style: TextStyle(fontSize: 12)),
               ),
             ],
@@ -617,7 +716,8 @@ class _ClientAssignRow extends ConsumerWidget {
           children: [
             const SizedBox(height: 8),
             Container(
-              width: 40, height: 4,
+              width: 40,
+              height: 4,
               decoration: BoxDecoration(
                 color: AppColors.divider,
                 borderRadius: BorderRadius.circular(2),
@@ -630,26 +730,32 @@ class _ClientAssignRow extends ConsumerWidget {
             ),
             const Divider(height: 1),
             ...clients.map((client) => ListTile(
-              leading: CircleAvatar(
-                backgroundColor: AppColors.primary.withOpacity(0.1),
-                child: Text(
-                  client.fullName.isNotEmpty ? client.fullName[0].toUpperCase() : '?',
-                  style: const TextStyle(color: AppColors.primary, fontSize: 13),
-                ),
-              ),
-              title: Text(client.fullName),
-              subtitle: Text(client.email ?? '',
-                  style: const TextStyle(fontSize: 11, color: AppColors.textSecondary)),
-              trailing: client.id == currentClientId
-                  ? const Icon(Icons.check, color: AppColors.primary, size: 18)
-                  : null,
-              onTap: () async {
-                ctx.pop();
-                await ref.read(assetControllerProvider.notifier)
-                    .updateAsset(asset.id, {'client_id': client.id});
-                ref.invalidate(assetByIdProvider(asset.id));
-              },
-            )),
+                  leading: CircleAvatar(
+                    backgroundColor: AppColors.primary.withOpacity(0.1),
+                    child: Text(
+                      client.fullName.isNotEmpty
+                          ? client.fullName[0].toUpperCase()
+                          : '?',
+                      style: const TextStyle(
+                          color: AppColors.primary, fontSize: 13),
+                    ),
+                  ),
+                  title: Text(client.fullName),
+                  subtitle: Text(client.email ?? '',
+                      style: const TextStyle(
+                          fontSize: 11, color: AppColors.textSecondary)),
+                  trailing: client.id == currentClientId
+                      ? const Icon(Icons.check,
+                          color: AppColors.primary, size: 18)
+                      : null,
+                  onTap: () async {
+                    ctx.pop();
+                    await ref
+                        .read(assetControllerProvider.notifier)
+                        .updateAsset(asset.id, {'client_id': client.id});
+                    ref.invalidate(assetByIdProvider(asset.id));
+                  },
+                )),
             const SizedBox(height: 8),
           ],
         ),
@@ -669,8 +775,8 @@ class _TeleStat extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(label,
-            style: const TextStyle(
-                color: AppColors.textSecondary, fontSize: 10)),
+            style:
+                const TextStyle(color: AppColors.textSecondary, fontSize: 10)),
         Text(value,
             style: const TextStyle(
                 color: AppColors.primary,
@@ -706,7 +812,9 @@ class _DeviceStatusStrip extends ConsumerWidget {
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
-                    isOwner ? 'No telemetry device' : 'No telemetry device linked',
+                    isOwner
+                        ? 'No telemetry device'
+                        : 'No telemetry device linked',
                     style: const TextStyle(
                         color: AppColors.textSecondary, fontSize: 12),
                   ),
@@ -740,8 +848,9 @@ class _DeviceStatusStrip extends ConsumerWidget {
         }
 
         final lastSeenStr = device['last_seen'] as String?;
-        final lastSeen =
-            lastSeenStr != null ? DateTime.tryParse(lastSeenStr)?.toLocal() : null;
+        final lastSeen = lastSeenStr != null
+            ? DateTime.tryParse(lastSeenStr)?.toLocal()
+            : null;
         final isLive = lastSeen != null &&
             DateTime.now().difference(lastSeen).inMinutes < 5;
 
@@ -803,8 +912,8 @@ class _DeviceStatusStrip extends ConsumerWidget {
                 ),
                 const Text(
                   ' · No recent data',
-                  style: TextStyle(
-                      color: AppColors.textSecondary, fontSize: 12),
+                  style:
+                      TextStyle(color: AppColors.textSecondary, fontSize: 12),
                 ),
                 const Spacer(),
                 Text(

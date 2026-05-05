@@ -49,7 +49,8 @@ class _RouterNotifier extends ChangeNotifier {
   final Ref _ref;
 
   _RouterNotifier(this._ref) {
-    _ref.listen<AppAuthStatus>(authStatusProvider, (_, __) => notifyListeners());
+    _ref.listen<AppAuthStatus>(
+        authStatusProvider, (_, __) => notifyListeners());
   }
 }
 
@@ -63,10 +64,11 @@ String _dashboardFor(UserRole? role) => switch (role) {
       UserRole.owner => '/owner/dashboard',
       UserRole.employee => '/employee/dashboard',
       UserRole.client => '/client/dashboard',
-      UserRole.operator => '/client/dashboard',    // org-scoped operator dashboard
+      UserRole.operator => '/client/dashboard', // org-scoped operator dashboard
       UserRole.clientAdmin => '/client/dashboard',
       UserRole.clientMechanic => '/client/dashboard',
-      UserRole.clientOperator => '/client/dashboard', // legacy — same as operator
+      UserRole.clientOperator =>
+        '/client/dashboard', // legacy — same as operator
       null => '/login',
     };
 
@@ -113,38 +115,70 @@ final routerProvider = Provider<GoRouter>((ref) {
         ),
         routes: [
           // Owner
-          GoRoute(path: '/owner/dashboard', builder: (_, __) => const OwnerDashboard()),
-          GoRoute(path: '/owner/assets', builder: (_, __) => const AssetListScreen()),
-          GoRoute(path: '/owner/assets/add', builder: (_, __) => const AddAssetScreen()),
+          GoRoute(
+              path: '/owner/dashboard',
+              builder: (_, __) => const OwnerDashboard()),
+          GoRoute(
+              path: '/owner/assets',
+              builder: (_, __) => const AssetListScreen()),
+          GoRoute(
+              path: '/owner/assets/add',
+              builder: (_, __) => const AddAssetScreen()),
           GoRoute(
             path: '/owner/assets/:id',
-            builder: (_, state) => AssetDetailScreen(assetId: state.pathParameters['id']!),
+            builder: (_, state) =>
+                AssetDetailScreen(assetId: state.pathParameters['id']!),
           ),
-          GoRoute(path: '/owner/work-orders', builder: (_, __) => const WorkOrderListScreen()),
+          GoRoute(
+              path: '/owner/work-orders',
+              builder: (_, __) => const WorkOrderListScreen()),
           GoRoute(
             path: '/owner/work-orders/create',
-            builder: (_, __) => const CreateWorkOrderScreen(),
+            builder: (_, state) => CreateWorkOrderScreen(
+              initialAssetId: state.uri.queryParameters['assetId'],
+              initialChecklistTemplateId:
+                  state.uri.queryParameters['checklistTemplateId'],
+              initialTitle: state.uri.queryParameters['title'],
+              initialDescription: state.uri.queryParameters['description'],
+            ),
           ),
           GoRoute(
             path: '/owner/work-orders/:id',
             builder: (_, state) =>
                 WorkOrderDetailScreen(workOrderId: state.pathParameters['id']!),
           ),
-          GoRoute(path: '/owner/service-reports', builder: (_, __) => const ServiceReportListScreen()),
-          GoRoute(path: '/owner/service-reports/new', builder: (_, __) => const ServiceReportScreen()),
+          GoRoute(
+              path: '/owner/service-reports',
+              builder: (_, __) => const ServiceReportListScreen()),
+          GoRoute(
+              path: '/owner/service-reports/new',
+              builder: (_, __) => const ServiceReportScreen()),
           GoRoute(
             path: '/owner/service-reports/:id',
-            builder: (_, state) => ServiceReportDetailScreen(reportId: state.pathParameters['id']!),
+            builder: (_, state) => ServiceReportDetailScreen(
+                reportId: state.pathParameters['id']!),
           ),
-          GoRoute(path: '/owner/parts', builder: (_, __) => const OwnerPartsScreen()),
-          GoRoute(path: '/owner/invoices', builder: (_, __) => const InvoiceScreen()),
+          GoRoute(
+              path: '/owner/parts',
+              builder: (_, __) => const OwnerPartsScreen()),
+          GoRoute(
+              path: '/owner/invoices',
+              builder: (_, __) => const InvoiceScreen()),
           GoRoute(
             path: '/owner/invoices/:id',
-            builder: (_, state) => InvoiceDetailScreen(invoiceId: state.pathParameters['id']!),
+            builder: (_, state) =>
+                InvoiceDetailScreen(invoiceId: state.pathParameters['id']!),
           ),
           GoRoute(
             path: '/owner/assets/:id/engines',
-            builder: (_, state) => EngineScreen(assetId: state.pathParameters['id']!),
+            builder: (_, state) =>
+                EngineScreen(assetId: state.pathParameters['id']!),
+          ),
+          GoRoute(
+            path: '/owner/assets/:id/service-intervals',
+            builder: (_, state) => ServiceIntervalScreen(
+              assetId: state.pathParameters['id']!,
+            ),
           ),
           GoRoute(
             path: '/owner/engines/:engineId/hours',
@@ -159,15 +193,24 @@ final routerProvider = Provider<GoRouter>((ref) {
               engineId: state.pathParameters['engineId']!,
             ),
           ),
-          GoRoute(path: '/owner/clients', builder: (_, __) => const ClientScreen()),
-          GoRoute(path: '/owner/org-codes', builder: (_, __) => const OrgCodeScreen()),
-          GoRoute(path: '/owner/reminders', builder: (_, __) => const ReminderScreen()),
-          GoRoute(path: '/owner/notifications', builder: (_, __) => const NotificationsScreen()),
-          GoRoute(path: '/owner/parts/inventory', builder: (_, __) => const PartsInventoryScreen()),
+          GoRoute(
+              path: '/owner/clients', builder: (_, __) => const ClientScreen()),
+          GoRoute(
+              path: '/owner/org-codes',
+              builder: (_, __) => const OrgCodeScreen()),
+          GoRoute(
+              path: '/owner/reminders',
+              builder: (_, __) => const ReminderScreen()),
+          GoRoute(
+              path: '/owner/notifications',
+              builder: (_, __) => const NotificationsScreen()),
+          GoRoute(
+              path: '/owner/parts/inventory',
+              builder: (_, __) => const PartsInventoryScreen()),
           GoRoute(
             path: '/owner/checklists/:workOrderId',
-            builder: (_, state) =>
-                ChecklistScreen(workOrderId: state.pathParameters['workOrderId']!),
+            builder: (_, state) => ChecklistScreen(
+                workOrderId: state.pathParameters['workOrderId']!),
           ),
           GoRoute(
             path: '/owner/checklists/:templateId/parts',
@@ -178,11 +221,21 @@ final routerProvider = Provider<GoRouter>((ref) {
           ),
 
           // Employee
-          GoRoute(path: '/employee/dashboard', builder: (_, __) => const EmployeeDashboard()),
-          GoRoute(path: '/employee/work-orders', builder: (_, __) => const WorkOrderListScreen()),
+          GoRoute(
+              path: '/employee/dashboard',
+              builder: (_, __) => const EmployeeDashboard()),
+          GoRoute(
+              path: '/employee/work-orders',
+              builder: (_, __) => const WorkOrderListScreen()),
           GoRoute(
             path: '/employee/work-orders/create',
-            builder: (_, __) => const CreateWorkOrderScreen(),
+            builder: (_, state) => CreateWorkOrderScreen(
+              initialAssetId: state.uri.queryParameters['assetId'],
+              initialChecklistTemplateId:
+                  state.uri.queryParameters['checklistTemplateId'],
+              initialTitle: state.uri.queryParameters['title'],
+              initialDescription: state.uri.queryParameters['description'],
+            ),
           ),
           GoRoute(
             path: '/employee/work-orders/:id',
@@ -191,36 +244,64 @@ final routerProvider = Provider<GoRouter>((ref) {
           ),
           GoRoute(
             path: '/employee/checklists/:workOrderId',
-            builder: (_, state) =>
-                ChecklistScreen(workOrderId: state.pathParameters['workOrderId']!),
+            builder: (_, state) => ChecklistScreen(
+                workOrderId: state.pathParameters['workOrderId']!),
           ),
-          GoRoute(path: '/employee/service-reports', builder: (_, __) => const ServiceReportListScreen()),
-          GoRoute(path: '/employee/service-reports/new', builder: (_, __) => const ServiceReportScreen()),
+          GoRoute(
+              path: '/employee/service-reports',
+              builder: (_, __) => const ServiceReportListScreen()),
+          GoRoute(
+              path: '/employee/service-reports/new',
+              builder: (_, __) => const ServiceReportScreen()),
           GoRoute(
             path: '/employee/service-reports/:id',
-            builder: (_, state) => ServiceReportDetailScreen(reportId: state.pathParameters['id']!),
+            builder: (_, state) => ServiceReportDetailScreen(
+                reportId: state.pathParameters['id']!),
           ),
-          GoRoute(path: '/employee/parts', builder: (_, __) => const PartsLogScreen()),
-          GoRoute(path: '/employee/parts/inventory', builder: (_, __) => const PartsInventoryScreen()),
+          GoRoute(
+              path: '/employee/parts',
+              builder: (_, __) => const PartsLogScreen()),
+          GoRoute(
+              path: '/employee/parts/inventory',
+              builder: (_, __) => const PartsInventoryScreen()),
 
           // Client
-          GoRoute(path: '/client/dashboard', builder: (_, __) => const ClientDashboardRouter()),
-          GoRoute(path: '/meeting-request', builder: (_, __) => const MeetingRequestScreen()),
-          GoRoute(path: '/client/assets', builder: (_, __) => const AssetListScreen()),
+          GoRoute(
+              path: '/client/dashboard',
+              builder: (_, __) => const ClientDashboardRouter()),
+          GoRoute(
+              path: '/meeting-request',
+              builder: (_, __) => const MeetingRequestScreen()),
+          GoRoute(
+              path: '/client/assets',
+              builder: (_, __) => const AssetListScreen()),
           GoRoute(
             path: '/client/assets/:id',
-            builder: (_, state) => AssetDetailScreen(assetId: state.pathParameters['id']!),
+            builder: (_, state) =>
+                AssetDetailScreen(assetId: state.pathParameters['id']!),
           ),
-          GoRoute(path: '/client/work-orders', builder: (_, __) => const WorkOrderListScreen()),
+          GoRoute(
+            path: '/client/assets/:id/maintenance-plan',
+            builder: (_, state) => ServiceIntervalScreen(
+              assetId: state.pathParameters['id']!,
+              readOnly: true,
+            ),
+          ),
+          GoRoute(
+              path: '/client/work-orders',
+              builder: (_, __) => const WorkOrderListScreen()),
           GoRoute(
             path: '/client/work-orders/:id',
             builder: (_, state) =>
                 WorkOrderDetailScreen(workOrderId: state.pathParameters['id']!),
           ),
-          GoRoute(path: '/client/invoices', builder: (_, __) => const InvoiceScreen()),
+          GoRoute(
+              path: '/client/invoices',
+              builder: (_, __) => const InvoiceScreen()),
           GoRoute(
             path: '/client/invoices/:id',
-            builder: (_, state) => InvoiceDetailScreen(invoiceId: state.pathParameters['id']!),
+            builder: (_, state) =>
+                InvoiceDetailScreen(invoiceId: state.pathParameters['id']!),
           ),
           GoRoute(
             path: '/client/engines/:engineId/telemetry',
@@ -235,10 +316,13 @@ final routerProvider = Provider<GoRouter>((ref) {
               assetName: state.uri.queryParameters['name'] ?? 'Asset',
             ),
           ),
-          GoRoute(path: '/client/notifications', builder: (_, __) => const NotificationsScreen()),
+          GoRoute(
+              path: '/client/notifications',
+              builder: (_, __) => const NotificationsScreen()),
           GoRoute(
             path: '/client/service-reports/:id',
-            builder: (_, state) => ServiceReportDetailScreen(reportId: state.pathParameters['id']!),
+            builder: (_, state) => ServiceReportDetailScreen(
+                reportId: state.pathParameters['id']!),
           ),
           GoRoute(
             path: '/client/assets/:id/flags',
@@ -249,17 +333,22 @@ final routerProvider = Provider<GoRouter>((ref) {
           ),
 
           // Operator
-          GoRoute(path: '/operator/dashboard', builder: (_, __) => const OperatorDashboard()),
+          GoRoute(
+              path: '/operator/dashboard',
+              builder: (_, __) => const OperatorDashboard()),
           GoRoute(
             path: '/operator/checklist',
             builder: (_, state) => OperatorChecklistScreen(
               initialAssetId: state.uri.queryParameters['assetId'],
             ),
           ),
-          GoRoute(path: '/operator/flags', builder: (_, __) => const MaintenanceFlagScreen()),
+          GoRoute(
+              path: '/operator/flags',
+              builder: (_, __) => const MaintenanceFlagScreen()),
 
           // Org admin
-          GoRoute(path: '/org/admin', builder: (_, __) => const OrgAdminScreen()),
+          GoRoute(
+              path: '/org/admin', builder: (_, __) => const OrgAdminScreen()),
 
           // Service intervals (owner)
           GoRoute(
