@@ -33,8 +33,9 @@ class WorkOrderDetailScreen extends ConsumerWidget {
           if (isOwner)
             woAsync.whenOrNull(
                   data: (wo) {
-                    if (wo == null ||
-                        wo.status == WorkOrderStatus.closed) return null;
+                    if (wo == null || wo.status == WorkOrderStatus.closed) {
+                      return null;
+                    }
                     return IconButton(
                       icon: const Icon(Icons.edit),
                       tooltip: l10n.edit,
@@ -99,8 +100,7 @@ class _WorkOrderBody extends ConsumerWidget {
     final l10n = AppLocalizations.of(context);
     final isLoading = ref.watch(workOrderControllerProvider).isLoading;
     final isOwner = profile?.role == UserRole.owner;
-    final isOwnerOrEmployee =
-        isOwner || profile?.role == UserRole.employee;
+    final isOwnerOrEmployee = isOwner || profile?.role == UserRole.employee;
 
     // Fetch related names
     final assetNameAsync = ref.watch(assetNameProvider(workOrder.assetId));
@@ -129,9 +129,9 @@ class _WorkOrderBody extends ConsumerWidget {
         Container(
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: _statusColor().withOpacity(0.1),
+            color: _statusColor().withValues(alpha: 0.1),
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: _statusColor().withOpacity(0.4)),
+            border: Border.all(color: _statusColor().withValues(alpha: 0.4)),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -140,10 +140,9 @@ class _WorkOrderBody extends ConsumerWidget {
                   style: Theme.of(context).textTheme.titleMedium),
               const SizedBox(height: 4),
               Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                 decoration: BoxDecoration(
-                  color: _statusColor().withOpacity(0.2),
+                  color: _statusColor().withValues(alpha: 0.2),
                   borderRadius: BorderRadius.circular(4),
                 ),
                 child: Text(
@@ -188,9 +187,7 @@ class _WorkOrderBody extends ConsumerWidget {
               label: l10n.linkedAsset,
               value: '...'),
           error: (_, __) => _InfoRow(
-              icon: Icons.directions_boat,
-              label: l10n.linkedAsset,
-              value: '—'),
+              icon: Icons.directions_boat, label: l10n.linkedAsset, value: '—'),
           data: (name) => _InfoRow(
               icon: Icons.directions_boat,
               label: l10n.linkedAsset,
@@ -296,22 +293,6 @@ class _WorkOrderBody extends ConsumerWidget {
             value: workOrder.labourHours!.toStringAsFixed(1),
           ),
 
-        // Billable rate
-        if (workOrder.billableRate != null)
-          _InfoRow(
-            icon: Icons.attach_money,
-            label: l10n.billableRate,
-            value: '\$${workOrder.billableRate!.toStringAsFixed(2)}',
-          ),
-
-        // Wage rate — owner only
-        if (isOwner && workOrder.wageRate != null)
-          _InfoRow(
-            icon: Icons.payments_outlined,
-            label: l10n.wageRate,
-            value: '\$${workOrder.wageRate!.toStringAsFixed(2)}',
-          ),
-
         // Internal notes — owner/employee only
         if (isOwnerOrEmployee && workOrder.notesInternal != null) ...[
           const SizedBox(height: 12),
@@ -323,8 +304,7 @@ class _WorkOrderBody extends ConsumerWidget {
                 ?.copyWith(color: AppColors.warning, letterSpacing: 1.2),
           ),
           const SizedBox(height: 4),
-          Text(workOrder.notesInternal!,
-              style: const TextStyle(fontSize: 13)),
+          Text(workOrder.notesInternal!, style: const TextStyle(fontSize: 13)),
         ],
 
         // On-hold reason — only when on_hold
@@ -382,8 +362,7 @@ class _WorkOrderBody extends ConsumerWidget {
                   : () async {
                       final success = await ref
                           .read(workOrderControllerProvider.notifier)
-                          .updateStatus(
-                              workOrder.id, WorkOrderStatus.closed);
+                          .updateStatus(workOrder.id, WorkOrderStatus.closed);
                       if (success && context.mounted) context.pop();
                     },
               icon: const Icon(Icons.check),
@@ -414,12 +393,11 @@ class _WorkOrderBody extends ConsumerWidget {
             ),
             const SizedBox(height: 8),
             OutlinedButton.icon(
-              onPressed: () =>
-                  context.push('$prefix/service-reports'),
+              onPressed: () => context.push('$prefix/service-reports'),
               icon: const Icon(Icons.description_outlined),
               label: Text(l10n.serviceReport),
             ),
-            if (profile?.role == UserRole.employee) ...[              
+            if (profile?.role == UserRole.employee) ...[
               const SizedBox(height: 8),
               OutlinedButton.icon(
                 onPressed: () => showModalBottomSheet(
@@ -430,8 +408,7 @@ class _WorkOrderBody extends ConsumerWidget {
                     borderRadius:
                         BorderRadius.vertical(top: Radius.circular(16)),
                   ),
-                  builder: (_) =>
-                      _LogHoursSheet(workOrderId: workOrder.id),
+                  builder: (_) => _LogHoursSheet(workOrderId: workOrder.id),
                 ),
                 icon: const Icon(Icons.access_time),
                 label: Text(l10n.logHours),
@@ -487,8 +464,8 @@ class _WorkOrderBody extends ConsumerWidget {
           // Generate Invoice — owner only, when WO is pending review or completed
           if (isOwner &&
               (workOrder.status == WorkOrderStatus.pendingReview ||
-               workOrder.status == WorkOrderStatus.inProgress ||
-               workOrder.status == WorkOrderStatus.closed)) ...[
+                  workOrder.status == WorkOrderStatus.inProgress ||
+                  workOrder.status == WorkOrderStatus.closed)) ...[
             const SizedBox(height: 8),
             ElevatedButton.icon(
               onPressed: isLoading
@@ -538,8 +515,6 @@ class _EditWorkOrderSheetState extends ConsumerState<_EditWorkOrderSheet> {
   late final TextEditingController _hoursStartCtrl;
   late final TextEditingController _hoursEndCtrl;
   late final TextEditingController _labourCtrl;
-  late final TextEditingController _billableCtrl;
-  late final TextEditingController _wageCtrl;
   late final TextEditingController _notesCtrl;
   late final TextEditingController _onHoldCtrl;
   late DateTime? _scheduledDate;
@@ -556,11 +531,7 @@ class _EditWorkOrderSheetState extends ConsumerState<_EditWorkOrderSheet> {
         TextEditingController(text: wo.hoursAtStart?.toString() ?? '');
     _hoursEndCtrl =
         TextEditingController(text: wo.hoursAtEnd?.toString() ?? '');
-    _labourCtrl =
-        TextEditingController(text: wo.labourHours?.toString() ?? '');
-    _billableCtrl =
-        TextEditingController(text: wo.billableRate?.toString() ?? '');
-    _wageCtrl = TextEditingController(text: wo.wageRate?.toString() ?? '');
+    _labourCtrl = TextEditingController(text: wo.labourHours?.toString() ?? '');
     _notesCtrl = TextEditingController(text: wo.notesInternal ?? '');
     _onHoldCtrl = TextEditingController(text: wo.onHoldReason ?? '');
     _scheduledDate = wo.scheduledDate;
@@ -574,8 +545,6 @@ class _EditWorkOrderSheetState extends ConsumerState<_EditWorkOrderSheet> {
     _hoursStartCtrl.dispose();
     _hoursEndCtrl.dispose();
     _labourCtrl.dispose();
-    _billableCtrl.dispose();
-    _wageCtrl.dispose();
     _notesCtrl.dispose();
     _onHoldCtrl.dispose();
     super.dispose();
@@ -598,26 +567,24 @@ class _EditWorkOrderSheetState extends ConsumerState<_EditWorkOrderSheet> {
       'title': _titleCtrl.text.trim(),
       'description':
           _descCtrl.text.trim().isNotEmpty ? _descCtrl.text.trim() : null,
-      'assigned_to': _assignedTechIds.isNotEmpty ? _assignedTechIds.first : null,
+      'assigned_to':
+          _assignedTechIds.isNotEmpty ? _assignedTechIds.first : null,
       'scheduled_date': _scheduledDate?.toIso8601String(),
       'hours_at_start': double.tryParse(_hoursStartCtrl.text.trim()),
       'hours_at_end': double.tryParse(_hoursEndCtrl.text.trim()),
       'labour_hours': double.tryParse(_labourCtrl.text.trim()),
-      'billable_rate': double.tryParse(_billableCtrl.text.trim()),
-      'wage_rate': double.tryParse(_wageCtrl.text.trim()),
       'notes_internal':
           _notesCtrl.text.trim().isNotEmpty ? _notesCtrl.text.trim() : null,
       'on_hold_reason':
           _onHoldCtrl.text.trim().isNotEmpty ? _onHoldCtrl.text.trim() : null,
     };
 
-    final success = await ref
-        .read(workOrderControllerProvider.notifier)
-        .updateWorkOrder(
-          widget.workOrder.id,
-          data,
-          assignedProfileIds: _assignedTechIds,
-        );
+    final success =
+        await ref.read(workOrderControllerProvider.notifier).updateWorkOrder(
+              widget.workOrder.id,
+              data,
+              assignedProfileIds: _assignedTechIds,
+            );
 
     if (success && mounted) {
       Navigator.pop(context);
@@ -655,10 +622,12 @@ class _EditWorkOrderSheetState extends ConsumerState<_EditWorkOrderSheet> {
                           mainAxisSize: MainAxisSize.min,
                           children: employees.map((employee) {
                             final id = employee['id'] as String;
-                            final name =
-                                (employee['full_name'] as String?)?.trim().isNotEmpty == true
-                                    ? employee['full_name'] as String
-                                    : 'Unnamed tech';
+                            final name = (employee['full_name'] as String?)
+                                        ?.trim()
+                                        .isNotEmpty ==
+                                    true
+                                ? employee['full_name'] as String
+                                : 'Unnamed tech';
                             return CheckboxListTile(
                               value: selected.contains(id),
                               controlAffinity: ListTileControlAffinity.leading,
@@ -760,10 +729,12 @@ class _EditWorkOrderSheetState extends ConsumerState<_EditWorkOrderSheet> {
                     final selectedNames = employees
                         .where((employee) =>
                             _assignedTechIds.contains(employee['id'] as String))
-                        .map((employee) =>
-                            (employee['full_name'] as String?)?.trim().isNotEmpty == true
-                                ? employee['full_name'] as String
-                                : 'Unnamed tech')
+                        .map((employee) => (employee['full_name'] as String?)
+                                    ?.trim()
+                                    .isNotEmpty ==
+                                true
+                            ? employee['full_name'] as String
+                            : 'Unnamed tech')
                         .toList();
 
                     return Column(
@@ -828,8 +799,7 @@ class _EditWorkOrderSheetState extends ConsumerState<_EditWorkOrderSheet> {
                       controller: _hoursStartCtrl,
                       keyboardType:
                           const TextInputType.numberWithOptions(decimal: true),
-                      decoration:
-                          InputDecoration(labelText: l10n.hoursAtStart),
+                      decoration: InputDecoration(labelText: l10n.hoursAtStart),
                     ),
                   ),
                   const SizedBox(width: 12),
@@ -838,47 +808,17 @@ class _EditWorkOrderSheetState extends ConsumerState<_EditWorkOrderSheet> {
                       controller: _hoursEndCtrl,
                       keyboardType:
                           const TextInputType.numberWithOptions(decimal: true),
-                      decoration:
-                          InputDecoration(labelText: l10n.hoursAtEnd),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 12),
-              Row(
-                children: [
-                  Expanded(
-                    child: TextFormField(
-                      controller: _labourCtrl,
-                      keyboardType:
-                          const TextInputType.numberWithOptions(decimal: true),
-                      decoration:
-                          InputDecoration(labelText: l10n.labourHours),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: TextFormField(
-                      controller: _billableCtrl,
-                      keyboardType:
-                          const TextInputType.numberWithOptions(decimal: true),
-                      decoration: InputDecoration(
-                        labelText: l10n.billableRate,
-                        prefixText: '\$',
-                      ),
+                      decoration: InputDecoration(labelText: l10n.hoursAtEnd),
                     ),
                   ),
                 ],
               ),
               const SizedBox(height: 12),
               TextFormField(
-                controller: _wageCtrl,
+                controller: _labourCtrl,
                 keyboardType:
                     const TextInputType.numberWithOptions(decimal: true),
-                decoration: InputDecoration(
-                  labelText: l10n.wageRate,
-                  prefixText: '\$',
-                ),
+                decoration: InputDecoration(labelText: l10n.labourHours),
               ),
               const SizedBox(height: 12),
               TextFormField(
@@ -978,8 +918,7 @@ class _LogHoursSheetState extends ConsumerState<_LogHoursSheet> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Text(l10n.logHours,
-                style: Theme.of(context).textTheme.titleMedium),
+            Text(l10n.logHours, style: Theme.of(context).textTheme.titleMedium),
             const SizedBox(height: 16),
             TextFormField(
               controller: _hoursWorkedCtrl,
@@ -1110,8 +1049,7 @@ class _PmKitSection extends ConsumerWidget {
               ),
             ),
             ...parts.take(5).map((part) => Padding(
-                  padding:
-                      const EdgeInsets.fromLTRB(16, 4, 16, 4),
+                  padding: const EdgeInsets.fromLTRB(16, 4, 16, 4),
                   child: Row(
                     children: [
                       const Icon(Icons.circle,
@@ -1127,15 +1065,13 @@ class _PmKitSection extends ConsumerWidget {
                         Text(
                           part.partNumber!,
                           style: const TextStyle(
-                              color: AppColors.textSecondary,
-                              fontSize: 11),
+                              color: AppColors.textSecondary, fontSize: 11),
                         ),
                       const SizedBox(width: 8),
                       Text(
                         '${part.qty} ${part.unit ?? 'ea'}',
                         style: const TextStyle(
-                            fontWeight: FontWeight.w600,
-                            fontSize: 12),
+                            fontWeight: FontWeight.w600, fontSize: 12),
                       ),
                     ],
                   ),

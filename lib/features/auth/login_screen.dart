@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 import 'package:vortice_app/l10n/app_localizations.dart';
 import 'package:vortice_app/core/theme.dart';
 import 'package:vortice_app/features/auth/auth_provider.dart';
@@ -10,14 +9,54 @@ const bool kDevMode = false;
 
 // Test account credentials (dev only)
 const _devAccounts = [
-  {'label': '1 · Owner',              'email': 'owner@vortice.dev',           'password': '<REDACTED_TEST_PASSWORD>', 'color': 0xFF1A6B3C},
-  {'label': '2 · Tech',               'email': 'tech@vortice.dev',            'password': '<REDACTED_TEST_PASSWORD>', 'color': 0xFF1565C0},
-  {'label': '3 · Client (Managed)',    'email': 'client@vortice.dev',          'password': '<REDACTED_TEST_PASSWORD>', 'color': 0xFF6A1B9A},
-  {'label': '4 · Operator',           'email': 'operator@vortice.dev',        'password': '<REDACTED_TEST_PASSWORD>', 'color': 0xFFE65100},
-  {'label': '5 · Planning Tier',      'email': 'client_planning@vortice.dev', 'password': '<REDACTED_TEST_PASSWORD>', 'color': 0xFF00838F},
-  {'label': '6 · Paradise Marina',    'email': 'paradise@vortice.dev',        'password': '<REDACTED_TEST_PASSWORD>', 'color': 0xFF004527},
-  {'label': '7 · Client Mechanic',    'email': 'client_mechanic@vortice.dev', 'password': '<REDACTED_TEST_PASSWORD>', 'color': 0xFF4527A0},
-  {'label': '8 · Operator (org)',     'email': 'client_operator@vortice.dev', 'password': '<REDACTED_TEST_PASSWORD>', 'color': 0xFFBF360C},
+  {
+    'label': '1 · Owner',
+    'email': 'owner@vortice.dev',
+    'password': '<REDACTED_TEST_PASSWORD>',
+    'color': 0xFF1A6B3C
+  },
+  {
+    'label': '2 · Tech',
+    'email': 'tech@vortice.dev',
+    'password': '<REDACTED_TEST_PASSWORD>',
+    'color': 0xFF1565C0
+  },
+  {
+    'label': '3 · Client (Managed)',
+    'email': 'client@vortice.dev',
+    'password': '<REDACTED_TEST_PASSWORD>',
+    'color': 0xFF6A1B9A
+  },
+  {
+    'label': '4 · Operator',
+    'email': 'operator@vortice.dev',
+    'password': '<REDACTED_TEST_PASSWORD>',
+    'color': 0xFFE65100
+  },
+  {
+    'label': '5 · Planning Tier',
+    'email': 'client_planning@vortice.dev',
+    'password': '<REDACTED_TEST_PASSWORD>',
+    'color': 0xFF00838F
+  },
+  {
+    'label': '6 · Paradise Marina',
+    'email': 'paradise@vortice.dev',
+    'password': '<REDACTED_TEST_PASSWORD>',
+    'color': 0xFF004527
+  },
+  {
+    'label': '7 · Client Mechanic',
+    'email': 'client_mechanic@vortice.dev',
+    'password': '<REDACTED_TEST_PASSWORD>',
+    'color': 0xFF4527A0
+  },
+  {
+    'label': '8 · Operator (org)',
+    'email': 'client_operator@vortice.dev',
+    'password': '<REDACTED_TEST_PASSWORD>',
+    'color': 0xFFBF360C
+  },
 ];
 
 class LoginScreen extends ConsumerStatefulWidget {
@@ -32,22 +71,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   final _emailCtrl = TextEditingController();
   final _passwordCtrl = TextEditingController();
   bool _obscurePassword = true;
-  int _logoTaps = 0;
-  DateTime? _lastTap;
-
   void _handleLogoTap() {
-    // 5 rapid taps opens the dev login panel
-    final now = DateTime.now();
-    if (_lastTap != null && now.difference(_lastTap!) > const Duration(milliseconds: 800)) {
-      _logoTaps = 0;
-    }
-    _logoTaps++;
-    _lastTap = now;
-
-    if (_logoTaps >= 5) {
-      _logoTaps = 0;
-      _showDevPanel();
-    }
+    // One tap opens the dev login panel for local debug builds.
+    _showDevPanel();
   }
 
   void _showDevPanel() {
@@ -63,7 +89,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
           children: [
             const SizedBox(height: 8),
             Container(
-              width: 40, height: 4,
+              width: 40,
+              height: 4,
               decoration: BoxDecoration(
                 color: AppColors.divider,
                 borderRadius: BorderRadius.circular(2),
@@ -71,28 +98,38 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
             ),
             const Padding(
               padding: EdgeInsets.fromLTRB(16, 16, 16, 8),
-              child: Text('Dev Login', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, letterSpacing: 0.5)),
+              child: Text('Dev Login',
+                  style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                      letterSpacing: 0.5)),
             ),
             const Divider(height: 1),
             ..._devAccounts.map((acct) => ListTile(
-              leading: CircleAvatar(
-                backgroundColor: Color(acct['color'] as int).withOpacity(0.15),
-                child: Text(
-                  (acct['label'] as String).split('·').first.trim(),
-                  style: TextStyle(color: Color(acct['color'] as int), fontSize: 12, fontWeight: FontWeight.bold),
-                ),
-              ),
-              title: Text(acct['label'] as String,
-                  style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500)),
-              subtitle: Text(acct['email'] as String,
-                  style: const TextStyle(fontSize: 11, color: AppColors.textSecondary)),
-              onTap: () {
-                Navigator.pop(ctx);
-                _emailCtrl.text = acct['email'] as String;
-                _passwordCtrl.text = acct['password'] as String;
-                _submit();
-              },
-            )),
+                  leading: CircleAvatar(
+                    backgroundColor:
+                        Color(acct['color'] as int).withOpacity(0.15),
+                    child: Text(
+                      (acct['label'] as String).split('·').first.trim(),
+                      style: TextStyle(
+                          color: Color(acct['color'] as int),
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold),
+                    ),
+                  ),
+                  title: Text(acct['label'] as String,
+                      style: const TextStyle(
+                          fontSize: 14, fontWeight: FontWeight.w500)),
+                  subtitle: Text(acct['email'] as String,
+                      style: const TextStyle(
+                          fontSize: 11, color: AppColors.textSecondary)),
+                  onTap: () {
+                    Navigator.pop(ctx);
+                    _emailCtrl.text = acct['email'] as String;
+                    _passwordCtrl.text = acct['password'] as String;
+                    _submit();
+                  },
+                )),
             const SizedBox(height: 8),
           ],
         ),
@@ -130,7 +167,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       Center(
         child: Text(
           'DEV — Quick Login',
-          style: TextStyle(fontSize: 11, color: Colors.grey.shade500, letterSpacing: 1.2),
+          style: TextStyle(
+              fontSize: 11, color: Colors.grey.shade500, letterSpacing: 1.2),
         ),
       ),
       const SizedBox(height: 10),
@@ -144,15 +182,15 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
               backgroundColor: Color(acct['color'] as int),
               foregroundColor: Colors.white,
               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-              textStyle: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+              textStyle:
+                  const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
               minimumSize: Size.zero,
             ),
             onPressed: ref.read(authControllerProvider).isLoading
                 ? null
                 : () async {
-                    await ref
-                        .read(authControllerProvider.notifier)
-                        .signIn(acct['email'] as String, acct['password'] as String);
+                    await ref.read(authControllerProvider.notifier).signIn(
+                        acct['email'] as String, acct['password'] as String);
                     final authState = ref.read(authControllerProvider);
                     if (authState.hasError && mounted) {
                       ScaffoldMessenger.of(context).showSnackBar(
@@ -188,41 +226,35 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 child: Column(
                   children: [
                     GestureDetector(
+                      behavior: HitTestBehavior.opaque,
                       onTap: _handleLogoTap,
-                      child: Container(
-                        width: 80,
-                        height: 80,
-                        decoration: BoxDecoration(
-                          color: AppColors.primary,
-                          borderRadius: BorderRadius.circular(20),
-                        ),
-                        child: Stack(
-                          clipBehavior: Clip.none,
-                          children: [
-                            const Center(child: Icon(Icons.engineering, size: 48, color: Colors.white)),
-                            if (_logoTaps > 0)
-                              Positioned(
-                                right: -2,
-                                top: -2,
-                                child: Container(
-                                  width: 10,
-                                  height: 10,
-                                  decoration: const BoxDecoration(
-                                    color: AppColors.primary,
-                                    shape: BoxShape.circle,
-                                  ),
-                                ),
-                              ),
-                          ],
+                      child: Padding(
+                        padding: const EdgeInsets.all(12),
+                        child: Container(
+                          width: 80,
+                          height: 80,
+                          decoration: BoxDecoration(
+                            color: AppColors.primary,
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                          child: Stack(
+                            clipBehavior: Clip.none,
+                            children: [
+                              const Center(
+                                  child: Icon(Icons.engineering,
+                                      size: 48, color: Colors.white)),
+                            ],
+                          ),
                         ),
                       ),
                     ),
                     const SizedBox(height: 20),
                     Text(
                       'Vórtice Mechanical',
-                      style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                            fontWeight: FontWeight.bold,
-                          ),
+                      style:
+                          Theme.of(context).textTheme.headlineSmall?.copyWith(
+                                fontWeight: FontWeight.bold,
+                              ),
                     ),
                     const SizedBox(height: 6),
                     Text(
@@ -251,7 +283,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                         prefixIcon: const Icon(Icons.email_outlined),
                       ),
                       validator: (v) {
-                        if (v == null || v.trim().isEmpty) return l10n.fieldRequired;
+                        if (v == null || v.trim().isEmpty)
+                          return l10n.fieldRequired;
                         if (!v.contains('@')) return l10n.invalidEmail;
                         return null;
                       },
@@ -270,8 +303,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                           icon: Icon(_obscurePassword
                               ? Icons.visibility_outlined
                               : Icons.visibility_off_outlined),
-                          onPressed: () =>
-                              setState(() => _obscurePassword = !_obscurePassword),
+                          onPressed: () => setState(
+                              () => _obscurePassword = !_obscurePassword),
                         ),
                       ),
                       validator: (v) {

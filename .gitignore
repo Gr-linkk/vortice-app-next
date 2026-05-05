@@ -34,3 +34,7 @@ ios/Runner.xcworkspace/xcuserdata/
 # Credentials — never commit these
 *.env
 .env.*
+
+# Local reconciliation/export artifacts
+*.bundle
+supabase/.temp/

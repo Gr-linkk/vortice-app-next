@@ -5,6 +5,7 @@ import 'package:vortice_app/l10n/app_localizations.dart';
 import 'package:vortice_app/core/theme.dart';
 import 'package:vortice_app/features/assets/asset_provider.dart';
 import 'package:vortice_app/features/assets/asset_type_provider.dart';
+import 'package:vortice_app/features/engines/engine_screen.dart';
 import 'package:vortice_app/models/asset.dart';
 
 class EditAssetScreen extends ConsumerStatefulWidget {
@@ -58,12 +59,10 @@ class _EditAssetScreenState extends ConsumerState<EditAssetScreen> {
     final data = <String, dynamic>{
       'name': _nameCtrl.text.trim(),
       'asset_type_id': _selectedAssetTypeId,
-      'serial_number': _serialCtrl.text.trim().isNotEmpty
-          ? _serialCtrl.text.trim()
-          : null,
-      'model': _modelCtrl.text.trim().isNotEmpty
-          ? _modelCtrl.text.trim()
-          : null,
+      'serial_number':
+          _serialCtrl.text.trim().isNotEmpty ? _serialCtrl.text.trim() : null,
+      'model':
+          _modelCtrl.text.trim().isNotEmpty ? _modelCtrl.text.trim() : null,
       'make': _manufacturerCtrl.text.trim().isNotEmpty
           ? _manufacturerCtrl.text.trim()
           : null,
@@ -73,9 +72,8 @@ class _EditAssetScreenState extends ConsumerState<EditAssetScreen> {
       'location': _locationCtrl.text.trim().isNotEmpty
           ? _locationCtrl.text.trim()
           : null,
-      'notes': _notesCtrl.text.trim().isNotEmpty
-          ? _notesCtrl.text.trim()
-          : null,
+      'notes':
+          _notesCtrl.text.trim().isNotEmpty ? _notesCtrl.text.trim() : null,
     };
 
     final success = await ref
@@ -206,6 +204,19 @@ class _EditAssetScreenState extends ConsumerState<EditAssetScreen> {
                   labelText: l10n.notes,
                   alignLabelWithHint: true,
                 ),
+              ),
+              const SizedBox(height: 24),
+              OutlinedButton.icon(
+                onPressed: () async {
+                  await Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => EngineScreen(assetId: widget.asset.id),
+                    ),
+                  );
+                },
+                icon: const Icon(Icons.engineering),
+                label: const Text('Manage engines / positions'),
               ),
               const SizedBox(height: 32),
               ElevatedButton(

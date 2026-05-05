@@ -1,10 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:vortice_app/core/constants.dart';
 import 'package:vortice_app/core/supabase_client.dart';
 import 'package:vortice_app/core/theme.dart';
-import 'package:vortice_app/models/telemetry_reading.dart';
+import 'package:vortice_app/features/telemetry/telemetry_provider.dart';
 
 // ── Providers ─────────────────────────────────────────────────────────────────
 
@@ -12,37 +11,7 @@ import 'package:vortice_app/models/telemetry_reading.dart';
 /// Returns null if no device is paired.
 final devicesProvider =
     FutureProvider.family<Map<String, dynamic>?, String>((ref, assetId) async {
-  final data = await supabase
-      .from('devices')
-      .select()
-      .eq('asset_id', assetId)
-      .maybeSingle();
-  return data;
-});
-
-/// Fetches the latest telemetry reading for an asset via its first engine.
-final latestTelemetryForAssetProvider =
-    FutureProvider.family<TelemetryReading?, String>((ref, assetId) async {
-  final engineData = await supabase
-      .from(AppConstants.tAssetEngines)
-      .select('id')
-      .eq('asset_id', assetId)
-      .limit(1)
-      .maybeSingle();
-
-  if (engineData == null) return null;
-  final engineId = engineData['id'] as String;
-
-  final data = await supabase
-      .from(AppConstants.tTelemetryReadings)
-      .select()
-      .eq('engine_id', engineId)
-      .order('ts', ascending: false)
-      .limit(1)
-      .maybeSingle();
-
-  if (data == null) return null;
-  return TelemetryReading.fromJson(data as Map<String, dynamic>);
+  return ref.watch(telemetryRepositoryProvider).deviceForAsset(assetId);
 });
 
 // ── DevicePairingSheet ────────────────────────────────────────────────────────
@@ -81,37 +50,17 @@ class _DevicePairingSheetState extends ConsumerState<DevicePairingSheet> {
     setState(() => _loading = true);
 
     try {
-      // Look up device by pairing code where asset_id IS NULL (not yet linked)
-      final data = await supabase
-          .from('devices')
-          .select()
-          .eq('pairing_code', code)
-          .isFilter('asset_id', null)
-          .maybeSingle();
+      final userId = supabase.auth.currentUser?.id;
+      final result = await ref.read(telemetryRepositoryProvider).pairDevice(
+            assetId: widget.assetId,
+            pairingCode: code,
+            linkedBy: userId,
+          );
 
-      if (data == null) {
-        // Check if a device with this code exists but is already linked
-        final existing = await supabase
-            .from('devices')
-            .select('asset_id')
-            .eq('pairing_code', code)
-            .maybeSingle();
-
-        if (existing != null && existing['asset_id'] != null) {
-          _showError('This device is already linked to another asset.');
-        } else {
-          _showError('Code not found. Check the code on your Pi unit.');
-        }
+      if (!result.linked) {
+        _showError(result.errorMessage ?? 'Unable to link this device.');
         return;
       }
-
-      // Update device with asset_id and linked_at
-      final userId = supabase.auth.currentUser?.id;
-      await supabase.from('devices').update({
-        'asset_id': widget.assetId,
-        'linked_at': DateTime.now().toIso8601String(),
-        if (userId != null) 'linked_by': userId,
-      }).eq('id', data['id'] as String);
 
       ref.invalidate(devicesProvider(widget.assetId));
 

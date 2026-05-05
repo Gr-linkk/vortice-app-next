@@ -7,6 +7,7 @@ import 'package:vortice_app/features/assets/asset_provider.dart';
 import 'package:vortice_app/features/assets/asset_type_provider.dart';
 import 'package:vortice_app/features/auth/auth_provider.dart';
 import 'package:vortice_app/features/clients/client_provider.dart';
+import 'package:vortice_app/features/engines/engine_kind_options.dart';
 import 'package:vortice_app/features/engines/engine_provider.dart';
 import 'package:vortice_app/models/profile.dart';
 
@@ -27,13 +28,12 @@ class _AddAssetScreenState extends ConsumerState<AddAssetScreen> {
   final _locationCtrl = TextEditingController();
   final _notesCtrl = TextEditingController();
   // Engine fields
-  final _engineLabelCtrl = TextEditingController();
   final _engineMakeCtrl = TextEditingController();
   final _engineModelCtrl = TextEditingController();
   final _engineSerialCtrl = TextEditingController();
-  final _engineHoursCtrl = TextEditingController();
   String? _selectedAssetTypeId;
   String? _selectedClientId;
+  String _engineKind = 'main';
 
   @override
   void dispose() {
@@ -44,11 +44,9 @@ class _AddAssetScreenState extends ConsumerState<AddAssetScreen> {
     _yearCtrl.dispose();
     _locationCtrl.dispose();
     _notesCtrl.dispose();
-    _engineLabelCtrl.dispose();
     _engineMakeCtrl.dispose();
     _engineModelCtrl.dispose();
     _engineSerialCtrl.dispose();
-    _engineHoursCtrl.dispose();
     super.dispose();
   }
 
@@ -61,12 +59,10 @@ class _AddAssetScreenState extends ConsumerState<AddAssetScreen> {
       'name': _nameCtrl.text.trim(),
       'client_id': _selectedClientId ?? profile?.id,
       'asset_type_id': _selectedAssetTypeId,
-      'serial_number': _serialCtrl.text.trim().isNotEmpty
-          ? _serialCtrl.text.trim()
-          : null,
-      'model': _modelCtrl.text.trim().isNotEmpty
-          ? _modelCtrl.text.trim()
-          : null,
+      'serial_number':
+          _serialCtrl.text.trim().isNotEmpty ? _serialCtrl.text.trim() : null,
+      'model':
+          _modelCtrl.text.trim().isNotEmpty ? _modelCtrl.text.trim() : null,
       'make': _manufacturerCtrl.text.trim().isNotEmpty
           ? _manufacturerCtrl.text.trim()
           : null,
@@ -76,17 +72,19 @@ class _AddAssetScreenState extends ConsumerState<AddAssetScreen> {
       'location': _locationCtrl.text.trim().isNotEmpty
           ? _locationCtrl.text.trim()
           : null,
-      'notes': _notesCtrl.text.trim().isNotEmpty
-          ? _notesCtrl.text.trim()
-          : null,
+      'notes':
+          _notesCtrl.text.trim().isNotEmpty ? _notesCtrl.text.trim() : null,
     };
 
-    final success = await ref
-        .read(assetControllerProvider.notifier)
-        .createAsset(data);
+    final success =
+        await ref.read(assetControllerProvider.notifier).createAsset(data);
 
-    // If asset created and engine fields filled, also create the engine
-    if (success && _engineLabelCtrl.text.trim().isNotEmpty) {
+    final hasEngineDetails = _engineMakeCtrl.text.trim().isNotEmpty ||
+        _engineModelCtrl.text.trim().isNotEmpty ||
+        _engineSerialCtrl.text.trim().isNotEmpty;
+
+    // If asset created and engine details were provided, also create the engine
+    if (success && hasEngineDetails) {
       // Fetch the newly created asset to get its ID
       final assets = await ref.refresh(assetsProvider.future);
       final newAsset = assets.firstWhere(
@@ -95,8 +93,8 @@ class _AddAssetScreenState extends ConsumerState<AddAssetScreen> {
       );
       await ref.read(engineControllerProvider.notifier).addEngine({
         'asset_id': newAsset.id,
-        'label': _engineLabelCtrl.text.trim(),
-        'kind': 'main',
+        'label': suggestedEngineLabel(_engineKind),
+        'kind': _engineKind,
         'make': _engineMakeCtrl.text.trim().isNotEmpty
             ? _engineMakeCtrl.text.trim()
             : null,
@@ -106,7 +104,6 @@ class _AddAssetScreenState extends ConsumerState<AddAssetScreen> {
         'serial_number': _engineSerialCtrl.text.trim().isNotEmpty
             ? _engineSerialCtrl.text.trim()
             : null,
-        'current_hours': double.tryParse(_engineHoursCtrl.text.trim()) ?? 0,
       });
     }
 
@@ -260,14 +257,23 @@ class _AddAssetScreenState extends ConsumerState<AddAssetScreen> {
                     color: AppColors.textSecondary, fontSize: 12),
               ),
               const SizedBox(height: 12),
-              TextFormField(
-                controller: _engineLabelCtrl,
-                textCapitalization: TextCapitalization.words,
-                decoration: InputDecoration(
-                  labelText: l10n.engineLabel,
-                  prefixIcon: const Icon(Icons.engineering),
-                  hintText: 'e.g. Main Engine, Port Engine',
+              DropdownButtonFormField<String>(
+                value: _engineKind,
+                decoration: const InputDecoration(
+                  labelText: 'Title',
+                  prefixIcon: Icon(Icons.engineering),
                 ),
+                dropdownColor: AppColors.surfaceVariant,
+                items: kEngineKindOptions
+                    .map((option) => DropdownMenuItem(
+                          value: option.value,
+                          child: Text(option.suggestedLabel),
+                        ))
+                    .toList(),
+                onChanged: (value) {
+                  if (value == null) return;
+                  setState(() => _engineKind = value);
+                },
               ),
               const SizedBox(height: 12),
               Row(
@@ -276,16 +282,14 @@ class _AddAssetScreenState extends ConsumerState<AddAssetScreen> {
                     child: TextFormField(
                       controller: _engineMakeCtrl,
                       textCapitalization: TextCapitalization.words,
-                      decoration: InputDecoration(
-                          labelText: l10n.manufacturer),
+                      decoration: InputDecoration(labelText: l10n.manufacturer),
                     ),
                   ),
                   const SizedBox(width: 12),
                   Expanded(
                     child: TextFormField(
                       controller: _engineModelCtrl,
-                      decoration:
-                          InputDecoration(labelText: l10n.model),
+                      decoration: InputDecoration(labelText: l10n.model),
                     ),
                   ),
                 ],
@@ -296,18 +300,17 @@ class _AddAssetScreenState extends ConsumerState<AddAssetScreen> {
                   Expanded(
                     child: TextFormField(
                       controller: _engineSerialCtrl,
-                      decoration: InputDecoration(
-                          labelText: l10n.serialNumber),
+                      decoration: InputDecoration(labelText: l10n.serialNumber),
                     ),
                   ),
                   const SizedBox(width: 12),
-                  Expanded(
-                    child: TextFormField(
-                      controller: _engineHoursCtrl,
-                      keyboardType:
-                          const TextInputType.numberWithOptions(decimal: true),
-                      decoration: InputDecoration(
-                          labelText: l10n.currentHours),
+                  const Expanded(
+                    child: Text(
+                      'Hours will come from the latest work order.',
+                      style: TextStyle(
+                        color: AppColors.textSecondary,
+                        fontSize: 12,
+                      ),
                     ),
                   ),
                 ],

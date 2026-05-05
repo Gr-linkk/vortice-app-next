@@ -3,7 +3,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:vortice_app/l10n/app_localizations.dart';
 import 'package:vortice_app/core/theme.dart';
+import 'package:vortice_app/features/engines/engine_kind_options.dart';
 import 'package:vortice_app/features/engines/engine_provider.dart';
+import 'package:vortice_app/features/work_orders/work_order_provider.dart';
 import 'package:vortice_app/models/asset_engine.dart';
 
 class EngineScreen extends ConsumerWidget {
@@ -50,12 +52,18 @@ class EngineScreen extends ConsumerWidget {
               itemCount: engines.length,
               itemBuilder: (_, i) => _EngineTile(
                 engine: engines[i],
-                onTap: () => context.push(
-                    '/owner/engines/${engines[i].id}/hours?assetId=$assetId'),
-                onEdit: () => _showEngineSheet(
-                    context, ref, l10n, assetId, engines[i]),
-                onDelete: () => _confirmDelete(
-                    context, ref, l10n, engines[i]),
+                onTap: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => _EngineDetailScreen(
+                      assetId: assetId,
+                      engine: engines[i],
+                    ),
+                  ),
+                ),
+                onEdit: () =>
+                    _showEngineSheet(context, ref, l10n, assetId, engines[i]),
+                onDelete: () => _confirmDelete(context, ref, l10n, engines[i]),
               ),
             ),
           );
@@ -84,8 +92,8 @@ class EngineScreen extends ConsumerWidget {
           ),
           TextButton(
             onPressed: () => ctx.pop(true),
-            child:
-                Text(l10n.delete, style: const TextStyle(color: AppColors.error)),
+            child: Text(l10n.delete,
+                style: const TextStyle(color: AppColors.error)),
           ),
         ],
       ),
@@ -114,7 +122,142 @@ class EngineScreen extends ConsumerWidget {
   }
 }
 
-class _EngineTile extends StatelessWidget {
+class _EngineDetailScreen extends ConsumerWidget {
+  final String assetId;
+  final AssetEngine engine;
+
+  const _EngineDetailScreen({
+    required this.assetId,
+    required this.engine,
+  });
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context);
+    return Scaffold(
+      appBar: AppBar(
+        title: Text(engine.label),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.edit),
+            tooltip: l10n.edit,
+            onPressed: () {
+              showModalBottomSheet(
+                context: context,
+                isScrollControlled: true,
+                backgroundColor: AppColors.surface,
+                shape: const RoundedRectangleBorder(
+                  borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+                ),
+                builder: (ctx) => _EngineForm(
+                  assetId: assetId,
+                  engine: engine,
+                ),
+              );
+            },
+          ),
+        ],
+      ),
+      body: ListView(
+        padding: const EdgeInsets.all(16),
+        children: [
+          Text(
+            engineKindLabel(engine.kind),
+            style: const TextStyle(
+              color: AppColors.primary,
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              letterSpacing: 0.6,
+            ),
+          ),
+          const SizedBox(height: 16),
+          _EngineInfoRow(label: 'Label', value: engine.label),
+          _EngineInfoRow(label: 'Manufacturer', value: engine.make),
+          _EngineInfoRow(label: 'Model', value: engine.model),
+          _EngineInfoRow(label: 'Serial Number', value: engine.serialNumber),
+          ref.watch(latestEngineHoursProvider(engine.id)).when(
+                loading: () => const _EngineInfoRow(
+                  label: 'Latest Work Order Hours',
+                  value: 'Loading…',
+                ),
+                error: (_, __) => const _EngineInfoRow(
+                  label: 'Latest Work Order Hours',
+                  value: '—',
+                ),
+                data: (snapshot) => Column(
+                  children: [
+                    _EngineInfoRow(
+                      label: 'Latest Work Order Hours',
+                      value: snapshot.hours != null
+                          ? '${snapshot.hours!.toStringAsFixed(1)} hrs'
+                          : '—',
+                    ),
+                    if (snapshot.title != null)
+                      _EngineInfoRow(
+                        label: 'Source Work Order',
+                        value: snapshot.title,
+                      ),
+                  ],
+                ),
+              ),
+          const SizedBox(height: 24),
+          ElevatedButton(
+            onPressed: () {
+              showModalBottomSheet(
+                context: context,
+                isScrollControlled: true,
+                backgroundColor: AppColors.surface,
+                shape: const RoundedRectangleBorder(
+                  borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+                ),
+                builder: (ctx) => _EngineForm(
+                  assetId: assetId,
+                  engine: engine,
+                ),
+              );
+            },
+            child: Text(l10n.edit),
+          ),
+          const SizedBox(height: 24),
+        ],
+      ),
+    );
+  }
+}
+
+class _EngineInfoRow extends StatelessWidget {
+  final String label;
+  final String? value;
+
+  const _EngineInfoRow({required this.label, required this.value});
+
+  @override
+  Widget build(BuildContext context) {
+    final displayValue = value?.trim().isNotEmpty == true ? value! : '—';
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            label,
+            style: const TextStyle(
+              color: AppColors.textSecondary,
+              fontSize: 12,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            displayValue,
+            style: Theme.of(context).textTheme.bodyLarge,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _EngineTile extends ConsumerWidget {
   final AssetEngine engine;
   final VoidCallback onTap;
   final VoidCallback onEdit;
@@ -128,14 +271,17 @@ class _EngineTile extends StatelessWidget {
   });
 
   Color _kindColor() => switch (engine.kind) {
-        'main' => AppColors.primary,
-        'auxiliary' => AppColors.warning,
+        'main' || 'port' || 'starboard' || 'wing' => AppColors.primary,
         'generator' => AppColors.success,
+        'auxiliary' => AppColors.warning,
         _ => AppColors.textSecondary,
       };
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final latestHoursAsync = ref.watch(latestEngineHoursProvider(engine.id));
+    final latestHours = latestHoursAsync.valueOrNull?.hours;
+
     return Dismissible(
       key: ValueKey(engine.id),
       direction: DismissDirection.endToStart,
@@ -160,8 +306,8 @@ class _EngineTile extends StatelessWidget {
             ),
             child: Icon(Icons.engineering, color: _kindColor(), size: 22),
           ),
-          title: Text(engine.label,
-              style: Theme.of(context).textTheme.titleSmall),
+          title:
+              Text(engine.label, style: Theme.of(context).textTheme.titleSmall),
           subtitle: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -175,7 +321,7 @@ class _EngineTile extends StatelessWidget {
                       borderRadius: BorderRadius.circular(4),
                     ),
                     child: Text(
-                      engine.kind.toUpperCase(),
+                      engineKindLabel(engine.kind).toUpperCase(),
                       style: TextStyle(
                         color: _kindColor(),
                         fontSize: 10,
@@ -186,9 +332,7 @@ class _EngineTile extends StatelessWidget {
                   const SizedBox(width: 8),
                   if (engine.make != null || engine.model != null)
                     Text(
-                      [engine.make, engine.model]
-                          .whereType<String>()
-                          .join(' '),
+                      [engine.make, engine.model].whereType<String>().join(' '),
                       style: const TextStyle(
                           color: AppColors.textSecondary, fontSize: 12),
                     ),
@@ -196,14 +340,16 @@ class _EngineTile extends StatelessWidget {
               ),
               const SizedBox(height: 2),
               Text(
-                '${engine.currentHours.toStringAsFixed(1)} hrs',
+                latestHours != null
+                    ? '${latestHours.toStringAsFixed(1)} hrs · latest WO'
+                    : 'No work order hours yet',
                 style: const TextStyle(
                     color: AppColors.textSecondary, fontSize: 11),
               ),
             ],
           ),
-          trailing: const Icon(Icons.chevron_right,
-              color: AppColors.textSecondary),
+          trailing:
+              const Icon(Icons.chevron_right, color: AppColors.textSecondary),
           onTap: onTap,
           onLongPress: onEdit,
           isThreeLine: true,
@@ -225,11 +371,9 @@ class _EngineForm extends ConsumerStatefulWidget {
 
 class _EngineFormState extends ConsumerState<_EngineForm> {
   final _formKey = GlobalKey<FormState>();
-  late final TextEditingController _labelCtrl;
   late final TextEditingController _makeCtrl;
   late final TextEditingController _modelCtrl;
   late final TextEditingController _serialCtrl;
-  late final TextEditingController _hoursCtrl;
   String _kind = 'main';
 
   bool get _isEdit => widget.engine != null;
@@ -237,23 +381,18 @@ class _EngineFormState extends ConsumerState<_EngineForm> {
   @override
   void initState() {
     super.initState();
-    _labelCtrl = TextEditingController(text: widget.engine?.label ?? '');
     _makeCtrl = TextEditingController(text: widget.engine?.make ?? '');
     _modelCtrl = TextEditingController(text: widget.engine?.model ?? '');
     _serialCtrl =
         TextEditingController(text: widget.engine?.serialNumber ?? '');
-    _hoursCtrl = TextEditingController(
-        text: widget.engine?.currentHours.toString() ?? '0');
-    _kind = widget.engine?.kind ?? 'main';
+    _kind = normalizeEngineKind(widget.engine?.kind);
   }
 
   @override
   void dispose() {
-    _labelCtrl.dispose();
     _makeCtrl.dispose();
     _modelCtrl.dispose();
     _serialCtrl.dispose();
-    _hoursCtrl.dispose();
     super.dispose();
   }
 
@@ -262,13 +401,12 @@ class _EngineFormState extends ConsumerState<_EngineForm> {
 
     final data = {
       'asset_id': widget.assetId,
-      'label': _labelCtrl.text.trim(),
-      'kind': _kind,
+      'label': suggestedEngineLabel(_kind),
+      'kind': normalizeEngineKind(_kind),
       'make': _makeCtrl.text.trim().isEmpty ? null : _makeCtrl.text.trim(),
       'model': _modelCtrl.text.trim().isEmpty ? null : _modelCtrl.text.trim(),
       'serial_number':
           _serialCtrl.text.trim().isEmpty ? null : _serialCtrl.text.trim(),
-      'current_hours': double.tryParse(_hoursCtrl.text) ?? 0,
     };
 
     bool success;
@@ -277,9 +415,8 @@ class _EngineFormState extends ConsumerState<_EngineForm> {
           .read(engineControllerProvider.notifier)
           .updateEngine(widget.engine!.id, widget.assetId, data);
     } else {
-      success = await ref
-          .read(engineControllerProvider.notifier)
-          .addEngine(data);
+      success =
+          await ref.read(engineControllerProvider.notifier).addEngine(data);
     }
     if (success && mounted) Navigator.pop(context);
   }
@@ -316,24 +453,20 @@ class _EngineFormState extends ConsumerState<_EngineForm> {
                 style: Theme.of(context).textTheme.titleLarge,
               ),
               const SizedBox(height: 16),
-              TextFormField(
-                controller: _labelCtrl,
-                decoration: InputDecoration(labelText: l10n.engineLabel),
-                validator: (v) =>
-                    (v == null || v.trim().isEmpty) ? l10n.fieldRequired : null,
-              ),
-              const SizedBox(height: 12),
               DropdownButtonFormField<String>(
                 value: _kind,
-                decoration: InputDecoration(labelText: l10n.engineKind),
+                decoration: const InputDecoration(labelText: 'Title'),
                 dropdownColor: AppColors.surfaceVariant,
-                items: const [
-                  DropdownMenuItem(value: 'main', child: Text('Main')),
-                  DropdownMenuItem(value: 'auxiliary', child: Text('Auxiliary')),
-                  DropdownMenuItem(
-                      value: 'generator', child: Text('Generator')),
-                ],
-                onChanged: (v) => setState(() => _kind = v!),
+                items: kEngineKindOptions
+                    .map((option) => DropdownMenuItem(
+                          value: option.value,
+                          child: Text(option.suggestedLabel),
+                        ))
+                    .toList(),
+                onChanged: (v) {
+                  if (v == null) return;
+                  setState(() => _kind = v);
+                },
               ),
               const SizedBox(height: 12),
               TextFormField(
@@ -351,11 +484,12 @@ class _EngineFormState extends ConsumerState<_EngineForm> {
                 decoration: InputDecoration(labelText: l10n.serialNumber),
               ),
               const SizedBox(height: 12),
-              TextFormField(
-                controller: _hoursCtrl,
-                decoration: InputDecoration(labelText: l10n.currentHours),
-                keyboardType:
-                    const TextInputType.numberWithOptions(decimal: true),
+              const Text(
+                'Hours are pulled from the most recent work order for this engine.',
+                style: TextStyle(
+                  color: AppColors.textSecondary,
+                  fontSize: 12,
+                ),
               ),
               const SizedBox(height: 20),
               ElevatedButton(

@@ -11,35 +11,69 @@ final assetsProvider = FutureProvider<List<Asset>>((ref) async {
   final db = ref.watch(databaseProvider);
   final dao = db.assetsDao;
 
-  // Return cached data immediately while fetching from remote
-  final remote = await supabase
-      .from(AppConstants.tAssets)
-      .select()
-      .order('name');
-
-  final assets = (remote as List)
-      .map((e) => Asset.fromJson(e as Map<String, dynamic>))
-      .toList();
-
-  // Persist to local cache
-  for (final asset in assets) {
-    await dao.upsert(AssetsTableCompanion(
-      id: Value(asset.id),
-      clientId: Value(asset.clientId),
-      assetTypeId: Value(asset.assetTypeId),
-      name: Value(asset.name),
-      make: Value(asset.make),
-      model: Value(asset.model),
-      year: Value(asset.year),
-      serialNumber: Value(asset.serialNumber),
-      location: Value(asset.location),
-      notes: Value(asset.notes),
-      createdAt: Value(asset.createdAt),
-      updatedAt: Value(asset.updatedAt),
-    ));
+  Future<List<Asset>> cachedAssets() async {
+    final cached = await dao.getAll();
+    return cached
+        .map((asset) => Asset(
+              id: asset.id,
+              clientId: asset.clientId,
+              assetTypeId: asset.assetTypeId,
+              name: asset.name,
+              make: asset.make,
+              model: asset.model,
+              year: asset.year,
+              serialNumber: asset.serialNumber,
+              location: asset.location,
+              notes: asset.notes,
+              telemetryEnabled: asset.telemetryEnabled,
+              telemetrySource: asset.telemetrySource,
+              createdAt: asset.createdAt,
+              updatedAt: asset.updatedAt,
+            ))
+        .toList();
   }
 
-  return assets;
+  try {
+    final remote = await supabase
+        .from(AppConstants.tAssets)
+        .select()
+        .order('name');
+
+    final assets = (remote as List)
+        .map((e) => Asset.fromJson(e as Map<String, dynamic>))
+        .toList();
+
+    if (assets.isEmpty) {
+      final cached = await cachedAssets();
+      if (cached.isNotEmpty) return cached;
+    }
+
+    // Persist to local cache
+    for (final asset in assets) {
+      await dao.upsert(AssetsTableCompanion(
+        id: Value(asset.id),
+        clientId: Value(asset.clientId),
+        assetTypeId: Value(asset.assetTypeId),
+        name: Value(asset.name),
+        make: Value(asset.make),
+        model: Value(asset.model),
+        year: Value(asset.year),
+        serialNumber: Value(asset.serialNumber),
+        location: Value(asset.location),
+        notes: Value(asset.notes),
+        telemetryEnabled: Value(asset.telemetryEnabled),
+        telemetrySource: Value(asset.telemetrySource),
+        createdAt: Value(asset.createdAt),
+        updatedAt: Value(asset.updatedAt),
+      ));
+    }
+
+    return assets;
+  } catch (_) {
+    final cached = await cachedAssets();
+    if (cached.isNotEmpty) return cached;
+    rethrow;
+  }
 });
 
 /// For operators/client_mechanics: assets scoped to their org's owner.

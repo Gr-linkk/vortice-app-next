@@ -434,7 +434,7 @@ class _QuickCheckItemState extends State<_QuickCheckItem> {
             ),
             AnimatedSize(
               duration: const Duration(milliseconds: 200),
-              child: (showDetail || status == 'pass')
+              child: showDetail
                   ? Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
@@ -444,7 +444,7 @@ class _QuickCheckItemState extends State<_QuickCheckItem> {
                           maxLines: 2,
                           style: const TextStyle(fontSize: 12),
                           decoration: InputDecoration(
-                            hintText: status == 'pass' ? 'Note (optional)' : 'Describe issue / action',
+                            hintText: 'Describe issue / action',
                             hintStyle: const TextStyle(color: AppColors.textSecondary, fontSize: 12),
                             isDense: true,
                             contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),

@@ -10,12 +10,14 @@ class ReminderWithAsset {
   final String assetName;
   final double currentHours;
   final String? checklistTemplateId;
+  final String? serviceIntervalId;
 
   ReminderWithAsset({
     required this.reminder,
     required this.assetName,
     required this.currentHours,
     this.checklistTemplateId,
+    this.serviceIntervalId,
   });
 
   double get hoursRemaining => reminder.dueAtHours - currentHours;
@@ -37,7 +39,12 @@ final remindersProvider = FutureProvider<List<ReminderWithAsset>>((ref) async {
       .eq('acknowledged', false)
       .order('due_at_hours');
 
-  final reminders = (remote as List).map((e) {
+  final remoteRows = (remote as List).cast<Map<String, dynamic>>();
+  final reminderTemplateIds = {
+    for (final row in remoteRows) row['id'] as String: row['template_id'] as String?,
+  };
+
+  final reminders = remoteRows.map((e) {
     final json = e as Map<String, dynamic>;
     final assetData = json['assets'] as Map<String, dynamic>?;
     final engineData = json['asset_engines'] as Map<String, dynamic>?;
@@ -50,27 +57,43 @@ final remindersProvider = FutureProvider<List<ReminderWithAsset>>((ref) async {
       reminder: ServiceReminder.fromJson(reminderJson),
       assetName: assetData?['name'] as String? ?? 'Unknown Asset',
       currentHours: (engineData?['current_hours'] as num?)?.toDouble() ?? 0,
+      serviceIntervalId: json['service_interval_id'] as String?,
     );
   }).toList();
 
-  // Fetch checklist_template_id for each reminder via asset_service_intervals
+  // Fetch checklist_template_id for each reminder via asset_service_intervals.
+  // Prefer the explicit service_interval link when present; fall back to the
+  // older asset + interval_hours lookup for legacy rows.
   final enriched = await Future.wait(reminders.map((r) async {
     try {
-      final rows = await supabase
-          .from(AppConstants.tAssetServiceIntervals)
-          .select('checklist_template_id')
-          .eq('asset_id', r.reminder.assetId)
-          .eq('interval_hours', r.reminder.intervalHours)
-          .limit(1);
-      final templateId = rows.isNotEmpty
-          ? (rows.first as Map<String, dynamic>)['checklist_template_id']
-              as String?
-          : null;
+      final serviceIntervalId = r.serviceIntervalId;
+      String? templateId = reminderTemplateIds[r.reminder.id];
+
+      if (templateId == null) {
+        final rows = serviceIntervalId != null
+            ? await supabase
+                .from(AppConstants.tAssetServiceIntervals)
+                .select('checklist_template_id')
+                .eq('id', serviceIntervalId)
+                .limit(1)
+            : await supabase
+                .from(AppConstants.tAssetServiceIntervals)
+                .select('checklist_template_id')
+                .eq('asset_id', r.reminder.assetId)
+                .eq('interval_hours', r.reminder.intervalHours)
+                .limit(1);
+        templateId = rows.isNotEmpty
+            ? (rows.first as Map<String, dynamic>)['checklist_template_id']
+                as String?
+            : null;
+      }
+
       return ReminderWithAsset(
         reminder: r.reminder,
         assetName: r.assetName,
         currentHours: r.currentHours,
         checklistTemplateId: templateId,
+        serviceIntervalId: r.serviceIntervalId,
       );
     } catch (_) {
       return r;

@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 import 'package:vortice_app/core/constants.dart';
 import 'package:vortice_app/core/supabase_client.dart';
 import 'package:vortice_app/core/theme.dart';
@@ -38,25 +37,20 @@ class OwnerPartsScreen extends StatelessWidget {
   }
 }
 
-
-
-// ── Provider: all clients with their assets and linked PM kits ───────────────
+// ── Provider: all clients with their assets and interval-linked PM kits ───────
 
 final pmKitsByClientProvider =
     FutureProvider<List<Map<String, dynamic>>>((ref) async {
-  // Get all clients
   final clients = await supabase
       .from(AppConstants.tProfiles)
       .select('id, full_name, subscription_tier')
-      .inFilter('role', ['client', 'client_admin'])
-      .order('full_name');
+      .inFilter('role', ['client', 'client_admin']).order('full_name');
 
   final result = <Map<String, dynamic>>[];
 
   for (final client in clients as List) {
     final clientId = client['id'] as String;
 
-    // Get assets for this client
     final assets = await supabase
         .from(AppConstants.tAssets)
         .select('id, name, make, model')
@@ -68,37 +62,39 @@ final pmKitsByClientProvider =
     for (final asset in assets as List) {
       final assetId = asset['id'] as String;
 
-      // Get service reminders with template links for this asset
-      final reminders = await supabase
-          .from('service_reminders')
-          .select(
-              'id, interval_hours, due_at_hours, template_id, checklist_templates(id, name, interval_label)')
+      final intervals = await supabase
+          .from(AppConstants.tAssetServiceIntervals)
+          .select('id, interval_hours, checklist_template_id')
           .eq('asset_id', assetId)
-          .not('template_id', 'is', null)
+          .not('checklist_template_id', 'is', null)
           .order('interval_hours');
 
       final kits = <Map<String, dynamic>>[];
 
-      for (final reminder in reminders as List) {
-        final templateId = reminder['template_id'] as String?;
+      for (final interval in intervals as List) {
+        final intervalMap = interval as Map<String, dynamic>;
+        final templateId = intervalMap['checklist_template_id'] as String?;
         if (templateId == null) continue;
 
+        final template = await supabase
+            .from(AppConstants.tChecklistTemplates)
+            .select('id, name, interval_label')
+            .eq('id', templateId)
+            .maybeSingle();
+
         final parts = await supabase
-            .from('pm_parts_requirements')
+            .from(AppConstants.tPmPartsRequirements)
             .select()
             .eq('template_id', templateId)
             .order('description');
 
-        final template =
-            reminder['checklist_templates'] as Map<String, dynamic>?;
-
         kits.add({
-          'reminder_id': reminder['id'],
+          'interval_id': intervalMap['id'],
           'template_id': templateId,
           'template_name': template?['name'] ?? 'Unknown',
           'interval_label': template?['interval_label'] ??
-              '${reminder['interval_hours']}HR',
-          'due_at_hours': reminder['due_at_hours'],
+              '${intervalMap['interval_hours']}HR',
+          'interval_hours': intervalMap['interval_hours'],
           'parts': List<Map<String, dynamic>>.from(parts as List),
         });
       }
@@ -170,8 +166,7 @@ class PmKitsScreen extends ConsumerWidget {
             itemCount: clients.length,
             itemBuilder: (_, ci) {
               final client = clients[ci];
-              final assets =
-                  client['assets'] as List<Map<String, dynamic>>;
+              final assets = client['assets'] as List<Map<String, dynamic>>;
 
               return Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -196,27 +191,23 @@ class PmKitsScreen extends ConsumerWidget {
                   ),
                   // Assets
                   ...assets.map((asset) {
-                    final kits =
-                        asset['kits'] as List<Map<String, dynamic>>;
+                    final kits = asset['kits'] as List<Map<String, dynamic>>;
                     return Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Padding(
-                          padding:
-                              const EdgeInsets.fromLTRB(24, 8, 16, 4),
+                          padding: const EdgeInsets.fromLTRB(24, 8, 16, 4),
                           child: Row(
                             children: [
                               const Icon(Icons.directions_boat_outlined,
-                                  size: 14,
-                                  color: AppColors.textSecondary),
+                                  size: 14, color: AppColors.textSecondary),
                               const SizedBox(width: 6),
                               Text(
                                 asset['name'] as String,
                                 style: Theme.of(context)
                                     .textTheme
                                     .titleSmall
-                                    ?.copyWith(
-                                        color: AppColors.textSecondary),
+                                    ?.copyWith(color: AppColors.textSecondary),
                               ),
                               if (asset['make'] != null ||
                                   asset['model'] != null) ...[
@@ -294,9 +285,11 @@ class _PmKitCardState extends State<_PmKitCard> {
             title: Text(intervalLabel,
                 style: const TextStyle(fontWeight: FontWeight.w600)),
             subtitle: Text(
-              '${parts.length} part${parts.length == 1 ? '' : 's'}',
-              style: const TextStyle(
-                  color: AppColors.textSecondary, fontSize: 12),
+              '$templateName • ${parts.length} part${parts.length == 1 ? '' : 's'}',
+              style:
+                  const TextStyle(color: AppColors.textSecondary, fontSize: 12),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
             ),
             trailing: Row(
               mainAxisSize: MainAxisSize.min,
@@ -308,9 +301,7 @@ class _PmKitCardState extends State<_PmKitCard> {
                       _showAddPartSheet(context, kit['template_id'] as String),
                 ),
                 Icon(
-                  _expanded
-                      ? Icons.expand_less
-                      : Icons.expand_more,
+                  _expanded ? Icons.expand_less : Icons.expand_more,
                   color: AppColors.textSecondary,
                 ),
               ],
@@ -347,8 +338,8 @@ class _PmKitCardState extends State<_PmKitCard> {
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
       ),
-      builder: (_) => _AddPartSheet(
-          templateId: templateId, onSaved: widget.onRefresh),
+      builder: (_) =>
+          _AddPartSheet(templateId: templateId, onSaved: widget.onRefresh),
     );
   }
 }
@@ -389,8 +380,8 @@ class _PartRow extends StatelessWidget {
           ),
           Text(
             '${part['qty'] ?? 1} ${part['unit'] ?? 'ea'}',
-            style: const TextStyle(
-                color: AppColors.textSecondary, fontSize: 12),
+            style:
+                const TextStyle(color: AppColors.textSecondary, fontSize: 12),
           ),
           IconButton(
             icon: const Icon(Icons.delete_outline,
@@ -451,8 +442,7 @@ class _AddPartSheetState extends State<_AddPartSheet> {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           const Text('Add Part to Kit',
-              style:
-                  TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
           const SizedBox(height: 16),
           TextField(
             controller: _descCtrl,
@@ -480,8 +470,8 @@ class _AddPartSheetState extends State<_AddPartSheet> {
                 flex: 3,
                 child: TextField(
                   controller: _unitCtrl,
-                  decoration: const InputDecoration(
-                      labelText: 'Unit (ea, L, kg...)'),
+                  decoration:
+                      const InputDecoration(labelText: 'Unit (ea, L, kg...)'),
                 ),
               ),
             ],
@@ -489,14 +479,11 @@ class _AddPartSheetState extends State<_AddPartSheet> {
           const SizedBox(height: 10),
           TextField(
             controller: _notesCtrl,
-            decoration:
-                const InputDecoration(labelText: 'Notes (optional)'),
+            decoration: const InputDecoration(labelText: 'Notes (optional)'),
           ),
           const SizedBox(height: 20),
           ElevatedButton(
-            onPressed: _saving || _descCtrl.text.trim().isEmpty
-                ? null
-                : _save,
+            onPressed: _saving || _descCtrl.text.trim().isEmpty ? null : _save,
             child: _saving
                 ? const SizedBox(
                     height: 16,
@@ -519,12 +506,9 @@ class _AddPartSheetState extends State<_AddPartSheet> {
         'part_number':
             _pnCtrl.text.trim().isNotEmpty ? _pnCtrl.text.trim() : null,
         'qty': double.tryParse(_qtyCtrl.text.trim()) ?? 1,
-        'unit': _unitCtrl.text.trim().isNotEmpty
-            ? _unitCtrl.text.trim()
-            : 'ea',
-        'notes': _notesCtrl.text.trim().isNotEmpty
-            ? _notesCtrl.text.trim()
-            : null,
+        'unit': _unitCtrl.text.trim().isNotEmpty ? _unitCtrl.text.trim() : 'ea',
+        'notes':
+            _notesCtrl.text.trim().isNotEmpty ? _notesCtrl.text.trim() : null,
       });
       widget.onSaved();
       if (mounted) Navigator.pop(context);
@@ -534,16 +518,18 @@ class _AddPartSheetState extends State<_AddPartSheet> {
   }
 }
 
-// ── Client-facing PM parts list (read-only) ───────────────────────────────────
+// ── PM parts list sheet ───────────────────────────────────────────────────────
 
 class PmPartsListSheet extends ConsumerWidget {
   final String templateId;
   final String templateName;
+  final bool canEdit;
 
   const PmPartsListSheet({
     super.key,
     required this.templateId,
     required this.templateName,
+    this.canEdit = false,
   });
 
   @override
@@ -571,7 +557,7 @@ class PmPartsListSheet extends ConsumerWidget {
               ),
             ),
             Padding(
-              padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+              padding: const EdgeInsets.fromLTRB(16, 16, 8, 8),
               child: Row(
                 children: [
                   const Icon(Icons.inventory_2_outlined,
@@ -583,69 +569,127 @@ class PmPartsListSheet extends ConsumerWidget {
                       style: Theme.of(context).textTheme.titleMedium,
                     ),
                   ),
+                  if (canEdit)
+                    TextButton.icon(
+                      onPressed: () => _showPartSheet(context),
+                      icon: const Icon(Icons.add, size: 18),
+                      label: const Text('Add'),
+                    ),
                 ],
               ),
             ),
             const Divider(height: 1),
             Expanded(
               child: partsAsync.when(
-                loading: () =>
-                    const Center(child: CircularProgressIndicator()),
-                error: (_, __) => const Center(
-                    child: Text('Could not load parts list.')),
+                loading: () => const Center(child: CircularProgressIndicator()),
+                error: (_, __) =>
+                    const Center(child: Text('Could not load parts list.')),
                 data: (parts) {
                   if (parts.isEmpty) {
-                    return const Center(
-                      child: Text('No parts list for this service.',
-                          style: TextStyle(
-                              color: AppColors.textSecondary)),
+                    return Center(
+                      child: Padding(
+                        padding: const EdgeInsets.all(24),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Text('No parts list for this service.',
+                                style: TextStyle(
+                                    color: AppColors.textSecondary)),
+                            if (canEdit) ...[
+                              const SizedBox(height: 12),
+                              ElevatedButton.icon(
+                                onPressed: () => _showPartSheet(context),
+                                icon: const Icon(Icons.add),
+                                label: const Text('Add first part'),
+                              ),
+                            ],
+                          ],
+                        ),
+                      ),
                     );
                   }
                   return ListView.separated(
                     controller: ctrl,
                     padding: const EdgeInsets.all(16),
                     itemCount: parts.length,
-                    separatorBuilder: (_, __) =>
-                        const Divider(height: 1),
+                    separatorBuilder: (_, __) => const Divider(height: 1),
                     itemBuilder: (_, i) {
                       final part = parts[i];
-                      return Padding(
-                        padding:
-                            const EdgeInsets.symmetric(vertical: 10),
-                        child: Row(
-                          children: [
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment:
-                                    CrossAxisAlignment.start,
-                                children: [
-                                  Text(part.description,
-                                      style: const TextStyle(
-                                          fontWeight: FontWeight.w500)),
-                                  if (part.partNumber != null)
-                                    Text('PN: ${part.partNumber}',
+                      return InkWell(
+                        onTap: canEdit
+                            ? () => _showPartSheet(context, requirement: part)
+                            : null,
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 10),
+                          child: Row(
+                            children: [
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(part.description,
                                         style: const TextStyle(
-                                            color:
-                                                AppColors.textSecondary,
-                                            fontSize: 12)),
-                                  if (part.notes != null)
-                                    Text(part.notes!,
-                                        style: const TextStyle(
-                                            color:
-                                                AppColors.textSecondary,
-                                            fontSize: 11,
-                                            fontStyle:
-                                                FontStyle.italic)),
-                                ],
+                                            fontWeight: FontWeight.w500)),
+                                    if (part.partNumber != null)
+                                      Text('PN: ${part.partNumber}',
+                                          style: const TextStyle(
+                                              color: AppColors.textSecondary,
+                                              fontSize: 12)),
+                                    if (part.notes != null)
+                                      Text(part.notes!,
+                                          style: const TextStyle(
+                                              color: AppColors.textSecondary,
+                                              fontSize: 11,
+                                              fontStyle: FontStyle.italic)),
+                                  ],
+                                ),
                               ),
-                            ),
-                            Text(
-                              '${part.qty} ${part.unit ?? 'ea'}',
-                              style: const TextStyle(
-                                  fontWeight: FontWeight.w600,
-                                  fontSize: 13),
-                            ),
-                          ],
+                              Text(
+                                '${part.qty} ${part.unit ?? 'ea'}',
+                                style: const TextStyle(
+                                    fontWeight: FontWeight.w600, fontSize: 13),
+                              ),
+                              if (canEdit) ...[
+                                const SizedBox(width: 4),
+                                IconButton(
+                                  tooltip: 'Delete part',
+                                  icon: const Icon(Icons.delete_outline,
+                                      color: AppColors.error, size: 20),
+                                  onPressed: () async {
+                                    final confirmed = await showDialog<bool>(
+                                      context: context,
+                                      builder: (ctx) => AlertDialog(
+                                        backgroundColor: AppColors.surface,
+                                        title: const Text('Delete part?'),
+                                        content: Text(part.description),
+                                        actions: [
+                                          TextButton(
+                                            onPressed: () =>
+                                                Navigator.pop(ctx, false),
+                                            child: const Text('Cancel'),
+                                          ),
+                                          TextButton(
+                                            onPressed: () =>
+                                                Navigator.pop(ctx, true),
+                                            child: const Text('Delete',
+                                                style: TextStyle(
+                                                    color: AppColors.error)),
+                                          ),
+                                        ],
+                                      ),
+                                    );
+                                    if (confirmed == true) {
+                                      await ref
+                                          .read(pmPartsControllerProvider
+                                              .notifier)
+                                          .removeRequirement(
+                                              part.id, templateId);
+                                    }
+                                  },
+                                ),
+                              ],
+                            ],
+                          ),
                         ),
                       );
                     },
@@ -657,5 +701,189 @@ class PmPartsListSheet extends ConsumerWidget {
         ),
       ),
     );
+  }
+
+  void _showPartSheet(BuildContext context, {PmPartsRequirement? requirement}) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: AppColors.surface,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (_) => _PmPartRequirementSheet(
+        templateId: templateId,
+        requirement: requirement,
+      ),
+    );
+  }
+}
+
+class _PmPartRequirementSheet extends ConsumerStatefulWidget {
+  final String templateId;
+  final PmPartsRequirement? requirement;
+
+  const _PmPartRequirementSheet({
+    required this.templateId,
+    this.requirement,
+  });
+
+  @override
+  ConsumerState<_PmPartRequirementSheet> createState() =>
+      _PmPartRequirementSheetState();
+}
+
+class _PmPartRequirementSheetState
+    extends ConsumerState<_PmPartRequirementSheet> {
+  final _formKey = GlobalKey<FormState>();
+  late final TextEditingController _descCtrl;
+  late final TextEditingController _partNumberCtrl;
+  late final TextEditingController _qtyCtrl;
+  late final TextEditingController _unitCtrl;
+  late final TextEditingController _notesCtrl;
+
+  @override
+  void initState() {
+    super.initState();
+    final req = widget.requirement;
+    _descCtrl = TextEditingController(text: req?.description ?? '');
+    _partNumberCtrl = TextEditingController(text: req?.partNumber ?? '');
+    _qtyCtrl =
+        TextEditingController(text: req != null ? req.qty.toString() : '1');
+    _unitCtrl = TextEditingController(text: req?.unit ?? 'ea');
+    _notesCtrl = TextEditingController(text: req?.notes ?? '');
+  }
+
+  @override
+  void dispose() {
+    _descCtrl.dispose();
+    _partNumberCtrl.dispose();
+    _qtyCtrl.dispose();
+    _unitCtrl.dispose();
+    _notesCtrl.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final isLoading = ref.watch(pmPartsControllerProvider).isLoading;
+    final isEdit = widget.requirement != null;
+
+    return Padding(
+      padding: EdgeInsets.fromLTRB(
+          16, 16, 16, MediaQuery.of(context).viewInsets.bottom + 16),
+      child: Form(
+        key: _formKey,
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text(
+                isEdit ? 'Edit part' : 'Add part',
+                style: Theme.of(context).textTheme.titleMedium,
+              ),
+              const SizedBox(height: 16),
+              TextFormField(
+                controller: _descCtrl,
+                decoration: const InputDecoration(labelText: 'Description'),
+                textCapitalization: TextCapitalization.sentences,
+                validator: (v) =>
+                    (v == null || v.trim().isEmpty) ? 'Required' : null,
+              ),
+              const SizedBox(height: 12),
+              TextFormField(
+                controller: _partNumberCtrl,
+                decoration: const InputDecoration(labelText: 'Part number'),
+              ),
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  Expanded(
+                    child: TextFormField(
+                      controller: _qtyCtrl,
+                      keyboardType:
+                          const TextInputType.numberWithOptions(decimal: true),
+                      decoration: const InputDecoration(labelText: 'Qty'),
+                      validator: (v) {
+                        if (v == null || v.trim().isEmpty) return 'Required';
+                        if (double.tryParse(v.trim()) == null) {
+                          return 'Invalid number';
+                        }
+                        return null;
+                      },
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: TextFormField(
+                      controller: _unitCtrl,
+                      decoration: const InputDecoration(labelText: 'Unit'),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              TextFormField(
+                controller: _notesCtrl,
+                decoration: const InputDecoration(labelText: 'Notes'),
+                maxLines: 2,
+              ),
+              const SizedBox(height: 20),
+              ElevatedButton.icon(
+                onPressed: isLoading ? null : _submit,
+                icon: isLoading
+                    ? const SizedBox(
+                        width: 16,
+                        height: 16,
+                        child: CircularProgressIndicator(
+                            strokeWidth: 2, color: Colors.white),
+                      )
+                    : const Icon(Icons.save),
+                label: const Text('Save'),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _submit() async {
+    if (!_formKey.currentState!.validate()) return;
+
+    final controller = ref.read(pmPartsControllerProvider.notifier);
+    final description = _descCtrl.text.trim();
+    final partNumber = _partNumberCtrl.text.trim().isNotEmpty
+        ? _partNumberCtrl.text.trim()
+        : null;
+    final qty = double.tryParse(_qtyCtrl.text.trim()) ?? 1.0;
+    final unit =
+        _unitCtrl.text.trim().isNotEmpty ? _unitCtrl.text.trim() : null;
+    final notes =
+        _notesCtrl.text.trim().isNotEmpty ? _notesCtrl.text.trim() : null;
+
+    final success = widget.requirement == null
+        ? await controller.addRequirement(
+            templateId: widget.templateId,
+            description: description,
+            partNumber: partNumber,
+            qty: qty,
+            unit: unit,
+            notes: notes,
+          )
+        : await controller.updateRequirement(
+            widget.requirement!.id,
+            widget.templateId,
+            {
+              'description': description,
+              'part_number': partNumber,
+              'qty': qty,
+              'unit': unit,
+              'notes': notes,
+            },
+          );
+
+    if (success && mounted) Navigator.pop(context);
   }
 }
