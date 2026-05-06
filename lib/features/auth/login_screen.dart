@@ -79,59 +79,70 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   void _showDevPanel() {
     showModalBottomSheet(
       context: context,
+      isScrollControlled: true,
       backgroundColor: AppColors.surface,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
       ),
       builder: (ctx) => SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const SizedBox(height: 8),
-            Container(
-              width: 40,
-              height: 4,
-              decoration: BoxDecoration(
-                color: AppColors.divider,
-                borderRadius: BorderRadius.circular(2),
+        child: FractionallySizedBox(
+          heightFactor: 0.85,
+          child: Column(
+            children: [
+              const SizedBox(height: 8),
+              Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: AppColors.divider,
+                  borderRadius: BorderRadius.circular(2),
+                ),
               ),
-            ),
-            const Padding(
-              padding: EdgeInsets.fromLTRB(16, 16, 16, 8),
-              child: Text('Dev Login',
-                  style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                      letterSpacing: 0.5)),
-            ),
-            const Divider(height: 1),
-            ..._devAccounts.map((acct) => ListTile(
-                  leading: CircleAvatar(
-                    backgroundColor:
-                        Color(acct['color'] as int).withOpacity(0.15),
-                    child: Text(
-                      (acct['label'] as String).split('·').first.trim(),
-                      style: TextStyle(
-                          color: Color(acct['color'] as int),
-                          fontSize: 12,
-                          fontWeight: FontWeight.bold),
-                    ),
-                  ),
-                  title: Text(acct['label'] as String,
-                      style: const TextStyle(
-                          fontSize: 14, fontWeight: FontWeight.w500)),
-                  subtitle: Text(acct['email'] as String,
-                      style: const TextStyle(
-                          fontSize: 11, color: AppColors.textSecondary)),
-                  onTap: () {
-                    Navigator.pop(ctx);
-                    _emailCtrl.text = acct['email'] as String;
-                    _passwordCtrl.text = acct['password'] as String;
-                    _submit();
+              const Padding(
+                padding: EdgeInsets.fromLTRB(16, 16, 16, 8),
+                child: Text('Dev Login',
+                    style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                        letterSpacing: 0.5)),
+              ),
+              const Divider(height: 1),
+              Expanded(
+                child: ListView.builder(
+                  padding: const EdgeInsets.only(bottom: 8),
+                  itemCount: _devAccounts.length,
+                  itemBuilder: (context, index) {
+                    final acct = _devAccounts[index];
+                    return ListTile(
+                      leading: CircleAvatar(
+                        backgroundColor:
+                            Color(acct['color'] as int).withValues(alpha: 0.15),
+                        child: Text(
+                          (acct['label'] as String).split('·').first.trim(),
+                          style: TextStyle(
+                              color: Color(acct['color'] as int),
+                              fontSize: 12,
+                              fontWeight: FontWeight.bold),
+                        ),
+                      ),
+                      title: Text(acct['label'] as String,
+                          style: const TextStyle(
+                              fontSize: 14, fontWeight: FontWeight.w500)),
+                      subtitle: Text(acct['email'] as String,
+                          style: const TextStyle(
+                              fontSize: 11, color: AppColors.textSecondary)),
+                      onTap: () {
+                        Navigator.pop(ctx);
+                        _emailCtrl.text = acct['email'] as String;
+                        _passwordCtrl.text = acct['password'] as String;
+                        _submit();
+                      },
+                    );
                   },
-                )),
-            const SizedBox(height: 8),
-          ],
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -161,7 +172,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     }
   }
 
-  List<Widget> _buildDevButtons(BuildContext context) {
+  List<Widget> _buildDevButtons() {
     return [
       const Divider(height: 32),
       Center(
@@ -192,7 +203,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     await ref.read(authControllerProvider.notifier).signIn(
                         acct['email'] as String, acct['password'] as String);
                     final authState = ref.read(authControllerProvider);
-                    if (authState.hasError && mounted) {
+                    if (!mounted) return;
+                    if (authState.hasError) {
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(
                           content: Text(authState.error.toString()),
@@ -237,10 +249,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                             color: AppColors.primary,
                             borderRadius: BorderRadius.circular(20),
                           ),
-                          child: Stack(
+                          child: const Stack(
                             clipBehavior: Clip.none,
                             children: [
-                              const Center(
+                              Center(
                                   child: Icon(Icons.engineering,
                                       size: 48, color: Colors.white)),
                             ],
@@ -283,8 +295,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                         prefixIcon: const Icon(Icons.email_outlined),
                       ),
                       validator: (v) {
-                        if (v == null || v.trim().isEmpty)
+                        if (v == null || v.trim().isEmpty) {
                           return l10n.fieldRequired;
+                        }
                         if (!v.contains('@')) return l10n.invalidEmail;
                         return null;
                       },
@@ -337,7 +350,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     ),
                     const SizedBox(height: 16),
                     // ── Dev login buttons ──────────────────────────────────
-                    if (kDevMode) ..._buildDevButtons(context),
+                    if (kDevMode) ..._buildDevButtons(),
                     const SizedBox(height: 16),
                     // Language toggle
                     Center(
