@@ -1,5 +1,9 @@
 # vortice_app
 
+## Next session
+
+Start with [`NEXT.md`](NEXT.md). It captures the current telemetry/app alignment note so we do not lose it: the old CANbus telemetry file was compared only, useful details were folded into the workspace telemetry status doc, and the app needs asset-pinned telemetry alignment checked before collector work.
+
 A new Flutter project.
 
 ## Getting Started

@@ -3,126 +3,39 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:vortice_app/core/constants.dart';
 import 'package:vortice_app/core/supabase_client.dart';
 import 'package:vortice_app/db/database.dart';
+import 'package:vortice_app/features/checklists/work_order_checklist_snapshot_repository.dart';
+import 'package:vortice_app/features/work_orders/work_order_repository.dart';
+import 'package:vortice_app/models/asset.dart';
 import 'package:vortice_app/models/work_order.dart';
 import 'package:vortice_app/models/work_order_assignment.dart';
 
 final workOrdersProvider = FutureProvider<List<WorkOrder>>((ref) async {
-  final db = ref.watch(databaseProvider);
-  final dao = db.workOrdersDao;
-
-  final remote = await supabase
-      .from(AppConstants.tWorkOrders)
-      .select()
-      .order('created_at', ascending: false);
-
-  final orders = (remote as List)
-      .map((e) => WorkOrder.fromJson(e as Map<String, dynamic>))
-      .toList();
-
-  for (final wo in orders) {
-    await dao.upsert(WorkOrdersTableCompanion(
-      id: Value(wo.id),
-      assetId: Value(wo.assetId),
-      engineId: Value(wo.engineId),
-      clientId: Value(wo.clientId),
-      assignedTo: Value(wo.assignedTo),
-      createdBy: Value(wo.createdBy),
-      checklistTemplateId: Value(wo.checklistTemplateId),
-      checklistTemplateVersion: Value(wo.checklistTemplateVersion),
-      jobType: Value(wo.jobType.dbValue),
-      title: Value(wo.title),
-      description: Value(wo.description),
-      status: Value(wo.status.dbValue),
-      scheduledDate: Value(wo.scheduledDate),
-      startedAt: Value(wo.startedAt),
-      completedAt: Value(wo.completedAt),
-      hoursAtStart: Value(wo.hoursAtStart),
-      hoursAtEnd: Value(wo.hoursAtEnd),
-      labourHours: Value(wo.labourHours),
-      billableRate: Value(wo.billableRate),
-      wageRate: Value(wo.wageRate),
-      notesInternal: Value(wo.notesInternal),
-      onHoldReason: Value(wo.onHoldReason),
-      createdAt: Value(wo.createdAt),
-      updatedAt: Value(wo.updatedAt),
-    ));
-  }
-
-  return orders;
+  return ref.watch(workOrderRepositoryProvider).listWorkOrders();
 });
 
 final workOrderByIdProvider =
     FutureProvider.family<WorkOrder?, String>((ref, id) async {
-  final data = await supabase
-      .from(AppConstants.tWorkOrders)
-      .select()
-      .eq('id', id)
-      .maybeSingle();
-
-  if (data == null) return null;
-  return WorkOrder.fromJson(data);
+  return ref.watch(workOrderRepositoryProvider).getWorkOrderById(id);
 });
 
-Future<Map<String, dynamic>?> _fetchChecklistSnapshotPayload(
-  String workOrderId,
-  String templateId,
-) async {
-  final template = await supabase
-      .from(AppConstants.tChecklistTemplates)
-      .select(
-          'id, asset_type_id, checklist_type, interval_hours, interval_label, name, description, version, updated_at')
-      .eq('id', templateId)
-      .maybeSingle();
-  if (template == null) return null;
-
-  final items = await supabase
-      .from(AppConstants.tChecklistItems)
-      .select(
-          'id, template_id, description_en, description_es, category, requires_photo, sort_order, created_at')
-      .eq('template_id', templateId)
-      .order('sort_order');
-
-  return {
-    'work_order_id': workOrderId,
-    'template_id': template['id'],
-    'template_version': (template['version'] as num?)?.toInt(),
-    'template_name': template['name'],
-    'template_description': template['description'],
-    'checklist_type': template['checklist_type'] ?? 'pm',
-    'asset_type_id': template['asset_type_id'],
-    'interval_hours': template['interval_hours'],
-    'interval_label': template['interval_label'],
-    'source_template_updated_at': template['updated_at'],
-    'items_json': items,
-    'updated_at': DateTime.now().toIso8601String(),
-  };
-}
-
-Future<void> _tryUpsertChecklistSnapshot(
+Future<void> _trySyncChecklistSnapshot(
   String workOrderId,
   String? templateId,
 ) async {
-  if (templateId == null) {
-    try {
-      await supabase
-          .from('work_order_checklist_snapshots')
-          .delete()
-          .eq('work_order_id', workOrderId);
-    } catch (_) {}
-    return;
-  }
-
   try {
     final payload =
-        await _fetchChecklistSnapshotPayload(workOrderId, templateId);
-    if (payload == null) return;
-    await supabase
-        .from('work_order_checklist_snapshots')
-        .upsert(payload, onConflict: 'work_order_id');
-    final version = (payload['template_version'] as num?)?.toInt();
+        await workOrderChecklistSnapshotRepository.trySyncForWorkOrderTemplate(
+      workOrderId: workOrderId,
+      templateId: templateId,
+    );
+    final version = (payload?['template_version'] as num?)?.toInt();
     if (version != null) {
-      await supabase.from(AppConstants.tWorkOrders).update(
-          {'checklist_template_version': version}).eq('id', workOrderId);
+      await supabase
+          .from(AppConstants.tWorkOrders)
+          .update({'checklist_template_version': version}).eq(
+        'id',
+        workOrderId,
+      );
     }
   } catch (_) {
     // Snapshot support is best-effort until every environment has the table.
@@ -164,7 +77,7 @@ class WorkOrderController extends StateNotifier<AsyncValue<void>> {
             );
       }
 
-      await _tryUpsertChecklistSnapshot(workOrderId, checklistTemplateId);
+      await _trySyncChecklistSnapshot(workOrderId, checklistTemplateId);
 
       _ref.invalidate(workOrdersProvider);
       _ref.invalidate(workOrderByIdProvider(workOrderId));
@@ -236,7 +149,7 @@ class WorkOrderController extends StateNotifier<AsyncValue<void>> {
       }
 
       if (hasChecklistUpdate) {
-        await _tryUpsertChecklistSnapshot(id, nextChecklistTemplateId);
+        await _trySyncChecklistSnapshot(id, nextChecklistTemplateId);
       }
 
       _ref.invalidate(workOrdersProvider);
@@ -316,24 +229,131 @@ final assetEnginesProvider =
 // Fetch asset name by ID
 final assetNameProvider =
     FutureProvider.family<String?, String>((ref, assetId) async {
-  final data = await supabase
-      .from(AppConstants.tAssets)
-      .select('name')
-      .eq('id', assetId)
-      .maybeSingle();
-  return data?['name'] as String?;
+  final db = ref.watch(databaseProvider);
+  final cached = await db.assetsDao.getById(assetId);
+
+  try {
+    final data = await supabase
+        .from(AppConstants.tAssets)
+        .select()
+        .eq('id', assetId)
+        .maybeSingle();
+
+    if (data == null) return null;
+
+    final asset = Asset.fromJson(data);
+    await db.assetsDao.upsert(_assetToCompanion(asset));
+    return asset.name;
+  } catch (_) {
+    if (cached != null) return cached.name;
+    rethrow;
+  }
 });
+
+AssetsTableCompanion _assetToCompanion(Asset asset) => AssetsTableCompanion(
+      id: Value(asset.id),
+      clientId: Value(asset.clientId),
+      assetTypeId: Value(asset.assetTypeId),
+      name: Value(asset.name),
+      make: Value(asset.make),
+      model: Value(asset.model),
+      year: Value(asset.year),
+      serialNumber: Value(asset.serialNumber),
+      location: Value(asset.location),
+      notes: Value(asset.notes),
+      telemetryEnabled: Value(asset.telemetryEnabled),
+      telemetrySource: Value(asset.telemetrySource),
+      createdAt: Value(asset.createdAt),
+      updatedAt: Value(asset.updatedAt),
+    );
+
+const _profileSelectColumns =
+    'id, email, full_name, role, phone, preferred_language, org_code_used, created_at, updated_at';
+const _unnamedTechLabel = 'Unnamed tech';
 
 // Fetch profile full_name by ID
 final profileNameProvider =
     FutureProvider.family<String?, String>((ref, profileId) async {
-  final data = await supabase
-      .from(AppConstants.tProfiles)
-      .select('full_name')
-      .eq('id', profileId)
-      .maybeSingle();
-  return data?['full_name'] as String?;
+  final db = ref.watch(databaseProvider);
+  final cached = await _cachedProfileById(db, profileId);
+
+  try {
+    final data = await supabase
+        .from(AppConstants.tProfiles)
+        .select(_profileSelectColumns)
+        .eq('id', profileId)
+        .maybeSingle();
+
+    if (data == null) return null;
+
+    await _upsertRemoteProfile(db, data);
+    return _formatProfileName(data['full_name']);
+  } catch (_) {
+    final cachedName = _formatProfileName(cached?.fullName, fallback: null);
+    if (cachedName != null) return cachedName;
+    rethrow;
+  }
 });
+
+Future<ProfilesTableData?> _cachedProfileById(
+  AppDatabase db,
+  String profileId,
+) {
+  return (db.select(db.profilesTable)..where((t) => t.id.equals(profileId)))
+      .getSingleOrNull();
+}
+
+Future<void> _upsertRemoteProfile(
+  AppDatabase db,
+  Map<String, dynamic> row,
+) async {
+  final id = row['id'];
+  final email = row['email'];
+  final fullName = row['full_name'];
+
+  if (id is! String || email is! String || fullName is! String) {
+    return;
+  }
+
+  await db.into(db.profilesTable).insertOnConflictUpdate(
+        ProfilesTableCompanion(
+          id: Value(id),
+          email: Value(email),
+          fullName: Value(fullName),
+          role: Value((row['role'] as String?) ?? 'employee'),
+          phone: Value(row['phone'] as String?),
+          preferredLanguage:
+              Value((row['preferred_language'] as String?) ?? 'en'),
+          orgCodeUsed: Value(row['org_code_used'] as String?),
+          createdAt: Value(_parseDateTime(row['created_at'])),
+          updatedAt: Value(_parseDateTime(row['updated_at'])),
+        ),
+      );
+}
+
+Future<void> _upsertRemoteProfiles(
+  AppDatabase db,
+  Iterable<Map<String, dynamic>> rows,
+) async {
+  for (final row in rows) {
+    await _upsertRemoteProfile(db, row);
+  }
+}
+
+String? _formatProfileName(
+  Object? value, {
+  String? fallback = _unnamedTechLabel,
+}) {
+  final name = value is String ? value.trim() : '';
+  if (name.isNotEmpty) return name;
+  return fallback;
+}
+
+DateTime? _parseDateTime(Object? value) {
+  if (value is DateTime) return value;
+  if (value is String) return DateTime.tryParse(value);
+  return null;
+}
 
 class EngineHoursSnapshot {
   final double? hours;
@@ -391,21 +411,56 @@ final workOrderAssignmentsProvider =
 
 final workOrderAssignmentNamesProvider =
     FutureProvider.family<List<String>, String>((ref, workOrderId) async {
-  final assignments =
-      await ref.watch(workOrderAssignmentsProvider(workOrderId).future);
-  if (assignments.isEmpty) return const [];
+  final db = ref.watch(databaseProvider);
 
-  final ids = assignments.map((a) => a.profileId).toList();
-  final rows = await supabase
-      .from(AppConstants.tProfiles)
-      .select('id, full_name')
-      .inFilter('id', ids);
+  try {
+    final assignments =
+        await ref.watch(workOrderAssignmentsProvider(workOrderId).future);
+    if (assignments.isEmpty) return const [];
 
-  final namesById = {
-    for (final row in (rows as List).cast<Map<String, dynamic>>())
-      row['id'] as String:
-          (row['full_name'] as String?)?.trim() ?? 'Unnamed tech',
-  };
+    final ids = assignments.map((a) => a.profileId).toList();
+    final rows = await supabase
+        .from(AppConstants.tProfiles)
+        .select(_profileSelectColumns)
+        .inFilter('id', ids);
 
-  return ids.map((id) => namesById[id] ?? 'Unnamed tech').toList();
+    final profileRows = (rows as List).cast<Map<String, dynamic>>();
+    await _upsertRemoteProfiles(db, profileRows);
+
+    final namesById = {
+      for (final row in profileRows)
+        if (row['id'] is String)
+          row['id'] as String: _formatProfileName(row['full_name']),
+    };
+
+    return ids.map((id) => namesById[id] ?? _unnamedTechLabel).toList();
+  } catch (_) {
+    final assignedTo = await _fallbackAssignedTo(ref, db, workOrderId);
+    if (assignedTo == null) rethrow;
+
+    final cachedProfile = await _cachedProfileById(db, assignedTo);
+    final cachedName = _formatProfileName(
+      cachedProfile?.fullName,
+      fallback: null,
+    );
+    if (cachedName == null) rethrow;
+    return [cachedName];
+  }
 });
+
+Future<String?> _fallbackAssignedTo(
+  Ref ref,
+  AppDatabase db,
+  String workOrderId,
+) async {
+  try {
+    final workOrder = await ref.read(workOrderByIdProvider(workOrderId).future);
+    final assignedTo = workOrder?.assignedTo;
+    if (assignedTo != null) return assignedTo;
+  } catch (_) {
+    // Fall back to the local row below.
+  }
+
+  final localRow = await db.workOrdersDao.getById(workOrderId);
+  return localRow?.assignedTo;
+}

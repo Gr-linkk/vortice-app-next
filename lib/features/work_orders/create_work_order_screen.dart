@@ -8,21 +8,16 @@ import 'package:vortice_app/features/auth/auth_provider.dart';
 import 'package:vortice_app/features/checklists/checklist_provider.dart';
 import 'package:vortice_app/features/engines/engine_kind_options.dart';
 import 'package:vortice_app/features/parts/pm_parts_provider.dart';
+import 'package:vortice_app/features/service_intervals/maintenance_work_order_draft.dart';
 import 'package:vortice_app/features/work_orders/work_order_provider.dart';
 import 'package:vortice_app/models/work_order.dart';
 
 class CreateWorkOrderScreen extends ConsumerStatefulWidget {
-  final String? initialAssetId;
-  final String? initialChecklistTemplateId;
-  final String? initialTitle;
-  final String? initialDescription;
+  final MaintenanceWorkOrderDraft? initialDraft;
 
   const CreateWorkOrderScreen({
     super.key,
-    this.initialAssetId,
-    this.initialChecklistTemplateId,
-    this.initialTitle,
-    this.initialDescription,
+    this.initialDraft,
   });
 
   @override
@@ -47,13 +42,12 @@ class _CreateWorkOrderScreenState extends ConsumerState<CreateWorkOrderScreen> {
   @override
   void initState() {
     super.initState();
-    _jobType = widget.initialChecklistTemplateId != null
-        ? WorkOrderJobType.preventative
-        : WorkOrderJobType.repair;
-    _selectedAssetId = widget.initialAssetId;
-    _selectedChecklistTemplateId = widget.initialChecklistTemplateId;
-    _titleCtrl.text = widget.initialTitle ?? '';
-    _descCtrl.text = widget.initialDescription ?? '';
+    final initialDraft = widget.initialDraft;
+    _jobType = initialDraft?.jobType ?? WorkOrderJobType.repair;
+    _selectedAssetId = initialDraft?.assetId;
+    _selectedChecklistTemplateId = initialDraft?.checklistTemplateId;
+    _titleCtrl.text = initialDraft?.title ?? '';
+    _descCtrl.text = initialDraft?.description ?? '';
   }
 
   @override

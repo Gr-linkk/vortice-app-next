@@ -1,5 +1,4 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:vortice_app/core/constants.dart';
 import 'package:vortice_app/core/supabase_client.dart';
 import 'package:vortice_app/features/telemetry/telemetry_repository.dart';
 import 'package:vortice_app/models/telemetry_alert.dart';
@@ -13,7 +12,7 @@ final telemetryRepositoryProvider = Provider<TelemetryRepository>((ref) {
 // TELEMETRY READINGS PROVIDERS
 // ────────────────────────────────────────────────────────────────────────────
 
-/// Fetch the latest telemetry reading for an asset via its first engine.
+/// Fetch the latest telemetry reading pinned directly to an asset.
 final latestTelemetryForAssetProvider =
     FutureProvider.family<TelemetryReading?, String>((ref, assetId) async {
   return ref.watch(telemetryRepositoryProvider).latestReadingForAsset(assetId);
@@ -64,7 +63,7 @@ final alertsForEngineProvider =
   return ref.watch(telemetryRepositoryProvider).alertsForEngine(engineId);
 });
 
-/// Count of unacknowledged alerts for an asset (all engines).
+/// Count of unacknowledged alerts pinned directly to an asset.
 final unacknowledgedAlertCountProvider =
     FutureProvider.family<int, String>((ref, assetId) async {
   return ref
@@ -119,7 +118,7 @@ final activeAlertsProvider = FutureProvider<List<TelemetryAlert>>((ref) async {
   return ref.watch(telemetryRepositoryProvider).activeAlerts();
 });
 
-/// Unacknowledged alerts for all engines belonging to a given asset.
+/// Unacknowledged alerts pinned directly to a given asset.
 final alertsForAssetProvider =
     FutureProvider.family<List<TelemetryAlert>, String>((ref, assetId) async {
   return ref
@@ -140,71 +139,10 @@ final readingsHistoryProvider = FutureProvider.family<List<TelemetryReading>,
 // FLEET HEALTH
 // ────────────────────────────────────────────────────────────────────────────
 
-class FleetHealth {
-  final int vesselCount;
-  final int activeAlertCount;
-  final int upcomingServiceCount;
-
-  const FleetHealth({
-    required this.vesselCount,
-    required this.activeAlertCount,
-    required this.upcomingServiceCount,
-  });
-
-  bool get hasAlerts => activeAlertCount > 0;
-}
-
 /// Fleet-level health summary.
 /// Pass a clientId (profile id) to scope to one client's fleet;
 /// pass null to fetch across all (owner/employee — RLS gives full access).
 final fleetHealthProvider =
     FutureProvider.family<FleetHealth, String?>((ref, clientId) async {
-  // ── Vessel count ──────────────────────────────────────────────────────
-  final assetsQuery = supabase.from(AppConstants.tAssets).select('id');
-  final assetsData = clientId != null
-      ? await assetsQuery.eq('client_id', clientId)
-      : await assetsQuery;
-  final vesselCount = (assetsData as List).length;
-
-  // ── Active alert count ────────────────────────────────────────────────
-  int alertCount = 0;
-  if (vesselCount > 0) {
-    final assetIds = assetsData.map((e) => e['id'] as String).toList();
-
-    final enginesData = await supabase
-        .from(AppConstants.tAssetEngines)
-        .select('id')
-        .inFilter('asset_id', assetIds);
-
-    if ((enginesData as List).isNotEmpty) {
-      final engineIds = enginesData.map((e) => e['id'] as String).toList();
-      final alertResult = await supabase
-          .from(AppConstants.tTelemetryAlerts)
-          .select('id')
-          .inFilter('engine_id', engineIds)
-          .eq('acknowledged', false)
-          .count();
-      alertCount = alertResult.count;
-    }
-  }
-
-  // ── Upcoming services ─────────────────────────────────────────────────
-  // Count reminders that are not yet acknowledged
-  int serviceCount = 0;
-  if (vesselCount > 0) {
-    final assetIds = assetsData.map((e) => e['id'] as String).toList();
-    final remindersResult = await supabase
-        .from(AppConstants.tServiceReminders)
-        .select('id')
-        .inFilter('asset_id', assetIds)
-        .eq('acknowledged', false)
-        .count();
-    serviceCount = remindersResult.count;
-  }
-
-  return FleetHealth(
-    vesselCount: vesselCount,
-    activeAlertCount: alertCount,
-    upcomingServiceCount: serviceCount,
-  );
+  return ref.watch(telemetryRepositoryProvider).fleetHealth(clientId: clientId);
 });

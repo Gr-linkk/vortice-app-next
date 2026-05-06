@@ -13,6 +13,7 @@ import 'package:vortice_app/features/reminders/reminder_provider.dart';
 import 'package:vortice_app/features/subscription/tier_gate.dart';
 import 'package:vortice_app/features/subscription/upgrade_prompt.dart';
 import 'package:vortice_app/features/telemetry/telemetry_provider.dart';
+import 'package:vortice_app/features/telemetry/telemetry_repository.dart';
 import 'package:vortice_app/models/asset.dart';
 import 'package:vortice_app/models/invoice.dart';
 import 'package:vortice_app/models/subscription_tier.dart';
@@ -89,8 +90,8 @@ class ClientDashboardTelemetry extends ConsumerWidget {
               data: (alerts) {
                 if (alerts.isEmpty) {
                   return Padding(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 16, vertical: 4),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
                     child: Container(
                       padding: const EdgeInsets.all(16),
                       decoration: BoxDecoration(
@@ -116,10 +117,8 @@ class ClientDashboardTelemetry extends ConsumerWidget {
                   );
                 }
                 return Column(
-                  children: alerts
-                      .take(5)
-                      .map((a) => _AlertTile(alert: a))
-                      .toList(),
+                  children:
+                      alerts.take(5).map((a) => _AlertTile(alert: a)).toList(),
                 );
               },
             ),
@@ -133,8 +132,7 @@ class ClientDashboardTelemetry extends ConsumerWidget {
                 if (assets.isEmpty) {
                   return const _EmptyStateTile(
                     icon: Icons.directions_boat_outlined,
-                    message:
-                        'No vessels yet. Contact Vórtice to get started.',
+                    message: 'No vessels yet. Contact Vórtice to get started.',
                   );
                 }
                 return Padding(
@@ -310,8 +308,7 @@ class _HealthStat extends StatelessWidget {
         const SizedBox(height: 2),
         Text(
           label,
-          style: const TextStyle(
-              color: AppColors.textSecondary, fontSize: 11),
+          style: const TextStyle(color: AppColors.textSecondary, fontSize: 11),
         ),
       ],
     );
@@ -358,8 +355,7 @@ class _AlertTile extends ConsumerWidget {
         onTap: () {
           // Navigate to vessel telemetry — need asset id.
           // We navigate to the engine's telemetry history screen as fallback.
-          context.push(
-              '/client/engines/${alert.engineId}/telemetry');
+          context.push('/client/engines/${alert.engineId}/telemetry');
         },
         borderRadius: BorderRadius.circular(12),
         child: Container(
@@ -393,8 +389,7 @@ class _AlertTile extends ConsumerWidget {
                                 .textTheme
                                 .titleSmall
                                 ?.copyWith(
-                                    color: color,
-                                    fontWeight: FontWeight.w600),
+                                    color: color, fontWeight: FontWeight.w600),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                           ),
@@ -477,9 +472,7 @@ class _VesselCard extends StatelessWidget {
     // Check for alerts on this asset
     final alertsAsync = ref.watch(alertsForAssetProvider(asset.id));
     final alertCount = alertsAsync.valueOrNull?.length ?? 0;
-    final statusColor = alertCount == 0
-        ? AppColors.success
-        : AppColors.warning;
+    final statusColor = alertCount == 0 ? AppColors.success : AppColors.warning;
 
     return InkWell(
       onTap: () => context.push('/telemetry/vessel/${asset.id}'),
@@ -598,9 +591,8 @@ class _MaintenanceTile extends StatelessWidget {
                     if (item.checklistTemplateId != null)
                       const Text(
                         'Tap to view parts list',
-                        style: TextStyle(
-                            color: AppColors.primary,
-                            fontSize: 11),
+                        style:
+                            TextStyle(color: AppColors.primary, fontSize: 11),
                       ),
                   ],
                 ),
@@ -615,10 +607,11 @@ class _MaintenanceTile extends StatelessWidget {
                   fontWeight: FontWeight.w600,
                 ),
               ),
-              if (item.checklistTemplateId != null) ...
-                [const SizedBox(width: 4),
+              if (item.checklistTemplateId != null) ...[
+                const SizedBox(width: 4),
                 const Icon(Icons.chevron_right,
-                    size: 16, color: AppColors.primary)],
+                    size: 16, color: AppColors.primary)
+              ],
             ],
           ),
         ),
@@ -682,8 +675,7 @@ class _InvoiceTile extends StatelessWidget {
                 ),
               ),
               Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                 decoration: BoxDecoration(
                   color: statusColor.withOpacity(0.12),
                   borderRadius: BorderRadius.circular(20),

@@ -24,6 +24,20 @@ class DevicePairingResult {
         );
 }
 
+class FleetHealth {
+  final int vesselCount;
+  final int activeAlertCount;
+  final int upcomingServiceCount;
+
+  const FleetHealth({
+    required this.vesselCount,
+    required this.activeAlertCount,
+    required this.upcomingServiceCount,
+  });
+
+  bool get hasAlerts => activeAlertCount > 0;
+}
+
 class TelemetryRepository {
   final SupabaseClient _supabase;
 
@@ -43,9 +57,38 @@ class TelemetryRepository {
   }
 
   Future<TelemetryReading?> latestReadingForAsset(String assetId) async {
-    final engineId = await _firstEngineIdForAsset(assetId);
-    if (engineId == null) return null;
-    return latestReadingForEngine(engineId);
+    final data = await _supabase
+        .from(AppConstants.tTelemetryReadings)
+        .select()
+        .eq('asset_id', assetId)
+        .order('ts', ascending: false)
+        .limit(1)
+        .maybeSingle();
+
+    if (data == null) return null;
+    return TelemetryReading.fromJson(_withLegacyEngineId(data));
+  }
+
+  Future<List<TelemetryReading>> readingsForAsset({
+    required String assetId,
+    DateTime? from,
+    DateTime? to,
+    int limit = 500,
+  }) async {
+    var query = _supabase
+        .from(AppConstants.tTelemetryReadings)
+        .select()
+        .eq('asset_id', assetId);
+
+    if (from != null) {
+      query = query.gte('ts', from.toIso8601String());
+    }
+    if (to != null) {
+      query = query.lte('ts', to.toIso8601String());
+    }
+
+    final data = await query.order('ts', ascending: false).limit(limit);
+    return _readingsFromData(data);
   }
 
   Future<List<TelemetryReading>> readingsForEngine({
@@ -97,13 +140,10 @@ class TelemetryRepository {
   Future<List<TelemetryAlert>> unacknowledgedAlertsForAsset(
     String assetId,
   ) async {
-    final engineIds = await _engineIdsForAsset(assetId);
-    if (engineIds.isEmpty) return [];
-
     final data = await _supabase
         .from(AppConstants.tTelemetryAlerts)
         .select()
-        .inFilter('engine_id', engineIds)
+        .eq('asset_id', assetId)
         .eq('acknowledged', false)
         .order('created_at', ascending: false);
 
@@ -111,13 +151,10 @@ class TelemetryRepository {
   }
 
   Future<int> unacknowledgedAlertCountForAsset(String assetId) async {
-    final engineIds = await _engineIdsForAsset(assetId);
-    if (engineIds.isEmpty) return 0;
-
     final countData = await _supabase
         .from(AppConstants.tTelemetryAlerts)
         .select('id')
-        .inFilter('engine_id', engineIds)
+        .eq('asset_id', assetId)
         .eq('acknowledged', false)
         .count();
 
@@ -147,6 +184,43 @@ class TelemetryRepository {
       'resolved': true,
       'resolved_at': DateTime.now().toIso8601String(),
     }).eq('id', alertId);
+  }
+
+  Future<FleetHealth> fleetHealth({String? clientId}) async {
+    final assetsQuery = _supabase.from(AppConstants.tAssets).select('id');
+    final assetsData = clientId != null
+        ? await assetsQuery.eq('client_id', clientId)
+        : await assetsQuery;
+    final assetIds = (assetsData as List)
+        .map((e) => e['id'] as String)
+        .toList(growable: false);
+
+    var alertCount = 0;
+    var serviceCount = 0;
+
+    if (assetIds.isNotEmpty) {
+      final alertResult = await _supabase
+          .from(AppConstants.tTelemetryAlerts)
+          .select('id')
+          .inFilter('asset_id', assetIds)
+          .eq('acknowledged', false)
+          .count();
+      alertCount = alertResult.count;
+
+      final remindersResult = await _supabase
+          .from(AppConstants.tServiceReminders)
+          .select('id')
+          .inFilter('asset_id', assetIds)
+          .eq('acknowledged', false)
+          .count();
+      serviceCount = remindersResult.count;
+    }
+
+    return FleetHealth(
+      vesselCount: assetIds.length,
+      activeAlertCount: alertCount,
+      upcomingServiceCount: serviceCount,
+    );
   }
 
   Future<Map<String, dynamic>?> deviceForAsset(String assetId) async {
@@ -191,36 +265,24 @@ class TelemetryRepository {
     return const DevicePairingResult.linked();
   }
 
-  Future<String?> _firstEngineIdForAsset(String assetId) async {
-    final data = await _supabase
-        .from(AppConstants.tAssetEngines)
-        .select('id')
-        .eq('asset_id', assetId)
-        .limit(1)
-        .maybeSingle();
-
-    if (data == null) return null;
-    return data['id'] as String;
-  }
-
-  Future<List<String>> _engineIdsForAsset(String assetId) async {
-    final data = await _supabase
-        .from(AppConstants.tAssetEngines)
-        .select('id')
-        .eq('asset_id', assetId);
-
-    return (data as List).map((e) => e['id'] as String).toList();
-  }
-
   List<TelemetryReading> _readingsFromData(Object? data) {
     return (data as List)
-        .map((e) => TelemetryReading.fromJson(e as Map<String, dynamic>))
+        .map((e) => TelemetryReading.fromJson(
+              _withLegacyEngineId(e as Map<String, dynamic>),
+            ))
         .toList();
   }
 
   List<TelemetryAlert> _alertsFromData(Object? data) {
     return (data as List)
-        .map((e) => TelemetryAlert.fromJson(e as Map<String, dynamic>))
+        .map((e) => TelemetryAlert.fromJson(
+              _withLegacyEngineId(e as Map<String, dynamic>),
+            ))
         .toList();
+  }
+
+  Map<String, dynamic> _withLegacyEngineId(Map<String, dynamic> json) {
+    if (json['engine_id'] != null) return json;
+    return {...json, 'engine_id': ''};
   }
 }

@@ -7,6 +7,7 @@ import 'package:vortice_app/features/auth/auth_provider.dart';
 import 'package:vortice_app/features/checklists/checklist_provider.dart';
 import 'package:vortice_app/features/parts/pm_kits_screen.dart';
 import 'package:vortice_app/features/parts/pm_parts_provider.dart';
+import 'package:vortice_app/features/service_intervals/maintenance_work_order_draft.dart';
 import 'package:vortice_app/features/service_intervals/service_interval_provider.dart';
 import 'package:vortice_app/features/subscription/tier_gate.dart';
 import 'package:vortice_app/features/subscription/upgrade_prompt.dart';
@@ -39,7 +40,8 @@ class _ServiceIntervalScreenState extends ConsumerState<ServiceIntervalScreen> {
     Asset? asset,
   ) {
     final maintenanceTemplates = templates
-        .where((template) => template.isActive && template.checklistType == 'pm')
+        .where(
+            (template) => template.isActive && template.checklistType == 'pm')
         .toList();
     final assetTypeId = asset?.assetTypeId;
     if (assetTypeId == null) {
@@ -51,7 +53,8 @@ class _ServiceIntervalScreenState extends ConsumerState<ServiceIntervalScreen> {
         .where((template) => template.assetTypeId == assetTypeId)
         .toList();
     matching.sort(_compareTemplatesForMaintenancePlan);
-    return matching.isNotEmpty ? matching : maintenanceTemplates..sort(_compareTemplatesForMaintenancePlan);
+    return matching.isNotEmpty ? matching : maintenanceTemplates
+      ..sort(_compareTemplatesForMaintenancePlan);
   }
 
   int _compareTemplatesForMaintenancePlan(
@@ -84,7 +87,8 @@ class _ServiceIntervalScreenState extends ConsumerState<ServiceIntervalScreen> {
         _isFixedAsset ? ref.watch(assetByIdProvider(widget.assetId!)) : null;
     final assetsAsync = _isFixedAsset ? null : ref.watch(assetsProvider);
     ref.watch(checklistTemplatesProvider);
-    final activeAsset = _isFixedAsset ? fixedAssetAsync?.valueOrNull : _selectedAsset;
+    final activeAsset =
+        _isFixedAsset ? fixedAssetAsync?.valueOrNull : _selectedAsset;
     final activeAssetId = activeAsset?.id;
 
     return Scaffold(
@@ -522,30 +526,20 @@ class _IntervalCard extends ConsumerWidget {
             ?.where((t) => t.id == interval.checklistTemplateId)
             .firstOrNull
             ?.name;
-    final title = interval.label ??
-        templateName ??
-        '${interval.intervalHours.toInt()}h Service';
-    final description = StringBuffer(
-        'Preventative maintenance generated from Maintenance Plan.');
-    if (summary.currentHours != null) {
-      description.write(
-          ' Last known hours: ${summary.currentHours!.toStringAsFixed(0)}h.');
-    }
-    if (summary.nextDueHours != null) {
-      description.write(
-          ' Next service due: ${summary.nextDueHours!.toStringAsFixed(0)}h.');
-    }
-    final params = <String, String>{
-      'assetId': assetId,
-      'title': title,
-      'description': description.toString(),
-      if (interval.checklistTemplateId != null)
-        'checklistTemplateId': interval.checklistTemplateId!,
-    };
-    context.push(Uri(path: '/owner/work-orders/create', queryParameters: params)
-        .toString());
+    final draft = MaintenanceWorkOrderDraft.preventativeMaintenance(
+      assetId: assetId,
+      intervalHours: interval.intervalHours,
+      currentHours: summary.currentHours,
+      nextDueHours: summary.nextDueHours,
+      intervalLabel: interval.label,
+      checklistTemplateId: interval.checklistTemplateId,
+      checklistTemplateName: templateName,
+    );
+    context.push(Uri(
+      path: '/owner/work-orders/create',
+      queryParameters: draft.toQueryParameters(),
+    ).toString());
   }
-
 }
 
 class _MetricChip extends StatelessWidget {
@@ -732,90 +726,92 @@ class _AddIntervalSheetState extends ConsumerState<_AddIntervalSheet> {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-            const Text(
-              'Add Service Interval',
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w600,
-                color: AppColors.textPrimary,
-              ),
-            ),
-            const SizedBox(height: 16),
-            TextFormField(
-              controller: _labelCtrl,
-              decoration: const InputDecoration(
-                labelText: 'Service Label (optional)',
-                prefixIcon: Icon(Icons.label_outline),
-              ),
-            ),
-            const SizedBox(height: 12),
-            TextFormField(
-              controller: _hoursCtrl,
-              keyboardType: TextInputType.number,
-              decoration: const InputDecoration(
-                labelText: 'Interval Hours (e.g. 250)',
-                prefixIcon: Icon(Icons.schedule),
-              ),
-              validator: (v) {
-                if (v == null || v.trim().isEmpty) {
-                  return 'Required';
-                }
-                if (int.tryParse(v.trim()) == null) {
-                  return 'Enter a whole number of hours';
-                }
-                return null;
-              },
-            ),
-            const SizedBox(height: 12),
-            TextFormField(
-              controller: _nextDueCtrl,
-              keyboardType:
-                  const TextInputType.numberWithOptions(decimal: true),
-              decoration: const InputDecoration(
-                labelText: 'Next Due Hours (optional)',
-                helperText:
-                    'Set this when real-world service timing was reset.',
-                prefixIcon: Icon(Icons.flag_outlined),
-              ),
-            ),
-            const SizedBox(height: 12),
-            DropdownButtonFormField<ChecklistTemplate?>(
-              value: _selectedTemplate,
-              isExpanded: true,
-              decoration: InputDecoration(
-                labelText: 'Checklist Template (optional)',
-                helperText: templates.isEmpty
-                    ? 'No maintenance templates match this asset yet.'
-                    : 'Showing maintenance templates for this asset only.',
-                prefixIcon: const Icon(Icons.checklist_outlined),
-              ),
-              dropdownColor: AppColors.surfaceVariant,
-              items: [
-                const DropdownMenuItem<ChecklistTemplate?>(
-                  value: null,
-                  child: Text('— No template —',
-                      style: TextStyle(color: AppColors.textSecondary)),
+                const Text(
+                  'Add Service Interval',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.textPrimary,
+                  ),
                 ),
-                ...templates.map((t) => DropdownMenuItem<ChecklistTemplate?>(
-                      value: t,
-                      child: Text(t.name, overflow: TextOverflow.ellipsis),
-                    )),
-              ],
-              onChanged: (t) => setState(() => _selectedTemplate = t),
-            ),
-            const SizedBox(height: 20),
-            ElevatedButton.icon(
-              onPressed: isLoading ? null : _save,
-              icon: isLoading
-                  ? const SizedBox(
-                      width: 16,
-                      height: 16,
-                      child: CircularProgressIndicator(
-                          strokeWidth: 2, color: Colors.white),
-                    )
-                  : const Icon(Icons.save),
-              label: const Text('Save'),
-            ),
+                const SizedBox(height: 16),
+                TextFormField(
+                  controller: _labelCtrl,
+                  decoration: const InputDecoration(
+                    labelText: 'Service Label (optional)',
+                    prefixIcon: Icon(Icons.label_outline),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                TextFormField(
+                  controller: _hoursCtrl,
+                  keyboardType: TextInputType.number,
+                  decoration: const InputDecoration(
+                    labelText: 'Interval Hours (e.g. 250)',
+                    prefixIcon: Icon(Icons.schedule),
+                  ),
+                  validator: (v) {
+                    if (v == null || v.trim().isEmpty) {
+                      return 'Required';
+                    }
+                    if (int.tryParse(v.trim()) == null) {
+                      return 'Enter a whole number of hours';
+                    }
+                    return null;
+                  },
+                ),
+                const SizedBox(height: 12),
+                TextFormField(
+                  controller: _nextDueCtrl,
+                  keyboardType:
+                      const TextInputType.numberWithOptions(decimal: true),
+                  decoration: const InputDecoration(
+                    labelText: 'Next Due Hours (optional)',
+                    helperText:
+                        'Set this when real-world service timing was reset.',
+                    prefixIcon: Icon(Icons.flag_outlined),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                DropdownButtonFormField<ChecklistTemplate?>(
+                  value: _selectedTemplate,
+                  isExpanded: true,
+                  decoration: InputDecoration(
+                    labelText: 'Checklist Template (optional)',
+                    helperText: templates.isEmpty
+                        ? 'No maintenance templates match this asset yet.'
+                        : 'Showing maintenance templates for this asset only.',
+                    prefixIcon: const Icon(Icons.checklist_outlined),
+                  ),
+                  dropdownColor: AppColors.surfaceVariant,
+                  items: [
+                    const DropdownMenuItem<ChecklistTemplate?>(
+                      value: null,
+                      child: Text('— No template —',
+                          style: TextStyle(color: AppColors.textSecondary)),
+                    ),
+                    ...templates
+                        .map((t) => DropdownMenuItem<ChecklistTemplate?>(
+                              value: t,
+                              child:
+                                  Text(t.name, overflow: TextOverflow.ellipsis),
+                            )),
+                  ],
+                  onChanged: (t) => setState(() => _selectedTemplate = t),
+                ),
+                const SizedBox(height: 20),
+                ElevatedButton.icon(
+                  onPressed: isLoading ? null : _save,
+                  icon: isLoading
+                      ? const SizedBox(
+                          width: 16,
+                          height: 16,
+                          child: CircularProgressIndicator(
+                              strokeWidth: 2, color: Colors.white),
+                        )
+                      : const Icon(Icons.save),
+                  label: const Text('Save'),
+                ),
               ],
             ),
           ),
@@ -924,105 +920,108 @@ class _EditIntervalSheetState extends ConsumerState<_EditIntervalSheet> {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-            const Text(
-              'Edit Service Interval',
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w600,
-                color: AppColors.textPrimary,
-              ),
-            ),
-            const SizedBox(height: 16),
-            TextFormField(
-              controller: _labelCtrl,
-              decoration: const InputDecoration(
-                labelText: 'Service Label (optional)',
-                prefixIcon: Icon(Icons.label_outline),
-              ),
-            ),
-            const SizedBox(height: 12),
-            TextFormField(
-              controller: _hoursCtrl,
-              keyboardType: TextInputType.number,
-              decoration: const InputDecoration(
-                labelText: 'Interval Hours',
-                prefixIcon: Icon(Icons.schedule),
-              ),
-              validator: (v) {
-                if (v == null || v.trim().isEmpty) {
-                  return 'Required';
-                }
-                if (int.tryParse(v.trim()) == null) {
-                  return 'Enter a whole number of hours';
-                }
-                return null;
-              },
-            ),
-            const SizedBox(height: 12),
-            TextFormField(
-              controller: _nextDueCtrl,
-              keyboardType:
-                  const TextInputType.numberWithOptions(decimal: true),
-              decoration: const InputDecoration(
-                labelText: 'Next Due Hours',
-                helperText:
-                    'Use this to re-anchor the schedule after real-world service.',
-                prefixIcon: Icon(Icons.flag_outlined),
-              ),
-            ),
-            const SizedBox(height: 12),
-            Builder(builder: (context) {
-              _selectedTemplate ??= templates
-                  .where((t) => t.id == interval.checklistTemplateId)
-                  .firstOrNull;
-              return DropdownButtonFormField<ChecklistTemplate?>(
-                value: _selectedTemplate,
-                isExpanded: true,
-                decoration: InputDecoration(
-                  labelText: 'Checklist Template (optional)',
-                  helperText: templates.isEmpty
-                      ? 'No maintenance templates match this asset yet.'
-                      : 'Showing maintenance templates for this asset only.',
-                  prefixIcon: const Icon(Icons.checklist_outlined),
-                ),
-                dropdownColor: AppColors.surfaceVariant,
-                items: [
-                  const DropdownMenuItem<ChecklistTemplate?>(
-                    value: null,
-                    child: Text('— No template —',
-                        style: TextStyle(color: AppColors.textSecondary)),
+                const Text(
+                  'Edit Service Interval',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.textPrimary,
                   ),
-                  ...templates.map((t) => DropdownMenuItem<ChecklistTemplate?>(
-                        value: t,
-                        child: Text(t.name, overflow: TextOverflow.ellipsis),
-                      )),
-                ],
-                onChanged: (t) => setState(() => _selectedTemplate = t),
-              );
-            }),
-            const SizedBox(height: 8),
-            SwitchListTile.adaptive(
-              contentPadding: EdgeInsets.zero,
-              title: const Text('Visible to client'),
-              subtitle: const Text('Hide intervals you do not want published.'),
-              value: _enabled,
-              onChanged: isLoading
-                  ? null
-                  : (value) => setState(() => _enabled = value),
-            ),
-            const SizedBox(height: 12),
-            ElevatedButton.icon(
-              onPressed: isLoading ? null : _save,
-              icon: isLoading
-                  ? const SizedBox(
-                      width: 16,
-                      height: 16,
-                      child: CircularProgressIndicator(
-                          strokeWidth: 2, color: Colors.white),
-                    )
-                  : const Icon(Icons.save),
-              label: const Text('Save Changes'),
-            ),
+                ),
+                const SizedBox(height: 16),
+                TextFormField(
+                  controller: _labelCtrl,
+                  decoration: const InputDecoration(
+                    labelText: 'Service Label (optional)',
+                    prefixIcon: Icon(Icons.label_outline),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                TextFormField(
+                  controller: _hoursCtrl,
+                  keyboardType: TextInputType.number,
+                  decoration: const InputDecoration(
+                    labelText: 'Interval Hours',
+                    prefixIcon: Icon(Icons.schedule),
+                  ),
+                  validator: (v) {
+                    if (v == null || v.trim().isEmpty) {
+                      return 'Required';
+                    }
+                    if (int.tryParse(v.trim()) == null) {
+                      return 'Enter a whole number of hours';
+                    }
+                    return null;
+                  },
+                ),
+                const SizedBox(height: 12),
+                TextFormField(
+                  controller: _nextDueCtrl,
+                  keyboardType:
+                      const TextInputType.numberWithOptions(decimal: true),
+                  decoration: const InputDecoration(
+                    labelText: 'Next Due Hours',
+                    helperText:
+                        'Use this to re-anchor the schedule after real-world service.',
+                    prefixIcon: Icon(Icons.flag_outlined),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Builder(builder: (context) {
+                  _selectedTemplate ??= templates
+                      .where((t) => t.id == interval.checklistTemplateId)
+                      .firstOrNull;
+                  return DropdownButtonFormField<ChecklistTemplate?>(
+                    value: _selectedTemplate,
+                    isExpanded: true,
+                    decoration: InputDecoration(
+                      labelText: 'Checklist Template (optional)',
+                      helperText: templates.isEmpty
+                          ? 'No maintenance templates match this asset yet.'
+                          : 'Showing maintenance templates for this asset only.',
+                      prefixIcon: const Icon(Icons.checklist_outlined),
+                    ),
+                    dropdownColor: AppColors.surfaceVariant,
+                    items: [
+                      const DropdownMenuItem<ChecklistTemplate?>(
+                        value: null,
+                        child: Text('— No template —',
+                            style: TextStyle(color: AppColors.textSecondary)),
+                      ),
+                      ...templates
+                          .map((t) => DropdownMenuItem<ChecklistTemplate?>(
+                                value: t,
+                                child: Text(t.name,
+                                    overflow: TextOverflow.ellipsis),
+                              )),
+                    ],
+                    onChanged: (t) => setState(() => _selectedTemplate = t),
+                  );
+                }),
+                const SizedBox(height: 8),
+                SwitchListTile.adaptive(
+                  contentPadding: EdgeInsets.zero,
+                  title: const Text('Visible to client'),
+                  subtitle:
+                      const Text('Hide intervals you do not want published.'),
+                  value: _enabled,
+                  onChanged: isLoading
+                      ? null
+                      : (value) => setState(() => _enabled = value),
+                ),
+                const SizedBox(height: 12),
+                ElevatedButton.icon(
+                  onPressed: isLoading ? null : _save,
+                  icon: isLoading
+                      ? const SizedBox(
+                          width: 16,
+                          height: 16,
+                          child: CircularProgressIndicator(
+                              strokeWidth: 2, color: Colors.white),
+                        )
+                      : const Icon(Icons.save),
+                  label: const Text('Save Changes'),
+                ),
               ],
             ),
           ),
