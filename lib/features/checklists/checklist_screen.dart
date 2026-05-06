@@ -7,6 +7,7 @@ import 'package:vortice_app/l10n/app_localizations.dart';
 import 'package:vortice_app/core/theme.dart';
 import 'package:vortice_app/features/auth/auth_provider.dart';
 import 'package:vortice_app/features/checklists/checklist_provider.dart';
+import 'package:vortice_app/features/checklists/checklist_repository.dart';
 import 'package:vortice_app/features/service_intervals/service_interval_provider.dart';
 import 'package:vortice_app/features/work_orders/work_order_provider.dart';
 import 'package:vortice_app/models/checklist_item.dart';
@@ -16,6 +17,7 @@ import 'package:supabase_flutter/supabase_flutter.dart' show FileOptions;
 import 'package:vortice_app/core/constants.dart';
 import 'package:vortice_app/core/supabase_client.dart';
 import 'package:vortice_app/models/checklist_template.dart';
+import 'package:vortice_app/sync/sync_status.dart';
 
 class ChecklistScreen extends ConsumerStatefulWidget {
   final String workOrderId;
@@ -56,22 +58,18 @@ class _ChecklistScreenState extends ConsumerState<ChecklistScreen> {
 
   Future<void> _loadSavedChecklistState() async {
     try {
-      final savedResponses = await supabase
-          .from(AppConstants.tChecklistResponses)
-          .select(
-              'checklist_item_id, completed, response_status, notes, photo_url')
-          .eq('work_order_id', widget.workOrderId);
-      for (final row in savedResponses as List) {
-        final data = row as Map<String, dynamic>;
-        final itemId = data['checklist_item_id'] as String?;
-        if (itemId == null) continue;
-        _responses[itemId] = data['response_status'] as String? ??
-            ((data['completed'] as bool? ?? false) ? 'pass' : 'alert');
-        final note = data['notes'] as String?;
+      final savedResponses = await ref
+          .read(checklistRepositoryProvider)
+          .listResponsesForWorkOrder(widget.workOrderId);
+      for (final response in savedResponses) {
+        final itemId = response.checklistItemId;
+        _responses[itemId] =
+            response.responseStatus ?? (response.completed ? 'pass' : 'alert');
+        final note = response.notes;
         if (note?.isNotEmpty == true) {
           _notes[itemId] = note!;
         }
-        final photoUrl = data['photo_url'] as String?;
+        final photoUrl = response.photoUrl;
         if (photoUrl?.isNotEmpty == true) {
           _photoUrls[itemId] = photoUrl;
         }
@@ -479,6 +477,17 @@ class _ChecklistFormState extends ConsumerState<_ChecklistForm> {
         ? AsyncValue.data(widget.snapshotItems!)
         : ref.watch(checklistItemsProvider(widget.template.id));
     final isLoading = ref.watch(checklistControllerProvider).isLoading;
+    final syncStatusByItem = ref
+            .watch(
+                checklistResponseSyncStatusByItemProvider(widget.workOrderId))
+            .valueOrNull ??
+        const <String, String>{};
+    final visibleSyncStatuses = syncStatusByItem.values
+        .where(_isVisibleChecklistSyncStatus)
+        .toList(growable: false);
+    final hasSyncConflict = visibleSyncStatuses.contains(
+      SyncStatusValues.conflict,
+    );
 
     return Column(
       children: [
@@ -516,6 +525,8 @@ class _ChecklistFormState extends ConsumerState<_ChecklistForm> {
             ],
           ),
         ),
+        if (visibleSyncStatuses.isNotEmpty)
+          _ChecklistSyncStatusBanner(hasConflict: hasSyncConflict),
         Expanded(
           child: itemsAsync.when(
             loading: () => const Center(child: CircularProgressIndicator()),
@@ -532,6 +543,7 @@ class _ChecklistFormState extends ConsumerState<_ChecklistForm> {
                 note: widget.notes[items[i].id] ?? '',
                 photo: widget.photos[items[i].id],
                 photoUrl: widget.photoUrls[items[i].id],
+                syncStatus: syncStatusByItem[items[i].id],
                 onStatusChanged: (v) =>
                     widget.onResponseChanged(items[i].id, v),
                 onNoteChanged: (v) => widget.onNoteChanged(items[i].id, v),
@@ -563,12 +575,106 @@ class _ChecklistFormState extends ConsumerState<_ChecklistForm> {
   }
 }
 
+bool _isVisibleChecklistSyncStatus(String status) =>
+    status != SyncStatusValues.synced;
+
+String? _syncStatusChipLabel(String? status) {
+  switch (status) {
+    case SyncStatusValues.pendingCreate:
+    case SyncStatusValues.pendingUpdate:
+    case SyncStatusValues.pendingDelete:
+    case SyncStatusValues.syncing:
+      return 'Pending sync';
+    case SyncStatusValues.failed:
+      return 'Sync failed';
+    case SyncStatusValues.conflict:
+      return 'Conflict';
+    default:
+      return null;
+  }
+}
+
+class _ChecklistSyncStatusBanner extends StatelessWidget {
+  final bool hasConflict;
+
+  const _ChecklistSyncStatusBanner({required this.hasConflict});
+
+  @override
+  Widget build(BuildContext context) {
+    final color = hasConflict ? AppColors.error : AppColors.warning;
+    return Container(
+      width: double.infinity,
+      margin: const EdgeInsets.fromLTRB(12, 10, 12, 0),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.12),
+        border: Border.all(color: color.withValues(alpha: 0.45)),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Row(
+        children: [
+          Icon(
+            hasConflict ? Icons.sync_problem : Icons.cloud_off,
+            color: color,
+            size: 16,
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              hasConflict
+                  ? 'Checklist has sync conflicts.'
+                  : 'Saved locally. Sync pending.',
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: color,
+                    fontWeight: FontWeight.w600,
+                  ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ChecklistItemSyncChip extends StatelessWidget {
+  final String syncStatus;
+
+  const _ChecklistItemSyncChip({required this.syncStatus});
+
+  @override
+  Widget build(BuildContext context) {
+    final label = _syncStatusChipLabel(syncStatus);
+    if (label == null) return const SizedBox.shrink();
+
+    final isError = syncStatus == SyncStatusValues.failed ||
+        syncStatus == SyncStatusValues.conflict;
+    final color = isError ? AppColors.error : AppColors.warning;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: color.withValues(alpha: 0.45)),
+      ),
+      child: Text(
+        label,
+        style: TextStyle(
+          color: color,
+          fontSize: 11,
+          fontWeight: FontWeight.w700,
+        ),
+      ),
+    );
+  }
+}
+
 class _ChecklistItemWidget extends StatefulWidget {
   final ChecklistItem item;
   final String? status; // 'pass', 'alert', 'action', or null
   final String note;
   final Uint8List? photo;
   final String? photoUrl;
+  final String? syncStatus;
   final void Function(String? v) onStatusChanged;
   final void Function(String v) onNoteChanged;
   final void Function(Uint8List? v) onPhotoChanged;
@@ -579,6 +685,7 @@ class _ChecklistItemWidget extends StatefulWidget {
     required this.note,
     required this.photo,
     required this.photoUrl,
+    required this.syncStatus,
     required this.onStatusChanged,
     required this.onNoteChanged,
     required this.onPhotoChanged,
@@ -643,8 +750,19 @@ class _ChecklistItemWidgetState extends State<_ChecklistItemWidget> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // Item description
-            Text(widget.item.descriptionEn,
-                style: Theme.of(context).textTheme.titleSmall),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  child: Text(widget.item.descriptionEn,
+                      style: Theme.of(context).textTheme.titleSmall),
+                ),
+                if (_syncStatusChipLabel(widget.syncStatus) != null) ...[
+                  const SizedBox(width: 8),
+                  _ChecklistItemSyncChip(syncStatus: widget.syncStatus!),
+                ],
+              ],
+            ),
             if (widget.item.descriptionEs != null) ...[
               const SizedBox(height: 2),
               Text(widget.item.descriptionEs!,

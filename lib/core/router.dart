@@ -37,6 +37,7 @@ import 'package:vortice_app/features/notifications/notifications_screen.dart';
 import 'package:vortice_app/features/service_reports/service_report_list_screen.dart';
 import 'package:vortice_app/features/service_reports/service_report_detail_screen.dart';
 import 'package:vortice_app/features/orgs/org_admin_screen.dart';
+import 'package:vortice_app/features/service_intervals/maintenance_work_order_draft.dart';
 import 'package:vortice_app/features/service_intervals/service_interval_screen.dart';
 import 'package:vortice_app/features/dashboard/client_dashboard_telemetry.dart';
 import 'package:vortice_app/features/telemetry/telemetry_history_screen.dart';
@@ -135,11 +136,9 @@ final routerProvider = Provider<GoRouter>((ref) {
           GoRoute(
             path: '/owner/work-orders/create',
             builder: (_, state) => CreateWorkOrderScreen(
-              initialAssetId: state.uri.queryParameters['assetId'],
-              initialChecklistTemplateId:
-                  state.uri.queryParameters['checklistTemplateId'],
-              initialTitle: state.uri.queryParameters['title'],
-              initialDescription: state.uri.queryParameters['description'],
+              initialDraft: MaintenanceWorkOrderDraft.fromQueryParameters(
+                state.uri.queryParameters,
+              ),
             ),
           ),
           GoRoute(
@@ -230,11 +229,9 @@ final routerProvider = Provider<GoRouter>((ref) {
           GoRoute(
             path: '/employee/work-orders/create',
             builder: (_, state) => CreateWorkOrderScreen(
-              initialAssetId: state.uri.queryParameters['assetId'],
-              initialChecklistTemplateId:
-                  state.uri.queryParameters['checklistTemplateId'],
-              initialTitle: state.uri.queryParameters['title'],
-              initialDescription: state.uri.queryParameters['description'],
+              initialDraft: MaintenanceWorkOrderDraft.fromQueryParameters(
+                state.uri.queryParameters,
+              ),
             ),
           ),
           GoRoute(

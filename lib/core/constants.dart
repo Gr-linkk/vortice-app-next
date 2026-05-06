@@ -16,6 +16,8 @@ class AppConstants {
   static const String tChecklistTemplates = 'checklist_templates';
   static const String tChecklistItems = 'checklist_items';
   static const String tWorkOrders = 'work_orders';
+  static const String tWorkOrderChecklistSnapshots =
+      'work_order_checklist_snapshots';
   static const String tChecklistResponses = 'checklist_responses';
   static const String tServiceReports = 'service_reports';
   static const String tServiceReportPhotos = 'service_report_photos';

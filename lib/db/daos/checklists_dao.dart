@@ -48,8 +48,37 @@ class ChecklistsDao extends DatabaseAccessor<AppDatabase>
             ..where((t) => t.workOrderId.equals(workOrderId)))
           .get();
 
+  Future<bool> hasResponsesForWorkOrder(String workOrderId) async {
+    final row = await (select(checklistResponsesTable)
+          ..where((t) => t.workOrderId.equals(workOrderId))
+          ..limit(1))
+        .getSingleOrNull();
+    return row != null;
+  }
+
+  Future<ChecklistResponsesTableData?> getResponseForWorkOrderItem(
+    String workOrderId,
+    String checklistItemId,
+  ) =>
+      (select(checklistResponsesTable)
+            ..where((t) => t.workOrderId.equals(workOrderId))
+            ..where((t) => t.checklistItemId.equals(checklistItemId))
+            ..limit(1))
+          .getSingleOrNull();
+
   Future<void> upsertResponse(ChecklistResponsesTableCompanion entry) =>
       into(checklistResponsesTable).insertOnConflictUpdate(entry);
+
+  Future<void> upsertResponses(
+    List<ChecklistResponsesTableCompanion> entries,
+  ) async {
+    if (entries.isEmpty) return;
+    await transaction(() async {
+      await batch((batch) {
+        batch.insertAllOnConflictUpdate(checklistResponsesTable, entries);
+      });
+    });
+  }
 
   Future<int> deleteResponsesForWorkOrder(String workOrderId) =>
       (delete(checklistResponsesTable)

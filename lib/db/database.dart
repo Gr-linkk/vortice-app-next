@@ -7,6 +7,7 @@ import 'package:vortice_app/db/daos/invoices_dao.dart';
 import 'package:vortice_app/db/daos/parts_dao.dart';
 import 'package:vortice_app/db/daos/service_reports_dao.dart';
 import 'package:vortice_app/db/daos/work_orders_dao.dart';
+import 'package:vortice_app/sync/sync_status.dart';
 
 part 'database.g.dart';
 
@@ -21,7 +22,8 @@ class ProfilesTable extends Table {
   TextColumn get fullName => text()();
   TextColumn get role => text().withDefault(const Constant('employee'))();
   TextColumn get phone => text().nullable()();
-  TextColumn get preferredLanguage => text().withDefault(const Constant('en'))();
+  TextColumn get preferredLanguage =>
+      text().withDefault(const Constant('en'))();
   TextColumn get orgCodeUsed => text().nullable()();
   DateTimeColumn get createdAt => dateTime().nullable()();
   DateTimeColumn get updatedAt => dateTime().nullable()();
@@ -44,7 +46,8 @@ class AssetsTable extends Table {
   TextColumn get serialNumber => text().nullable()();
   TextColumn get location => text().nullable()();
   TextColumn get notes => text().nullable()();
-  BoolColumn get telemetryEnabled => boolean().withDefault(const Constant(false))();
+  BoolColumn get telemetryEnabled =>
+      boolean().withDefault(const Constant(false))();
   TextColumn get telemetrySource => text().nullable()();
   DateTimeColumn get createdAt => dateTime().nullable()();
   DateTimeColumn get updatedAt => dateTime().nullable()();
@@ -139,7 +142,8 @@ class ChecklistItemsTable extends Table {
   TextColumn get descriptionEn => text()();
   TextColumn get descriptionEs => text().nullable()();
   TextColumn get category => text().nullable()();
-  BoolColumn get requiresPhoto => boolean().withDefault(const Constant(false))();
+  BoolColumn get requiresPhoto =>
+      boolean().withDefault(const Constant(false))();
   DateTimeColumn get createdAt => dateTime().nullable()();
 
   @override
@@ -156,9 +160,15 @@ class ChecklistResponsesTable extends Table {
   BoolColumn get completed => boolean().withDefault(const Constant(false))();
   TextColumn get notes => text().nullable()();
   TextColumn get photoUrl => text().nullable()();
+  TextColumn get responseStatus => text().nullable()();
   TextColumn get completedBy => text().nullable()();
   DateTimeColumn get completedAt => dateTime().nullable()();
   DateTimeColumn get createdAt => dateTime().nullable()();
+  TextColumn get syncStatus =>
+      text().withDefault(const Constant(SyncStatusValues.synced))();
+  DateTimeColumn get updatedAt => dateTime().nullable()();
+  DateTimeColumn get lastSyncedAt => dateTime().nullable()();
+  TextColumn get lastError => text().nullable()();
 
   @override
   Set<Column> get primaryKey => {id};
@@ -237,6 +247,55 @@ class InvoicesTable extends Table {
   Set<Column> get primaryKey => {id};
 }
 
+class SyncOperationsTable extends Table {
+  @override
+  String get tableName => 'sync_operations';
+
+  TextColumn get id => text()();
+  TextColumn get entityType => text()();
+  TextColumn get entityLocalId => text().nullable()();
+  TextColumn get entityRemoteId => text().nullable()();
+  TextColumn get operationType => text()();
+  TextColumn get payloadJson => text()();
+  TextColumn get dependsOnOperationId => text().nullable()();
+  TextColumn get status =>
+      text().withDefault(const Constant(SyncStatusValues.pendingCreate))();
+  IntColumn get attemptCount => integer().withDefault(const Constant(0))();
+  DateTimeColumn get nextAttemptAt => dateTime().nullable()();
+  TextColumn get lastError => text().nullable()();
+  DateTimeColumn get createdAt => dateTime().nullable()();
+  DateTimeColumn get updatedAt => dateTime().nullable()();
+
+  @override
+  Set<Column> get primaryKey => {id};
+}
+
+class LocalAttachmentsTable extends Table {
+  @override
+  String get tableName => 'local_attachments';
+
+  TextColumn get id => text()();
+  TextColumn get ownerEntityType => text()();
+  TextColumn get ownerLocalId => text().nullable()();
+  TextColumn get ownerRemoteId => text().nullable()();
+  TextColumn get purpose => text()();
+  TextColumn get localPath => text()();
+  TextColumn get mimeType => text().nullable()();
+  IntColumn get sizeBytes => integer().nullable()();
+  TextColumn get sha256 => text().nullable()();
+  TextColumn get remoteBucket => text().nullable()();
+  TextColumn get remotePath => text().nullable()();
+  TextColumn get remoteUrl => text().nullable()();
+  TextColumn get status =>
+      text().withDefault(const Constant(SyncStatusValues.pendingCreate))();
+  DateTimeColumn get createdAt => dateTime().nullable()();
+  DateTimeColumn get updatedAt => dateTime().nullable()();
+  TextColumn get lastError => text().nullable()();
+
+  @override
+  Set<Column> get primaryKey => {id};
+}
+
 // ── Database ───────────────────────────────────────────────────────────────
 
 @DriftDatabase(
@@ -251,6 +310,8 @@ class InvoicesTable extends Table {
     ServiceReportsTable,
     PartsTable,
     InvoicesTable,
+    SyncOperationsTable,
+    LocalAttachmentsTable,
   ],
   daos: [
     AssetsDao,
@@ -266,18 +327,39 @@ class AppDatabase extends _$AppDatabase {
       : super(executor ?? driftDatabase(name: 'vortice_db'));
 
   @override
-  int get schemaVersion => 3;
+  int get schemaVersion => 5;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
-    onUpgrade: (m, from, to) async {
-      // Dev-only: drop and recreate all tables on any schema change
-      for (final table in allTables) {
-        await m.deleteTable(table.actualTableName);
-      }
-      await m.createAll();
-    },
-  );
+        onUpgrade: (m, from, to) async {
+          if (from < 4) {
+            await m.createTable(syncOperationsTable);
+            await m.createTable(localAttachmentsTable);
+          }
+          if (from < 5) {
+            await m.addColumn(
+              checklistResponsesTable,
+              checklistResponsesTable.responseStatus,
+            );
+            await m.addColumn(
+              checklistResponsesTable,
+              checklistResponsesTable.syncStatus,
+            );
+            await m.addColumn(
+              checklistResponsesTable,
+              checklistResponsesTable.updatedAt,
+            );
+            await m.addColumn(
+              checklistResponsesTable,
+              checklistResponsesTable.lastSyncedAt,
+            );
+            await m.addColumn(
+              checklistResponsesTable,
+              checklistResponsesTable.lastError,
+            );
+          }
+        },
+      );
 }
 
 // ── Provider ───────────────────────────────────────────────────────────────
