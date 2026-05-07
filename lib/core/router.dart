@@ -2,9 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:vortice_app/core/app_shell.dart';
+import 'package:vortice_app/core/theme.dart';
 import 'package:vortice_app/features/assets/add_asset_screen.dart';
 import 'package:vortice_app/features/assets/asset_detail_screen.dart';
 import 'package:vortice_app/features/assets/asset_list_screen.dart';
+import 'package:vortice_app/features/assets/asset_provider.dart';
 import 'package:vortice_app/features/auth/auth_provider.dart';
 import 'package:vortice_app/features/auth/login_screen.dart';
 import 'package:vortice_app/features/auth/register_screen.dart';
@@ -28,6 +30,7 @@ import 'package:vortice_app/features/work_orders/work_order_detail_screen.dart';
 import 'package:vortice_app/features/work_orders/work_order_list_screen.dart';
 import 'package:vortice_app/features/engines/engine_screen.dart';
 import 'package:vortice_app/features/hours/hour_log_screen.dart';
+import 'package:vortice_app/features/clients/client_capability_gate.dart';
 import 'package:vortice_app/features/clients/client_screen.dart';
 import 'package:vortice_app/features/org_codes/org_code_screen.dart';
 import 'package:vortice_app/features/reminders/reminder_screen.dart';
@@ -42,6 +45,7 @@ import 'package:vortice_app/features/service_intervals/service_interval_screen.d
 import 'package:vortice_app/features/dashboard/client_dashboard_telemetry.dart';
 import 'package:vortice_app/features/telemetry/telemetry_history_screen.dart';
 import 'package:vortice_app/features/telemetry/vessel_telemetry_screen.dart';
+import 'package:vortice_app/models/client_capability.dart';
 import 'package:vortice_app/models/profile.dart';
 
 // ── Router notifier — bridges Riverpod auth state into GoRouter.refreshListenable ──
@@ -337,7 +341,7 @@ final routerProvider = Provider<GoRouter>((ref) {
               builder: (_, __) => const OperatorDashboard()),
           GoRoute(
             path: '/operator/checklist',
-            builder: (_, state) => OperatorChecklistScreen(
+            builder: (_, state) => _OperatorChecklistCapabilityGate(
               initialAssetId: state.uri.queryParameters['assetId'],
               initialTemplateId: state.uri.queryParameters['templateId'],
             ),
@@ -378,3 +382,62 @@ final routerProvider = Provider<GoRouter>((ref) {
     ],
   );
 });
+
+class _OperatorChecklistCapabilityGate extends ConsumerWidget {
+  const _OperatorChecklistCapabilityGate({
+    required this.initialAssetId,
+    required this.initialTemplateId,
+  });
+
+  final String? initialAssetId;
+  final String? initialTemplateId;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final assetId = initialAssetId;
+    final assetAsync =
+        assetId == null ? null : ref.watch(assetByIdProvider(assetId));
+    final clientId = assetAsync?.valueOrNull?.clientId;
+
+    if (assetAsync?.isLoading == true && clientId == null) {
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    }
+
+    if (assetAsync?.hasError == true && clientId == null) {
+      return Scaffold(
+        appBar: AppBar(title: const Text('Checklist')),
+        body: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Text(
+              assetAsync!.asError!.error.toString(),
+              style: const TextStyle(color: AppColors.error),
+            ),
+          ),
+        ),
+      );
+    }
+
+    return ClientCapabilityGate(
+      clientId: clientId,
+      capability: ClientCapability.operationalChecklists,
+      allowedBuilder: (_) => OperatorChecklistScreen(
+        initialAssetId: initialAssetId,
+        initialTemplateId: initialTemplateId,
+      ),
+      blockedBuilder: (_) => Scaffold(
+        appBar: AppBar(title: const Text('Checklist')),
+        body: const Center(
+          child: Padding(
+            padding: EdgeInsets.all(24),
+            child: ClientCapabilityDisabledPanel(
+              capability: ClientCapability.operationalChecklists,
+              message:
+                  'Operational checklists are not enabled for this client.',
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}

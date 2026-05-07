@@ -6,15 +6,14 @@ import 'package:intl/intl.dart';
 import 'package:vortice_app/core/theme.dart';
 import 'package:vortice_app/features/assets/asset_provider.dart';
 import 'package:vortice_app/features/auth/auth_provider.dart';
+import 'package:vortice_app/features/clients/client_capability_gate.dart';
 import 'package:vortice_app/features/engines/engine_provider.dart';
 import 'package:vortice_app/features/reminders/reminder_provider.dart';
-import 'package:vortice_app/features/subscription/tier_gate.dart';
-import 'package:vortice_app/features/subscription/upgrade_prompt.dart';
 import 'package:vortice_app/features/telemetry/telemetry_provider.dart';
 import 'package:vortice_app/features/service_reports/service_report_provider.dart';
 import 'package:vortice_app/models/asset.dart';
 import 'package:vortice_app/models/asset_engine.dart';
-import 'package:vortice_app/models/subscription_tier.dart';
+import 'package:vortice_app/models/client_capability.dart';
 import 'package:vortice_app/models/telemetry_alert.dart';
 
 /// Live telemetry view for a single vessel / asset.
@@ -51,21 +50,6 @@ class _VesselTelemetryScreenState extends ConsumerState<VesselTelemetryScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final profile = ref.watch(profileProvider).valueOrNull;
-
-    // Tier gate
-    if (!hasTier(profile, SubscriptionTier.telemetry)) {
-      return Scaffold(
-        appBar: AppBar(title: const Text('Vessel Telemetry')),
-        body: const Center(
-          child: Padding(
-            padding: EdgeInsets.all(24),
-            child: UpgradePrompt(requiredTier: SubscriptionTier.telemetry),
-          ),
-        ),
-      );
-    }
-
     final assetAsync = ref.watch(assetByIdProvider(widget.assetId));
     final enginesAsync = ref.watch(enginesForAssetProvider(widget.assetId));
 
@@ -89,27 +73,42 @@ class _VesselTelemetryScreenState extends ConsumerState<VesselTelemetryScreen> {
           );
         }
 
-        return Scaffold(
-          appBar: AppBar(
-            title: Text(asset.name),
-            actions: [
-              IconButton(
-                icon: const Icon(Icons.refresh),
-                tooltip: 'Refresh',
-                onPressed: () {
-                  ref.invalidate(
-                      latestTelemetryForAssetProvider(widget.assetId));
-                  ref.invalidate(alertsForAssetProvider(widget.assetId));
-                },
+        return ClientCapabilityGate(
+          clientId: asset.clientId,
+          capability: ClientCapability.telemetry,
+          blockedBuilder: (_) => Scaffold(
+            appBar: AppBar(title: Text(asset.name)),
+            body: const Center(
+              child: Padding(
+                padding: EdgeInsets.all(24),
+                child: ClientCapabilityDisabledPanel(
+                  capability: ClientCapability.telemetry,
+                ),
               ),
-            ],
+            ),
           ),
-          body: _Body(
-            asset: asset,
-            enginesAsync: enginesAsync,
-            selectedEngine: _selectedEngine,
-            onEngineSelected: (e) => setState(() => _selectedEngine = e),
-            ref: ref,
+          allowedBuilder: (_) => Scaffold(
+            appBar: AppBar(
+              title: Text(asset.name),
+              actions: [
+                IconButton(
+                  icon: const Icon(Icons.refresh),
+                  tooltip: 'Refresh',
+                  onPressed: () {
+                    ref.invalidate(
+                        latestTelemetryForAssetProvider(widget.assetId));
+                    ref.invalidate(alertsForAssetProvider(widget.assetId));
+                  },
+                ),
+              ],
+            ),
+            body: _Body(
+              asset: asset,
+              enginesAsync: enginesAsync,
+              selectedEngine: _selectedEngine,
+              onEngineSelected: (e) => setState(() => _selectedEngine = e),
+              ref: ref,
+            ),
           ),
         );
       },

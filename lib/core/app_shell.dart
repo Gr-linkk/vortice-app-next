@@ -4,7 +4,8 @@ import 'package:go_router/go_router.dart';
 import 'package:vortice_app/l10n/app_localizations.dart';
 import 'package:vortice_app/core/theme.dart';
 import 'package:vortice_app/features/auth/auth_provider.dart';
-import 'package:vortice_app/features/subscription/tier_gate.dart';
+import 'package:vortice_app/features/clients/client_capability_gate.dart';
+import 'package:vortice_app/models/client_capability.dart';
 import 'package:vortice_app/models/profile.dart';
 
 class _NavItem {
@@ -22,39 +23,6 @@ class _NavItem {
 }
 
 List<_NavItem> _clientNavItems(AppLocalizations l10n, Profile? profile) {
-  final isManagedOrAbove = effectiveTier(profile).value >= 1;
-
-  // Managed+ clients: Dashboard + Invoices + Notifications
-  if (isManagedOrAbove) {
-    return [
-      _NavItem(
-        label: l10n.navDashboard,
-        icon: Icons.dashboard_outlined,
-        activeIcon: Icons.dashboard,
-        route: '/client/dashboard',
-      ),
-      _NavItem(
-        label: l10n.navInvoices,
-        icon: Icons.receipt_long_outlined,
-        activeIcon: Icons.receipt_long,
-        route: '/client/invoices',
-      ),
-      const _NavItem(
-        label: 'Team',
-        icon: Icons.groups_outlined,
-        activeIcon: Icons.groups,
-        route: '/org/admin',
-      ),
-      _NavItem(
-        label: l10n.notificationsTitle,
-        icon: Icons.notifications_outlined,
-        activeIcon: Icons.notifications,
-        route: '/client/notifications',
-      ),
-    ];
-  }
-
-  // Free clients (T0): Dashboard + Assets + Invoices
   return [
     _NavItem(
       label: l10n.navDashboard,
@@ -84,7 +52,11 @@ List<_NavItem> _clientNavItems(AppLocalizations l10n, Profile? profile) {
 }
 
 List<_NavItem> _navItemsFor(
-    UserRole role, AppLocalizations l10n, Profile? profile) {
+  UserRole role,
+  AppLocalizations l10n,
+  Profile? profile, {
+  bool operationalChecklistsEnabled = false,
+}) {
   return switch (role) {
     UserRole.owner => [
         _NavItem(
@@ -152,12 +124,13 @@ List<_NavItem> _navItemsFor(
           activeIcon: Icons.dashboard,
           route: '/client/dashboard',
         ),
-        _NavItem(
-          label: l10n.navChecklist,
-          icon: Icons.checklist_outlined,
-          activeIcon: Icons.checklist,
-          route: '/operator/checklist',
-        ),
+        if (operationalChecklistsEnabled)
+          _NavItem(
+            label: l10n.navChecklist,
+            icon: Icons.checklist_outlined,
+            activeIcon: Icons.checklist,
+            route: '/operator/checklist',
+          ),
         _NavItem(
           label: l10n.navFlags,
           icon: Icons.flag_outlined,
@@ -198,12 +171,13 @@ List<_NavItem> _navItemsFor(
           activeIcon: Icons.dashboard,
           route: '/client/dashboard',
         ),
-        _NavItem(
-          label: l10n.navChecklist,
-          icon: Icons.checklist_outlined,
-          activeIcon: Icons.checklist,
-          route: '/operator/checklist',
-        ),
+        if (operationalChecklistsEnabled)
+          _NavItem(
+            label: l10n.navChecklist,
+            icon: Icons.checklist_outlined,
+            activeIcon: Icons.checklist,
+            route: '/operator/checklist',
+          ),
         _NavItem(
           label: l10n.navFlags,
           icon: Icons.flag_outlined,
@@ -218,12 +192,13 @@ List<_NavItem> _navItemsFor(
           activeIcon: Icons.dashboard,
           route: '/client/dashboard',
         ),
-        _NavItem(
-          label: l10n.navChecklist,
-          icon: Icons.checklist_outlined,
-          activeIcon: Icons.checklist,
-          route: '/operator/checklist',
-        ),
+        if (operationalChecklistsEnabled)
+          _NavItem(
+            label: l10n.navChecklist,
+            icon: Icons.checklist_outlined,
+            activeIcon: Icons.checklist,
+            route: '/operator/checklist',
+          ),
         _NavItem(
           label: l10n.navFlags,
           icon: Icons.flag_outlined,
@@ -249,7 +224,19 @@ class AppShell extends ConsumerWidget {
     final l10n = AppLocalizations.of(context);
     final profile = ref.watch(profileProvider).valueOrNull;
     final role = profile?.role ?? UserRole.employee;
-    final items = _navItemsFor(role, l10n, profile);
+    final operationalChecklistsEnabled = ref
+            .watch(clientCapabilityGateProvider((
+              clientId: null,
+              capability: ClientCapability.operationalChecklists,
+            )))
+            .valueOrNull ??
+        false;
+    final items = _navItemsFor(
+      role,
+      l10n,
+      profile,
+      operationalChecklistsEnabled: operationalChecklistsEnabled,
+    );
 
     final currentIndex = () {
       for (var i = 0; i < items.length; i++) {

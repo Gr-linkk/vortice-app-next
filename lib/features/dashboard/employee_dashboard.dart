@@ -38,8 +38,7 @@ class EmployeeDashboard extends ConsumerWidget {
           ref.invalidate(serviceReportsProvider);
         },
         child: workOrdersAsync.when(
-          loading: () =>
-              const Center(child: CircularProgressIndicator()),
+          loading: () => const Center(child: CircularProgressIndicator()),
           error: (err, _) => Center(
             child: Text(err.toString(),
                 style: const TextStyle(color: AppColors.error)),
@@ -47,26 +46,29 @@ class EmployeeDashboard extends ConsumerWidget {
           data: (allOrders) {
             final myId = profile?.id;
 
-            final myActive = allOrders
+            final activeOrders = allOrders
                 .where((w) =>
-                    w.assignedTo == myId &&
-                    w.status != WorkOrderStatus.closed)
+                    w.status != WorkOrderStatus.closed &&
+                    w.status != WorkOrderStatus.invoiced)
                 .toList()
               ..sort((a, b) =>
                   _priorityRank(a.status).compareTo(_priorityRank(b.status)));
 
-            final myInProgress = myActive
+            final myActive =
+                activeOrders.where((w) => w.assignedTo == myId).toList();
+
+            final shopQueue =
+                activeOrders.where((w) => w.assignedTo != myId).toList();
+
+            final activeInProgress = activeOrders
                 .where((w) => w.status == WorkOrderStatus.inProgress)
                 .length;
-            final myAssigned = myActive
-                .where((w) => w.status == WorkOrderStatus.assigned)
-                .length;
-            final myDraft = myActive
-                .where((w) => w.status == WorkOrderStatus.draft)
-                .length;
+            final assignedToMe = myActive.length;
+            final openWorkOrders = activeOrders.length;
+            final myDraft =
+                myActive.where((w) => w.status == WorkOrderStatus.draft).length;
 
-            final reportCount =
-                reportsAsync.valueOrNull?.length ?? 0;
+            final reportCount = reportsAsync.valueOrNull?.length ?? 0;
 
             return ListView(
               padding: const EdgeInsets.only(bottom: 32),
@@ -75,8 +77,7 @@ class EmployeeDashboard extends ConsumerWidget {
                 Padding(
                   padding: const EdgeInsets.fromLTRB(16, 20, 16, 4),
                   child: Text(
-                    l10n.greeting(
-                        profile?.fullName.split(' ').first ?? ''),
+                    l10n.greeting(profile?.fullName.split(' ').first ?? ''),
                     style: Theme.of(context).textTheme.headlineMedium,
                   ),
                 ),
@@ -96,20 +97,26 @@ class EmployeeDashboard extends ConsumerWidget {
                     children: [
                       _KpiCard(
                         label: 'In Progress',
-                        value: '$myInProgress',
+                        value: '$activeInProgress',
                         color: AppColors.primary,
                         icon: Icons.play_circle_outline,
-                        onTap: () =>
-                            context.push('/employee/work-orders'),
+                        onTap: () => context.push('/employee/work-orders'),
                       ),
                       const SizedBox(width: 10),
                       _KpiCard(
-                        label: 'Assigned',
-                        value: '$myAssigned',
+                        label: 'Assigned Me',
+                        value: '$assignedToMe',
                         color: AppColors.warning,
                         icon: Icons.assignment_outlined,
-                        onTap: () =>
-                            context.push('/employee/work-orders'),
+                        onTap: () => context.push('/employee/work-orders'),
+                      ),
+                      const SizedBox(width: 10),
+                      _KpiCard(
+                        label: 'Open WOs',
+                        value: '$openWorkOrders',
+                        color: AppColors.success,
+                        icon: Icons.list_alt_outlined,
+                        onTap: () => context.push('/employee/work-orders'),
                       ),
                       const SizedBox(width: 10),
                       _KpiCard(
@@ -117,8 +124,7 @@ class EmployeeDashboard extends ConsumerWidget {
                         value: '$reportCount',
                         color: AppColors.success,
                         icon: Icons.description_outlined,
-                        onTap: () =>
-                            context.push('/employee/service-reports'),
+                        onTap: () => context.push('/employee/service-reports'),
                       ),
                     ],
                   ),
@@ -130,8 +136,7 @@ class EmployeeDashboard extends ConsumerWidget {
                   child: _SectionHeader(title: 'QUICK ACTIONS'),
                 ),
                 Padding(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 16),
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
                   child: Row(
                     children: [
                       _QuickAction(
@@ -144,15 +149,13 @@ class EmployeeDashboard extends ConsumerWidget {
                       _QuickAction(
                         icon: Icons.settings_outlined,
                         label: 'Parts Log',
-                        onTap: () =>
-                            context.push('/employee/parts'),
+                        onTap: () => context.push('/employee/parts'),
                       ),
                       const SizedBox(width: 10),
                       _QuickAction(
                         icon: Icons.list_alt_outlined,
                         label: 'All WOs',
-                        onTap: () =>
-                            context.push('/employee/work-orders'),
+                        onTap: () => context.push('/employee/work-orders'),
                       ),
                     ],
                   ),
@@ -164,8 +167,7 @@ class EmployeeDashboard extends ConsumerWidget {
                 Padding(
                   padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
                   child: Row(
-                    mainAxisAlignment:
-                        MainAxisAlignment.spaceBetween,
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       _SectionHeader(title: l10n.assignedToMe),
                       if (myActive.isNotEmpty)
@@ -174,8 +176,7 @@ class EmployeeDashboard extends ConsumerWidget {
                               context.push('/employee/work-orders'),
                           child: Text(l10n.viewAll,
                               style: const TextStyle(
-                                  color: AppColors.primary,
-                                  fontSize: 12)),
+                                  color: AppColors.primary, fontSize: 12)),
                         ),
                     ],
                   ),
@@ -190,37 +191,81 @@ class EmployeeDashboard extends ConsumerWidget {
                         children: [
                           Icon(Icons.check_circle_outline,
                               size: 48,
-                              color: AppColors.success
-                                  .withOpacity(0.7)),
+                              color: AppColors.success.withOpacity(0.7)),
                           const SizedBox(height: 10),
                           Text(
                             l10n.noAssignedWorkOrders,
-                            style: const TextStyle(
-                                color: AppColors.textSecondary),
+                            style:
+                                const TextStyle(color: AppColors.textSecondary),
                           ),
                         ],
                       ),
                     ),
                   )
                 else
-                  ...myActive
-                      .take(5)
-                      .map((wo) => _WorkOrderCard(
-                            workOrder: wo,
-                            onTap: () => context.push(
-                                '/employee/work-orders/${wo.id}'),
-                          )),
+                  ...myActive.take(5).map((wo) => _WorkOrderCard(
+                        workOrder: wo,
+                        onTap: () =>
+                            context.push('/employee/work-orders/${wo.id}'),
+                      )),
 
                 if (myActive.length > 5) ...[
                   const SizedBox(height: 4),
                   Center(
                     child: TextButton(
-                      onPressed: () =>
-                          context.push('/employee/work-orders'),
+                      onPressed: () => context.push('/employee/work-orders'),
                       child: Text(
                         '+${myActive.length - 5} more',
-                        style: const TextStyle(
-                            color: AppColors.primary),
+                        style: const TextStyle(color: AppColors.primary),
+                      ),
+                    ),
+                  ),
+                ],
+
+                const SizedBox(height: 24),
+
+                // ── Shop work queue ────────────────────────────────
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const _SectionHeader(title: 'OPEN WORK ORDERS'),
+                      if (shopQueue.isNotEmpty)
+                        TextButton(
+                          onPressed: () =>
+                              context.push('/employee/work-orders'),
+                          child: Text(l10n.viewAll,
+                              style: const TextStyle(
+                                  color: AppColors.primary, fontSize: 12)),
+                        ),
+                    ],
+                  ),
+                ),
+
+                if (shopQueue.isEmpty)
+                  const Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                    child: Text(
+                      'No other active work orders.',
+                      style: TextStyle(color: AppColors.textSecondary),
+                    ),
+                  )
+                else
+                  ...shopQueue.take(5).map((wo) => _WorkOrderCard(
+                        workOrder: wo,
+                        onTap: () =>
+                            context.push('/employee/work-orders/${wo.id}'),
+                      )),
+
+                if (shopQueue.length > 5) ...[
+                  const SizedBox(height: 4),
+                  Center(
+                    child: TextButton(
+                      onPressed: () => context.push('/employee/work-orders'),
+                      child: Text(
+                        '+${shopQueue.length - 5} more',
+                        style: const TextStyle(color: AppColors.primary),
                       ),
                     ),
                   ),
@@ -230,16 +275,14 @@ class EmployeeDashboard extends ConsumerWidget {
                 if (myDraft > 0) ...[
                   const SizedBox(height: 8),
                   Padding(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 16),
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
                     child: Container(
                       padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
                         color: AppColors.warning.withOpacity(0.08),
                         borderRadius: BorderRadius.circular(10),
                         border: Border.all(
-                            color:
-                                AppColors.warning.withOpacity(0.3)),
+                            color: AppColors.warning.withOpacity(0.3)),
                       ),
                       child: Row(
                         children: [
@@ -250,8 +293,7 @@ class EmployeeDashboard extends ConsumerWidget {
                             child: Text(
                               '$myDraft draft work order${myDraft > 1 ? 's' : ''} waiting to be started.',
                               style: const TextStyle(
-                                  color: AppColors.warning,
-                                  fontSize: 13),
+                                  color: AppColors.warning, fontSize: 13),
                             ),
                           ),
                         ],
@@ -462,8 +504,7 @@ class _WorkOrderCard extends StatelessWidget {
                             style: Theme.of(context)
                                 .textTheme
                                 .titleSmall
-                                ?.copyWith(
-                                    fontWeight: FontWeight.w600),
+                                ?.copyWith(fontWeight: FontWeight.w600),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                           ),
@@ -503,8 +544,7 @@ class _WorkOrderCard extends StatelessWidget {
                       Row(
                         children: [
                           const Icon(Icons.calendar_today_outlined,
-                              size: 11,
-                              color: AppColors.textSecondary),
+                              size: 11, color: AppColors.textSecondary),
                           const SizedBox(width: 4),
                           Text(
                             DateFormat('MMM d')

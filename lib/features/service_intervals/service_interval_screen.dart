@@ -3,17 +3,15 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:vortice_app/core/theme.dart';
 import 'package:vortice_app/features/assets/asset_provider.dart';
-import 'package:vortice_app/features/auth/auth_provider.dart';
 import 'package:vortice_app/features/checklists/checklist_provider.dart';
 import 'package:vortice_app/features/parts/pm_kits_screen.dart';
 import 'package:vortice_app/features/parts/pm_parts_provider.dart';
 import 'package:vortice_app/features/service_intervals/maintenance_work_order_draft.dart';
 import 'package:vortice_app/features/service_intervals/service_interval_provider.dart';
-import 'package:vortice_app/features/subscription/tier_gate.dart';
-import 'package:vortice_app/features/subscription/upgrade_prompt.dart';
+import 'package:vortice_app/features/clients/client_capability_gate.dart';
 import 'package:vortice_app/models/asset.dart';
 import 'package:vortice_app/models/checklist_template.dart';
-import 'package:vortice_app/models/subscription_tier.dart';
+import 'package:vortice_app/models/client_capability.dart';
 
 class ServiceIntervalScreen extends ConsumerStatefulWidget {
   final String? assetId;
@@ -70,19 +68,6 @@ class _ServiceIntervalScreenState extends ConsumerState<ServiceIntervalScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final profile = ref.watch(profileProvider).valueOrNull;
-    if (!widget.readOnly && !hasTier(profile, SubscriptionTier.planning)) {
-      return Scaffold(
-        appBar: AppBar(title: const Text('Maintenance Plan')),
-        body: const Center(
-          child: Padding(
-            padding: EdgeInsets.all(24),
-            child: UpgradePrompt(requiredTier: SubscriptionTier.planning),
-          ),
-        ),
-      );
-    }
-
     final fixedAssetAsync =
         _isFixedAsset ? ref.watch(assetByIdProvider(widget.assetId!)) : null;
     final assetsAsync = _isFixedAsset ? null : ref.watch(assetsProvider);
@@ -91,7 +76,7 @@ class _ServiceIntervalScreenState extends ConsumerState<ServiceIntervalScreen> {
         _isFixedAsset ? fixedAssetAsync?.valueOrNull : _selectedAsset;
     final activeAssetId = activeAsset?.id;
 
-    return Scaffold(
+    final scaffold = Scaffold(
       appBar: AppBar(
         title:
             Text(widget.readOnly ? 'Parts & Maintenance' : 'Maintenance Plan'),
@@ -171,6 +156,27 @@ class _ServiceIntervalScreenState extends ConsumerState<ServiceIntervalScreen> {
                   ),
           ),
         ],
+      ),
+    );
+
+    if (widget.readOnly) return scaffold;
+
+    return ClientCapabilityGate(
+      clientId: activeAsset?.clientId,
+      capability: ClientCapability.maintenancePlanning,
+      allowedBuilder: (_) => scaffold,
+      blockedBuilder: (_) => Scaffold(
+        appBar: AppBar(title: const Text('Maintenance Plan')),
+        body: const Center(
+          child: Padding(
+            padding: EdgeInsets.all(24),
+            child: ClientCapabilityDisabledPanel(
+              capability: ClientCapability.maintenancePlanning,
+              message:
+                  'Maintenance planning is not enabled for this client. Existing service history remains available read-only.',
+            ),
+          ),
+        ),
       ),
     );
   }

@@ -9,14 +9,14 @@ import 'package:vortice_app/features/engines/engine_provider.dart';
 import 'package:vortice_app/features/service_intervals/service_interval_provider.dart';
 import 'package:vortice_app/features/telemetry/telemetry_provider.dart';
 import 'package:vortice_app/features/telemetry/device_pairing_screen.dart';
-import 'package:vortice_app/features/subscription/tier_gate.dart';
+import 'package:vortice_app/features/clients/client_capability_gate.dart';
 import 'package:vortice_app/l10n/app_localizations.dart';
 import 'package:vortice_app/features/assets/edit_asset_screen.dart';
 import 'package:vortice_app/models/asset.dart';
 import 'package:vortice_app/models/asset_service_interval.dart';
 import 'package:vortice_app/features/clients/client_provider.dart';
 import 'package:vortice_app/models/profile.dart';
-import 'package:vortice_app/models/subscription_tier.dart';
+import 'package:vortice_app/models/client_capability.dart';
 
 class AssetDetailScreen extends ConsumerWidget {
   final String assetId;
@@ -206,7 +206,7 @@ class _AssetDetailBody extends ConsumerWidget {
         const SizedBox(height: 16),
         _DeviceStatusStrip(assetId: asset.id),
         const SizedBox(height: 16),
-        _TelemetrySection(assetId: asset.id),
+        _TelemetrySection(asset: asset),
         if (asset.notes != null) ...[
           const SizedBox(height: 8),
           _SectionHeader(title: l10n.notes),
@@ -400,45 +400,23 @@ class _DetailRow extends StatelessWidget {
 
 // ── Live Telemetry Section ────────────────────────────────────────────────────
 
-class _TelemetrySection extends ConsumerWidget {
-  final String assetId;
-  const _TelemetrySection({required this.assetId});
+class _TelemetrySection extends StatelessWidget {
+  final Asset asset;
+  const _TelemetrySection({required this.asset});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final l10n = AppLocalizations.of(context);
-    final showTelemetry = hasTier(
-        ref.watch(profileProvider).valueOrNull, SubscriptionTier.telemetry);
-    return Column(
-      children: [
-        if (!showTelemetry)
-          Container(
-            margin: const EdgeInsets.only(bottom: 12),
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: AppColors.warning.withValues(alpha: 0.08),
-              borderRadius: BorderRadius.circular(10),
-              border:
-                  Border.all(color: AppColors.warning.withValues(alpha: 0.3)),
-            ),
-            child: Row(
-              children: [
-                const Icon(Icons.lock_outline,
-                    color: AppColors.warning, size: 16),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    l10n.upgradeMessage(SubscriptionTier.telemetry.displayName),
-                    style:
-                        const TextStyle(color: AppColors.warning, fontSize: 12),
-                  ),
-                ),
-              ],
-            ),
-          )
-        else
-          _AssetTelemCard(assetId: assetId),
-      ],
+  Widget build(BuildContext context) {
+    return ClientCapabilityGate(
+      clientId: asset.clientId,
+      capability: ClientCapability.telemetry,
+      loadingBuilder: (_) => const Padding(
+        padding: EdgeInsets.all(16),
+        child: Center(child: CircularProgressIndicator()),
+      ),
+      blockedBuilder: (_) => const ClientCapabilityDisabledPanel(
+        capability: ClientCapability.telemetry,
+      ),
+      allowedBuilder: (_) => _AssetTelemCard(assetId: asset.id),
     );
   }
 }
