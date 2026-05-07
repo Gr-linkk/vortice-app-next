@@ -36,6 +36,17 @@ final telemetryHistoryProvider = FutureProvider.family<List<TelemetryReading>,
       );
 });
 
+/// Fetch telemetry readings for an asset within a date range.
+final telemetryHistoryForAssetProvider = FutureProvider.family<
+    List<TelemetryReading>,
+    ({String assetId, DateTime from, DateTime to})>((ref, params) async {
+  return ref.watch(telemetryRepositoryProvider).readingsForAsset(
+        assetId: params.assetId,
+        from: params.from,
+        to: params.to,
+      );
+});
+
 /// Fetch all telemetry readings for an engine (recent, limited).
 final telemetryForEngineProvider =
     FutureProvider.family<List<TelemetryReading>, String>(
@@ -124,6 +135,12 @@ final alertsForAssetProvider =
   return ref
       .watch(telemetryRepositoryProvider)
       .unacknowledgedAlertsForAsset(assetId);
+});
+
+/// All recent alerts pinned directly to a given asset.
+final allAlertsForAssetProvider =
+    FutureProvider.family<List<TelemetryAlert>, String>((ref, assetId) async {
+  return ref.watch(telemetryRepositoryProvider).alertsForAsset(assetId);
 });
 
 /// Readings for the last N hours (convenience wrapper used by the dashboard).

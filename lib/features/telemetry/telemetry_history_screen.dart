@@ -11,24 +11,23 @@ import 'package:vortice_app/models/telemetry_reading.dart';
 import 'package:vortice_app/models/telemetry_alert.dart';
 import 'package:vortice_app/models/subscription_tier.dart';
 
-/// Shows telemetry history for an engine with date range filter
+/// Shows telemetry history for an asset-first telemetry stream, or a legacy engine.
 class TelemetryHistoryScreen extends ConsumerStatefulWidget {
-  final String engineId;
+  final String? engineId;
   final String? assetId;
 
   const TelemetryHistoryScreen({
     super.key,
-    required this.engineId,
+    this.engineId,
     this.assetId,
-  });
+  }) : assert(assetId != null || engineId != null);
 
   @override
   ConsumerState<TelemetryHistoryScreen> createState() =>
       _TelemetryHistoryScreenState();
 }
 
-class _TelemetryHistoryScreenState
-    extends ConsumerState<TelemetryHistoryScreen>
+class _TelemetryHistoryScreenState extends ConsumerState<TelemetryHistoryScreen>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
   DateTimeRange _dateRange = DateTimeRange(
@@ -79,27 +78,31 @@ class _TelemetryHistoryScreenState
     final l10n = AppLocalizations.of(context);
 
     // Gate: only Telemetry+ tier can view telemetry history
-    if (!hasTier(ref.watch(profileProvider).valueOrNull, SubscriptionTier.telemetry)) {
+    if (!hasTier(
+        ref.watch(profileProvider).valueOrNull, SubscriptionTier.telemetry)) {
       return Scaffold(
         appBar: AppBar(title: Text(l10n.telemetryHistory)),
-        body: Center(
+        body: const Center(
           child: Padding(
-            padding: const EdgeInsets.all(24),
+            padding: EdgeInsets.all(24),
             child: UpgradePrompt(requiredTier: SubscriptionTier.telemetry),
           ),
         ),
       );
     }
 
-    final engineAsync = ref.watch(engineByIdProvider(widget.engineId));
+    final engineAsync = widget.engineId == null
+        ? null
+        : ref.watch(engineByIdProvider(widget.engineId!));
 
     return Scaffold(
       appBar: AppBar(
-        title: engineAsync.when(
-          loading: () => Text(l10n.telemetryHistory),
-          error: (_, __) => Text(l10n.telemetryHistory),
-          data: (engine) => Text(engine?.label ?? l10n.telemetryHistory),
-        ),
+        title: engineAsync?.when(
+              loading: () => Text(l10n.telemetryHistory),
+              error: (_, __) => Text(l10n.telemetryHistory),
+              data: (engine) => Text(engine?.label ?? l10n.telemetryHistory),
+            ) ??
+            Text(l10n.telemetryHistory),
         actions: [
           IconButton(
             icon: const Icon(Icons.date_range),
@@ -148,10 +151,11 @@ class _TelemetryHistoryScreenState
               controller: _tabController,
               children: [
                 _ReadingsTab(
+                  assetId: widget.assetId,
                   engineId: widget.engineId,
                   dateRange: _dateRange,
                 ),
-                _AlertsTab(engineId: widget.engineId),
+                _AlertsTab(assetId: widget.assetId, engineId: widget.engineId),
               ],
             ),
           ),
@@ -166,10 +170,12 @@ class _TelemetryHistoryScreenState
 }
 
 class _ReadingsTab extends ConsumerWidget {
-  final String engineId;
+  final String? assetId;
+  final String? engineId;
   final DateTimeRange dateRange;
 
   const _ReadingsTab({
+    required this.assetId,
     required this.engineId,
     required this.dateRange,
   });
@@ -177,13 +183,21 @@ class _ReadingsTab extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context);
-    final readingsAsync = ref.watch(
-      telemetryHistoryProvider((
-        engineId: engineId,
-        from: dateRange.start,
-        to: dateRange.end,
-      )),
-    );
+    final readingsAsync = assetId != null
+        ? ref.watch(
+            telemetryHistoryForAssetProvider((
+              assetId: assetId!,
+              from: dateRange.start,
+              to: dateRange.end,
+            )),
+          )
+        : ref.watch(
+            telemetryHistoryProvider((
+              engineId: engineId!,
+              from: dateRange.start,
+              to: dateRange.end,
+            )),
+          );
 
     return readingsAsync.when(
       loading: () => const Center(child: CircularProgressIndicator()),
@@ -197,7 +211,7 @@ class _ReadingsTab extends ConsumerWidget {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Icon(Icons.sensors_off,
+                const Icon(Icons.sensors_off,
                     size: 48, color: AppColors.textSecondary),
                 const SizedBox(height: 12),
                 Text(
@@ -211,11 +225,19 @@ class _ReadingsTab extends ConsumerWidget {
 
         return RefreshIndicator(
           onRefresh: () async {
-            ref.invalidate(telemetryHistoryProvider((
-              engineId: engineId,
-              from: dateRange.start,
-              to: dateRange.end,
-            )));
+            if (assetId != null) {
+              ref.invalidate(telemetryHistoryForAssetProvider((
+                assetId: assetId!,
+                from: dateRange.start,
+                to: dateRange.end,
+              )));
+            } else {
+              ref.invalidate(telemetryHistoryProvider((
+                engineId: engineId!,
+                from: dateRange.start,
+                to: dateRange.end,
+              )));
+            }
           },
           child: ListView.builder(
             padding: const EdgeInsets.all(16),
@@ -251,8 +273,8 @@ class _ReadingCard extends StatelessWidget {
         subtitle: reading.rpm != null
             ? Text(
                 '${reading.rpm!.toStringAsFixed(0)} RPM',
-                style:
-                    const TextStyle(color: AppColors.textSecondary, fontSize: 12),
+                style: const TextStyle(
+                    color: AppColors.textSecondary, fontSize: 12),
               )
             : null,
         children: [
@@ -260,7 +282,8 @@ class _ReadingCard extends StatelessWidget {
             padding: const EdgeInsets.all(16),
             child: Column(
               children: [
-                _DetailRow(label: 'RPM', value: reading.rpm?.toStringAsFixed(0)),
+                _DetailRow(
+                    label: 'RPM', value: reading.rpm?.toStringAsFixed(0)),
                 _DetailRow(
                     label: l10n.coolantTemp,
                     value: reading.coolantTemp != null
@@ -328,7 +351,8 @@ class _DetailRow extends StatelessWidget {
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           Text(label,
-              style: const TextStyle(color: AppColors.textSecondary, fontSize: 13)),
+              style: const TextStyle(
+                  color: AppColors.textSecondary, fontSize: 13)),
           Text(value!,
               style: const TextStyle(
                   color: AppColors.textPrimary,
@@ -341,14 +365,17 @@ class _DetailRow extends StatelessWidget {
 }
 
 class _AlertsTab extends ConsumerWidget {
-  final String engineId;
+  final String? assetId;
+  final String? engineId;
 
-  const _AlertsTab({required this.engineId});
+  const _AlertsTab({required this.assetId, required this.engineId});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context);
-    final alertsAsync = ref.watch(alertsForEngineProvider(engineId));
+    final alertsAsync = assetId != null
+        ? ref.watch(allAlertsForAssetProvider(assetId!))
+        : ref.watch(alertsForEngineProvider(engineId!));
 
     return alertsAsync.when(
       loading: () => const Center(child: CircularProgressIndicator()),
@@ -362,7 +389,7 @@ class _AlertsTab extends ConsumerWidget {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Icon(Icons.check_circle,
+                const Icon(Icons.check_circle,
                     size: 48, color: AppColors.success),
                 const SizedBox(height: 12),
                 Text(
@@ -375,8 +402,13 @@ class _AlertsTab extends ConsumerWidget {
         }
 
         return RefreshIndicator(
-          onRefresh: () async =>
-              ref.invalidate(alertsForEngineProvider(engineId)),
+          onRefresh: () async {
+            if (assetId != null) {
+              ref.invalidate(allAlertsForAssetProvider(assetId!));
+            } else {
+              ref.invalidate(alertsForEngineProvider(engineId!));
+            }
+          },
           child: ListView.builder(
             padding: const EdgeInsets.all(16),
             itemCount: alerts.length,
@@ -399,7 +431,6 @@ class _AlertCard extends StatelessWidget {
       AlertSeverity.critical => AppColors.error,
       AlertSeverity.warning => AppColors.warning,
       AlertSeverity.info => AppColors.primary,
-      _ => AppColors.primary,
     };
 
     final icon = switch (alert.alertType) {
@@ -408,14 +439,13 @@ class _AlertCard extends StatelessWidget {
       TelemetryAlertType.warning => Icons.warning_amber,
       TelemetryAlertType.critical => Icons.dangerous,
       TelemetryAlertType.info => Icons.info_outline,
-      _ => Icons.info_outline,
     };
 
     return Card(
       margin: const EdgeInsets.only(bottom: 8),
       child: ListTile(
         leading: CircleAvatar(
-          backgroundColor: severityColor.withOpacity(0.15),
+          backgroundColor: severityColor.withValues(alpha: 0.15),
           child: Icon(icon, color: severityColor, size: 20),
         ),
         title: Row(
@@ -434,10 +464,10 @@ class _AlertCard extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                 decoration: BoxDecoration(
-                  color: AppColors.error.withOpacity(0.15),
+                  color: AppColors.error.withValues(alpha: 0.15),
                   borderRadius: BorderRadius.circular(4),
                 ),
-                child: Text(
+                child: const Text(
                   'NEW',
                   style: TextStyle(
                     color: AppColors.error,
@@ -452,13 +482,12 @@ class _AlertCard extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             if (alert.message != null)
-              Text(alert.message!,
-                  style: const TextStyle(fontSize: 12)),
+              Text(alert.message!, style: const TextStyle(fontSize: 12)),
             const SizedBox(height: 4),
             Text(
               _formatDateTime(alert.createdAt ?? DateTime.now()),
-              style: const TextStyle(
-                  color: AppColors.textSecondary, fontSize: 11),
+              style:
+                  const TextStyle(color: AppColors.textSecondary, fontSize: 11),
             ),
           ],
         ),

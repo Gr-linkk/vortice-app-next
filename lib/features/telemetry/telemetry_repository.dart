@@ -66,7 +66,7 @@ class TelemetryRepository {
         .maybeSingle();
 
     if (data == null) return null;
-    return TelemetryReading.fromJson(_withLegacyEngineId(data));
+    return TelemetryReading.fromJson(data);
   }
 
   Future<List<TelemetryReading>> readingsForAsset({
@@ -146,6 +146,17 @@ class TelemetryRepository {
         .eq('asset_id', assetId)
         .eq('acknowledged', false)
         .order('created_at', ascending: false);
+
+    return _alertsFromData(data);
+  }
+
+  Future<List<TelemetryAlert>> alertsForAsset(String assetId) async {
+    final data = await _supabase
+        .from(AppConstants.tTelemetryAlerts)
+        .select()
+        .eq('asset_id', assetId)
+        .order('created_at', ascending: false)
+        .limit(50);
 
     return _alertsFromData(data);
   }
@@ -267,22 +278,13 @@ class TelemetryRepository {
 
   List<TelemetryReading> _readingsFromData(Object? data) {
     return (data as List)
-        .map((e) => TelemetryReading.fromJson(
-              _withLegacyEngineId(e as Map<String, dynamic>),
-            ))
+        .map((e) => TelemetryReading.fromJson(e as Map<String, dynamic>))
         .toList();
   }
 
   List<TelemetryAlert> _alertsFromData(Object? data) {
     return (data as List)
-        .map((e) => TelemetryAlert.fromJson(
-              _withLegacyEngineId(e as Map<String, dynamic>),
-            ))
+        .map((e) => TelemetryAlert.fromJson(e as Map<String, dynamic>))
         .toList();
-  }
-
-  Map<String, dynamic> _withLegacyEngineId(Map<String, dynamic> json) {
-    if (json['engine_id'] != null) return json;
-    return {...json, 'engine_id': ''};
   }
 }

@@ -96,10 +96,11 @@ class OwnerDashboard extends ConsumerWidget {
       appBar: AppBar(
         title: Text(l10n.ownerDashboardTitle),
         actions: [
-          _BellButton(route: '/owner/notifications'),
+          const _BellButton(route: '/owner/notifications'),
           IconButton(
             icon: const Icon(Icons.logout),
-            onPressed: () => ref.read(authControllerProvider.notifier).signOut(),
+            onPressed: () =>
+                ref.read(authControllerProvider.notifier).signOut(),
           ),
         ],
       ),
@@ -237,12 +238,11 @@ class OwnerDashboard extends ConsumerWidget {
               error: (err, _) => _ErrorTile(message: err.toString()),
               data: (clients) {
                 if (clients.isEmpty) {
-                  return Padding(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  return const Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                     child: Text(
                       'No clients yet.',
-                      style: const TextStyle(
+                      style: TextStyle(
                           color: AppColors.textSecondary, fontSize: 13),
                     ),
                   );
@@ -349,8 +349,7 @@ class _QuickAccessCard extends StatelessWidget {
             Icon(icon, color: color, size: 24),
             const SizedBox(width: 10),
             Expanded(
-              child: Text(label,
-                  style: Theme.of(context).textTheme.titleSmall),
+              child: Text(label, style: Theme.of(context).textTheme.titleSmall),
             ),
             if (badge != null && badge! > 0)
               Container(
@@ -368,7 +367,8 @@ class _QuickAccessCard extends StatelessWidget {
                   ),
                 ),
               ),
-            const Icon(Icons.chevron_right, color: AppColors.textSecondary, size: 20),
+            const Icon(Icons.chevron_right,
+                color: AppColors.textSecondary, size: 20),
           ],
         ),
       ),
@@ -502,7 +502,7 @@ class _WorkOrderTile extends StatelessWidget {
                           padding: const EdgeInsets.symmetric(
                               horizontal: 8, vertical: 3),
                           decoration: BoxDecoration(
-                            color: color.withOpacity(0.12),
+                            color: color.withValues(alpha: 0.12),
                             borderRadius: BorderRadius.circular(20),
                           ),
                           child: Text(
@@ -586,7 +586,7 @@ class _ClientSummaryCard extends StatelessWidget {
           child: Row(
             children: [
               CircleAvatar(
-                backgroundColor: AppColors.primary.withOpacity(0.12),
+                backgroundColor: AppColors.primary.withValues(alpha: 0.12),
                 child: const Icon(Icons.person_outline,
                     color: AppColors.primary, size: 20),
               ),
@@ -613,7 +613,7 @@ class _ClientSummaryCard extends StatelessWidget {
                           padding: const EdgeInsets.symmetric(
                               horizontal: 6, vertical: 2),
                           decoration: BoxDecoration(
-                            color: tierColor.withOpacity(0.12),
+                            color: tierColor.withValues(alpha: 0.12),
                             borderRadius: BorderRadius.circular(12),
                           ),
                           child: Text(
@@ -631,36 +631,30 @@ class _ClientSummaryCard extends StatelessWidget {
                     Row(
                       children: [
                         const Icon(Icons.directions_boat,
-                            size: 11,
-                            color: AppColors.textSecondary),
+                            size: 11, color: AppColors.textSecondary),
                         const SizedBox(width: 4),
                         Text(
                           '${client['vessel_count']} vessels',
                           style: const TextStyle(
-                              color: AppColors.textSecondary,
-                              fontSize: 11),
+                              color: AppColors.textSecondary, fontSize: 11),
                         ),
                         const SizedBox(width: 12),
                         const Icon(Icons.build_outlined,
-                            size: 11,
-                            color: AppColors.textSecondary),
+                            size: 11, color: AppColors.textSecondary),
                         const SizedBox(width: 4),
                         Text(
                           '${client['open_wo_count']} open WOs',
                           style: const TextStyle(
-                              color: AppColors.textSecondary,
-                              fontSize: 11),
+                              color: AppColors.textSecondary, fontSize: 11),
                         ),
                         const SizedBox(width: 12),
                         const Icon(Icons.access_time,
-                            size: 11,
-                            color: AppColors.textSecondary),
+                            size: 11, color: AppColors.textSecondary),
                         const SizedBox(width: 4),
                         Text(
                           actStr,
                           style: const TextStyle(
-                              color: AppColors.textSecondary,
-                              fontSize: 11),
+                              color: AppColors.textSecondary, fontSize: 11),
                         ),
                       ],
                     ),
@@ -685,8 +679,7 @@ class _ErrorTile extends StatelessWidget {
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.all(16),
-      child: Text(message,
-          style: const TextStyle(color: AppColors.error)),
+      child: Text(message, style: const TextStyle(color: AppColors.error)),
     );
   }
 }
@@ -757,15 +750,14 @@ class _OwnerAlertsSection extends ConsumerWidget {
       data: (alerts) {
         if (alerts.isEmpty) {
           return Padding(
-            padding:
-                const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
             child: Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: AppColors.success.withOpacity(0.08),
+                color: AppColors.success.withValues(alpha: 0.08),
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(
-                    color: AppColors.success.withOpacity(0.3)),
+                border:
+                    Border.all(color: AppColors.success.withValues(alpha: 0.3)),
               ),
               child: const Row(
                 children: [
@@ -774,8 +766,7 @@ class _OwnerAlertsSection extends ConsumerWidget {
                   SizedBox(width: 12),
                   Text(
                     'No active alerts',
-                    style: TextStyle(
-                        color: AppColors.success, fontSize: 13),
+                    style: TextStyle(color: AppColors.success, fontSize: 13),
                   ),
                 ],
               ),
@@ -784,10 +775,8 @@ class _OwnerAlertsSection extends ConsumerWidget {
         }
 
         return Column(
-          children: alerts
-              .take(5)
-              .map((a) => _OwnerAlertTile(alert: a))
-              .toList(),
+          children:
+              alerts.take(5).map((a) => _OwnerAlertTile(alert: a)).toList(),
         );
       },
     );
@@ -811,15 +800,20 @@ class _OwnerAlertTile extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
       child: InkWell(
-        onTap: () =>
-            context.push('/owner/engines/${alert.engineId}/telemetry'),
+        onTap: () {
+          if (alert.assetId.isNotEmpty) {
+            context.push('/telemetry/vessel/${alert.assetId}');
+          } else if (alert.engineId != null) {
+            context.push('/owner/engines/${alert.engineId}/telemetry');
+          }
+        },
         borderRadius: BorderRadius.circular(12),
         child: Container(
           padding: const EdgeInsets.all(14),
           decoration: BoxDecoration(
             color: AppColors.surface,
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: color.withOpacity(0.35)),
+            border: Border.all(color: color.withValues(alpha: 0.35)),
           ),
           child: Row(
             children: [

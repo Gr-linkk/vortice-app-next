@@ -33,6 +33,7 @@ class AppConstants {
   static const String tTelemetryReadings = 'telemetry_readings';
   static const String tTelemetryAlerts = 'telemetry_alerts';
   static const String tDevices = 'devices';
+  static const String tClientCapabilities = 'client_capabilities';
   static const String tPmPartsRequirements = 'pm_parts_requirements';
   static const String tPartsInventory = 'parts_inventory';
   static const String tNotifications = 'notifications';

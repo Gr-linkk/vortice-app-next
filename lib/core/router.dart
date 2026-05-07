@@ -190,6 +190,7 @@ final routerProvider = Provider<GoRouter>((ref) {
             path: '/owner/engines/:engineId/telemetry',
             builder: (_, state) => TelemetryHistoryScreen(
               engineId: state.pathParameters['engineId']!,
+              assetId: state.uri.queryParameters['assetId'],
             ),
           ),
           GoRoute(
@@ -304,6 +305,7 @@ final routerProvider = Provider<GoRouter>((ref) {
             path: '/client/engines/:engineId/telemetry',
             builder: (_, state) => TelemetryHistoryScreen(
               engineId: state.pathParameters['engineId']!,
+              assetId: state.uri.queryParameters['assetId'],
             ),
           ),
           GoRoute(
@@ -358,6 +360,12 @@ final routerProvider = Provider<GoRouter>((ref) {
           GoRoute(
             path: '/telemetry/vessel/:assetId',
             builder: (_, state) => VesselTelemetryScreen(
+              assetId: state.pathParameters['assetId']!,
+            ),
+          ),
+          GoRoute(
+            path: '/telemetry/assets/:assetId/history',
+            builder: (_, state) => TelemetryHistoryScreen(
               assetId: state.pathParameters['assetId']!,
             ),
           ),

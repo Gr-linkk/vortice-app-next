@@ -7,7 +7,8 @@ part 'telemetry_reading.g.dart';
 class TelemetryReading with _$TelemetryReading {
   const factory TelemetryReading({
     required String id,
-    @JsonKey(name: 'engine_id') required String engineId,
+    @JsonKey(name: 'asset_id') required String assetId,
+    @JsonKey(name: 'engine_id') String? engineId,
     required DateTime ts,
 
     // Core engine parameters
@@ -34,7 +35,7 @@ class TelemetryReading with _$TelemetryReading {
     // Source tracking
     String? source,
     @JsonKey(name: 'device_id') String? deviceId,
-
+    @JsonKey(name: 'raw_data') Map<String, dynamic>? rawData,
     @JsonKey(name: 'created_at') DateTime? createdAt,
   }) = _TelemetryReading;
 
