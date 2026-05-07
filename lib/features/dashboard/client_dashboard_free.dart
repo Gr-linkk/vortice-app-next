@@ -5,19 +5,15 @@ import 'package:vortice_app/core/theme.dart';
 import 'package:vortice_app/features/assets/asset_provider.dart';
 import 'package:vortice_app/features/auth/auth_provider.dart';
 import 'package:vortice_app/features/dashboard/client_dashboard_managed.dart';
-import 'package:vortice_app/features/dashboard/client_dashboard_telemetry.dart';
 import 'package:vortice_app/features/dashboard/client_mechanic_dashboard.dart';
 import 'package:vortice_app/features/dashboard/client_operator_dashboard.dart';
 import 'package:vortice_app/features/invoices/invoice_provider.dart';
 import 'package:vortice_app/features/notifications/notification_provider.dart';
-import 'package:vortice_app/features/orgs/org_admin_screen.dart';
-import 'package:vortice_app/features/subscription/tier_gate.dart';
 import 'package:vortice_app/models/asset.dart';
 import 'package:vortice_app/models/invoice.dart';
 import 'package:vortice_app/models/profile.dart';
 
-
-// ── ClientDashboardRouter — dispatches based on role and tier ───────────────
+// ── ClientDashboardRouter — dispatches based on role ────────────────────────
 
 class ClientDashboardRouter extends ConsumerWidget {
   const ClientDashboardRouter({super.key});
@@ -29,21 +25,9 @@ class ClientDashboardRouter extends ConsumerWidget {
 
     return switch (role) {
       UserRole.clientMechanic => const ClientMechanicDashboard(),
-      UserRole.clientOperator => const ClientOperatorDashboard(),  // legacy
-      UserRole.operator => const ClientOperatorDashboard(),        // merged
-      _ => _tierDashboard(ref),  // client, clientAdmin — route by tier
-    };
-  }
-
-  Widget _tierDashboard(WidgetRef ref) {
-    final profile = ref.watch(profileProvider).valueOrNull;
-    final role = profile?.role ?? UserRole.client;
-    final tier = ref.watch(tierProvider);
-    return switch (tier) {
-      _ when tier.value >= 3 => const ClientDashboardTelemetry(),  // Telemetry (incl. clientAdmin T3)
-      _ when tier.value >= 2 => const OrgAdminScreen(),            // Planning (clientAdmin T2)
-      _ when tier.value >= 1 => const ClientDashboardManaged(),    // Managed
-      _ => const ClientDashboardFree(),                            // Free
+      UserRole.clientOperator => const ClientOperatorDashboard(), // legacy
+      UserRole.operator => const ClientOperatorDashboard(), // merged
+      _ => const ClientDashboardManaged(),
     };
   }
 }
@@ -66,7 +50,8 @@ class ClientDashboardFree extends ConsumerWidget {
           _BellButton(route: '/client/notifications'),
           IconButton(
             icon: const Icon(Icons.logout),
-            onPressed: () => ref.read(authControllerProvider.notifier).signOut(),
+            onPressed: () =>
+                ref.read(authControllerProvider.notifier).signOut(),
           ),
         ],
       ),
@@ -116,9 +101,7 @@ class ClientDashboardFree extends ConsumerWidget {
                   );
                 }
                 return Column(
-                  children: assets
-                      .map((a) => _AssetTile(asset: a))
-                      .toList(),
+                  children: assets.map((a) => _AssetTile(asset: a)).toList(),
                 );
               },
             ),
@@ -292,7 +275,6 @@ class _AssetTile extends StatelessWidget {
   }
 }
 
-
 class _InvoiceTile extends StatelessWidget {
   final Invoice invoice;
   const _InvoiceTile({required this.invoice});
@@ -345,8 +327,7 @@ class _InvoiceTile extends StatelessWidget {
                 ),
               ),
               Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                 decoration: BoxDecoration(
                   color: statusColor.withOpacity(0.12),
                   borderRadius: BorderRadius.circular(20),

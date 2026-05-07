@@ -10,13 +10,13 @@ import 'package:vortice_app/features/invoices/invoice_provider.dart';
 import 'package:vortice_app/features/notifications/notification_provider.dart';
 import 'package:vortice_app/features/parts/pm_kits_screen.dart';
 import 'package:vortice_app/features/reminders/reminder_provider.dart';
-import 'package:vortice_app/features/subscription/tier_gate.dart';
-import 'package:vortice_app/features/subscription/upgrade_prompt.dart';
+import 'package:vortice_app/features/clients/client_capability_gate.dart';
+import 'package:vortice_app/features/clients/client_context_provider.dart';
 import 'package:vortice_app/features/telemetry/telemetry_provider.dart';
 import 'package:vortice_app/features/telemetry/telemetry_repository.dart';
 import 'package:vortice_app/models/asset.dart';
+import 'package:vortice_app/models/client_capability.dart';
 import 'package:vortice_app/models/invoice.dart';
-import 'package:vortice_app/models/subscription_tier.dart';
 import 'package:vortice_app/models/telemetry_alert.dart';
 
 /// Telemetry tier (T3+) client dashboard.
@@ -26,182 +26,206 @@ class ClientDashboardTelemetry extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final profile = ref.watch(profileProvider).valueOrNull;
+    final clientId = ref.watch(currentClientIdProvider).valueOrNull;
 
-    // Tier gate
-    if (!hasTier(profile, SubscriptionTier.telemetry)) {
-      return Scaffold(
+    final assetsAsync = ref.watch(assetsProvider);
+    final invoicesAsync = ref.watch(invoicesProvider);
+    final fleetHealthAsync = ref.watch(fleetHealthProvider(clientId));
+    final activeAlertsAsync = ref.watch(activeAlertsProvider);
+    final maintenancePlanningAllowedAsync =
+        ref.watch(clientCapabilityGateProvider((
+      clientId: clientId,
+      capability: ClientCapability.maintenancePlanning,
+    )));
+    final pmPartsListsAllowedAsync = ref.watch(clientCapabilityGateProvider((
+      clientId: clientId,
+      capability: ClientCapability.pmPartsLists,
+    )));
+    final showMaintenancePlanning =
+        maintenancePlanningAllowedAsync.valueOrNull ?? false;
+    final showPmPartsLists = pmPartsListsAllowedAsync.valueOrNull ?? false;
+    final remindersAsync =
+        showMaintenancePlanning ? ref.watch(remindersProvider) : null;
+
+    return ClientCapabilityGate(
+      clientId: clientId,
+      capability: ClientCapability.telemetry,
+      blockedBuilder: (_) => Scaffold(
         appBar: AppBar(title: const Text('Fleet Dashboard')),
         body: const Center(
           child: Padding(
             padding: EdgeInsets.all(24),
-            child: UpgradePrompt(requiredTier: SubscriptionTier.telemetry),
+            child: ClientCapabilityDisabledPanel(
+              capability: ClientCapability.telemetry,
+            ),
           ),
         ),
-      );
-    }
-
-    final assetsAsync = ref.watch(assetsProvider);
-    final invoicesAsync = ref.watch(invoicesProvider);
-    final remindersAsync = ref.watch(remindersProvider);
-    final clientId = profile?.id;
-    final fleetHealthAsync = ref.watch(fleetHealthProvider(clientId));
-    final activeAlertsAsync = ref.watch(activeAlertsProvider);
-
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Fleet Dashboard'),
-        actions: [
-          const _BellButton(route: '/client/notifications'),
-          IconButton(
-            icon: const Icon(Icons.logout),
-            onPressed: () =>
-                ref.read(authControllerProvider.notifier).signOut(),
-          ),
-        ],
       ),
-      body: RefreshIndicator(
-        onRefresh: () async {
-          ref.invalidate(assetsProvider);
-          ref.invalidate(invoicesProvider);
-          ref.invalidate(remindersProvider);
-          ref.invalidate(fleetHealthProvider(clientId));
-          ref.invalidate(activeAlertsProvider);
-        },
-        child: ListView(
-          padding: const EdgeInsets.only(bottom: 32),
-          children: [
-            // ── Fleet Health Bar ─────────────────────────────────────────────
-            const SizedBox(height: 16),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: fleetHealthAsync.when(
-                loading: () => const _FleetHealthSkeleton(),
-                error: (_, __) => const SizedBox.shrink(),
-                data: (health) => _FleetHealthBar(health: health),
-              ),
-            ),
-
-            // ── Active Alerts ────────────────────────────────────────────────
-            const _SectionHeader(title: 'Active Alerts'),
-            activeAlertsAsync.when(
-              loading: () => const _LoadingTile(),
-              error: (err, _) => _ErrorTile(message: err.toString()),
-              data: (alerts) {
-                if (alerts.isEmpty) {
-                  return Padding(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-                    child: Container(
-                      padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        color: AppColors.success.withValues(alpha: 0.1),
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(
-                            color: AppColors.success.withValues(alpha: 0.3)),
-                      ),
-                      child: const Row(
-                        children: [
-                          Icon(Icons.check_circle,
-                              color: AppColors.success, size: 22),
-                          SizedBox(width: 12),
-                          Text(
-                            'All vessels nominal',
-                            style: TextStyle(
-                                color: AppColors.success,
-                                fontWeight: FontWeight.w500),
-                          ),
-                        ],
-                      ),
-                    ),
-                  );
-                }
-                return Column(
-                  children:
-                      alerts.take(5).map((a) => _AlertTile(alert: a)).toList(),
-                );
-              },
-            ),
-
-            // ── Fleet Grid ───────────────────────────────────────────────────
-            const _SectionHeader(title: 'Fleet'),
-            assetsAsync.when(
-              loading: () => const _LoadingTile(),
-              error: (err, _) => _ErrorTile(message: err.toString()),
-              data: (assets) {
-                if (assets.isEmpty) {
-                  return const _EmptyStateTile(
-                    icon: Icons.directions_boat_outlined,
-                    message: 'No vessels yet. Contact Vórtice to get started.',
-                  );
-                }
-                return Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  child: GridView.builder(
-                    shrinkWrap: true,
-                    physics: const NeverScrollableScrollPhysics(),
-                    gridDelegate:
-                        const SliverGridDelegateWithFixedCrossAxisCount(
-                      crossAxisCount: 2,
-                      crossAxisSpacing: 12,
-                      mainAxisSpacing: 12,
-                      childAspectRatio: 1.2,
-                    ),
-                    itemCount: assets.length,
-                    itemBuilder: (_, i) =>
-                        _VesselCard(asset: assets[i], ref: ref),
-                  ),
-                );
-              },
-            ),
-
-            // ── Upcoming Maintenance ─────────────────────────────────────────
-            const _SectionHeader(title: 'Upcoming Maintenance'),
-            remindersAsync.when(
-              loading: () => const _LoadingTile(),
-              error: (err, _) => _ErrorTile(message: err.toString()),
-              data: (reminders) {
-                if (reminders.isEmpty) {
-                  return const _EmptyStateTile(
-                    icon: Icons.event_available_outlined,
-                    message: 'No upcoming maintenance.',
-                  );
-                }
-                return Column(
-                  children: reminders
-                      .take(5)
-                      .map((r) => _MaintenanceTile(item: r))
-                      .toList(),
-                );
-              },
-            ),
-
-            // ── Open Invoices ────────────────────────────────────────────────
-            const _SectionHeader(title: 'Open Invoices'),
-            invoicesAsync.when(
-              loading: () => const _LoadingTile(),
-              error: (err, _) => _ErrorTile(message: err.toString()),
-              data: (invoices) {
-                final open = invoices
-                    .where((i) =>
-                        i.status == InvoiceStatus.sent ||
-                        i.status == InvoiceStatus.draft)
-                    .toList();
-                if (open.isEmpty) {
-                  return const _EmptyStateTile(
-                    icon: Icons.receipt_long_outlined,
-                    message: 'No open invoices.',
-                  );
-                }
-                return Column(
-                  children: open
-                      .take(5)
-                      .map((inv) => _InvoiceTile(invoice: inv))
-                      .toList(),
-                );
-              },
+      allowedBuilder: (_) => Scaffold(
+        appBar: AppBar(
+          title: const Text('Fleet Dashboard'),
+          actions: [
+            const _BellButton(route: '/client/notifications'),
+            IconButton(
+              icon: const Icon(Icons.logout),
+              onPressed: () =>
+                  ref.read(authControllerProvider.notifier).signOut(),
             ),
           ],
+        ),
+        body: RefreshIndicator(
+          onRefresh: () async {
+            ref.invalidate(assetsProvider);
+            ref.invalidate(invoicesProvider);
+            ref.invalidate(remindersProvider);
+            ref.invalidate(fleetHealthProvider(clientId));
+            ref.invalidate(activeAlertsProvider);
+          },
+          child: ListView(
+            padding: const EdgeInsets.only(bottom: 32),
+            children: [
+              // ── Fleet Health Bar ─────────────────────────────────────────────
+              const SizedBox(height: 16),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: fleetHealthAsync.when(
+                  loading: () => const _FleetHealthSkeleton(),
+                  error: (_, __) => const SizedBox.shrink(),
+                  data: (health) => _FleetHealthBar(health: health),
+                ),
+              ),
+
+              // ── Active Alerts ────────────────────────────────────────────────
+              const _SectionHeader(title: 'Active Alerts'),
+              activeAlertsAsync.when(
+                loading: () => const _LoadingTile(),
+                error: (err, _) => _ErrorTile(message: err.toString()),
+                data: (alerts) {
+                  if (alerts.isEmpty) {
+                    return Padding(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 16, vertical: 4),
+                      child: Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: AppColors.success.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                              color: AppColors.success.withValues(alpha: 0.3)),
+                        ),
+                        child: const Row(
+                          children: [
+                            Icon(Icons.check_circle,
+                                color: AppColors.success, size: 22),
+                            SizedBox(width: 12),
+                            Text(
+                              'All vessels nominal',
+                              style: TextStyle(
+                                  color: AppColors.success,
+                                  fontWeight: FontWeight.w500),
+                            ),
+                          ],
+                        ),
+                      ),
+                    );
+                  }
+                  return Column(
+                    children: alerts
+                        .take(5)
+                        .map((a) => _AlertTile(alert: a))
+                        .toList(),
+                  );
+                },
+              ),
+
+              // ── Fleet Grid ───────────────────────────────────────────────────
+              const _SectionHeader(title: 'Fleet'),
+              assetsAsync.when(
+                loading: () => const _LoadingTile(),
+                error: (err, _) => _ErrorTile(message: err.toString()),
+                data: (assets) {
+                  if (assets.isEmpty) {
+                    return const _EmptyStateTile(
+                      icon: Icons.directions_boat_outlined,
+                      message:
+                          'No vessels yet. Contact Vórtice to get started.',
+                    );
+                  }
+                  return Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    child: GridView.builder(
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      gridDelegate:
+                          const SliverGridDelegateWithFixedCrossAxisCount(
+                        crossAxisCount: 2,
+                        crossAxisSpacing: 12,
+                        mainAxisSpacing: 12,
+                        childAspectRatio: 1.2,
+                      ),
+                      itemCount: assets.length,
+                      itemBuilder: (_, i) =>
+                          _VesselCard(asset: assets[i], ref: ref),
+                    ),
+                  );
+                },
+              ),
+
+              // ── Upcoming Maintenance ─────────────────────────────────────────
+              if (showMaintenancePlanning) ...[
+                const _SectionHeader(title: 'Upcoming Maintenance'),
+                remindersAsync!.when(
+                  loading: () => const _LoadingTile(),
+                  error: (err, _) => _ErrorTile(message: err.toString()),
+                  data: (reminders) {
+                    if (reminders.isEmpty) {
+                      return const _EmptyStateTile(
+                        icon: Icons.event_available_outlined,
+                        message: 'No upcoming maintenance.',
+                      );
+                    }
+                    return Column(
+                      children: reminders
+                          .take(5)
+                          .map(
+                            (r) => _MaintenanceTile(
+                              item: r,
+                              showPartsList: showPmPartsLists,
+                            ),
+                          )
+                          .toList(),
+                    );
+                  },
+                ),
+              ],
+
+              // ── Open Invoices ────────────────────────────────────────────────
+              const _SectionHeader(title: 'Open Invoices'),
+              invoicesAsync.when(
+                loading: () => const _LoadingTile(),
+                error: (err, _) => _ErrorTile(message: err.toString()),
+                data: (invoices) {
+                  final open = invoices
+                      .where((i) =>
+                          i.status == InvoiceStatus.sent ||
+                          i.status == InvoiceStatus.draft)
+                      .toList();
+                  if (open.isEmpty) {
+                    return const _EmptyStateTile(
+                      icon: Icons.receipt_long_outlined,
+                      message: 'No open invoices.',
+                    );
+                  }
+                  return Column(
+                    children: open
+                        .take(5)
+                        .map((inv) => _InvoiceTile(invoice: inv))
+                        .toList(),
+                  );
+                },
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -537,8 +561,9 @@ class _VesselCard extends StatelessWidget {
 
 class _MaintenanceTile extends StatelessWidget {
   final ReminderWithAsset item;
+  final bool showPartsList;
 
-  const _MaintenanceTile({required this.item});
+  const _MaintenanceTile({required this.item, required this.showPartsList});
 
   @override
   Widget build(BuildContext context) {
@@ -552,7 +577,7 @@ class _MaintenanceTile extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
       child: InkWell(
-        onTap: item.checklistTemplateId != null
+        onTap: showPartsList && item.checklistTemplateId != null
             ? () => showModalBottomSheet(
                   context: context,
                   isScrollControlled: true,
@@ -590,7 +615,7 @@ class _MaintenanceTile extends StatelessWidget {
                       style: const TextStyle(
                           color: AppColors.textSecondary, fontSize: 12),
                     ),
-                    if (item.checklistTemplateId != null)
+                    if (showPartsList && item.checklistTemplateId != null)
                       const Text(
                         'Tap to view parts list',
                         style:
@@ -609,7 +634,7 @@ class _MaintenanceTile extends StatelessWidget {
                   fontWeight: FontWeight.w600,
                 ),
               ),
-              if (item.checklistTemplateId != null) ...[
+              if (showPartsList && item.checklistTemplateId != null) ...[
                 const SizedBox(width: 4),
                 const Icon(Icons.chevron_right,
                     size: 16, color: AppColors.primary)

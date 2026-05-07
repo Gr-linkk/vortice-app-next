@@ -12,7 +12,6 @@ import 'package:vortice_app/models/asset.dart';
 import 'package:vortice_app/models/client_capability.dart';
 import 'package:vortice_app/features/orgs/org_provider.dart';
 import 'package:vortice_app/models/profile.dart';
-import 'package:vortice_app/models/subscription_tier.dart';
 
 class ClientScreen extends ConsumerStatefulWidget {
   const ClientScreen({super.key});
@@ -282,8 +281,6 @@ class _ClientDetailSheetState extends ConsumerState<_ClientDetailSheet> {
                       ? l10n.spanish
                       : l10n.english),
               const SizedBox(height: 8),
-              _TierSelector(client: widget.client),
-              const SizedBox(height: 16),
               _ClientCapabilitySwitchboardSection(clientId: widget.client.id),
               const SizedBox(height: 16),
               _OrgSection(client: widget.client),
@@ -324,80 +321,6 @@ class _DetailRow extends StatelessWidget {
           ),
         ],
       ),
-    );
-  }
-}
-
-// ── Tier selector (owner only) ──────────────────────────────────────────────
-
-class _TierSelector extends ConsumerStatefulWidget {
-  final Profile client;
-  const _TierSelector({required this.client});
-
-  @override
-  ConsumerState<_TierSelector> createState() => _TierSelectorState();
-}
-
-class _TierSelectorState extends ConsumerState<_TierSelector> {
-  bool _saving = false;
-
-  Future<void> _saveTier(SubscriptionTier tier) async {
-    setState(() => _saving = true);
-    final success = await ref
-        .read(clientControllerProvider.notifier)
-        .updateClient(widget.client.id, {'subscription_tier': tier.value});
-    if (success && mounted) {
-      setState(() => _saving = false);
-    } else {
-      setState(() => _saving = false);
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final currentTier = widget.client.subscriptionTier;
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text(
-          'Legacy subscription tier',
-          style: TextStyle(color: AppColors.textSecondary, fontSize: 13),
-        ),
-        const SizedBox(height: 4),
-        const Text(
-          'Kept for existing billing labels; use Service Switchboard for workflow access.',
-          style: TextStyle(color: AppColors.textSecondary, fontSize: 11),
-        ),
-        const SizedBox(height: 8),
-        Wrap(
-          spacing: 8,
-          runSpacing: 8,
-          children: SubscriptionTier.values
-              .where((t) => t != SubscriptionTier.predictive)
-              .map((tier) {
-            final selected = tier == currentTier;
-            return ChoiceChip(
-              label: Text(tier.displayName),
-              selected: selected,
-              onSelected: _saving
-                  ? null
-                  : (sel) {
-                      if (sel && !selected) _saveTier(tier);
-                    },
-              backgroundColor: AppColors.surface,
-              selectedColor: AppColors.primary.withValues(alpha: 0.15),
-              labelStyle: TextStyle(
-                color: selected ? AppColors.primary : AppColors.textSecondary,
-                fontSize: 13,
-              ),
-              side: BorderSide(
-                color: selected ? AppColors.primary : AppColors.divider,
-              ),
-            );
-          }).toList(),
-        ),
-      ],
     );
   }
 }
@@ -828,7 +751,6 @@ class _InviteClientSheetState extends ConsumerState<_InviteClientSheet> {
   final _emailCtrl = TextEditingController();
   final _phoneCtrl = TextEditingController();
   String _language = 'en';
-  SubscriptionTier _tier = SubscriptionTier.free;
   bool _loading = false;
 
   @override
@@ -854,7 +776,6 @@ class _InviteClientSheetState extends ConsumerState<_InviteClientSheet> {
           if (_phoneCtrl.text.trim().isNotEmpty)
             'phone': _phoneCtrl.text.trim(),
           'preferred_language': _language,
-          'subscription_tier': _tier.value,
         },
       );
       if (response.data?['error'] != null) {
@@ -986,36 +907,6 @@ class _InviteClientSheetState extends ConsumerState<_InviteClientSheet> {
                   ),
                 ),
               ],
-            ),
-            const SizedBox(height: 16),
-            // Subscription tier
-            const Text('Subscription Tier',
-                style: TextStyle(color: AppColors.textSecondary, fontSize: 13)),
-            const SizedBox(height: 8),
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: SubscriptionTier.values
-                  .where((t) => t != SubscriptionTier.predictive)
-                  .map((tier) {
-                final selected = tier == _tier;
-                return ChoiceChip(
-                  label: Text(tier.displayName),
-                  selected: selected,
-                  onSelected: (sel) {
-                    if (sel) setState(() => _tier = tier);
-                  },
-                  selectedColor: AppColors.primary.withValues(alpha: 0.15),
-                  labelStyle: TextStyle(
-                    color:
-                        selected ? AppColors.primary : AppColors.textSecondary,
-                    fontSize: 13,
-                  ),
-                  side: BorderSide(
-                    color: selected ? AppColors.primary : AppColors.divider,
-                  ),
-                );
-              }).toList(),
             ),
             const SizedBox(height: 20),
             ElevatedButton(

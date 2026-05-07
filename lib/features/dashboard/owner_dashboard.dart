@@ -19,18 +19,29 @@ import 'package:vortice_app/models/work_order.dart';
 
 final clientSummaryProvider =
     FutureProvider<List<Map<String, dynamic>>>((ref) async {
-  // Fetch all client profiles
-  final profiles = await supabase
-      .from(AppConstants.tProfiles)
-      .select('id, full_name, subscription_tier')
-      .inFilter('role', ['client', 'client_admin']);
+  final orgRows = await supabase
+      .from(AppConstants.tClientOrgs)
+      .select('id, name, owner_profile_id, created_at')
+      .order('created_at', ascending: false);
 
-  final clients = List<Map<String, dynamic>>.from(profiles as List);
+  final orgs = List<Map<String, dynamic>>.from(orgRows as List);
+  final clients = orgs.isNotEmpty
+      ? orgs
+          .map((org) => {
+                'id': org['owner_profile_id'],
+                'name': org['name'],
+              })
+          .toList()
+      : List<Map<String, dynamic>>.from(await supabase
+          .from(AppConstants.tProfiles)
+          .select('id, full_name')
+          .inFilter('role', ['client', 'client_admin']) as List);
 
-  // For each client, get vessel count and open WO count
+  // For each client org/owner, get vessel count and open WO count.
   final result = <Map<String, dynamic>>[];
   for (final client in clients) {
-    final clientId = client['id'] as String;
+    final clientId = client['id'] as String?;
+    if (clientId == null) continue;
 
     final assets = await supabase
         .from(AppConstants.tAssets)
@@ -59,8 +70,8 @@ final clientSummaryProvider =
 
     result.add({
       'id': clientId,
-      'name': client['full_name'] as String? ?? '—',
-      'tier': client['subscription_tier'] as int? ?? 0,
+      'name':
+          client['name'] as String? ?? client['full_name'] as String? ?? '—',
       'vessel_count': assetCount,
       'open_wo_count': openWOList.length,
       'latest_activity': latestActivity,
@@ -179,6 +190,7 @@ class OwnerDashboard extends ConsumerWidget {
                       icon: Icons.people,
                       label: l10n.clientsTitle,
                       color: const Color(0xFF9C27B0),
+                      badge: clientsAsync.valueOrNull?.length,
                       onTap: () => context.push('/owner/clients'),
                     ),
                   ),
@@ -548,24 +560,8 @@ class _ClientSummaryCard extends StatelessWidget {
   final Map<String, dynamic> client;
   const _ClientSummaryCard({required this.client});
 
-  String _tierLabel(int tier) => switch (tier) {
-        0 => 'Free',
-        1 => 'Managed',
-        2 => 'Planning',
-        _ => 'Telemetry',
-      };
-
-  Color _tierColor(int tier) => switch (tier) {
-        0 => AppColors.textSecondary,
-        1 => AppColors.primary,
-        2 => AppColors.warning,
-        _ => AppColors.success,
-      };
-
   @override
   Widget build(BuildContext context) {
-    final tier = client['tier'] as int? ?? 0;
-    final tierColor = _tierColor(tier);
     final activity = client['latest_activity'] as DateTime?;
     final actStr = activity != null
         ? DateFormat('MMM d').format(activity.toLocal())
@@ -595,37 +591,15 @@ class _ClientSummaryCard extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Row(
-                      children: [
-                        Expanded(
-                          child: Text(
-                            client['name'] as String? ?? '—',
-                            style: const TextStyle(
-                              fontWeight: FontWeight.w600,
-                              color: AppColors.textPrimary,
-                              fontSize: 14,
-                            ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 6, vertical: 2),
-                          decoration: BoxDecoration(
-                            color: tierColor.withValues(alpha: 0.12),
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: Text(
-                            _tierLabel(tier),
-                            style: TextStyle(
-                              color: tierColor,
-                              fontSize: 10,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        ),
-                      ],
+                    Text(
+                      client['name'] as String? ?? '—',
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.textPrimary,
+                        fontSize: 14,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                     ),
                     const SizedBox(height: 4),
                     Row(

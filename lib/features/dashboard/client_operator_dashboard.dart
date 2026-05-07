@@ -7,6 +7,8 @@ import 'package:vortice_app/core/supabase_client.dart';
 import 'package:vortice_app/core/theme.dart';
 import 'package:vortice_app/features/auth/auth_provider.dart';
 import 'package:vortice_app/features/checklists/checklist_assignment_provider.dart';
+import 'package:vortice_app/features/clients/client_capability_gate.dart';
+import 'package:vortice_app/models/client_capability.dart';
 
 // ── Provider: assets assigned to this client_operator ────────────────────────
 
@@ -72,7 +74,16 @@ class ClientOperatorDashboard extends ConsumerWidget {
     final profile = ref.watch(profileProvider).valueOrNull;
     final assetsAsync = ref.watch(clientOperatorAssignedAssetsProvider);
     final runsAsync = ref.watch(clientOperatorRecentRunsProvider);
-    final assignedChecklistsAsync = ref.watch(myChecklistAssignmentsProvider);
+    final operationalChecklistsAllowedAsync =
+        ref.watch(clientCapabilityGateProvider((
+      clientId: null,
+      capability: ClientCapability.operationalChecklists,
+    )));
+    final showOperationalChecklists =
+        operationalChecklistsAllowedAsync.valueOrNull ?? false;
+    final assignedChecklistsAsync = showOperationalChecklists
+        ? ref.watch(myChecklistAssignmentsProvider)
+        : null;
 
     return Scaffold(
       appBar: AppBar(
@@ -94,120 +105,134 @@ class ClientOperatorDashboard extends ConsumerWidget {
           ref.invalidate(clientOperatorAssignedAssetsProvider);
           ref.invalidate(clientOperatorRecentRunsProvider);
           ref.invalidate(myChecklistAssignmentsProvider);
+          ref.invalidate(clientCapabilityGateProvider((
+            clientId: null,
+            capability: ClientCapability.operationalChecklists,
+          )));
         },
         child: ListView(
           padding: const EdgeInsets.only(bottom: 32),
           children: [
             // ── 0. Assigned Pre-Op Checklists (from client admin) ──────────
-            assignedChecklistsAsync.when(
-              loading: () => const SizedBox.shrink(),
-              error: (_, __) => const SizedBox.shrink(),
-              data: (assignments) {
-                if (assignments.isEmpty) return const SizedBox.shrink();
-                return Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _SectionHeader(
-                      title: 'Assigned Checklists (${assignments.length})',
-                      icon: Icons.assignment_outlined,
-                    ),
-                    ...assignments.map((a) {
-                      final template =
-                          a['checklist_templates'] as Map<String, dynamic>?;
-                      final asset = a['assets'] as Map<String, dynamic>?;
-                      final status = a['status'] as String? ?? 'pending';
-                      final statusColor = switch (status) {
-                        'completed' => AppColors.success,
-                        'in_progress' => AppColors.warning,
-                        _ => AppColors.primary,
-                      };
-                      return Card(
-                        margin: const EdgeInsets.symmetric(
-                            horizontal: 16, vertical: 4),
-                        child: ListTile(
-                          leading: CircleAvatar(
-                            backgroundColor: AppColors.warning.withOpacity(0.1),
-                            child: const Icon(Icons.checklist_outlined,
-                                size: 18, color: AppColors.warning),
-                          ),
-                          title: Text(
-                            template?['name'] as String? ?? 'Checklist',
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                          subtitle: asset?['name'] != null
-                              ? Text(asset!['name'] as String,
-                                  style: const TextStyle(
-                                      color: AppColors.textSecondary,
-                                      fontSize: 12))
-                              : null,
-                          trailing: Container(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 8, vertical: 4),
-                            decoration: BoxDecoration(
-                              color: statusColor.withOpacity(0.15),
-                              borderRadius: BorderRadius.circular(6),
+            if (showOperationalChecklists)
+              assignedChecklistsAsync!.when(
+                loading: () => const SizedBox.shrink(),
+                error: (_, __) => const SizedBox.shrink(),
+                data: (assignments) {
+                  if (assignments.isEmpty) return const SizedBox.shrink();
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _SectionHeader(
+                        title: 'Assigned Checklists (${assignments.length})',
+                        icon: Icons.assignment_outlined,
+                      ),
+                      ...assignments.map((a) {
+                        final template =
+                            a['checklist_templates'] as Map<String, dynamic>?;
+                        final asset = a['assets'] as Map<String, dynamic>?;
+                        final status = a['status'] as String? ?? 'pending';
+                        final statusColor = switch (status) {
+                          'completed' => AppColors.success,
+                          'in_progress' => AppColors.warning,
+                          _ => AppColors.primary,
+                        };
+                        return Card(
+                          margin: const EdgeInsets.symmetric(
+                              horizontal: 16, vertical: 4),
+                          child: ListTile(
+                            leading: CircleAvatar(
+                              backgroundColor:
+                                  AppColors.warning.withOpacity(0.1),
+                              child: const Icon(Icons.checklist_outlined,
+                                  size: 18, color: AppColors.warning),
                             ),
-                            child: Text(
-                              status.replaceAll('_', ' ').toUpperCase(),
-                              style: TextStyle(
-                                  color: statusColor,
-                                  fontSize: 10,
-                                  fontWeight: FontWeight.bold),
+                            title: Text(
+                              template?['name'] as String? ?? 'Checklist',
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
                             ),
+                            subtitle: asset?['name'] != null
+                                ? Text(asset!['name'] as String,
+                                    style: const TextStyle(
+                                        color: AppColors.textSecondary,
+                                        fontSize: 12))
+                                : null,
+                            trailing: Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 8, vertical: 4),
+                              decoration: BoxDecoration(
+                                color: statusColor.withOpacity(0.15),
+                                borderRadius: BorderRadius.circular(6),
+                              ),
+                              child: Text(
+                                status.replaceAll('_', ' ').toUpperCase(),
+                                style: TextStyle(
+                                    color: statusColor,
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.bold),
+                              ),
+                            ),
+                            onTap: () async {
+                              if (status == 'pending') {
+                                await ChecklistAssignmentController
+                                    .markInProgress(a['id'] as String);
+                                ref.invalidate(myChecklistAssignmentsProvider);
+                                ref.invalidate(clientCapabilityGateProvider((
+                                  clientId: null,
+                                  capability:
+                                      ClientCapability.operationalChecklists,
+                                )));
+                              }
+                              final query = <String, String>{
+                                if (asset?['id'] != null)
+                                  'assetId': asset!['id'] as String,
+                                if (template?['id'] != null)
+                                  'templateId': template!['id'] as String,
+                              };
+                              if (context.mounted) {
+                                context.push(
+                                  Uri(
+                                    path: '/operator/checklist',
+                                    queryParameters:
+                                        query.isEmpty ? null : query,
+                                  ).toString(),
+                                );
+                              }
+                            },
                           ),
-                          onTap: () async {
-                            if (status == 'pending') {
-                              await ChecklistAssignmentController
-                                  .markInProgress(a['id'] as String);
-                              ref.invalidate(myChecklistAssignmentsProvider);
-                            }
-                            final query = <String, String>{
-                              if (asset?['id'] != null)
-                                'assetId': asset!['id'] as String,
-                              if (template?['id'] != null)
-                                'templateId': template!['id'] as String,
-                            };
-                            if (context.mounted) {
-                              context.push(
-                                Uri(
-                                  path: '/operator/checklist',
-                                  queryParameters: query.isEmpty ? null : query,
-                                ).toString(),
-                              );
-                            }
-                          },
-                        ),
-                      );
-                    }),
-                    const SizedBox(height: 8),
-                  ],
-                );
-              },
-            ),
+                        );
+                      }),
+                      const SizedBox(height: 8),
+                    ],
+                  );
+                },
+              ),
 
             // ── 1. Pre-Departure Checklists ───────────────────────────
-            _SectionHeader(
-              title: 'Pre-Departure Checklists',
-              icon: Icons.checklist_outlined,
-            ),
-            assetsAsync.when(
-              loading: () => const _LoadingTile(),
-              error: (err, _) => _ErrorTile(message: err.toString()),
-              data: (assets) {
-                if (assets.isEmpty) {
-                  return const _EmptyState(
-                    icon: Icons.directions_boat_outlined,
-                    message: 'No assets assigned.',
+            if (showOperationalChecklists) ...[
+              _SectionHeader(
+                title: 'Pre-Departure Checklists',
+                icon: Icons.checklist_outlined,
+              ),
+              assetsAsync.when(
+                loading: () => const _LoadingTile(),
+                error: (err, _) => _ErrorTile(message: err.toString()),
+                data: (assets) {
+                  if (assets.isEmpty) {
+                    return const _EmptyState(
+                      icon: Icons.directions_boat_outlined,
+                      message: 'No assets assigned.',
+                    );
+                  }
+                  return Column(
+                    children: assets
+                        .map((asset) => _AssetChecklistCard(asset: asset))
+                        .toList(),
                   );
-                }
-                return Column(
-                  children: assets
-                      .map((asset) => _AssetChecklistCard(asset: asset))
-                      .toList(),
-                );
-              },
-            ),
+                },
+              ),
+            ],
 
             // ── 2. Flag an Issue ──────────────────────────────────────
             Padding(

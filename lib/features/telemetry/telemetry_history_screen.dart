@@ -4,12 +4,8 @@ import 'package:vortice_app/l10n/app_localizations.dart';
 import 'package:vortice_app/core/theme.dart';
 import 'package:vortice_app/features/telemetry/telemetry_provider.dart';
 import 'package:vortice_app/features/engines/engine_provider.dart';
-import 'package:vortice_app/features/auth/auth_provider.dart';
-import 'package:vortice_app/features/subscription/tier_gate.dart';
-import 'package:vortice_app/features/subscription/upgrade_prompt.dart';
 import 'package:vortice_app/models/telemetry_reading.dart';
 import 'package:vortice_app/models/telemetry_alert.dart';
-import 'package:vortice_app/models/subscription_tier.dart';
 
 /// Shows telemetry history for an asset-first telemetry stream, or a legacy engine.
 class TelemetryHistoryScreen extends ConsumerStatefulWidget {
@@ -76,21 +72,13 @@ class _TelemetryHistoryScreenState extends ConsumerState<TelemetryHistoryScreen>
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
+    return _buildHistoryScaffold(context, l10n);
+  }
 
-    // Gate: only Telemetry+ tier can view telemetry history
-    if (!hasTier(
-        ref.watch(profileProvider).valueOrNull, SubscriptionTier.telemetry)) {
-      return Scaffold(
-        appBar: AppBar(title: Text(l10n.telemetryHistory)),
-        body: const Center(
-          child: Padding(
-            padding: EdgeInsets.all(24),
-            child: UpgradePrompt(requiredTier: SubscriptionTier.telemetry),
-          ),
-        ),
-      );
-    }
-
+  Widget _buildHistoryScaffold(
+    BuildContext context,
+    AppLocalizations l10n,
+  ) {
     final engineAsync = widget.engineId == null
         ? null
         : ref.watch(engineByIdProvider(widget.engineId!));

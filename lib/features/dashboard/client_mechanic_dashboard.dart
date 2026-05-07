@@ -6,7 +6,9 @@ import 'package:vortice_app/core/constants.dart';
 import 'package:vortice_app/core/supabase_client.dart';
 import 'package:vortice_app/core/theme.dart';
 import 'package:vortice_app/features/auth/auth_provider.dart';
+import 'package:vortice_app/features/clients/client_capability_gate.dart';
 import 'package:vortice_app/features/work_orders/work_order_provider.dart';
+import 'package:vortice_app/models/client_capability.dart';
 import 'package:vortice_app/models/work_order.dart';
 
 // ── Provider: WOs assigned to the current mechanic ──────────────────────────
@@ -84,7 +86,18 @@ class ClientMechanicDashboard extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final profile = ref.watch(profileProvider).valueOrNull;
     final assignedAsync = ref.watch(mechanicAssignedWorkOrdersProvider);
-    final partsAsync = ref.watch(mechanicPartsProvider);
+    final pmChecklistsAllowedAsync = ref.watch(clientCapabilityGateProvider((
+      clientId: null,
+      capability: ClientCapability.pmChecklists,
+    )));
+    final pmPartsListsAllowedAsync = ref.watch(clientCapabilityGateProvider((
+      clientId: null,
+      capability: ClientCapability.pmPartsLists,
+    )));
+    final showPmChecklists = pmChecklistsAllowedAsync.valueOrNull ?? false;
+    final showPmPartsLists = pmPartsListsAllowedAsync.valueOrNull ?? false;
+    final partsAsync =
+        showPmPartsLists ? ref.watch(mechanicPartsProvider) : null;
 
     return Scaffold(
       appBar: AppBar(
@@ -105,6 +118,14 @@ class ClientMechanicDashboard extends ConsumerWidget {
         onRefresh: () async {
           ref.invalidate(mechanicAssignedWorkOrdersProvider);
           ref.invalidate(mechanicPartsProvider);
+          ref.invalidate(clientCapabilityGateProvider((
+            clientId: null,
+            capability: ClientCapability.pmChecklists,
+          )));
+          ref.invalidate(clientCapabilityGateProvider((
+            clientId: null,
+            capability: ClientCapability.pmPartsLists,
+          )));
         },
         child: ListView(
           padding: const EdgeInsets.only(bottom: 32),
@@ -133,36 +154,40 @@ class ClientMechanicDashboard extends ConsumerWidget {
             ),
 
             // ── 2. PM Checklist Note ─────────────────────────────────
-            _SectionHeader(
-              title: 'PM Checklists',
-              icon: Icons.checklist_outlined,
-            ),
-            const _EmptyState(
-              icon: Icons.build_outlined,
-              message:
-                  'PM checklists start from assigned work orders. Ask the client/admin to assign a work order for the vessel.',
-            ),
+            if (showPmChecklists) ...[
+              _SectionHeader(
+                title: 'PM Checklists',
+                icon: Icons.checklist_outlined,
+              ),
+              const _EmptyState(
+                icon: Icons.build_outlined,
+                message:
+                    'PM checklists start from assigned work orders. Ask the client/admin to assign a work order for the vessel.',
+              ),
+            ],
 
             // ── 3. Parts Lists ────────────────────────────────────────
-            _SectionHeader(
-              title: 'Parts Lists',
-              icon: Icons.settings_outlined,
-            ),
-            partsAsync.when(
-              loading: () => const _LoadingTile(),
-              error: (err, _) => _ErrorTile(message: err.toString()),
-              data: (parts) {
-                if (parts.isEmpty) {
-                  return const _EmptyState(
-                    icon: Icons.inventory_2_outlined,
-                    message: 'No parts catalog entries.',
+            if (showPmPartsLists) ...[
+              _SectionHeader(
+                title: 'Parts Lists',
+                icon: Icons.settings_outlined,
+              ),
+              partsAsync!.when(
+                loading: () => const _LoadingTile(),
+                error: (err, _) => _ErrorTile(message: err.toString()),
+                data: (parts) {
+                  if (parts.isEmpty) {
+                    return const _EmptyState(
+                      icon: Icons.inventory_2_outlined,
+                      message: 'No parts catalog entries.',
+                    );
+                  }
+                  return Column(
+                    children: parts.map((p) => _PartsTile(part: p)).toList(),
                   );
-                }
-                return Column(
-                  children: parts.map((p) => _PartsTile(part: p)).toList(),
-                );
-              },
-            ),
+                },
+              ),
+            ],
           ],
         ),
       ),
