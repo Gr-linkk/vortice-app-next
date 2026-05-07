@@ -9,9 +9,13 @@ import 'package:vortice_app/models/checklist_template.dart';
 
 final workOrderChecklistSnapshotProvider =
     FutureProvider.family<WorkOrderChecklistSnapshot?, String>(
-        (ref, workOrderId) {
-  return workOrderChecklistSnapshotRepository
+        (ref, workOrderId) async {
+  final snapshot = await workOrderChecklistSnapshotRepository
       .tryFetchByWorkOrderId(workOrderId);
+  if (snapshot != null) {
+    await ref.read(checklistRepositoryProvider).cacheSnapshot(snapshot);
+  }
+  return snapshot;
 });
 
 final checklistTemplatesProvider =
@@ -86,6 +90,7 @@ class ChecklistController extends StateNotifier<AsyncValue<void>> {
     required Map<String, String?> responses,
     Map<String, String>? notes,
     Map<String, String?>? photoUrls,
+    String? holdForSyncReason,
   }) async {
     state = const AsyncLoading();
     state = await AsyncValue.guard(() async {
@@ -96,6 +101,7 @@ class ChecklistController extends StateNotifier<AsyncValue<void>> {
               responses: responses,
               notes: notes,
               photoUrls: photoUrls,
+              holdForSyncReason: holdForSyncReason,
             );
       } finally {
         _ref.invalidate(checklistResponsesProvider(workOrderId));

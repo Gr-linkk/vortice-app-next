@@ -1,63 +1,118 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:vortice_app/l10n/app_localizations.dart';
 import 'package:vortice_app/core/theme.dart';
 import 'package:vortice_app/features/auth/auth_provider.dart';
 
-// ── Dev mode flag — set to false before shipping ───────────────────────────
-const bool kDevMode = false;
+// ── Dev login panel — debug builds only ──────────────────────────────────────
+const bool kDevMode = kDebugMode;
 
-// Test account credentials (dev only)
+class _DevAccount {
+  final String group;
+  final String label;
+  final String subtitle;
+  final List<String> workflows;
+  final String email;
+  final String password;
+  final int color;
+
+  const _DevAccount({
+    required this.group,
+    required this.label,
+    required this.subtitle,
+    required this.workflows,
+    required this.email,
+    required this.password,
+    required this.color,
+  });
+}
+
 const _devAccounts = [
-  {
-    'label': '1 · Owner',
-    'email': 'owner@vortice.dev',
-    'password': '<REDACTED_TEST_PASSWORD>',
-    'color': 0xFF1A6B3C
-  },
-  {
-    'label': '2 · Tech',
-    'email': 'tech@vortice.dev',
-    'password': '<REDACTED_TEST_PASSWORD>',
-    'color': 0xFF1565C0
-  },
-  {
-    'label': '3 · Client (Managed)',
-    'email': 'client@vortice.dev',
-    'password': '<REDACTED_TEST_PASSWORD>',
-    'color': 0xFF6A1B9A
-  },
-  {
-    'label': '4 · Operator',
-    'email': 'operator@vortice.dev',
-    'password': '<REDACTED_TEST_PASSWORD>',
-    'color': 0xFFE65100
-  },
-  {
-    'label': '5 · Planning Tier',
-    'email': 'client_planning@vortice.dev',
-    'password': '<REDACTED_TEST_PASSWORD>',
-    'color': 0xFF00838F
-  },
-  {
-    'label': '6 · Paradise Marina',
-    'email': 'paradise@vortice.dev',
-    'password': '<REDACTED_TEST_PASSWORD>',
-    'color': 0xFF004527
-  },
-  {
-    'label': '7 · Client Mechanic',
-    'email': 'client_mechanic@vortice.dev',
-    'password': '<REDACTED_TEST_PASSWORD>',
-    'color': 0xFF4527A0
-  },
-  {
-    'label': '8 · Operator (org)',
-    'email': 'client_operator@vortice.dev',
-    'password': '<REDACTED_TEST_PASSWORD>',
-    'color': 0xFFBF360C
-  },
+  _DevAccount(
+    group: 'Vórtice team',
+    label: 'Vórtice Owner/Admin',
+    subtitle:
+        'Service business owner view for clients, assets, work, and billing.',
+    workflows: ['Clients', 'Assets', 'Work orders', 'Billing'],
+    email: 'owner@vortice.dev',
+    password: '<REDACTED_TEST_PASSWORD>',
+    color: 0xFF1A6B3C,
+  ),
+  _DevAccount(
+    group: 'Vórtice team',
+    label: 'Vórtice Tech/Mechanic',
+    subtitle: 'Internal mechanic view for assigned work and service reporting.',
+    workflows: ['Assigned work', 'Service reports', 'PM follow-up'],
+    email: 'tech@vortice.dev',
+    password: '<REDACTED_TEST_PASSWORD>',
+    color: 0xFF1565C0,
+  ),
+  _DevAccount(
+    group: 'Simulated client admins',
+    label: 'Client 1 Admin',
+    subtitle:
+        'Generic client admin with team, vessel, and checklist workflows.',
+    workflows: ['Team', 'Assets', 'Operator checks'],
+    email: 'paradise@vortice.dev',
+    password: '<REDACTED_TEST_PASSWORD>',
+    color: 0xFF004527,
+  ),
+  _DevAccount(
+    group: 'Simulated client admins',
+    label: 'Client 2 Admin',
+    subtitle: 'Second generic client admin for cross-client workflow testing.',
+    workflows: ['Team', 'Assets', 'PM planning'],
+    email: 'client@vortice.dev',
+    password: '<REDACTED_TEST_PASSWORD>',
+    color: 0xFF6A1B9A,
+  ),
+  _DevAccount(
+    group: 'Client field team',
+    label: 'Client Mechanic',
+    subtitle: 'Client-side mechanic view for work-order and PM checklist flow.',
+    workflows: ['Work orders', 'Mechanic checks', 'PM parts'],
+    email: 'client_mechanic@vortice.dev',
+    password: '<REDACTED_TEST_PASSWORD>',
+    color: 0xFF4527A0,
+  ),
+  _DevAccount(
+    group: 'Client field team',
+    label: 'Operator/Captain',
+    subtitle: 'Captain/operator view for vessel pre-op and daily checklists.',
+    workflows: ['Pre-op', 'Daily checks', 'Maintenance flags'],
+    email: 'operator@vortice.dev',
+    password: '<REDACTED_TEST_PASSWORD>',
+    color: 0xFFE65100,
+  ),
 ];
+
+class _DevWorkflowChip extends StatelessWidget {
+  final String label;
+  final Color color;
+
+  const _DevWorkflowChip({required this.label, required this.color});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: color.withValues(alpha: 0.18)),
+      ),
+      child: Text(
+        label,
+        style: TextStyle(
+          color: color,
+          fontSize: 10,
+          fontWeight: FontWeight.w600,
+        ),
+      ),
+    );
+  }
+}
 
 class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
@@ -72,7 +127,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   final _passwordCtrl = TextEditingController();
   bool _obscurePassword = true;
   void _handleLogoTap() {
-    // One tap opens the dev login panel for local debug builds.
+    if (!kDevMode) return;
     _showDevPanel();
   }
 
@@ -99,46 +154,30 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 ),
               ),
               const Padding(
-                padding: EdgeInsets.fromLTRB(16, 16, 16, 8),
-                child: Text('Dev Login',
-                    style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                        letterSpacing: 0.5)),
+                padding: EdgeInsets.fromLTRB(16, 16, 16, 4),
+                child: Text(
+                  'Dev Persona Switchboard',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                    letterSpacing: 0.5,
+                  ),
+                ),
+              ),
+              const Padding(
+                padding: EdgeInsets.fromLTRB(16, 0, 16, 12),
+                child: Text(
+                  'Pick a tester persona. Capability chips are static hints for now.',
+                  textAlign: TextAlign.center,
+                  style:
+                      TextStyle(color: AppColors.textSecondary, fontSize: 12),
+                ),
               ),
               const Divider(height: 1),
               Expanded(
-                child: ListView.builder(
+                child: ListView(
                   padding: const EdgeInsets.only(bottom: 8),
-                  itemCount: _devAccounts.length,
-                  itemBuilder: (context, index) {
-                    final acct = _devAccounts[index];
-                    return ListTile(
-                      leading: CircleAvatar(
-                        backgroundColor:
-                            Color(acct['color'] as int).withValues(alpha: 0.15),
-                        child: Text(
-                          (acct['label'] as String).split('·').first.trim(),
-                          style: TextStyle(
-                              color: Color(acct['color'] as int),
-                              fontSize: 12,
-                              fontWeight: FontWeight.bold),
-                        ),
-                      ),
-                      title: Text(acct['label'] as String,
-                          style: const TextStyle(
-                              fontSize: 14, fontWeight: FontWeight.w500)),
-                      subtitle: Text(acct['email'] as String,
-                          style: const TextStyle(
-                              fontSize: 11, color: AppColors.textSecondary)),
-                      onTap: () {
-                        Navigator.pop(ctx);
-                        _emailCtrl.text = acct['email'] as String;
-                        _passwordCtrl.text = acct['password'] as String;
-                        _submit();
-                      },
-                    );
-                  },
+                  children: _buildDevAccountTiles(ctx),
                 ),
               ),
             ],
@@ -172,52 +211,92 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     }
   }
 
-  List<Widget> _buildDevButtons() {
-    return [
-      const Divider(height: 32),
-      Center(
-        child: Text(
-          'DEV — Quick Login',
-          style: TextStyle(
-              fontSize: 11, color: Colors.grey.shade500, letterSpacing: 1.2),
-        ),
-      ),
-      const SizedBox(height: 10),
-      Wrap(
-        spacing: 8,
-        runSpacing: 8,
-        alignment: WrapAlignment.center,
-        children: _devAccounts.map((acct) {
-          return ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Color(acct['color'] as int),
-              foregroundColor: Colors.white,
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-              textStyle:
-                  const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
-              minimumSize: Size.zero,
+  List<Widget> _buildDevAccountTiles(BuildContext sheetContext) {
+    final widgets = <Widget>[];
+    String? currentGroup;
+
+    for (final acct in _devAccounts) {
+      if (acct.group != currentGroup) {
+        currentGroup = acct.group;
+        widgets.add(
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 18, 16, 6),
+            child: Text(
+              currentGroup.toUpperCase(),
+              style: const TextStyle(
+                color: AppColors.textSecondary,
+                fontSize: 11,
+                fontWeight: FontWeight.w700,
+                letterSpacing: 1.1,
+              ),
             ),
-            onPressed: ref.read(authControllerProvider).isLoading
-                ? null
-                : () async {
-                    await ref.read(authControllerProvider.notifier).signIn(
-                        acct['email'] as String, acct['password'] as String);
-                    final authState = ref.read(authControllerProvider);
-                    if (!mounted) return;
-                    if (authState.hasError) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text(authState.error.toString()),
-                          backgroundColor: AppColors.error,
-                        ),
-                      );
-                    }
-                  },
-            child: Text(acct['label'] as String),
-          );
-        }).toList(),
-      ),
-    ];
+          ),
+        );
+      }
+
+      widgets.add(
+        ListTile(
+          leading: CircleAvatar(
+            backgroundColor: Color(acct.color).withValues(alpha: 0.15),
+            child: Text(
+              acct.label.characters.first.toUpperCase(),
+              style: TextStyle(
+                color: Color(acct.color),
+                fontSize: 12,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+          title: Text(
+            acct.label,
+            style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+          ),
+          subtitle: Padding(
+            padding: const EdgeInsets.only(top: 4),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  acct.subtitle,
+                  style: const TextStyle(
+                    fontSize: 11,
+                    color: AppColors.textSecondary,
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Wrap(
+                  spacing: 6,
+                  runSpacing: 4,
+                  children: [
+                    for (final workflow in acct.workflows)
+                      _DevWorkflowChip(
+                        label: workflow,
+                        color: Color(acct.color),
+                      ),
+                  ],
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  acct.email,
+                  style: const TextStyle(
+                    fontSize: 10,
+                    color: AppColors.textSecondary,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          onTap: () {
+            Navigator.pop(sheetContext);
+            _emailCtrl.text = acct.email;
+            _passwordCtrl.text = acct.password;
+            _submit();
+          },
+        ),
+      );
+    }
+
+    return widgets;
   }
 
   @override
@@ -348,9 +427,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                             )
                           : Text(l10n.signIn),
                     ),
-                    const SizedBox(height: 16),
-                    // ── Dev login buttons ──────────────────────────────────
-                    if (kDevMode) ..._buildDevButtons(),
                     const SizedBox(height: 16),
                     // Language toggle
                     Center(

@@ -34,6 +34,13 @@ class ChecklistsDao extends DatabaseAccessor<AppDatabase>
   Future<void> upsertItem(ChecklistItemsTableCompanion entry) =>
       into(checklistItemsTable).insertOnConflictUpdate(entry);
 
+  Future<void> upsertItems(List<ChecklistItemsTableCompanion> entries) async {
+    if (entries.isEmpty) return;
+    await batch((batch) {
+      batch.insertAllOnConflictUpdate(checklistItemsTable, entries);
+    });
+  }
+
   // ── Responses ──────────────────────────────────────────────────────────
 
   Stream<List<ChecklistResponsesTableData>> watchResponsesForWorkOrder(

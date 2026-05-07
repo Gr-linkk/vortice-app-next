@@ -39,6 +39,12 @@ List<_NavItem> _clientNavItems(AppLocalizations l10n, Profile? profile) {
         activeIcon: Icons.receipt_long,
         route: '/client/invoices',
       ),
+      const _NavItem(
+        label: 'Team',
+        icon: Icons.groups_outlined,
+        activeIcon: Icons.groups,
+        route: '/org/admin',
+      ),
       _NavItem(
         label: l10n.notificationsTitle,
         icon: Icons.notifications_outlined,
@@ -68,10 +74,17 @@ List<_NavItem> _clientNavItems(AppLocalizations l10n, Profile? profile) {
       activeIcon: Icons.receipt_long,
       route: '/client/invoices',
     ),
+    const _NavItem(
+      label: 'Team',
+      icon: Icons.groups_outlined,
+      activeIcon: Icons.groups,
+      route: '/org/admin',
+    ),
   ];
 }
 
-List<_NavItem> _navItemsFor(UserRole role, AppLocalizations l10n, Profile? profile) {
+List<_NavItem> _navItemsFor(
+    UserRole role, AppLocalizations l10n, Profile? profile) {
   return switch (role) {
     UserRole.owner => [
         _NavItem(
@@ -170,6 +183,12 @@ List<_NavItem> _navItemsFor(UserRole role, AppLocalizations l10n, Profile? profi
           icon: Icons.receipt_long_outlined,
           activeIcon: Icons.receipt_long,
           route: '/client/invoices',
+        ),
+        const _NavItem(
+          label: 'Team',
+          icon: Icons.groups_outlined,
+          activeIcon: Icons.groups,
+          route: '/org/admin',
         ),
       ],
     UserRole.clientMechanic => [

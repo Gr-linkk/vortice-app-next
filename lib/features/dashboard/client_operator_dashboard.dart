@@ -7,7 +7,6 @@ import 'package:vortice_app/core/supabase_client.dart';
 import 'package:vortice_app/core/theme.dart';
 import 'package:vortice_app/features/auth/auth_provider.dart';
 import 'package:vortice_app/features/checklists/checklist_assignment_provider.dart';
-import 'package:vortice_app/features/operator/operator_runs_provider.dart';
 
 // ── Provider: assets assigned to this client_operator ────────────────────────
 
@@ -109,7 +108,7 @@ class ClientOperatorDashboard extends ConsumerWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     _SectionHeader(
-                      title: 'Assigned Checklists (\${assignments.length})',
+                      title: 'Assigned Checklists (${assignments.length})',
                       icon: Icons.assignment_outlined,
                     ),
                     ...assignments.map((a) {
@@ -127,8 +126,7 @@ class ClientOperatorDashboard extends ConsumerWidget {
                             horizontal: 16, vertical: 4),
                         child: ListTile(
                           leading: CircleAvatar(
-                            backgroundColor:
-                                AppColors.warning.withOpacity(0.1),
+                            backgroundColor: AppColors.warning.withOpacity(0.1),
                             child: const Icon(Icons.checklist_outlined,
                                 size: 18, color: AppColors.warning),
                           ),
@@ -164,6 +162,20 @@ class ClientOperatorDashboard extends ConsumerWidget {
                                   .markInProgress(a['id'] as String);
                               ref.invalidate(myChecklistAssignmentsProvider);
                             }
+                            final query = <String, String>{
+                              if (asset?['id'] != null)
+                                'assetId': asset!['id'] as String,
+                              if (template?['id'] != null)
+                                'templateId': template!['id'] as String,
+                            };
+                            if (context.mounted) {
+                              context.push(
+                                Uri(
+                                  path: '/operator/checklist',
+                                  queryParameters: query.isEmpty ? null : query,
+                                ).toString(),
+                              );
+                            }
                           },
                         ),
                       );
@@ -181,8 +193,7 @@ class ClientOperatorDashboard extends ConsumerWidget {
             ),
             assetsAsync.when(
               loading: () => const _LoadingTile(),
-              error: (err, _) =>
-                  _ErrorTile(message: err.toString()),
+              error: (err, _) => _ErrorTile(message: err.toString()),
               data: (assets) {
                 if (assets.isEmpty) {
                   return const _EmptyState(
@@ -220,8 +231,7 @@ class ClientOperatorDashboard extends ConsumerWidget {
             ),
             runsAsync.when(
               loading: () => const _LoadingTile(),
-              error: (err, _) =>
-                  _ErrorTile(message: err.toString()),
+              error: (err, _) => _ErrorTile(message: err.toString()),
               data: (runs) {
                 if (runs.isEmpty) {
                   return const _EmptyState(
@@ -280,22 +290,21 @@ class _AssetChecklistCard extends StatelessWidget {
                     Text(
                       asset['model'] as String,
                       style: const TextStyle(
-                          color: AppColors.textSecondary,
-                          fontSize: 12),
+                          color: AppColors.textSecondary, fontSize: 12),
                     ),
                 ],
               ),
             ),
             ElevatedButton(
-              onPressed: () => context.push(
-                  '/operator/checklist?assetId=${asset['id']}'),
+              onPressed: () =>
+                  context.push('/operator/checklist?assetId=${asset['id']}'),
               style: ElevatedButton.styleFrom(
-                padding: const EdgeInsets.symmetric(
-                    horizontal: 14, vertical: 8),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
                 backgroundColor: AppColors.primary,
                 foregroundColor: Colors.white,
-                textStyle: const TextStyle(
-                    fontSize: 12, fontWeight: FontWeight.w600),
+                textStyle:
+                    const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
               ),
               child: const Text('Start Checklist'),
             ),
@@ -368,8 +377,7 @@ class _RecentRunTile extends StatelessWidget {
               ),
             ),
             Container(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
               decoration: BoxDecoration(
                 color: AppColors.success.withOpacity(0.12),
                 borderRadius: BorderRadius.circular(20),
@@ -405,8 +413,7 @@ class _SectionHeader extends StatelessWidget {
         children: [
           Icon(icon, color: AppColors.primary, size: 18),
           const SizedBox(width: 8),
-          Text(title,
-              style: Theme.of(context).textTheme.titleMedium),
+          Text(title, style: Theme.of(context).textTheme.titleMedium),
         ],
       ),
     );

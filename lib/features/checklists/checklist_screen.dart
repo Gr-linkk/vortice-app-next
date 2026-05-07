@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
@@ -41,6 +42,7 @@ class _ChecklistScreenState extends ConsumerState<ChecklistScreen> {
   final Map<String, String> _notes = {};
   final Map<String, Uint8List?> _photos = {};
   final Map<String, String?> _photoUrls = {};
+  String? _photoUploadDeferredReason;
 
   @override
   void initState() {
@@ -55,6 +57,41 @@ class _ChecklistScreenState extends ConsumerState<ChecklistScreen> {
   }
 
   String get _draftKey => 'checklist_draft_${widget.workOrderId}';
+  String get _photoCacheKey => 'checklist_photo_cache_${widget.workOrderId}';
+
+  Future<void> _loadCachedPhotos(SharedPreferences prefs) async {
+    final raw = prefs.getString(_photoCacheKey);
+    if (raw == null) return;
+    try {
+      final data = (jsonDecode(raw) as Map).cast<String, dynamic>();
+      for (final entry in data.entries) {
+        final value = entry.value;
+        if (value is String && value.isNotEmpty) {
+          _photos[entry.key] = base64Decode(value);
+        }
+      }
+    } catch (_) {
+      await prefs.remove(_photoCacheKey);
+    }
+  }
+
+  Future<void> _savePhotoCache() async {
+    final prefs = await SharedPreferences.getInstance();
+    final encoded = <String, String>{};
+    for (final entry in _photos.entries) {
+      final bytes = entry.value;
+      if (bytes != null) {
+        encoded[entry.key] = base64Encode(bytes);
+      }
+    }
+
+    if (encoded.isEmpty) {
+      await prefs.remove(_photoCacheKey);
+      return;
+    }
+
+    await prefs.setString(_photoCacheKey, jsonEncode(encoded));
+  }
 
   Future<void> _loadSavedChecklistState() async {
     try {
@@ -70,7 +107,11 @@ class _ChecklistScreenState extends ConsumerState<ChecklistScreen> {
           _notes[itemId] = note!;
         }
         final photoUrl = response.photoUrl;
-        if (photoUrl?.isNotEmpty == true) {
+        final hasLocalPendingPhoto =
+            response.syncStatus != SyncStatusValues.synced &&
+                response.lastError != null &&
+                response.lastError!.isNotEmpty;
+        if (photoUrl?.isNotEmpty == true && !hasLocalPendingPhoto) {
           _photoUrls[itemId] = photoUrl;
         }
       }
@@ -79,7 +120,9 @@ class _ChecklistScreenState extends ConsumerState<ChecklistScreen> {
     }
 
     final prefs = await SharedPreferences.getInstance();
+    await _loadCachedPhotos(prefs);
     final raw = prefs.getString(_draftKey);
+    var restoredDraftPhotos = false;
     if (raw != null) {
       try {
         final data = jsonDecode(raw) as Map<String, dynamic>;
@@ -97,16 +140,25 @@ class _ChecklistScreenState extends ConsumerState<ChecklistScreen> {
           _notes[e.key] = e.value as String;
         }
         for (final e in photoUrls.entries) {
-          _photoUrls[e.key] = e.value as String?;
+          final hasLocalPhoto =
+              photos[e.key] is String && (photos[e.key] as String).isNotEmpty;
+          if (!hasLocalPhoto) {
+            _photoUrls[e.key] = e.value as String?;
+          }
         }
         for (final e in photos.entries) {
           if (e.value is String && (e.value as String).isNotEmpty) {
             _photos[e.key] = base64Decode(e.value as String);
+            restoredDraftPhotos = true;
           }
         }
       } catch (_) {
         await prefs.remove(_draftKey);
       }
+    }
+    if (restoredDraftPhotos) {
+      await _savePhotoCache();
+      await _saveDraft();
     }
     if (mounted) setState(() {});
   }
@@ -129,6 +181,7 @@ class _ChecklistScreenState extends ConsumerState<ChecklistScreen> {
   }
 
   Future<Map<String, String?>> _uploadChecklistPhotos() async {
+    _photoUploadDeferredReason = null;
     final urls = Map<String, String?>.from(_photoUrls);
     for (final entry in _photos.entries) {
       final bytes = entry.value;
@@ -137,19 +190,27 @@ class _ChecklistScreenState extends ConsumerState<ChecklistScreen> {
         continue;
       }
       final existingUrl = urls[entry.key];
-      if (existingUrl?.isNotEmpty == true) {
-        continue;
-      }
       final ts = DateTime.now().millisecondsSinceEpoch;
       final path = 'checklists/${widget.workOrderId}/${entry.key}_$ts.jpg';
-      await supabase.storage.from(AppConstants.bucketReportPhotos).uploadBinary(
-            path,
-            bytes,
-            fileOptions: const FileOptions(contentType: 'image/jpeg'),
-          );
-      urls[entry.key] = supabase.storage
-          .from(AppConstants.bucketReportPhotos)
-          .getPublicUrl(path);
+      try {
+        await supabase.storage
+            .from(AppConstants.bucketReportPhotos)
+            .uploadBinary(
+              path,
+              bytes,
+              fileOptions: const FileOptions(contentType: 'image/jpeg'),
+            )
+            .timeout(const Duration(seconds: 4));
+        urls[entry.key] = supabase.storage
+            .from(AppConstants.bucketReportPhotos)
+            .getPublicUrl(path);
+      } on TimeoutException catch (error) {
+        _photoUploadDeferredReason ??= error.toString();
+        urls[entry.key] = existingUrl;
+      } catch (error) {
+        _photoUploadDeferredReason ??= error.toString();
+        urls[entry.key] = existingUrl;
+      }
     }
     return urls;
   }
@@ -292,17 +353,24 @@ class _ChecklistScreenState extends ConsumerState<ChecklistScreen> {
             },
             onPhotoChanged: (id, v) {
               setState(() {
-                _photos[id] = v;
+                if (v == null) {
+                  _photos.remove(id);
+                } else {
+                  _photos[id] = v;
+                }
                 _photoUrls[id] = null;
               });
+              _savePhotoCache();
               _saveDraft();
             },
             onSubmit: () async {
               final ctrl = ref.read(checklistControllerProvider.notifier);
+              await _savePhotoCache();
               final photoUrls = await _uploadChecklistPhotos();
               _photoUrls
                 ..clear()
                 ..addAll(photoUrls);
+              await _savePhotoCache();
               await _saveDraft();
               await ctrl.submitBatch(
                 workOrderId: widget.workOrderId,
@@ -310,6 +378,7 @@ class _ChecklistScreenState extends ConsumerState<ChecklistScreen> {
                 responses: _responses,
                 notes: _notes,
                 photoUrls: photoUrls,
+                holdForSyncReason: _photoUploadDeferredReason,
               );
               if (!ref.read(checklistControllerProvider).hasError) {
                 await ref
@@ -318,12 +387,16 @@ class _ChecklistScreenState extends ConsumerState<ChecklistScreen> {
               }
               final submitState = ref.read(checklistControllerProvider);
               if (submitState.hasError) {
+                final error = submitState.error;
                 if (context.mounted) {
+                  final savedLocally = error is LocalChecklistPendingException;
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
-                      content:
-                          Text('Checklist save failed: ${submitState.error}'),
-                      backgroundColor: AppColors.error,
+                      content: Text(savedLocally
+                          ? error.message
+                          : 'Checklist save failed: $error'),
+                      backgroundColor:
+                          savedLocally ? AppColors.warning : AppColors.error,
                     ),
                   );
                 }
@@ -331,6 +404,7 @@ class _ChecklistScreenState extends ConsumerState<ChecklistScreen> {
               }
               final prefs = await SharedPreferences.getInstance();
               await prefs.remove(_draftKey);
+              await prefs.remove(_photoCacheKey);
               if (context.mounted) {
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
@@ -636,6 +710,60 @@ class _ChecklistSyncStatusBanner extends StatelessWidget {
   }
 }
 
+class _ChecklistPhotoPreview extends StatelessWidget {
+  final Uint8List? photo;
+  final String? photoUrl;
+
+  const _ChecklistPhotoPreview({
+    required this.photo,
+    required this.photoUrl,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    if (photo != null) {
+      return Image.memory(
+        photo!,
+        width: 60,
+        height: 60,
+        fit: BoxFit.cover,
+      );
+    }
+
+    final url = photoUrl;
+    if (url == null || url.isEmpty) {
+      return const _ChecklistPhotoPlaceholder();
+    }
+
+    return Image.network(
+      url,
+      width: 60,
+      height: 60,
+      fit: BoxFit.cover,
+      errorBuilder: (_, __, ___) => const _ChecklistPhotoPlaceholder(),
+    );
+  }
+}
+
+class _ChecklistPhotoPlaceholder extends StatelessWidget {
+  const _ChecklistPhotoPlaceholder();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 60,
+      height: 60,
+      color: AppColors.surfaceVariant,
+      alignment: Alignment.center,
+      child: const Icon(
+        Icons.photo,
+        size: 20,
+        color: AppColors.textSecondary,
+      ),
+    );
+  }
+}
+
 class _ChecklistItemSyncChip extends StatelessWidget {
   final String syncStatus;
 
@@ -834,15 +962,10 @@ class _ChecklistItemWidgetState extends State<_ChecklistItemWidget> {
                                 widget.photoUrl != null) ...[
                               ClipRRect(
                                 borderRadius: BorderRadius.circular(6),
-                                child: widget.photo != null
-                                    ? Image.memory(widget.photo!,
-                                        width: 60,
-                                        height: 60,
-                                        fit: BoxFit.cover)
-                                    : Image.network(widget.photoUrl!,
-                                        width: 60,
-                                        height: 60,
-                                        fit: BoxFit.cover),
+                                child: _ChecklistPhotoPreview(
+                                  photo: widget.photo,
+                                  photoUrl: widget.photoUrl,
+                                ),
                               ),
                               const SizedBox(width: 8),
                               IconButton(

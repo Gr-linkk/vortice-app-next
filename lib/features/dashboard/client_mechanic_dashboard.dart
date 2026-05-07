@@ -6,7 +6,6 @@ import 'package:vortice_app/core/constants.dart';
 import 'package:vortice_app/core/supabase_client.dart';
 import 'package:vortice_app/core/theme.dart';
 import 'package:vortice_app/features/auth/auth_provider.dart';
-import 'package:vortice_app/features/checklists/checklist_assignment_provider.dart';
 import 'package:vortice_app/features/work_orders/work_order_provider.dart';
 import 'package:vortice_app/models/work_order.dart';
 
@@ -85,7 +84,6 @@ class ClientMechanicDashboard extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final profile = ref.watch(profileProvider).valueOrNull;
     final assignedAsync = ref.watch(mechanicAssignedWorkOrdersProvider);
-    final checklistsAsync = ref.watch(mechanicActiveChecklistsProvider);
     final partsAsync = ref.watch(mechanicPartsProvider);
 
     return Scaffold(
@@ -106,7 +104,6 @@ class ClientMechanicDashboard extends ConsumerWidget {
       body: RefreshIndicator(
         onRefresh: () async {
           ref.invalidate(mechanicAssignedWorkOrdersProvider);
-          ref.invalidate(mechanicActiveChecklistsProvider);
           ref.invalidate(mechanicPartsProvider);
         },
         child: ListView(
@@ -119,8 +116,7 @@ class ClientMechanicDashboard extends ConsumerWidget {
             ),
             assignedAsync.when(
               loading: () => const _LoadingTile(),
-              error: (err, _) =>
-                  _ErrorTile(message: err.toString()),
+              error: (err, _) => _ErrorTile(message: err.toString()),
               data: (orders) {
                 if (orders.isEmpty) {
                   return const _EmptyState(
@@ -136,80 +132,15 @@ class ClientMechanicDashboard extends ConsumerWidget {
               },
             ),
 
-            // ── 2. Assigned PM Checklists (from client admin) ──────────────────
+            // ── 2. PM Checklist Note ─────────────────────────────────
             _SectionHeader(
-              title: 'Assigned Checklists',
+              title: 'PM Checklists',
               icon: Icons.checklist_outlined,
             ),
-            checklistsAsync.when(
-              loading: () => const _LoadingTile(),
-              error: (err, _) => _ErrorTile(message: err.toString()),
-              data: (assignments) {
-                if (assignments.isEmpty) {
-                  return const _EmptyState(
-                    icon: Icons.checklist_outlined,
-                    message: 'No checklists assigned yet.',
-                  );
-                }
-                return Column(
-                  children: assignments.map((a) {
-                    final template =
-                        a['checklist_templates'] as Map<String, dynamic>?;
-                    final asset = a['assets'] as Map<String, dynamic>?;
-                    final status = a['status'] as String? ?? 'pending';
-                    final statusColor = switch (status) {
-                      'completed' => AppColors.success,
-                      'in_progress' => AppColors.warning,
-                      _ => AppColors.primary,
-                    };
-                    return Card(
-                      margin: const EdgeInsets.symmetric(
-                          horizontal: 16, vertical: 4),
-                      child: ListTile(
-                        leading: CircleAvatar(
-                          backgroundColor:
-                              AppColors.primary.withOpacity(0.1),
-                          child: const Icon(Icons.build_outlined,
-                              size: 18, color: AppColors.primary),
-                        ),
-                        title: Text(
-                          template?['name'] as String? ?? 'Checklist',
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                        subtitle: asset?['name'] != null
-                            ? Text(asset!['name'] as String,
-                                style: const TextStyle(
-                                    color: AppColors.textSecondary,
-                                    fontSize: 12))
-                            : null,
-                        trailing: Container(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 8, vertical: 4),
-                          decoration: BoxDecoration(
-                            color: statusColor.withOpacity(0.15),
-                            borderRadius: BorderRadius.circular(6),
-                          ),
-                          child: Text(
-                            status.replaceAll('_', ' ').toUpperCase(),
-                            style: TextStyle(
-                                color: statusColor,
-                                fontSize: 10,
-                                fontWeight: FontWeight.bold),
-                          ),
-                        ),
-                        onTap: () async {
-                          if (status == 'pending') {
-                            await ChecklistAssignmentController
-                                .markInProgress(a['id'] as String);
-                            ref.invalidate(myChecklistAssignmentsProvider);
-                          }
-                        },
-                      ),
-                    );
-                  }).toList(),
-                );
-              },
+            const _EmptyState(
+              icon: Icons.build_outlined,
+              message:
+                  'PM checklists start from assigned work orders. Ask the client/admin to assign a work order for the vessel.',
             ),
 
             // ── 3. Parts Lists ────────────────────────────────────────
@@ -219,8 +150,7 @@ class ClientMechanicDashboard extends ConsumerWidget {
             ),
             partsAsync.when(
               loading: () => const _LoadingTile(),
-              error: (err, _) =>
-                  _ErrorTile(message: err.toString()),
+              error: (err, _) => _ErrorTile(message: err.toString()),
               data: (parts) {
                 if (parts.isEmpty) {
                   return const _EmptyState(
@@ -229,9 +159,7 @@ class ClientMechanicDashboard extends ConsumerWidget {
                   );
                 }
                 return Column(
-                  children: parts
-                      .map((p) => _PartsTile(part: p))
-                      .toList(),
+                  children: parts.map((p) => _PartsTile(part: p)).toList(),
                 );
               },
             ),
@@ -261,8 +189,7 @@ class _AssignedWorkCard extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final color = _statusColor();
-    final assetNameAsync =
-        ref.watch(assetNameProvider(workOrder.assetId));
+    final assetNameAsync = ref.watch(assetNameProvider(workOrder.assetId));
     final scheduledStr = workOrder.scheduledDate != null
         ? DateFormat('MMM d').format(workOrder.scheduledDate!)
         : null;
@@ -270,8 +197,7 @@ class _AssignedWorkCard extends ConsumerWidget {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
       child: InkWell(
-        onTap: () =>
-            context.push('/employee/work-orders/${workOrder.id}'),
+        onTap: () => context.push('/employee/work-orders/${workOrder.id}'),
         borderRadius: BorderRadius.circular(12),
         child: Container(
           padding: const EdgeInsets.all(14),
@@ -309,8 +235,7 @@ class _AssignedWorkCard extends ConsumerWidget {
                     Row(
                       children: [
                         const Icon(Icons.directions_boat,
-                            size: 12,
-                            color: AppColors.textSecondary),
+                            size: 12, color: AppColors.textSecondary),
                         const SizedBox(width: 4),
                         assetNameAsync.when(
                           loading: () => const Text('...',
@@ -324,21 +249,18 @@ class _AssignedWorkCard extends ConsumerWidget {
                           data: (name) => Text(
                             name ?? '—',
                             style: const TextStyle(
-                                color: AppColors.textSecondary,
-                                fontSize: 12),
+                                color: AppColors.textSecondary, fontSize: 12),
                           ),
                         ),
                         if (scheduledStr != null) ...[
                           const SizedBox(width: 10),
                           const Icon(Icons.calendar_today,
-                              size: 12,
-                              color: AppColors.textSecondary),
+                              size: 12, color: AppColors.textSecondary),
                           const SizedBox(width: 4),
                           Text(
                             scheduledStr,
                             style: const TextStyle(
-                                color: AppColors.textSecondary,
-                                fontSize: 12),
+                                color: AppColors.textSecondary, fontSize: 12),
                           ),
                         ],
                       ],
@@ -347,8 +269,7 @@ class _AssignedWorkCard extends ConsumerWidget {
                 ),
               ),
               Container(
-                padding: const EdgeInsets.symmetric(
-                    horizontal: 8, vertical: 3),
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                 decoration: BoxDecoration(
                   color: color.withOpacity(0.12),
                   borderRadius: BorderRadius.circular(20),
@@ -373,52 +294,6 @@ class _AssignedWorkCard extends ConsumerWidget {
   }
 }
 
-// ── Checklist Card ────────────────────────────────────────────────────────────
-
-class _ChecklistCard extends StatelessWidget {
-  final Map<String, dynamic> item;
-  const _ChecklistCard({required this.item});
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-      child: InkWell(
-        onTap: () => context
-            .push('/employee/checklists/${item['id']}'),
-        borderRadius: BorderRadius.circular(12),
-        child: Container(
-          padding: const EdgeInsets.all(14),
-          decoration: BoxDecoration(
-            color: AppColors.surface,
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: AppColors.cardBorder),
-          ),
-          child: Row(
-            children: [
-              const Icon(Icons.checklist_outlined,
-                  color: AppColors.primary, size: 22),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Text(
-                  item['title'] as String? ?? 'Checklist',
-                  style: const TextStyle(
-                    color: AppColors.textPrimary,
-                    fontWeight: FontWeight.w500,
-                    fontSize: 13,
-                  ),
-                ),
-              ),
-              const Icon(Icons.chevron_right,
-                  color: AppColors.textSecondary, size: 20),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
 // ── Parts Tile ────────────────────────────────────────────────────────────────
 
 class _PartsTile extends StatelessWidget {
@@ -428,8 +303,7 @@ class _PartsTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final assetName =
-        (part['assets'] as Map<String, dynamic>?)?['name'] as String? ??
-            '—';
+        (part['assets'] as Map<String, dynamic>?)?['name'] as String? ?? '—';
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
       child: Container(
@@ -460,8 +334,7 @@ class _PartsTile extends StatelessWidget {
                     Text(
                       part['description'] as String,
                       style: const TextStyle(
-                          color: AppColors.textSecondary,
-                          fontSize: 12),
+                          color: AppColors.textSecondary, fontSize: 12),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
@@ -470,8 +343,8 @@ class _PartsTile extends StatelessWidget {
             ),
             Text(
               assetName,
-              style: const TextStyle(
-                  color: AppColors.textSecondary, fontSize: 11),
+              style:
+                  const TextStyle(color: AppColors.textSecondary, fontSize: 11),
             ),
           ],
         ),
@@ -495,8 +368,7 @@ class _SectionHeader extends StatelessWidget {
         children: [
           Icon(icon, color: AppColors.primary, size: 18),
           const SizedBox(width: 8),
-          Text(title,
-              style: Theme.of(context).textTheme.titleMedium),
+          Text(title, style: Theme.of(context).textTheme.titleMedium),
         ],
       ),
     );

@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:drift/drift.dart' show Value;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:vortice_app/core/constants.dart';
@@ -57,14 +59,17 @@ class WorkOrderController extends StateNotifier<AsyncValue<void>> {
           .from(AppConstants.tWorkOrders)
           .insert(data)
           .select('id')
-          .single();
+          .single()
+          .timeout(const Duration(seconds: 4));
 
       final workOrderId = workOrder['id'] as String;
       final engineId = data['engine_id'] as String?;
       final checklistTemplateId = data['checklist_template_id'] as String?;
 
       if (assignedProfileIds.isNotEmpty) {
-        await supabase.from(AppConstants.tWorkOrderAssignments).insert(
+        await supabase
+            .from(AppConstants.tWorkOrderAssignments)
+            .insert(
               assignedProfileIds
                   .map(
                     (profileId) => {
@@ -74,7 +79,8 @@ class WorkOrderController extends StateNotifier<AsyncValue<void>> {
                     },
                   )
                   .toList(),
-            );
+            )
+            .timeout(const Duration(seconds: 4));
       }
 
       await _trySyncChecklistSnapshot(workOrderId, checklistTemplateId);
@@ -95,11 +101,15 @@ class WorkOrderController extends StateNotifier<AsyncValue<void>> {
     state = const AsyncLoading();
     bool success = false;
     state = await AsyncValue.guard(() async {
-      await supabase.from(AppConstants.tWorkOrders).update({
-        'status': status.dbValue,
-        if (status == WorkOrderStatus.closed)
-          'completed_at': DateTime.now().toIso8601String(),
-      }).eq('id', id);
+      await supabase
+          .from(AppConstants.tWorkOrders)
+          .update({
+            'status': status.dbValue,
+            if (status == WorkOrderStatus.closed)
+              'completed_at': DateTime.now().toIso8601String(),
+          })
+          .eq('id', id)
+          .timeout(const Duration(seconds: 4));
 
       _ref.invalidate(workOrdersProvider);
       _ref.invalidate(workOrderByIdProvider(id));
@@ -121,7 +131,11 @@ class WorkOrderController extends StateNotifier<AsyncValue<void>> {
           .select('engine_id')
           .eq('id', id)
           .maybeSingle();
-      await supabase.from(AppConstants.tWorkOrders).update(data).eq('id', id);
+      await supabase
+          .from(AppConstants.tWorkOrders)
+          .update(data)
+          .eq('id', id)
+          .timeout(const Duration(seconds: 4));
 
       final hasChecklistUpdate = data.containsKey('checklist_template_id');
       final nextChecklistTemplateId =
@@ -134,7 +148,9 @@ class WorkOrderController extends StateNotifier<AsyncValue<void>> {
             .eq('work_order_id', id);
 
         if (assignedProfileIds.isNotEmpty) {
-          await supabase.from(AppConstants.tWorkOrderAssignments).insert(
+          await supabase
+              .from(AppConstants.tWorkOrderAssignments)
+              .insert(
                 assignedProfileIds
                     .map(
                       (profileId) => {
@@ -144,7 +160,8 @@ class WorkOrderController extends StateNotifier<AsyncValue<void>> {
                       },
                     )
                     .toList(),
-              );
+              )
+              .timeout(const Duration(seconds: 4));
         }
       }
 
@@ -173,10 +190,14 @@ class WorkOrderController extends StateNotifier<AsyncValue<void>> {
     state = const AsyncLoading();
     bool success = false;
     state = await AsyncValue.guard(() async {
-      await supabase.from(AppConstants.tWorkOrders).update({
-        'assigned_to': userId,
-        'status': WorkOrderStatus.assigned.dbValue,
-      }).eq('id', workOrderId);
+      await supabase
+          .from(AppConstants.tWorkOrders)
+          .update({
+            'assigned_to': userId,
+            'status': WorkOrderStatus.assigned.dbValue,
+          })
+          .eq('id', workOrderId)
+          .timeout(const Duration(seconds: 4));
       _ref.invalidate(workOrdersProvider);
       _ref.invalidate(workOrderByIdProvider(workOrderId));
       success = true;
@@ -188,10 +209,14 @@ class WorkOrderController extends StateNotifier<AsyncValue<void>> {
     state = const AsyncLoading();
     bool success = false;
     state = await AsyncValue.guard(() async {
-      await supabase.from(AppConstants.tWorkOrders).update({
-        'status': WorkOrderStatus.inProgress.dbValue,
-        'completed_at': null,
-      }).eq('id', id);
+      await supabase
+          .from(AppConstants.tWorkOrders)
+          .update({
+            'status': WorkOrderStatus.inProgress.dbValue,
+            'completed_at': null,
+          })
+          .eq('id', id)
+          .timeout(const Duration(seconds: 4));
       _ref.invalidate(workOrdersProvider);
       _ref.invalidate(workOrderByIdProvider(id));
       success = true;

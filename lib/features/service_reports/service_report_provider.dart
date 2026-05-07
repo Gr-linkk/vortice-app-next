@@ -4,8 +4,7 @@ import 'package:vortice_app/core/supabase_client.dart';
 import 'package:vortice_app/models/service_report.dart';
 import 'package:vortice_app/models/service_report_photo.dart';
 
-final serviceReportsProvider =
-    FutureProvider<List<ServiceReport>>((ref) async {
+final serviceReportsProvider = FutureProvider<List<ServiceReport>>((ref) async {
   final data = await supabase
       .from(AppConstants.tServiceReports)
       .select()
@@ -20,7 +19,8 @@ final clientServiceReportsProvider =
     FutureProvider<List<Map<String, dynamic>>>((ref) async {
   final data = await supabase
       .from(AppConstants.tServiceReports)
-      .select('id, correction, comments, created_at, work_order_id, work_orders(asset_id, assets(name))')
+      .select(
+          'id, correction, comments, created_at, work_order_id, work_orders(asset_id, assets(name))')
       .order('created_at', ascending: false)
       .limit(10);
   return List<Map<String, dynamic>>.from(data as List);
@@ -57,7 +57,8 @@ class ServiceReportController extends StateNotifier<AsyncValue<void>> {
       final result = await supabase
           .from(AppConstants.tServiceReports)
           .upsert({
-            'work_order_id': workOrderId?.isNotEmpty == true ? workOrderId : null,
+            'work_order_id':
+                workOrderId?.isNotEmpty == true ? workOrderId : null,
             'complaint': complaint,
             'cause': cause,
             'correction': correction,
@@ -69,7 +70,8 @@ class ServiceReportController extends StateNotifier<AsyncValue<void>> {
                 : null,
           })
           .select('id')
-          .single();
+          .single()
+          .timeout(const Duration(seconds: 4));
       reportId = result['id'] as String;
       _ref.invalidate(serviceReportsProvider);
       if (workOrderId != null) {
@@ -88,7 +90,8 @@ final serviceReportControllerProvider =
 // ── Service Report Photos ────────────────────────────────────────────────────
 
 final serviceReportPhotosProvider =
-    FutureProvider.family<List<ServiceReportPhoto>, String>((ref, reportId) async {
+    FutureProvider.family<List<ServiceReportPhoto>, String>(
+        (ref, reportId) async {
   final data = await supabase
       .from(AppConstants.tServiceReportPhotos)
       .select()
@@ -119,7 +122,7 @@ class ServiceReportPhotoController extends StateNotifier<AsyncValue<void>> {
         'caption': caption,
         'sort_order': sortOrder,
         'uploaded_by': uploadedBy,
-      });
+      }).timeout(const Duration(seconds: 4));
       _ref.invalidate(serviceReportPhotosProvider(serviceReportId));
       success = true;
     });
@@ -130,7 +133,11 @@ class ServiceReportPhotoController extends StateNotifier<AsyncValue<void>> {
     state = const AsyncLoading();
     bool success = false;
     state = await AsyncValue.guard(() async {
-      await supabase.from(AppConstants.tServiceReportPhotos).delete().eq('id', photoId);
+      await supabase
+          .from(AppConstants.tServiceReportPhotos)
+          .delete()
+          .eq('id', photoId)
+          .timeout(const Duration(seconds: 4));
       _ref.invalidate(serviceReportPhotosProvider(serviceReportId));
       success = true;
     });
@@ -139,6 +146,7 @@ class ServiceReportPhotoController extends StateNotifier<AsyncValue<void>> {
 }
 
 final serviceReportPhotoControllerProvider =
-    StateNotifierProvider<ServiceReportPhotoController, AsyncValue<void>>((ref) {
+    StateNotifierProvider<ServiceReportPhotoController, AsyncValue<void>>(
+        (ref) {
   return ServiceReportPhotoController(ref);
 });

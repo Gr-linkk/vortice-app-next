@@ -150,10 +150,11 @@ class _CreateWorkOrderScreenState extends ConsumerState<CreateWorkOrderScreen> {
 
     if (success && mounted) context.pop();
     if (!success && mounted) {
-      final err = ref.read(workOrderControllerProvider).error;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(err.toString()),
+        const SnackBar(
+          content: Text(
+            'Work order could not be created while offline. Reconnect and try again.',
+          ),
           backgroundColor: AppColors.error,
         ),
       );
@@ -272,7 +273,7 @@ class _CreateWorkOrderScreenState extends ConsumerState<CreateWorkOrderScreen> {
               ),
               const SizedBox(height: 16),
               DropdownButtonFormField<WorkOrderJobType>(
-                value: _jobType,
+                initialValue: _jobType,
                 decoration: InputDecoration(labelText: l10n.jobType),
                 dropdownColor: AppColors.surfaceVariant,
                 items: WorkOrderJobType.values
@@ -290,7 +291,7 @@ class _CreateWorkOrderScreenState extends ConsumerState<CreateWorkOrderScreen> {
                 loading: () => const Center(child: CircularProgressIndicator()),
                 error: (_, __) => const SizedBox.shrink(),
                 data: (assets) => DropdownButtonFormField<String?>(
-                  value: _selectedAssetId,
+                  initialValue: _selectedAssetId,
                   decoration: InputDecoration(
                     labelText: '${l10n.linkedAsset} *',
                     prefixIcon: const Icon(Icons.directions_boat_outlined),
@@ -333,7 +334,7 @@ class _CreateWorkOrderScreenState extends ConsumerState<CreateWorkOrderScreen> {
                           children: [
                             const SizedBox(height: 16),
                             DropdownButtonFormField<String?>(
-                              value: _selectedEngineId,
+                              initialValue: _selectedEngineId,
                               decoration: const InputDecoration(
                                 labelText: 'Engine / Position',
                                 prefixIcon: Icon(Icons.settings_outlined),
@@ -383,7 +384,7 @@ class _CreateWorkOrderScreenState extends ConsumerState<CreateWorkOrderScreen> {
                     data: (templates) {
                       final flat = templates.toList();
                       return DropdownButtonFormField<String>(
-                        value: _selectedChecklistTemplateId,
+                        initialValue: _selectedChecklistTemplateId,
                         isExpanded: true,
                         decoration: InputDecoration(
                           hintText: 'Optional — assign a checklist',
