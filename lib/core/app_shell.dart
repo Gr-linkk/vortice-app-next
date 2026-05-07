@@ -43,6 +43,12 @@ List<_NavItem> _clientNavItems(AppLocalizations l10n, Profile? profile) {
       route: '/client/invoices',
     ),
     const _NavItem(
+      label: 'Requests',
+      icon: Icons.support_agent_outlined,
+      activeIcon: Icons.support_agent,
+      route: '/client/service-requests',
+    ),
+    const _NavItem(
       label: 'Team',
       icon: Icons.groups_outlined,
       activeIcon: Icons.groups,
@@ -103,6 +109,12 @@ List<_NavItem> _navItemsFor(
           activeIcon: Icons.build,
           route: '/employee/work-orders',
         ),
+        const _NavItem(
+          label: 'Requests',
+          icon: Icons.support_agent_outlined,
+          activeIcon: Icons.support_agent,
+          route: '/employee/service-requests',
+        ),
         _NavItem(
           label: l10n.navServiceReports,
           icon: Icons.description_outlined,
@@ -156,6 +168,12 @@ List<_NavItem> _navItemsFor(
           icon: Icons.receipt_long_outlined,
           activeIcon: Icons.receipt_long,
           route: '/client/invoices',
+        ),
+        const _NavItem(
+          label: 'Requests',
+          icon: Icons.support_agent_outlined,
+          activeIcon: Icons.support_agent,
+          route: '/client/service-requests',
         ),
         const _NavItem(
           label: 'Team',

@@ -39,6 +39,8 @@ import 'package:vortice_app/features/clients/maintenance_flags_screen.dart';
 import 'package:vortice_app/features/notifications/notifications_screen.dart';
 import 'package:vortice_app/features/service_reports/service_report_list_screen.dart';
 import 'package:vortice_app/features/service_reports/service_report_detail_screen.dart';
+import 'package:vortice_app/features/service_requests/service_request_form_screen.dart';
+import 'package:vortice_app/features/service_requests/service_request_list_screen.dart';
 import 'package:vortice_app/features/orgs/org_admin_screen.dart';
 import 'package:vortice_app/features/service_intervals/maintenance_work_order_draft.dart';
 import 'package:vortice_app/features/service_intervals/service_interval_screen.dart';
@@ -138,6 +140,9 @@ final routerProvider = Provider<GoRouter>((ref) {
               path: '/owner/work-orders',
               builder: (_, __) => const WorkOrderListScreen()),
           GoRoute(
+              path: '/owner/service-requests',
+              builder: (_, __) => const StaffServiceRequestListScreen()),
+          GoRoute(
             path: '/owner/work-orders/create',
             builder: (_, state) => CreateWorkOrderScreen(
               initialDraft: MaintenanceWorkOrderDraft.fromQueryParameters(
@@ -229,6 +234,9 @@ final routerProvider = Provider<GoRouter>((ref) {
               path: '/employee/dashboard',
               builder: (_, __) => const EmployeeDashboard()),
           GoRoute(
+              path: '/employee/service-requests',
+              builder: (_, __) => const StaffServiceRequestListScreen()),
+          GoRoute(
               path: '/employee/work-orders',
               builder: (_, __) => const WorkOrderListScreen()),
           GoRoute(
@@ -274,6 +282,12 @@ final routerProvider = Provider<GoRouter>((ref) {
           GoRoute(
               path: '/meeting-request',
               builder: (_, __) => const MeetingRequestScreen()),
+          GoRoute(
+              path: '/client/service-requests',
+              builder: (_, __) => const ClientServiceRequestListScreen()),
+          GoRoute(
+              path: '/client/service-requests/new',
+              builder: (_, __) => const ServiceRequestFormScreen()),
           GoRoute(
               path: '/client/assets',
               builder: (_, __) => const AssetListScreen()),
