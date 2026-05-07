@@ -6,9 +6,11 @@ class MaintenanceWorkOrderDraft {
   static const titleParam = 'title';
   static const descriptionParam = 'description';
   static const jobTypeParam = 'jobType';
+  static const serviceRequestIdParam = 'serviceRequestId';
 
   final String? assetId;
   final String? checklistTemplateId;
+  final String? serviceRequestId;
   final String title;
   final String description;
   final WorkOrderJobType jobType;
@@ -16,6 +18,7 @@ class MaintenanceWorkOrderDraft {
   const MaintenanceWorkOrderDraft({
     this.assetId,
     this.checklistTemplateId,
+    this.serviceRequestId,
     this.title = '',
     this.description = '',
     this.jobType = WorkOrderJobType.repair,
@@ -66,6 +69,7 @@ class MaintenanceWorkOrderDraft {
     return MaintenanceWorkOrderDraft(
       assetId: params[assetIdParam],
       checklistTemplateId: checklistTemplateId,
+      serviceRequestId: params[serviceRequestIdParam],
       title: params[titleParam] ?? '',
       description: params[descriptionParam] ?? '',
       jobType: jobType,
@@ -78,6 +82,7 @@ class MaintenanceWorkOrderDraft {
         if (description.isNotEmpty) descriptionParam: description,
         if (checklistTemplateId != null)
           checklistTemplateIdParam: checklistTemplateId!,
+        if (serviceRequestId != null) serviceRequestIdParam: serviceRequestId!,
         jobTypeParam: jobType.dbValue,
       };
 

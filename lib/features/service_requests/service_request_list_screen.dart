@@ -3,9 +3,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:vortice_app/core/theme.dart';
 import 'package:vortice_app/features/auth/auth_provider.dart';
+import 'package:vortice_app/features/service_intervals/maintenance_work_order_draft.dart';
 import 'package:vortice_app/features/service_requests/service_request_provider.dart';
 import 'package:vortice_app/models/profile.dart';
 import 'package:vortice_app/models/service_request.dart';
+import 'package:vortice_app/models/work_order.dart';
 
 class ClientServiceRequestListScreen extends ConsumerWidget {
   const ClientServiceRequestListScreen({super.key});
@@ -121,7 +123,7 @@ class _ServiceRequestCard extends ConsumerWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 CircleAvatar(
-                  backgroundColor: color.withOpacity(0.15),
+                  backgroundColor: color.withValues(alpha: 0.15),
                   child: Icon(
                     isUrgent ? Icons.priority_high : Icons.support_agent,
                     color: color,
@@ -190,14 +192,12 @@ class _ServiceRequestCard extends ConsumerWidget {
                   ),
                 ],
               ),
-              if (request.assetId != null && staffPrefix != null) ...[
+              if (staffPrefix != null) ...[
                 const SizedBox(height: 8),
                 OutlinedButton.icon(
-                  onPressed: () => context.push(
-                    '$staffPrefix/work-orders/create?assetId=${request.assetId}',
-                  ),
+                  onPressed: () => _generateWorkOrder(context),
                   icon: const Icon(Icons.add_task_outlined),
-                  label: const Text('Start Work Order'),
+                  label: const Text('Generate Work Order'),
                 ),
               ],
             ],
@@ -213,6 +213,24 @@ class _ServiceRequestCard extends ConsumerWidget {
         request.createdLabel,
         if (request.urgency == ServiceRequestUrgency.urgent) 'Urgent',
       ].join(' • ');
+
+  void _generateWorkOrder(BuildContext context) {
+    final staffPrefix = this.staffPrefix;
+    if (staffPrefix == null) return;
+
+    final draft = MaintenanceWorkOrderDraft(
+      assetId: request.assetId,
+      serviceRequestId: request.id,
+      title: request.title,
+      description: request.description,
+      jobType: WorkOrderJobType.repair,
+    );
+
+    context.push(Uri(
+      path: '$staffPrefix/work-orders/create',
+      queryParameters: draft.toQueryParameters(),
+    ).toString());
+  }
 
   Future<void> _mark(
     BuildContext context,
@@ -246,7 +264,7 @@ class _StatusChip extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.15),
+        color: color.withValues(alpha: 0.15),
         borderRadius: BorderRadius.circular(6),
       ),
       child: Text(

@@ -9,7 +9,10 @@ import 'package:vortice_app/features/checklists/checklist_provider.dart';
 import 'package:vortice_app/features/engines/engine_kind_options.dart';
 import 'package:vortice_app/features/parts/pm_parts_provider.dart';
 import 'package:vortice_app/features/service_intervals/maintenance_work_order_draft.dart';
+import 'package:vortice_app/features/service_requests/service_request_provider.dart';
 import 'package:vortice_app/features/work_orders/work_order_provider.dart';
+import 'package:vortice_app/models/asset.dart';
+import 'package:vortice_app/models/checklist_template.dart';
 import 'package:vortice_app/models/work_order.dart';
 
 class CreateWorkOrderScreen extends ConsumerStatefulWidget {
@@ -72,6 +75,63 @@ class _CreateWorkOrderScreenState extends ConsumerState<CreateWorkOrderScreen> {
         ),
       ),
     );
+  }
+
+  List<ChecklistTemplate> _checklistTemplatesForAsset(
+    List<ChecklistTemplate> templates,
+    Asset? asset,
+  ) {
+    final activeMaintenance = templates
+        .where((template) =>
+            template.isActive &&
+            (template.checklistType == 'pm' ||
+                template.checklistType == 'maintenance'))
+        .toList();
+
+    final assetTypeId = asset?.assetTypeId;
+    if (assetTypeId != null) {
+      final assetSpecific = activeMaintenance
+          .where((template) => template.assetTypeId == assetTypeId)
+          .toList()
+        ..sort(_compareChecklistTemplates);
+      if (assetSpecific.isNotEmpty) return assetSpecific;
+    }
+
+    return activeMaintenance
+        .where((template) => template.assetTypeId == null)
+        .toList()
+      ..sort(_compareChecklistTemplates);
+  }
+
+  int _compareChecklistTemplates(ChecklistTemplate a, ChecklistTemplate b) {
+    final aHours = a.intervalHours ?? _hoursFromTemplate(a) ?? (1 << 30);
+    final bHours = b.intervalHours ?? _hoursFromTemplate(b) ?? (1 << 30);
+    final hoursCompare = aHours.compareTo(bHours);
+    if (hoursCompare != 0) return hoursCompare;
+
+    final labelCompare =
+        (a.intervalLabel ?? '').compareTo(b.intervalLabel ?? '');
+    if (labelCompare != 0) return labelCompare;
+
+    return a.name.compareTo(b.name);
+  }
+
+  int? _hoursFromTemplate(ChecklistTemplate template) {
+    final candidates =
+        [template.intervalLabel, template.name].whereType<String>().join(' ');
+    final match = RegExp(r'(\d+)\s*(?:hr|hour|hours|h)\b', caseSensitive: false)
+        .firstMatch(candidates);
+    return match == null ? null : int.tryParse(match.group(1)!);
+  }
+
+  String _checklistTemplateLabel(ChecklistTemplate template) {
+    final prefix = template.intervalLabel?.trim().isNotEmpty == true
+        ? template.intervalLabel!.trim()
+        : template.intervalHours != null
+            ? '${template.intervalHours} HR'
+            : null;
+    if (prefix == null || template.name.contains(prefix)) return template.name;
+    return '$prefix — ${template.name}';
   }
 
   Future<void> _pickScheduledDate() async {
@@ -144,12 +204,25 @@ class _CreateWorkOrderScreenState extends ConsumerState<CreateWorkOrderScreen> {
       if (notesInternal != null) 'notes_internal': notesInternal,
     };
 
-    final success = await ref
+    final workOrderId = await ref
         .read(workOrderControllerProvider.notifier)
         .createWorkOrder(data, assignedProfileIds: _selectedTechIds);
 
-    if (success && mounted) context.pop();
-    if (!success && mounted) {
+    if (workOrderId != null) {
+      final serviceRequestId = widget.initialDraft?.serviceRequestId;
+      if (serviceRequestId != null) {
+        await ref
+            .read(serviceRequestControllerProvider.notifier)
+            .markGeneratedWorkOrder(
+              id: serviceRequestId,
+              workOrderId: workOrderId,
+            );
+      }
+      if (mounted) context.pop();
+      return;
+    }
+
+    if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text(
@@ -312,6 +385,7 @@ class _CreateWorkOrderScreenState extends ConsumerState<CreateWorkOrderScreen> {
                   onChanged: (v) => setState(() {
                     _selectedAssetId = v;
                     _selectedEngineId = null;
+                    _selectedChecklistTemplateId = null;
                   }),
                 ),
               ),
@@ -382,9 +456,19 @@ class _CreateWorkOrderScreenState extends ConsumerState<CreateWorkOrderScreen> {
                     error: (_, __) => const Text('Could not load templates',
                         style: TextStyle(color: AppColors.error)),
                     data: (templates) {
-                      final flat = templates.toList();
-                      return DropdownButtonFormField<String>(
-                        initialValue: _selectedChecklistTemplateId,
+                      final selectedAsset = assetsAsync.valueOrNull
+                          ?.where((asset) => asset.id == _selectedAssetId)
+                          .firstOrNull;
+                      final filtered =
+                          _checklistTemplatesForAsset(templates, selectedAsset);
+                      final selectedTemplateStillVisible = filtered
+                          .any((t) => t.id == _selectedChecklistTemplateId);
+                      final selectedValue = selectedTemplateStillVisible
+                          ? _selectedChecklistTemplateId
+                          : null;
+
+                      return DropdownButtonFormField<String?>(
+                        initialValue: selectedValue,
                         isExpanded: true,
                         decoration: InputDecoration(
                           hintText: 'Optional — assign a checklist',
@@ -407,17 +491,17 @@ class _CreateWorkOrderScreenState extends ConsumerState<CreateWorkOrderScreen> {
                         ),
                         dropdownColor: AppColors.surfaceVariant,
                         items: [
-                          const DropdownMenuItem(
+                          const DropdownMenuItem<String?>(
                             value: null,
                             child: Text('None',
                                 style:
                                     TextStyle(color: AppColors.textSecondary)),
                           ),
-                          for (final t in flat)
-                            DropdownMenuItem(
+                          for (final t in filtered)
+                            DropdownMenuItem<String?>(
                               value: t.id,
                               child: Text(
-                                t.name,
+                                _checklistTemplateLabel(t),
                                 overflow: TextOverflow.ellipsis,
                                 style: const TextStyle(fontSize: 14),
                               ),

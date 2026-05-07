@@ -131,7 +131,7 @@ class ClientMechanicDashboard extends ConsumerWidget {
           padding: const EdgeInsets.only(bottom: 32),
           children: [
             // ── 1. Assigned Work ──────────────────────────────────────
-            _SectionHeader(
+            const _SectionHeader(
               title: 'My Assigned Work',
               icon: Icons.build_outlined,
             ),
@@ -155,7 +155,7 @@ class ClientMechanicDashboard extends ConsumerWidget {
 
             // ── 2. PM Checklist Note ─────────────────────────────────
             if (showPmChecklists) ...[
-              _SectionHeader(
+              const _SectionHeader(
                 title: 'PM Checklists',
                 icon: Icons.checklist_outlined,
               ),
@@ -168,7 +168,7 @@ class ClientMechanicDashboard extends ConsumerWidget {
 
             // ── 3. Parts Lists ────────────────────────────────────────
             if (showPmPartsLists) ...[
-              _SectionHeader(
+              const _SectionHeader(
                 title: 'Parts Lists',
                 icon: Icons.settings_outlined,
               ),
@@ -222,7 +222,7 @@ class _AssignedWorkCard extends ConsumerWidget {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
       child: InkWell(
-        onTap: () => context.push('/employee/work-orders/${workOrder.id}'),
+        onTap: () => context.push('/client/work-orders/${workOrder.id}'),
         borderRadius: BorderRadius.circular(12),
         child: Container(
           padding: const EdgeInsets.all(14),
@@ -296,7 +296,7 @@ class _AssignedWorkCard extends ConsumerWidget {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                 decoration: BoxDecoration(
-                  color: color.withOpacity(0.12),
+                  color: color.withValues(alpha: 0.12),
                   borderRadius: BorderRadius.circular(20),
                 ),
                 child: Text(

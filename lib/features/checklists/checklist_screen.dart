@@ -9,6 +9,7 @@ import 'package:vortice_app/core/theme.dart';
 import 'package:vortice_app/features/auth/auth_provider.dart';
 import 'package:vortice_app/features/checklists/checklist_provider.dart';
 import 'package:vortice_app/features/checklists/checklist_repository.dart';
+import 'package:vortice_app/features/checklists/saved_checklists_repository.dart';
 import 'package:vortice_app/features/service_intervals/service_interval_provider.dart';
 import 'package:vortice_app/features/work_orders/work_order_provider.dart';
 import 'package:vortice_app/models/checklist_item.dart';
@@ -37,12 +38,15 @@ class _ChecklistScreenState extends ConsumerState<ChecklistScreen> {
   ChecklistTemplate? _selectedTemplate;
   String? _draftTemplateId;
   bool _showPicker = false;
-  // response_status: 'pass', 'alert', 'action', or null (not answered)
+  // response_status: 'pass', 'monitor', 'action', 'n/a', or null (not answered)
   final Map<String, String?> _responses = {};
   final Map<String, String> _notes = {};
   final Map<String, Uint8List?> _photos = {};
   final Map<String, String?> _photoUrls = {};
   String? _photoUploadDeferredReason;
+  DateTime _completedAt = DateTime.now();
+  double? _currentHours;
+  String? _generalNotes;
 
   @override
   void initState() {
@@ -100,8 +104,8 @@ class _ChecklistScreenState extends ConsumerState<ChecklistScreen> {
           .listResponsesForWorkOrder(widget.workOrderId);
       for (final response in savedResponses) {
         final itemId = response.checklistItemId;
-        _responses[itemId] =
-            response.responseStatus ?? (response.completed ? 'pass' : 'alert');
+        _responses[itemId] = response.responseStatus ??
+            (response.completed ? 'pass' : 'monitor');
         final note = response.notes;
         if (note?.isNotEmpty == true) {
           _notes[itemId] = note!;
@@ -133,6 +137,12 @@ class _ChecklistScreenState extends ConsumerState<ChecklistScreen> {
         final photoUrls =
             (data['photoUrls'] as Map?)?.cast<String, dynamic>() ?? {};
         _draftTemplateId = data['templateId'] as String?;
+        final completedAtRaw = data['completedAt'] as String?;
+        if (completedAtRaw != null) {
+          _completedAt = DateTime.tryParse(completedAtRaw) ?? _completedAt;
+        }
+        _currentHours = (data['currentHours'] as num?)?.toDouble();
+        _generalNotes = data['generalNotes'] as String?;
         for (final e in responses.entries) {
           _responses[e.key] = e.value as String?;
         }
@@ -172,6 +182,9 @@ class _ChecklistScreenState extends ConsumerState<ChecklistScreen> {
         'responses': _responses,
         'notes': _notes,
         'photoUrls': _photoUrls,
+        'completedAt': _completedAt.toIso8601String(),
+        'currentHours': _currentHours,
+        'generalNotes': _generalNotes,
         'photos': _photos.map(
           (key, value) =>
               MapEntry(key, value == null ? null : base64Encode(value)),
@@ -238,6 +251,10 @@ class _ChecklistScreenState extends ConsumerState<ChecklistScreen> {
     final snapshotAsync =
         ref.watch(workOrderChecklistSnapshotProvider(widget.workOrderId));
     final profile = ref.watch(profileProvider).valueOrNull;
+    final workOrder = workOrderAsync.valueOrNull;
+    final assetName = workOrder == null
+        ? null
+        : ref.watch(assetNameProvider(workOrder.assetId)).valueOrNull;
     final boundTemplateId = snapshotAsync.valueOrNull?.templateId ??
         workOrderAsync.valueOrNull?.checklistTemplateId ??
         widget.preSelectedTemplateId;
@@ -343,6 +360,24 @@ class _ChecklistScreenState extends ConsumerState<ChecklistScreen> {
             notes: _notes,
             photos: _photos,
             photoUrls: _photoUrls,
+            completedAt: _completedAt,
+            currentHours: _currentHours,
+            generalNotes: _generalNotes,
+            assetLabel: assetName ?? workOrder?.assetId ?? '—',
+            completedByLabel:
+                profile?.fullName ?? profile?.email ?? profile?.id ?? '—',
+            onCompletedAtChanged: (value) {
+              setState(() => _completedAt = value);
+              _saveDraft();
+            },
+            onCurrentHoursChanged: (value) {
+              setState(() => _currentHours = value);
+              _saveDraft();
+            },
+            onGeneralNotesChanged: (value) {
+              setState(() => _generalNotes = value);
+              _saveDraft();
+            },
             onResponseChanged: (id, v) {
               setState(() => _responses[id] = v);
               _saveDraft();
@@ -365,6 +400,17 @@ class _ChecklistScreenState extends ConsumerState<ChecklistScreen> {
             },
             onSubmit: () async {
               final ctrl = ref.read(checklistControllerProvider.notifier);
+              if (_requiresAttentionDetail(
+                  _responses, _notes, _photos, _photoUrls)) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content:
+                        Text('Monitor and Action items need a note or photo.'),
+                    backgroundColor: AppColors.error,
+                  ),
+                );
+                return;
+              }
               await _savePhotoCache();
               final photoUrls = await _uploadChecklistPhotos();
               _photoUrls
@@ -380,7 +426,33 @@ class _ChecklistScreenState extends ConsumerState<ChecklistScreen> {
                 photoUrls: photoUrls,
                 holdForSyncReason: _photoUploadDeferredReason,
               );
-              if (!ref.read(checklistControllerProvider).hasError) {
+              if (!ref.read(checklistControllerProvider).hasError &&
+                  workOrder != null) {
+                final List<ChecklistItem> items = snapshotItems ??
+                    await ref.read(
+                        checklistItemsProvider(_selectedTemplate!.id).future);
+                await ref
+                    .read(savedChecklistsRepositoryProvider)
+                    .createSavedChecklist(
+                  assetId: workOrder.assetId,
+                  clientId: workOrder.clientId,
+                  template: _selectedTemplate!,
+                  items: items,
+                  responses: _responses,
+                  notes: _notes,
+                  photoUrls: photoUrls,
+                  sourceType: 'work_order',
+                  checklistType: 'maintenance',
+                  completedBy: profile?.id ?? '',
+                  submittedByRole: profile?.role.name,
+                  submittedAt: _completedAt,
+                  currentHours: _currentHours,
+                  generalNotes: _generalNotes,
+                  workOrderId: widget.workOrderId,
+                  extraHeader: {
+                    'work_order_id': widget.workOrderId,
+                  },
+                );
                 await ref
                     .read(serviceIntervalControllerProvider.notifier)
                     .markIntervalSatisfiedFromWorkOrder(widget.workOrderId);
@@ -418,6 +490,127 @@ class _ChecklistScreenState extends ConsumerState<ChecklistScreen> {
           );
         },
       ),
+    );
+  }
+}
+
+bool _requiresAttentionDetail(
+  Map<String, String?> responses,
+  Map<String, String> notes,
+  Map<String, Uint8List?> photos,
+  Map<String, String?> photoUrls,
+) {
+  for (final entry in responses.entries) {
+    final status = entry.value;
+    if (status != 'monitor' && status != 'alert' && status != 'action') {
+      continue;
+    }
+    final hasNote = notes[entry.key]?.trim().isNotEmpty == true;
+    final hasLocalPhoto = photos[entry.key] != null;
+    final hasUploadedPhoto = photoUrls[entry.key]?.isNotEmpty == true;
+    if (!hasNote && !hasLocalPhoto && !hasUploadedPhoto) return true;
+  }
+  return false;
+}
+
+String _formatChecklistDateTime(DateTime value) {
+  final local = value.toLocal();
+  String two(int n) => n.toString().padLeft(2, '0');
+  return '${local.year}-${two(local.month)}-${two(local.day)} ${two(local.hour)}:${two(local.minute)}';
+}
+
+class _ChecklistRunHeader extends StatelessWidget {
+  final String assetLabel;
+  final String checklistLabel;
+  final String completedByLabel;
+  final DateTime completedAt;
+  final TextEditingController hoursController;
+  final TextEditingController notesController;
+  final VoidCallback onPickCompletedAt;
+  final ValueChanged<double?> onHoursChanged;
+  final ValueChanged<String?> onNotesChanged;
+
+  const _ChecklistRunHeader({
+    required this.assetLabel,
+    required this.checklistLabel,
+    required this.completedByLabel,
+    required this.completedAt,
+    required this.hoursController,
+    required this.notesController,
+    required this.onPickCompletedAt,
+    required this.onHoursChanged,
+    required this.onNotesChanged,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(12),
+      color: AppColors.surface,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('Run details', style: Theme.of(context).textTheme.titleSmall),
+          const SizedBox(height: 8),
+          _HeaderText(label: 'Asset', value: assetLabel),
+          _HeaderText(label: 'Checklist', value: checklistLabel),
+          _HeaderText(label: 'Completed by', value: completedByLabel),
+          ListTile(
+            dense: true,
+            contentPadding: EdgeInsets.zero,
+            title: const Text('Date/time'),
+            subtitle: Text(_formatChecklistDateTime(completedAt)),
+            trailing: const Icon(Icons.edit_calendar, size: 18),
+            onTap: onPickCompletedAt,
+          ),
+          Row(
+            children: [
+              Expanded(
+                child: TextField(
+                  controller: hoursController,
+                  keyboardType:
+                      const TextInputType.numberWithOptions(decimal: true),
+                  decoration: const InputDecoration(
+                    labelText: 'Current hours (optional)',
+                    isDense: true,
+                  ),
+                  onChanged: (value) =>
+                      onHoursChanged(double.tryParse(value.trim())),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          TextField(
+            controller: notesController,
+            maxLines: 2,
+            decoration: const InputDecoration(
+              labelText: 'General notes (optional)',
+              isDense: true,
+            ),
+            onChanged: (value) => onNotesChanged(
+              value.trim().isEmpty ? null : value.trim(),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _HeaderText extends StatelessWidget {
+  final String label;
+  final String value;
+
+  const _HeaderText({required this.label, required this.value});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 4),
+      child:
+          Text('$label: $value', style: Theme.of(context).textTheme.bodySmall),
     );
   }
 }
@@ -519,6 +712,14 @@ class _ChecklistForm extends ConsumerStatefulWidget {
   final Map<String, String> notes;
   final Map<String, Uint8List?> photos;
   final Map<String, String?> photoUrls;
+  final DateTime completedAt;
+  final double? currentHours;
+  final String? generalNotes;
+  final String assetLabel;
+  final String completedByLabel;
+  final ValueChanged<DateTime> onCompletedAtChanged;
+  final ValueChanged<double?> onCurrentHoursChanged;
+  final ValueChanged<String?> onGeneralNotesChanged;
   final void Function(String id, String? v) onResponseChanged;
   final void Function(String id, String note) onNoteChanged;
   final void Function(String id, Uint8List? photo) onPhotoChanged;
@@ -533,6 +734,14 @@ class _ChecklistForm extends ConsumerStatefulWidget {
     required this.notes,
     required this.photos,
     required this.photoUrls,
+    required this.completedAt,
+    required this.currentHours,
+    required this.generalNotes,
+    required this.assetLabel,
+    required this.completedByLabel,
+    required this.onCompletedAtChanged,
+    required this.onCurrentHoursChanged,
+    required this.onGeneralNotesChanged,
     required this.onResponseChanged,
     required this.onNoteChanged,
     required this.onPhotoChanged,
@@ -544,6 +753,41 @@ class _ChecklistForm extends ConsumerStatefulWidget {
 }
 
 class _ChecklistFormState extends ConsumerState<_ChecklistForm> {
+  late final TextEditingController _hoursCtrl;
+  late final TextEditingController _notesCtrl;
+
+  @override
+  void initState() {
+    super.initState();
+    _hoursCtrl =
+        TextEditingController(text: widget.currentHours?.toString() ?? '');
+    _notesCtrl = TextEditingController(text: widget.generalNotes ?? '');
+  }
+
+  @override
+  void dispose() {
+    _hoursCtrl.dispose();
+    _notesCtrl.dispose();
+    super.dispose();
+  }
+
+  Future<void> _pickCompletedAt() async {
+    final date = await showDatePicker(
+      context: context,
+      initialDate: widget.completedAt,
+      firstDate: DateTime(2020),
+      lastDate: DateTime.now().add(const Duration(days: 1)),
+    );
+    if (date == null || !mounted) return;
+    final time = await showTimePicker(
+      context: context,
+      initialTime: TimeOfDay.fromDateTime(widget.completedAt),
+    );
+    if (time == null) return;
+    widget.onCompletedAtChanged(
+        DateTime(date.year, date.month, date.day, time.hour, time.minute));
+  }
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
@@ -563,44 +807,57 @@ class _ChecklistFormState extends ConsumerState<_ChecklistForm> {
       SyncStatusValues.conflict,
     );
 
+    final headerWidgets = [
+      _ChecklistRunHeader(
+        assetLabel: widget.assetLabel,
+        checklistLabel: widget.template.name,
+        completedByLabel: widget.completedByLabel,
+        completedAt: widget.completedAt,
+        hoursController: _hoursCtrl,
+        notesController: _notesCtrl,
+        onPickCompletedAt: _pickCompletedAt,
+        onHoursChanged: widget.onCurrentHoursChanged,
+        onNotesChanged: widget.onGeneralNotesChanged,
+      ),
+      // Template header
+      Container(
+        padding: const EdgeInsets.all(12),
+        color: AppColors.surfaceVariant,
+        child: Row(
+          children: [
+            const Icon(Icons.checklist, color: AppColors.primary, size: 18),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    widget.template.name,
+                    style: Theme.of(context).textTheme.titleSmall,
+                  ),
+                  if (widget.metadataCaption?.isNotEmpty == true)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 2),
+                      child: Text(
+                        widget.metadataCaption!,
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                              color: AppColors.textSecondary,
+                            ),
+                      ),
+                    ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+      if (visibleSyncStatuses.isNotEmpty)
+        _ChecklistSyncStatusBanner(hasConflict: hasSyncConflict),
+    ];
+
     return Column(
       children: [
-        // Template header
-        Container(
-          padding: const EdgeInsets.all(12),
-          color: AppColors.surfaceVariant,
-          child: Row(
-            children: [
-              const Icon(Icons.checklist, color: AppColors.primary, size: 18),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      widget.template.name,
-                      style: Theme.of(context).textTheme.titleSmall,
-                    ),
-                    if (widget.metadataCaption?.isNotEmpty == true)
-                      Padding(
-                        padding: const EdgeInsets.only(top: 2),
-                        child: Text(
-                          widget.metadataCaption!,
-                          style:
-                              Theme.of(context).textTheme.bodySmall?.copyWith(
-                                    color: AppColors.textSecondary,
-                                  ),
-                        ),
-                      ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ),
-        if (visibleSyncStatuses.isNotEmpty)
-          _ChecklistSyncStatusBanner(hasConflict: hasSyncConflict),
         Expanded(
           child: itemsAsync.when(
             loading: () => const Center(child: CircularProgressIndicator()),
@@ -608,21 +865,33 @@ class _ChecklistFormState extends ConsumerState<_ChecklistForm> {
               child: Text(err.toString(),
                   style: const TextStyle(color: AppColors.error)),
             ),
-            data: (items) => ListView.builder(
-              padding: const EdgeInsets.all(16),
-              itemCount: items.length,
-              itemBuilder: (_, i) => _ChecklistItemWidget(
-                item: items[i],
-                status: widget.responses[items[i].id],
-                note: widget.notes[items[i].id] ?? '',
-                photo: widget.photos[items[i].id],
-                photoUrl: widget.photoUrls[items[i].id],
-                syncStatus: syncStatusByItem[items[i].id],
-                onStatusChanged: (v) =>
-                    widget.onResponseChanged(items[i].id, v),
-                onNoteChanged: (v) => widget.onNoteChanged(items[i].id, v),
-                onPhotoChanged: (v) => widget.onPhotoChanged(items[i].id, v),
-              ),
+            data: (items) => ListView(
+              padding: const EdgeInsets.only(bottom: 8),
+              children: [
+                ...headerWidgets,
+                Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    children: [
+                      for (final item in items)
+                        _ChecklistItemWidget(
+                          item: item,
+                          status: widget.responses[item.id],
+                          note: widget.notes[item.id] ?? '',
+                          photo: widget.photos[item.id],
+                          photoUrl: widget.photoUrls[item.id],
+                          syncStatus: syncStatusByItem[item.id],
+                          onStatusChanged: (v) =>
+                              widget.onResponseChanged(item.id, v),
+                          onNoteChanged: (v) =>
+                              widget.onNoteChanged(item.id, v),
+                          onPhotoChanged: (v) =>
+                              widget.onPhotoChanged(item.id, v),
+                        ),
+                    ],
+                  ),
+                ),
+              ],
             ),
           ),
         ),
@@ -798,7 +1067,7 @@ class _ChecklistItemSyncChip extends StatelessWidget {
 
 class _ChecklistItemWidget extends StatefulWidget {
   final ChecklistItem item;
-  final String? status; // 'pass', 'alert', 'action', or null
+  final String? status; // 'pass', 'monitor', 'action', 'n/a', or null
   final String note;
   final Uint8List? photo;
   final String? photoUrl;
@@ -868,7 +1137,8 @@ class _ChecklistItemWidgetState extends State<_ChecklistItemWidget> {
   @override
   Widget build(BuildContext context) {
     final status = widget.status;
-    final showDetail = status == 'alert' || status == 'action';
+    final showDetail =
+        status == 'alert' || status == 'monitor' || status == 'action';
 
     return Card(
       margin: const EdgeInsets.only(bottom: 10),
@@ -901,7 +1171,7 @@ class _ChecklistItemWidgetState extends State<_ChecklistItemWidget> {
             ],
             const SizedBox(height: 12),
 
-            // 3-state buttons: PASS / ALERT / ACTION
+            // Answer buttons: PASS / MONITOR / ACTION / N/A
             Row(
               children: [
                 _StatusButton(
@@ -914,12 +1184,13 @@ class _ChecklistItemWidgetState extends State<_ChecklistItemWidget> {
                 ),
                 const SizedBox(width: 8),
                 _StatusButton(
-                  label: 'ALERT',
-                  value: 'alert',
+                  label: 'MONITOR',
+                  value: 'monitor',
                   current: status,
                   color: AppColors.warning,
-                  onTap: () => widget
-                      .onStatusChanged(status == 'alert' ? null : 'alert'),
+                  onTap: () => widget.onStatusChanged(
+                    status == 'monitor' || status == 'alert' ? null : 'monitor',
+                  ),
                 ),
                 const SizedBox(width: 8),
                 _StatusButton(
@@ -930,10 +1201,19 @@ class _ChecklistItemWidgetState extends State<_ChecklistItemWidget> {
                   onTap: () => widget
                       .onStatusChanged(status == 'action' ? null : 'action'),
                 ),
+                const SizedBox(width: 8),
+                _StatusButton(
+                  label: 'N/A',
+                  value: 'n/a',
+                  current: status,
+                  color: AppColors.textSecondary,
+                  onTap: () =>
+                      widget.onStatusChanged(status == 'n/a' ? null : 'n/a'),
+                ),
               ],
             ),
 
-            // Comment + photo — only prompt for alert/action follow-up.
+            // Comment + photo — only prompt for monitor/action follow-up.
             AnimatedSize(
               duration: const Duration(milliseconds: 200),
               child: showDetail

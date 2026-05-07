@@ -1,16 +1,16 @@
 # NEXT — Vórtice App
 
-Last updated: 2026-05-07 15:20 EDT
+Last updated: 2026-05-07 19:50 EDT
 
 ## Start here next time
 
-Expected repo state:
+Expected repo state after this session:
 
 - Repo: `/mnt/c/Users/gr_link/src/vortice-app-main`
 - Branch: `main`
-- Latest pushed commit: `16223a8 feat: add service requests mvp`
-- Previous capability enforcement commit: `e9b9d33 feat: enforce client capability switchboard`
 - Expected state: clean working tree, `main` aligned with `origin/main`.
+- Latest app commit: this handoff commit, `feat: add saved checklist history workflow`; verify exact hash with `git log -1 --oneline`.
+- Latest feature set: service request → work order bridge, universal saved checklist history, checklist UX polish.
 
 Verify:
 
@@ -19,71 +19,96 @@ git status --short
 git log --oneline -5
 ```
 
-## What is now live
+## Most important next move
 
-Supabase project: Vortice `REDACTED_SUPABASE_PROJECT`
+**Next time we work on the app, map out the workflows before coding.**
+
+Garrett explicitly wants the next app session to step back and map workflows end-to-end. Recommended workflow map targets:
+
+1. Client service request → staff triage → generated work order → completed work → client-visible status/history.
+2. Preventative maintenance interval → generated work order → checklist completion → saved asset checklist history → interval satisfaction.
+3. Operator/captain operations checklist → saved asset checklist history → exception/action visibility.
+4. Client admin/mechanic checklist execution → saved asset checklist history without accidentally acting like a Vórtice work order.
+5. Asset detail as the hub: maintenance plan, service requests, work orders, checklist history, telemetry, documents.
+
+Goal: produce a simple canonical workflow map/spec before the next Flutter patch, so app screens and database seams follow the same language.
+
+## What landed this session
+
+### Service Request → Work Order bridge
+
+- Staff service request cards now have **Generate Work Order**.
+- The button opens the existing create-work-order form prefilled from the request.
+- Backing out leaves the request unchanged.
+- Saving the generated work order marks the request handled/resolved and removes it from the staff inbox.
+- Client-facing semantics remain separate from work-order mechanics.
+- Clients still do not see work orders or schedules.
+
+### Universal saved checklist history
+
+- Added canonical `saved_checklists` table/model/repository.
+- Every submitted maintenance/work-order checklist now saves an immutable asset history snapshot.
+- Every submitted operator checklist now saves an immutable operations history snapshot.
+- Saved snapshot includes template metadata, answered items, statuses, notes, photo URLs when available, run header, source metadata, current hours, and general notes.
+- Added asset-level Checklist History screen with tabs:
+  - Maintenance
+  - Operations
+- Operators/client operators only see Operations history.
+- Owner/employee/client admin/client mechanic can see Maintenance + Operations where RLS permits.
+- Normal app users can insert/read saved checklist history; app users do not update/delete immutable rows.
+
+### Checklist execution UX
+
+- Checklist answer options are now `PASS / MONITOR / ACTION / N/A`.
+- Monitor/Action require a note or photo before submit.
+- Run header includes:
+  - Asset
+  - Checklist
+  - Completed by
+  - Editable date/time
+  - Optional current hours
+  - Optional general notes
+- Header now scrolls away with checklist content instead of trapping screen space at the top.
+
+### Work order checklist picker cleanup
+
+- When creating a work order for an asset, the checklist picker shows asset-type-specific maintenance checklists first/exclusively.
+- If an asset has no specific checklists, it falls back to general maintenance checklists.
+- Service-hour templates sort low → high, e.g. 250 → 500 → 1000 → 2000, with non-hour/general items last.
+- Changing the selected asset clears the previous checklist selection to avoid wrong-template carryover.
+
+### Supabase live state
+
+Live Supabase project: Vortice `REDACTED_SUPABASE_PROJECT`
 
 Live migrations applied / verified:
 
 - `20260507013000_client_capabilities`
 - `20260507013500_asset_first_telemetry`
 - `20260507135000_service_requests`
+- `20260507183000_saved_checklists`
 
-Remote migration history was repaired for already-existing old migrations:
+Remote migration history was previously repaired for already-existing old migrations:
 
 - `20260419`
 - `20260423`
 
-Verified live after apply:
+Verified after saved checklist apply:
 
-- `public.client_capabilities` exists.
-- `telemetry_readings.asset_id` is `NOT NULL`.
-- `telemetry_alerts.asset_id` is `NOT NULL`.
-- telemetry `engine_id` remains nullable.
-- telemetry app tables had `0` rows after apply.
-- `client_capabilities` had `0` rows after apply.
-- `public.service_requests` exists and REST returned HTTP 200 with `[]` immediately after apply.
-- no test telemetry was inserted or bridged into app tables.
+- Supabase CLI migration list showed local/remote `20260507183000` matched.
+- No fake telemetry was inserted.
+- No live tables were dropped.
 
-## What landed in app
+### Phone state
 
-- Dev Persona Switchboard in login.
-- Owner-facing Service Switchboard in client detail.
-- `client_capabilities` model/provider/controller and migration.
-- Capability switchboard enforcement for workflow access:
-  - new optional workflow access is capability-gated
-  - owner/employee bypass remains for internal operations
-  - historical/read-only visibility is preserved where appropriate
-  - live/dashboard telemetry remains gated while read-only history can remain visible where role/RLS allows
-- Asset-first telemetry model/provider/repository/screen seam:
-  - `assetId` first-class on readings/alerts
-  - `engineId` nullable
-  - `deviceId` first-class
-  - optional `rawData`
-  - asset latest/history/alerts providers
-  - `/telemetry/assets/:assetId/history`
-  - vessel telemetry fetches by asset
-  - dashboard alert taps prefer asset route
-  - asset detail telemetry card uses asset telemetry/alerts
-- Service Requests MVP:
-  - dedicated `service_requests` table
-  - baseline always-on client portal flow, not capability-gated
-  - `client` / `client_admin` submit and read
-  - `owner` / `employee` staff inbox read/manage
-  - `client_operator` / `client_mechanic` do not directly submit in MVP
-  - statuses: `new`, `resolved`, `declined`
-  - client labels: `Sent`, `Being handled`, `Declined`
-  - request intake is separate from work orders; linkage remains a future explicit seam
+Latest debug APK from this session was installed successfully on Garrett's `SM_S928W`.
 
-## Current phone state
-
-Latest debug APK with commit `16223a8` was installed successfully on Garrett's `SM_S928W`.
-
-Wireless Debugging ports are ephemeral. The last successful install used:
+Wireless Debugging ports are ephemeral. Recent successful ports:
 
 - `100.78.40.20:46529`
+- `100.78.40.20:39043`
 
-Do not assume that port persists. If ADB refuses connection, open Android Developer Options → Wireless debugging and read the current IP/port.
+Do not assume either port persists. If ADB refuses connection, open Android Developer Options → Wireless debugging and read the current IP/port.
 
 Useful install path from WSL using Windows Flutter/ADB:
 
@@ -94,21 +119,13 @@ flutter build apk --debug
 & "C:\Users\gr_link\AppData\Local\Android\Sdk\platform-tools\adb.exe" install -r "C:\Users\gr_link\src\vortice-app-main\build\app\outputs\flutter-apk\app-debug.apk"
 ```
 
-## Smoke test checklist
+## Verification from this session
 
-Check on phone:
-
-- dev personas log in
-- owner can open client detail Service Switchboard
-- switchboard toggles read/write live Supabase rows
-- client dashboard has Requests
-- client/client admin can submit request
-- client/client admin can view request history
-- owner/employee can open Service Requests inbox
-- owner/employee can mark request `resolved` / `declined`
-- dashboards do not show fake/test telemetry
-- telemetry empty states are honest: no paired device / no readings yet / telemetry not enabled
-- capability-off states hide/block new workflow access without deleting history
+- Targeted `flutter analyze` for touched saved-checklist/checklist/operator/work-order files: clean.
+- Debug APK build: successful.
+- APK install to `SM_S928W`: successful.
+- Full repo analyze still reports pre-existing warnings/infos in unrelated areas; no blocking analyzer errors were introduced by this patch.
+- Repo has no `test/` directory, so `flutter test` remains unavailable.
 
 ## Hard guardrails
 
@@ -120,45 +137,35 @@ Check on phone:
 - Do not build telemetry UI on engine-first assumptions. Ask: “Is this treating the asset as the telemetry owner?”
 - Capability switches gate new workflow access; they do not justify deleting history.
 - Service requests are baseline portal workflow; do not hide them behind paid capability toggles.
-- Service request `resolved` means handled/accepted in the inbox flow, not mechanically complete.
-- Do not build replay worker/photo replay/work-order close sync until idempotency/conflict semantics are safe.
+- Service requests remain distinct from work orders.
+- Saved checklist records are immutable in app UX for v1; do not add amendments/corrections casually.
+- Client-side PM checklist submissions save to asset history only; they do not satisfy intervals or notify Vórtice in v1.
 - Work-order create/complete/reopen/edit should fail fast offline for now, not pretend to be safely pending.
 - No-data-loss wins over cleanup.
 
 ## Best next work
 
-1. **Finish phone smoke test**
-   - Use the checklist above and note anything that feels awkward.
+1. **Map workflows before coding**
+   - This is the next-session priority.
+   - Capture the map in docs before another large UI/data patch.
 
-2. **Clean remaining tier ghosts**
-   - Active workflow tier gates are mostly gone, but these still exist as legacy/business-label code:
-     - `lib/features/subscription/tier_gate.dart`
-     - `lib/features/subscription/upgrade_prompt.dart`
-     - `lib/models/subscription_tier.dart`
-     - `subscriptionTier` fields/localized labels
-   - Decide whether to keep tier as business metadata only or remove/hide it from app UX entirely.
+2. **Phone smoke test the new flow**
+   - Generate WO from service request.
+   - Create dredge WO and confirm checklist picker shows dredge-specific options sorted by hours.
+   - Complete maintenance checklist and confirm saved Maintenance history appears on asset.
+   - Complete operator checklist and confirm saved Operations history appears on asset.
+   - Confirm operator cannot see Maintenance history.
 
-3. **Service Request → Work Order bridge**
-   - Add explicit staff action to generate/link a work order from a service request.
-   - Populate `generated_work_order_id`.
-   - Preserve request/inbox semantics separately from work-order mechanical completion.
+3. **Review saved checklist history UX**
+   - Decide whether detail cards need a dedicated detail screen.
+   - Decide whether photos should open full-screen.
+   - Decide whether clients need filters by source/type/date.
 
-4. **Service Request polish**
-   - optional request photos/attachments
-   - better urgent visual treatment
-   - possible owner bottom-nav entry for Requests if dashboard card is not discoverable enough
-
-5. **Telemetry pairing lifecycle**
-   - Pair / Replace / Unpair device flow
-   - one-active-device-per-asset enforcement
-   - pairing history / inactive-replaced-unpaired tracking
-   - telemetry RLS/client-role visibility review
-
-6. **Checklist / PM work**
-   - mechanic PM bridge aligned with work orders/checklist engine
-   - checklist assignment completion lifecycle
-   - historical checklist visibility polish
-   - offline replay only after idempotency/conflict contract is safe
+4. **Workflow polish after mapping**
+   - Service request ↔ generated work order audit/link visibility.
+   - Checklist exception/action surfacing.
+   - PM interval satisfaction semantics.
+   - Assignment/task nudges, but not as permissions.
 
 ## Offline-first reminder
 
