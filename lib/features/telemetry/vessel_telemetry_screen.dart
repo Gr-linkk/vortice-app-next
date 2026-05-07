@@ -2,7 +2,6 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:vortice_app/core/theme.dart';
 import 'package:vortice_app/features/assets/asset_provider.dart';
@@ -18,7 +17,6 @@ import 'package:vortice_app/models/asset_engine.dart';
 import 'package:vortice_app/models/subscription_tier.dart';
 import 'package:vortice_app/models/telemetry_alert.dart';
 
-
 /// Live telemetry view for a single vessel / asset.
 /// Polling interval: 30 seconds.
 class VesselTelemetryScreen extends ConsumerStatefulWidget {
@@ -31,8 +29,7 @@ class VesselTelemetryScreen extends ConsumerStatefulWidget {
       _VesselTelemetryScreenState();
 }
 
-class _VesselTelemetryScreenState
-    extends ConsumerState<VesselTelemetryScreen> {
+class _VesselTelemetryScreenState extends ConsumerState<VesselTelemetryScreen> {
   Timer? _pollingTimer;
   AssetEngine? _selectedEngine;
 
@@ -41,10 +38,8 @@ class _VesselTelemetryScreenState
     super.initState();
     // Start 30-second polling once the widget is mounted
     _pollingTimer = Timer.periodic(const Duration(seconds: 30), (_) {
-      if (_selectedEngine != null) {
-        ref.invalidate(latestTelemetryProvider(_selectedEngine!.id));
-        ref.invalidate(alertsForAssetProvider(widget.assetId));
-      }
+      ref.invalidate(latestTelemetryForAssetProvider(widget.assetId));
+      ref.invalidate(alertsForAssetProvider(widget.assetId));
     });
   }
 
@@ -102,10 +97,8 @@ class _VesselTelemetryScreenState
                 icon: const Icon(Icons.refresh),
                 tooltip: 'Refresh',
                 onPressed: () {
-                  if (_selectedEngine != null) {
-                    ref.invalidate(
-                        latestTelemetryProvider(_selectedEngine!.id));
-                  }
+                  ref.invalidate(
+                      latestTelemetryForAssetProvider(widget.assetId));
                   ref.invalidate(alertsForAssetProvider(widget.assetId));
                 },
               ),
@@ -148,14 +141,12 @@ class _Body extends StatelessWidget {
             style: const TextStyle(color: AppColors.error)),
       ),
       data: (engines) {
-        final engine = selectedEngine ??
-            (engines.isNotEmpty ? engines.first : null);
+        final engine =
+            selectedEngine ?? (engines.isNotEmpty ? engines.first : null);
 
         return RefreshIndicator(
           onRefresh: () async {
-            if (engine != null) {
-              ref.invalidate(latestTelemetryProvider(engine.id));
-            }
+            ref.invalidate(latestTelemetryForAssetProvider(asset.id));
             ref.invalidate(alertsForAssetProvider(asset.id));
           },
           child: ListView(
@@ -180,7 +171,7 @@ class _Body extends StatelessWidget {
                           selected: selected,
                           onSelected: (_) => onEngineSelected(e),
                           selectedColor:
-                              AppColors.primary.withOpacity(0.2),
+                              AppColors.primary.withValues(alpha: 0.2),
                           labelStyle: TextStyle(
                             color: selected
                                 ? AppColors.primary
@@ -194,24 +185,12 @@ class _Body extends StatelessWidget {
               ],
 
               // ── Live gauges ────────────────────────────────────────────
-              if (engine != null)
-                _LiveGaugesSection(
-                    engineId: engine.id, ref: ref)
-              else
-                const Padding(
-                  padding: EdgeInsets.all(24),
-                  child: Center(
-                    child: Text(
-                      'No engines configured for this asset.',
-                      style: TextStyle(color: AppColors.textSecondary),
-                    ),
-                  ),
-                ),
+              _LiveGaugesSection(assetId: asset.id, ref: ref),
 
               // ── Active fault codes ─────────────────────────────────────
               _FaultCodesSection(assetId: asset.id, ref: ref),
 
-              // ── Engine info ────────────────────────────────────────────
+              // ── Optional engine context ───────────────────────────────────
               if (engine != null) _EngineInfoSection(engine: engine),
 
               // ── Maintenance schedule ───────────────────────────────────
@@ -230,14 +209,14 @@ class _Body extends StatelessWidget {
 // ── Live Gauges Section ───────────────────────────────────────────────────────
 
 class _LiveGaugesSection extends StatelessWidget {
-  final String engineId;
+  final String assetId;
   final WidgetRef ref;
 
-  const _LiveGaugesSection({required this.engineId, required this.ref});
+  const _LiveGaugesSection({required this.assetId, required this.ref});
 
   @override
   Widget build(BuildContext context) {
-    final readingAsync = ref.watch(latestTelemetryProvider(engineId));
+    final readingAsync = ref.watch(latestTelemetryForAssetProvider(assetId));
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -248,8 +227,7 @@ class _LiveGaugesSection extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.baseline,
             textBaseline: TextBaseline.alphabetic,
             children: [
-              Text('Live Data',
-                  style: Theme.of(context).textTheme.titleMedium),
+              Text('Live Data', style: Theme.of(context).textTheme.titleMedium),
               const SizedBox(width: 8),
               readingAsync.when(
                 loading: () => const SizedBox.shrink(),
@@ -389,8 +367,8 @@ class _GaugeCard extends StatelessWidget {
         children: [
           Text(
             label,
-            style: const TextStyle(
-                color: AppColors.textSecondary, fontSize: 11),
+            style:
+                const TextStyle(color: AppColors.textSecondary, fontSize: 11),
           ),
           const Spacer(),
           Row(
@@ -418,7 +396,7 @@ class _GaugeCard extends StatelessWidget {
             margin: const EdgeInsets.only(top: 6),
             height: 3,
             decoration: BoxDecoration(
-              color: color.withOpacity(0.35),
+              color: color.withValues(alpha: 0.35),
               borderRadius: BorderRadius.circular(2),
             ),
           ),
@@ -453,7 +431,8 @@ class _FaultCodesSection extends StatelessWidget {
               child: Text('Fault Codes',
                   style: Theme.of(context).textTheme.titleMedium),
             ),
-            ...alerts.map((a) => _FaultCodeTile(alert: a, assetId: assetId, ref: ref)),
+            ...alerts.map(
+                (a) => _FaultCodeTile(alert: a, assetId: assetId, ref: ref)),
           ],
         );
       },
@@ -466,7 +445,8 @@ class _FaultCodeTile extends StatelessWidget {
   final String assetId;
   final WidgetRef ref;
 
-  const _FaultCodeTile({required this.alert, required this.assetId, required this.ref});
+  const _FaultCodeTile(
+      {required this.alert, required this.assetId, required this.ref});
 
   @override
   Widget build(BuildContext context) {
@@ -483,7 +463,7 @@ class _FaultCodeTile extends StatelessWidget {
         decoration: BoxDecoration(
           color: AppColors.surface,
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: severityColor.withOpacity(0.35)),
+          border: Border.all(color: severityColor.withValues(alpha: 0.35)),
         ),
         child: Row(
           children: [
@@ -521,8 +501,7 @@ class _FaultCodeTile extends StatelessWidget {
             if (!alert.acknowledged)
               TextButton(
                 onPressed: () async {
-                  final profile =
-                      ref.read(profileProvider).valueOrNull;
+                  final profile = ref.read(profileProvider).valueOrNull;
                   if (profile == null) return;
                   await ref
                       .read(telemetryControllerProvider.notifier)
@@ -552,7 +531,7 @@ class _EngineInfoSection extends StatelessWidget {
       children: [
         Padding(
           padding: const EdgeInsets.fromLTRB(16, 24, 16, 8),
-          child: Text('Engine Info',
+          child: Text('Engine Data',
               style: Theme.of(context).textTheme.titleMedium),
         ),
         Padding(
@@ -573,8 +552,7 @@ class _EngineInfoSection extends StatelessWidget {
                 if (engine.model != null)
                   _InfoRow(label: 'Model', value: engine.model!),
                 if (engine.serialNumber != null)
-                  _InfoRow(
-                      label: 'Serial', value: engine.serialNumber!),
+                  _InfoRow(label: 'Serial', value: engine.serialNumber!),
                 _InfoRow(
                   label: 'Engine Hours',
                   value: engine.currentHours.toStringAsFixed(1),
@@ -631,9 +609,8 @@ class _MaintenanceSection extends StatelessWidget {
       loading: () => const SizedBox.shrink(),
       error: (_, __) => const SizedBox.shrink(),
       data: (reminders) {
-        final assetReminders = reminders
-            .where((r) => r.reminder.assetId == assetId)
-            .toList();
+        final assetReminders =
+            reminders.where((r) => r.reminder.assetId == assetId).toList();
 
         if (assetReminders.isEmpty) return const SizedBox.shrink();
 
@@ -647,8 +624,8 @@ class _MaintenanceSection extends StatelessWidget {
             ),
             ...assetReminders.take(5).map(
                   (r) => Padding(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 16, vertical: 4),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
                     child: Container(
                       padding: const EdgeInsets.all(14),
                       decoration: BoxDecoration(
@@ -666,8 +643,7 @@ class _MaintenanceSection extends StatelessWidget {
                             child: Text(
                               '${r.reminder.intervalHours} hr service',
                               style: const TextStyle(
-                                  color: AppColors.textPrimary,
-                                  fontSize: 13),
+                                  color: AppColors.textPrimary, fontSize: 13),
                             ),
                           ),
                           Text(
@@ -708,10 +684,7 @@ class _ServiceHistorySection extends ConsumerWidget {
       loading: () => const SizedBox.shrink(),
       error: (_, __) => const SizedBox.shrink(),
       data: (reports) {
-        final assetReports = reports
-            .where((r) => r.workOrderId != null)
-            .take(5)
-            .toList();
+        final assetReports = reports.take(5).toList();
 
         if (assetReports.isEmpty) return const SizedBox.shrink();
 
@@ -725,8 +698,8 @@ class _ServiceHistorySection extends ConsumerWidget {
             ),
             ...assetReports.map(
               (r) => Padding(
-                padding: const EdgeInsets.symmetric(
-                    horizontal: 16, vertical: 4),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
                 child: Container(
                   padding: const EdgeInsets.all(14),
                   decoration: BoxDecoration(
@@ -752,8 +725,7 @@ class _ServiceHistorySection extends ConsumerWidget {
                         Text(
                           DateFormat('MMM d').format(r.createdAt!),
                           style: const TextStyle(
-                              color: AppColors.textSecondary,
-                              fontSize: 12),
+                              color: AppColors.textSecondary, fontSize: 12),
                         ),
                     ],
                   ),

@@ -52,7 +52,7 @@ class ClientDashboardTelemetry extends ConsumerWidget {
       appBar: AppBar(
         title: const Text('Fleet Dashboard'),
         actions: [
-          _BellButton(route: '/client/notifications'),
+          const _BellButton(route: '/client/notifications'),
           IconButton(
             icon: const Icon(Icons.logout),
             onPressed: () =>
@@ -83,7 +83,7 @@ class ClientDashboardTelemetry extends ConsumerWidget {
             ),
 
             // ── Active Alerts ────────────────────────────────────────────────
-            _SectionHeader(title: 'Active Alerts'),
+            const _SectionHeader(title: 'Active Alerts'),
             activeAlertsAsync.when(
               loading: () => const _LoadingTile(),
               error: (err, _) => _ErrorTile(message: err.toString()),
@@ -95,10 +95,10 @@ class ClientDashboardTelemetry extends ConsumerWidget {
                     child: Container(
                       padding: const EdgeInsets.all(16),
                       decoration: BoxDecoration(
-                        color: AppColors.success.withOpacity(0.1),
+                        color: AppColors.success.withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(12),
                         border: Border.all(
-                            color: AppColors.success.withOpacity(0.3)),
+                            color: AppColors.success.withValues(alpha: 0.3)),
                       ),
                       child: const Row(
                         children: [
@@ -124,7 +124,7 @@ class ClientDashboardTelemetry extends ConsumerWidget {
             ),
 
             // ── Fleet Grid ───────────────────────────────────────────────────
-            _SectionHeader(title: 'Fleet'),
+            const _SectionHeader(title: 'Fleet'),
             assetsAsync.when(
               loading: () => const _LoadingTile(),
               error: (err, _) => _ErrorTile(message: err.toString()),
@@ -156,7 +156,7 @@ class ClientDashboardTelemetry extends ConsumerWidget {
             ),
 
             // ── Upcoming Maintenance ─────────────────────────────────────────
-            _SectionHeader(title: 'Upcoming Maintenance'),
+            const _SectionHeader(title: 'Upcoming Maintenance'),
             remindersAsync.when(
               loading: () => const _LoadingTile(),
               error: (err, _) => _ErrorTile(message: err.toString()),
@@ -177,7 +177,7 @@ class ClientDashboardTelemetry extends ConsumerWidget {
             ),
 
             // ── Open Invoices ────────────────────────────────────────────────
-            _SectionHeader(title: 'Open Invoices'),
+            const _SectionHeader(title: 'Open Invoices'),
             invoicesAsync.when(
               loading: () => const _LoadingTile(),
               error: (err, _) => _ErrorTile(message: err.toString()),
@@ -226,9 +226,9 @@ class _FleetHealthBar extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
+        color: color.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: color.withOpacity(0.35)),
+        border: Border.all(color: color.withValues(alpha: 0.35)),
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceAround,
@@ -353,9 +353,11 @@ class _AlertTile extends ConsumerWidget {
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
       child: InkWell(
         onTap: () {
-          // Navigate to vessel telemetry — need asset id.
-          // We navigate to the engine's telemetry history screen as fallback.
-          context.push('/client/engines/${alert.engineId}/telemetry');
+          if (alert.assetId.isNotEmpty) {
+            context.push('/telemetry/vessel/${alert.assetId}');
+          } else if (alert.engineId != null) {
+            context.push('/client/engines/${alert.engineId}/telemetry');
+          }
         },
         borderRadius: BorderRadius.circular(12),
         child: Container(
@@ -363,7 +365,7 @@ class _AlertTile extends ConsumerWidget {
           decoration: BoxDecoration(
             color: AppColors.surface,
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: color.withOpacity(0.4)),
+            border: Border.all(color: color.withValues(alpha: 0.4)),
           ),
           child: Row(
             children: [
@@ -677,7 +679,7 @@ class _InvoiceTile extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                 decoration: BoxDecoration(
-                  color: statusColor.withOpacity(0.12),
+                  color: statusColor.withValues(alpha: 0.12),
                   borderRadius: BorderRadius.circular(20),
                 ),
                 child: Text(

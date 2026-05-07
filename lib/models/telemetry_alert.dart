@@ -4,24 +4,33 @@ part 'telemetry_alert.freezed.dart';
 part 'telemetry_alert.g.dart';
 
 enum TelemetryAlertType {
-  @JsonValue('dtc') dtc,
-  @JsonValue('threshold') threshold,
-  @JsonValue('warning') warning,
-  @JsonValue('critical') critical,
-  @JsonValue('info') info;
+  @JsonValue('dtc')
+  dtc,
+  @JsonValue('threshold')
+  threshold,
+  @JsonValue('warning')
+  warning,
+  @JsonValue('critical')
+  critical,
+  @JsonValue('info')
+  info;
 }
 
 enum AlertSeverity {
-  @JsonValue('info') info,
-  @JsonValue('warning') warning,
-  @JsonValue('critical') critical;
+  @JsonValue('info')
+  info,
+  @JsonValue('warning')
+  warning,
+  @JsonValue('critical')
+  critical;
 }
 
 @freezed
 class TelemetryAlert with _$TelemetryAlert {
   const factory TelemetryAlert({
     required String id,
-    @JsonKey(name: 'engine_id') required String engineId,
+    @JsonKey(name: 'asset_id') required String assetId,
+    @JsonKey(name: 'engine_id') String? engineId,
     @JsonKey(name: 'alert_type') required TelemetryAlertType alertType,
 
     // J1939 DTC fields
@@ -36,7 +45,8 @@ class TelemetryAlert with _$TelemetryAlert {
 
     // Alert metadata
     String? message,
-    @JsonKey(defaultValue: AlertSeverity.warning) required AlertSeverity severity,
+    @JsonKey(defaultValue: AlertSeverity.warning)
+    required AlertSeverity severity,
 
     // Status tracking
     @JsonKey(defaultValue: false) required bool acknowledged,
@@ -48,7 +58,7 @@ class TelemetryAlert with _$TelemetryAlert {
     // Source tracking
     String? source,
     @JsonKey(name: 'device_id') String? deviceId,
-
+    @JsonKey(name: 'raw_data') Map<String, dynamic>? rawData,
     @JsonKey(name: 'created_at') DateTime? createdAt,
   }) = _TelemetryAlert;
 

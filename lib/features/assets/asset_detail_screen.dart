@@ -13,7 +13,6 @@ import 'package:vortice_app/features/subscription/tier_gate.dart';
 import 'package:vortice_app/l10n/app_localizations.dart';
 import 'package:vortice_app/features/assets/edit_asset_screen.dart';
 import 'package:vortice_app/models/asset.dart';
-import 'package:vortice_app/models/asset_engine.dart';
 import 'package:vortice_app/models/asset_service_interval.dart';
 import 'package:vortice_app/features/clients/client_provider.dart';
 import 'package:vortice_app/models/profile.dart';
@@ -156,7 +155,7 @@ class _AssetDetailBody extends ConsumerWidget {
                 children: [
                   CircleAvatar(
                     radius: 28,
-                    backgroundColor: AppColors.primary.withOpacity(0.15),
+                    backgroundColor: AppColors.primary.withValues(alpha: 0.15),
                     child: Icon(assetIconFor(asset.assetTypeId),
                         color: AppColors.primary, size: 30),
                   ),
@@ -207,7 +206,7 @@ class _AssetDetailBody extends ConsumerWidget {
         const SizedBox(height: 16),
         _DeviceStatusStrip(assetId: asset.id),
         const SizedBox(height: 16),
-        _TelemetrySection(assetId: asset.id, routePrefix: prefix),
+        _TelemetrySection(assetId: asset.id),
         if (asset.notes != null) ...[
           const SizedBox(height: 8),
           _SectionHeader(title: l10n.notes),
@@ -403,13 +402,11 @@ class _DetailRow extends StatelessWidget {
 
 class _TelemetrySection extends ConsumerWidget {
   final String assetId;
-  final String routePrefix;
-  const _TelemetrySection({required this.assetId, required this.routePrefix});
+  const _TelemetrySection({required this.assetId});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context);
-    final enginesAsync = ref.watch(enginesForAssetProvider(assetId));
     final showTelemetry = hasTier(
         ref.watch(profileProvider).valueOrNull, SubscriptionTier.telemetry);
     return Column(
@@ -419,9 +416,10 @@ class _TelemetrySection extends ConsumerWidget {
             margin: const EdgeInsets.only(bottom: 12),
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: AppColors.warning.withOpacity(0.08),
+              color: AppColors.warning.withValues(alpha: 0.08),
               borderRadius: BorderRadius.circular(10),
-              border: Border.all(color: AppColors.warning.withOpacity(0.3)),
+              border:
+                  Border.all(color: AppColors.warning.withValues(alpha: 0.3)),
             ),
             child: Row(
               children: [
@@ -437,77 +435,23 @@ class _TelemetrySection extends ConsumerWidget {
                 ),
               ],
             ),
-          ),
-        if (enginesAsync.valueOrNull?.isEmpty ?? true)
-          const SizedBox.shrink()
-        else if (showTelemetry)
-          ...enginesAsync.when(
-            loading: () => const [],
-            error: (_, __) => const [],
-            data: (engines) => engines
-                .map((e) =>
-                    _EngineTelemCard(engine: e, routePrefix: routePrefix))
-                .toList(),
           )
         else
-          ...enginesAsync.when(
-            loading: () => const [],
-            error: (_, __) => const [],
-            data: (engines) =>
-                engines.map((e) => _LimitedEngineCard(engine: e)).toList(),
-          ),
+          _AssetTelemCard(assetId: assetId),
       ],
     );
   }
 }
 
-class _LimitedEngineCard extends StatelessWidget {
-  final AssetEngine engine;
-  const _LimitedEngineCard({required this.engine});
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(12),
-        border: const Border.fromBorderSide(
-            BorderSide(color: AppColors.cardBorder)),
-      ),
-      child: Row(
-        children: [
-          const Icon(Icons.engineering,
-              color: AppColors.textSecondary, size: 18),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(engine.label,
-                    style: Theme.of(context).textTheme.titleSmall),
-                Text(AppLocalizations.of(context).noTelemetry,
-                    style: const TextStyle(
-                        color: AppColors.textSecondary, fontSize: 12)),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _EngineTelemCard extends ConsumerWidget {
-  final AssetEngine engine;
-  final String routePrefix;
-  const _EngineTelemCard({required this.engine, required this.routePrefix});
+class _AssetTelemCard extends ConsumerWidget {
+  final String assetId;
+  const _AssetTelemCard({required this.assetId});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context);
-    final readingAsync = ref.watch(latestTelemetryProvider(engine.id));
-    final alertsAsync = ref.watch(unacknowledgedAlertsProvider(engine.id));
+    final readingAsync = ref.watch(latestTelemetryForAssetProvider(assetId));
+    final alertsAsync = ref.watch(alertsForAssetProvider(assetId));
     final alertCount = alertsAsync.valueOrNull?.length ?? 0;
 
     return Container(
@@ -529,7 +473,7 @@ class _EngineTelemCard extends ConsumerWidget {
               const SizedBox(width: 8),
               Expanded(
                 child: Text(
-                  '${l10n.liveTelemetry} — ${engine.label}',
+                  l10n.liveTelemetry,
                   style: Theme.of(context).textTheme.titleSmall,
                 ),
               ),
@@ -538,10 +482,10 @@ class _EngineTelemCard extends ConsumerWidget {
                   padding:
                       const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                   decoration: BoxDecoration(
-                    color: AppColors.warning.withOpacity(0.2),
+                    color: AppColors.warning.withValues(alpha: 0.2),
                     borderRadius: BorderRadius.circular(10),
-                    border:
-                        Border.all(color: AppColors.warning.withOpacity(0.5)),
+                    border: Border.all(
+                        color: AppColors.warning.withValues(alpha: 0.5)),
                   ),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
@@ -566,7 +510,7 @@ class _EngineTelemCard extends ConsumerWidget {
                 padding: EdgeInsets.zero,
                 constraints: const BoxConstraints(),
                 onPressed: () =>
-                    ref.invalidate(latestTelemetryProvider(engine.id)),
+                    ref.invalidate(latestTelemetryForAssetProvider(assetId)),
                 tooltip: 'Refresh',
               ),
             ],
@@ -631,7 +575,7 @@ class _EngineTelemCard extends ConsumerWidget {
             alignment: Alignment.centerRight,
             child: TextButton.icon(
               onPressed: () =>
-                  context.push('$routePrefix/engines/${engine.id}/telemetry'),
+                  context.push('/telemetry/assets/$assetId/history'),
               icon: const Icon(Icons.history, size: 14),
               label: Text(l10n.telemetryHistory,
                   style: const TextStyle(fontSize: 12)),
@@ -665,12 +609,12 @@ class _ClientAssignRow extends ConsumerWidget {
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              SizedBox(
+              const SizedBox(
                 width: 120,
                 child: Text(
                   'Client',
-                  style: const TextStyle(
-                      color: AppColors.textSecondary, fontSize: 13),
+                  style:
+                      TextStyle(color: AppColors.textSecondary, fontSize: 13),
                 ),
               ),
               Expanded(
@@ -731,7 +675,7 @@ class _ClientAssignRow extends ConsumerWidget {
             const Divider(height: 1),
             ...clients.map((client) => ListTile(
                   leading: CircleAvatar(
-                    backgroundColor: AppColors.primary.withOpacity(0.1),
+                    backgroundColor: AppColors.primary.withValues(alpha: 0.1),
                     child: Text(
                       client.fullName.isNotEmpty
                           ? client.fullName[0].toUpperCase()
@@ -741,7 +685,7 @@ class _ClientAssignRow extends ConsumerWidget {
                     ),
                   ),
                   title: Text(client.fullName),
-                  subtitle: Text(client.email ?? '',
+                  subtitle: Text(client.email,
                       style: const TextStyle(
                           fontSize: 11, color: AppColors.textSecondary)),
                   trailing: client.id == currentClientId
