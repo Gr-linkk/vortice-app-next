@@ -1,103 +1,148 @@
 # NEXT — Vórtice App
 
-Last updated: 2026-05-06
+Last updated: 2026-05-07 01:55 EDT
 
 ## Start here next time
 
-Current repo state:
+Expected repo state:
 
-- The working tree is intentionally dirty with reviewed architecture/offline-first patches. Commit/snapshot soon before stacking more work.
-- A debug APK was built from this dirty tree and uploaded as a private GitHub prerelease for phone install testing:
-  - https://github.com/Gr-linkk/vortice-app/releases/tag/debug-phone-2026-05-06-1312
-  - asset: `vortice-debug-2026-05-06.apk`
-- Latest completed offline-first patch: pending-sync visibility for checklist responses.
-  - local pending/failed/conflict rows remain visible after remote reads
-  - checklist UI shows `Saved locally. Sync pending.`, `Checklist has sync conflicts.`, and per-item chips
-  - no replay worker/photo replay/status/close/service interval behavior was added
+- Repo: `/mnt/c/Users/gr_link/src/vortice-app-main`
+- Branch: `main`
+- Latest pushed commit: `17534ea feat: add client service switchboard and asset-first telemetry seam`
+- Expected state: clean working tree, `main` aligned with `origin/main`.
 
-Before touching telemetry code, check:
+Verify:
 
-- Workspace telemetry source of truth: `/home/gr_link/.openclaw/workspace/projects/vortice-supporting-projects/dredge-telemetry/STATUS.md`
-- Architecture note: `/home/gr_link/.openclaw/workspace/projects/vortice-app/ARCHITECTURE-AUDIT-2026-05-05.md`
+```bash
+git status --short
+git log --oneline -3
+```
 
-## Telemetry note
+## What is now live
 
-The old Pi-drive file `incoming-pi-drive-selected/projects/dredge-canbus-telemetry.md` was compared against the current telemetry project. Do **not** promote that full file or create a second telemetry spec.
+Supabase project: Vortice `REDACTED_SUPABASE_PROJECT`
 
-Useful details were already folded into `projects/vortice-supporting-projects/dredge-telemetry/STATUS.md`, including:
+Live migrations applied:
 
-- CAN/J1939 must be passive/listen-only for MVP
-- Do not add a 120Ω terminator at the telemetry box
-- Use fused 24V panel power, not diagnostic/AUX power
-- Preserve old CAN HIGH / CAN LOW / shield pin reference as backup wiring context
-- Treat the 12-zone bilge plan as future expansion unless Garrett explicitly adds it to MVP
-- Collector should send `asset_id` + `device_id` first-class, with `engine_id` included only when resolved/known
-- Gateway/Pi health belongs in `telemetry_gateway_health`, not mixed into engine telemetry readings
+- `20260507013000_client_capabilities`
+- `20260507013500_asset_first_telemetry`
 
-## Offline-first requirement
+Remote migration history was repaired for already-existing old migrations:
 
-The app is intended to be usable offline and sync when the device comes back online. Do **not** treat Vórtice as permanently online-only.
+- `20260419`
+- `20260423`
 
-Current Drift/local DB code is not enough yet: it is shallow cache scaffolding, not a real offline-sync architecture. Keep Drift/local storage as a candidate foundation, but formalize the offline contract before expanding it.
+Verified live after apply:
 
-Offline MVP should prioritize field work:
+- `public.client_capabilities` exists.
+- `telemetry_readings.asset_id` is `NOT NULL`.
+- `telemetry_alerts.asset_id` is `NOT NULL`.
+- telemetry `engine_id` remains nullable.
+- telemetry app tables had `0` rows after apply.
+- `client_capabilities` had `0` rows after apply.
+- no test telemetry was inserted or bridged into app tables.
 
-- cached assets/work orders/checklist templates needed for assigned jobs
-- offline work order execution
-- checklist responses
-- service report drafts
-- notes/photos/parts/hours captured offline
-- visible pending-sync / stale-data states
-- sync queue, retry, conflict rules, and delete/prune behavior when back online
+## What landed in app
 
-Avoid calling current cache behavior “offline mode” until those semantics exist.
+- Dev Persona Switchboard in login.
+- Owner-facing Service Switchboard in client detail.
+- `client_capabilities` model/provider/controller and migration.
+- Asset-first telemetry model/provider/repository/screen seam:
+  - `assetId` first-class on readings/alerts
+  - `engineId` nullable
+  - `deviceId` first-class
+  - optional `rawData`
+  - asset latest/history/alerts providers
+  - `/telemetry/assets/:assetId/history`
+  - vessel telemetry fetches by asset
+  - dashboard alert taps prefer asset route
+  - asset detail telemetry card uses asset telemetry/alerts
 
-## Offline checklist response replay contract
+## Hard guardrails
 
-Current state after the offline read/save seams:
+- Test/bench telemetry stays in its separate table and must not feed app screens or production app flows.
+- Do not seed fake telemetry into `telemetry_readings` / `telemetry_alerts`.
+- Do not mix Pi/collector runtime changes into app work unless explicitly scoped.
+- Gateway/Pi health belongs in `telemetry_gateway_health`, not engine telemetry readings.
+- Collector should send `asset_id` + `device_id` first-class, with `engine_id` only when resolved/known.
+- Do not build telemetry UI on engine-first assumptions. Ask: “Is this treating the asset as the telemetry owner?”
+- Do not build replay worker/photo replay/work-order close sync until idempotency/conflict semantics are safe.
+- Work-order create/complete/reopen/edit should fail fast offline for now, not pretend to be safely pending.
+- No-data-loss wins over cleanup.
 
-- checklist responses can be saved locally with `sync_status` (`synced`, `pending_create`, `pending_update`, `failed`, `conflict`)
-- remote submit remains remote-first; local pending rows are a no-data-loss fallback, not proof that sync completed
-- photo upload/replay, work-order close/status, service interval satisfaction, and background sync are intentionally deferred
+## Best next Casper job
 
-Do **not** build a replay worker until the idempotency/conflict contract is explicit.
+**Casper Scout — capability enforcement**
 
-Checklist response replay should use `(work_order_id, checklist_item_id)` as the logical identity. The safest server contract is a unique remote constraint on that pair plus upsert by that conflict key. Without that live DB guarantee, replay must be conservative:
+Goal: map remaining legacy tier gates before edits.
 
-1. scan local `checklist_responses` rows with `sync_status in ('pending_create', 'pending_update')`
-2. for each row, select remote rows by `work_order_id + checklist_item_id`
-3. if no remote row exists, insert using the local UUID
-4. if one remote row exists and it has not changed since `last_synced_at`, update it
-5. if the remote row appears newer/conflicting, mark local row `conflict` and do not overwrite
-6. if multiple remote rows exist for the same logical response, mark local row `conflict` and stop for cleanup/schema work
+Inspect:
+
+- `SubscriptionTier.*`
+- `hasTier(...)`
+- `tier_gate.dart`
+- dashboard routing
+- bottom nav / app shell
+- client dashboard variants
+- telemetry gates
+- service interval / maintenance planning gates
+- owner/client screens that still assume Free/Managed/Planning/Telemetry tiers
+
+Return:
+
+1. exact call sites
+2. recommended capability-gate adapter shape
+3. smallest safe patch scope
+4. what must stay owner/admin accessible regardless of client switches
+5. history/read-only behavior when a capability is disabled
+6. checks to run
+
+Scout only first; no edits until Jasper reviews.
+
+## Likely next implementation patches
+
+1. Capability enforcement adapter + selected nav/dashboard gates.
+2. Phone smoke test against live Supabase.
+3. Service Requests schema/model/provider + owner inbox.
+4. Mechanic PM bridge aligned with work orders/checklist engine.
+5. Checklist assignment completion lifecycle.
+6. Telemetry pairing replace/unpair lifecycle.
+
+## Phone smoke test path
+
+Use Windows-side Flutter/ADB from WSL.
+
+Known ADB target:
+
+- `100.78.40.20:35313`
+
+Useful commands:
+
+```powershell
+cd C:\Users\gr_link\src\vortice-app-main
+flutter build apk --debug
+& "C:\Users\gr_link\AppData\Local\Android\Sdk\platform-tools\adb.exe" connect 100.78.40.20:35313
+& "C:\Users\gr_link\AppData\Local\Android\Sdk\platform-tools\adb.exe" install -r "C:\Users\gr_link\src\vortice-app-main\build\app\outputs\flutter-apk\app-debug.apk"
+```
+
+Test:
+
+- dev personas log in
+- owner can open client detail Service Switchboard
+- toggles read/write live Supabase rows
+- dashboards do not show fake/test telemetry
+- telemetry empty states are honest: no paired device / no readings yet / telemetry not enabled
+
+## Offline-first reminder
+
+Offline checklist response replay contract remains deferred.
+
+Checklist response replay should use `(work_order_id, checklist_item_id)` as the logical identity. Safest server contract is a unique remote constraint on that pair plus upsert by that conflict key. Until then, replay must be conservative and manual/invoked-only.
 
 Replay must not:
 
-- upload or replay photos until `LocalAttachmentsTable` handling is designed
+- upload/replay photos until attachment handling is designed
 - call service interval satisfaction or close/update work orders
 - silently overwrite another tech’s response
 - use `SyncOperationsTable` as a second source of truth before a broader sync engine exists
 - claim “submitted” when rows are only pending local sync
-
-Next safe patch options:
-
-- commit/snapshot the reviewed patch stack before more implementation
-- add DAO helpers for pending checklist responses and status transitions
-- add a manual/invoked-only repository replay method for checklist responses, guarded by the conservative rules above
-- define live DB uniqueness/upsert migration for `(work_order_id, checklist_item_id)` before automatic replay
-
-Done after this contract:
-
-- pending-sync visibility was added in the checklist UI: form banner plus per-item chips for pending/failed/conflict local rows
-
-## Important unresolved app alignment
-
-The active Flutter source still appears engine-scoped in some telemetry models/providers, while the 2026-05-05 architecture audit says the live DB was migrated toward asset-pinned telemetry:
-
-- `telemetry_readings.asset_id`
-- nullable `telemetry_readings.engine_id`
-- `telemetry_alerts.asset_id`
-- nullable `telemetry_alerts.engine_id`
-- `telemetry_gateway_health`
-
-Next app pass should align checked-in models, providers, repository methods, and migrations with that live asset-pinned direction before building the Pi collector around the schema.
