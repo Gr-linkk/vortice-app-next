@@ -40,6 +40,7 @@ final staffServiceRequestsProvider =
   final data = await supabase
       .from(AppConstants.tServiceRequests)
       .select(_serviceRequestSelect)
+      .eq('status', 'new')
       .order('created_at', ascending: false);
 
   return (data as List)
@@ -112,6 +113,31 @@ class ServiceRequestController extends StateNotifier<AsyncValue<void>> {
       await supabase.from(AppConstants.tServiceRequests).update({
         'status':
             status == ServiceRequestStatus.resolved ? 'resolved' : 'declined',
+        'handled_at': DateTime.now().toIso8601String(),
+        'handled_by': profile.id,
+      }).eq('id', id);
+
+      _ref.invalidate(clientServiceRequestsProvider);
+      _ref.invalidate(staffServiceRequestsProvider);
+      _ref.invalidate(newServiceRequestCountProvider);
+      success = true;
+    });
+    return success;
+  }
+
+  Future<bool> markGeneratedWorkOrder({
+    required String id,
+    required String workOrderId,
+  }) async {
+    state = const AsyncLoading();
+    var success = false;
+    state = await AsyncValue.guard(() async {
+      final profile = await _ref.read(profileProvider.future);
+      if (profile == null) throw Exception('Not authenticated');
+
+      await supabase.from(AppConstants.tServiceRequests).update({
+        'status': 'resolved',
+        'generated_work_order_id': workOrderId,
         'handled_at': DateTime.now().toIso8601String(),
         'handled_by': profile.id,
       }).eq('id', id);

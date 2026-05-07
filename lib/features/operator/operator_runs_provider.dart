@@ -50,7 +50,8 @@ class OperatorChecklistRun {
           : null,
       createdAt: DateTime.parse(json['created_at'] as String),
       responses: responsesJson
-          .map((r) => OperatorChecklistResponse.fromJson(r as Map<String, dynamic>))
+          .map((r) =>
+              OperatorChecklistResponse.fromJson(r as Map<String, dynamic>))
           .toList(),
     );
   }
@@ -149,7 +150,8 @@ class MaintenanceRequest {
 
 /// Fetch operator checklist runs for a specific asset
 final operatorRunsForAssetProvider =
-    FutureProvider.family<List<OperatorChecklistRun>, String>((ref, assetId) async {
+    FutureProvider.family<List<OperatorChecklistRun>, String>(
+        (ref, assetId) async {
   final data = await supabase
       .from(AppConstants.tOperatorChecklistRuns)
       .select('*, operator_checklist_responses(*)')
@@ -164,7 +166,8 @@ final operatorRunsForAssetProvider =
 
 /// Fetch all maintenance requests for a specific asset
 final maintenanceRequestsForAssetProvider =
-    FutureProvider.family<List<MaintenanceRequest>, String>((ref, assetId) async {
+    FutureProvider.family<List<MaintenanceRequest>, String>(
+        (ref, assetId) async {
   final data = await supabase
       .from(AppConstants.tMaintenanceRequests)
       .select()
@@ -236,7 +239,7 @@ final operatorAssignedAssetsProvider =
       if (ownerId != null) {
         final data = await supabase
             .from(AppConstants.tAssets)
-            .select('*, profiles(full_name)')
+            .select('id, client_id, name, make, model, profiles(full_name)')
             .eq('client_id', ownerId)
             .order('name');
         return List<Map<String, dynamic>>.from(data as List);
@@ -261,15 +264,13 @@ final operatorAssignedAssetsProvider =
           .select('asset_id')
           .inFilter('id', woIds);
 
-      final assetIds = (wos as List)
-          .map((e) => e['asset_id'] as String)
-          .toSet()
-          .toList();
+      final assetIds =
+          (wos as List).map((e) => e['asset_id'] as String).toSet().toList();
 
       if (assetIds.isNotEmpty) {
         final data = await supabase
             .from(AppConstants.tAssets)
-            .select('*, profiles(full_name)')
+            .select('id, client_id, name, make, model, profiles(full_name)')
             .inFilter('id', assetIds)
             .order('name');
         return List<Map<String, dynamic>>.from(data as List);
@@ -280,7 +281,7 @@ final operatorAssignedAssetsProvider =
   // Legacy fallback: return all assets
   final data = await supabase
       .from(AppConstants.tAssets)
-      .select('*, profiles(full_name)')
+      .select('id, client_id, name, make, model, profiles(full_name)')
       .order('name');
   return List<Map<String, dynamic>>.from(data as List);
 });

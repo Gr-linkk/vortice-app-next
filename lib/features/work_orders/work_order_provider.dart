@@ -48,12 +48,12 @@ class WorkOrderController extends StateNotifier<AsyncValue<void>> {
   final Ref _ref;
   WorkOrderController(this._ref) : super(const AsyncData(null));
 
-  Future<bool> createWorkOrder(
+  Future<String?> createWorkOrder(
     Map<String, dynamic> data, {
     List<String> assignedProfileIds = const [],
   }) async {
     state = const AsyncLoading();
-    bool success = false;
+    String? createdWorkOrderId;
     state = await AsyncValue.guard(() async {
       final workOrder = await supabase
           .from(AppConstants.tWorkOrders)
@@ -92,9 +92,9 @@ class WorkOrderController extends StateNotifier<AsyncValue<void>> {
       if (engineId != null) {
         _ref.invalidate(latestEngineHoursProvider(engineId));
       }
-      success = true;
+      createdWorkOrderId = workOrderId;
     });
-    return success;
+    return createdWorkOrderId;
   }
 
   Future<bool> updateStatus(String id, WorkOrderStatus status) async {

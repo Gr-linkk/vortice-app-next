@@ -28,6 +28,7 @@ class AppConstants {
   static const String tOperatorChecklistRuns = 'operator_checklist_runs';
   static const String tOperatorChecklistResponses =
       'operator_checklist_responses';
+  static const String tSavedChecklists = 'saved_checklists';
   static const String tServiceReminders = 'service_reminders';
   static const String tHourLogs = 'hour_logs';
   static const String tTelemetryReadings = 'telemetry_readings';

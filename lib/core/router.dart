@@ -36,6 +36,7 @@ import 'package:vortice_app/features/org_codes/org_code_screen.dart';
 import 'package:vortice_app/features/reminders/reminder_screen.dart';
 import 'package:vortice_app/features/clients/pre_trip_results_screen.dart';
 import 'package:vortice_app/features/clients/maintenance_flags_screen.dart';
+import 'package:vortice_app/features/clients/asset_checklist_history_screen.dart';
 import 'package:vortice_app/features/notifications/notifications_screen.dart';
 import 'package:vortice_app/features/service_reports/service_report_list_screen.dart';
 import 'package:vortice_app/features/service_reports/service_report_detail_screen.dart';
@@ -189,6 +190,14 @@ final routerProvider = Provider<GoRouter>((ref) {
             ),
           ),
           GoRoute(
+            path: '/owner/assets/:id/checklist-history',
+            builder: (_, state) => AssetChecklistHistoryScreen(
+              assetId: state.pathParameters['id']!,
+              assetName: state.uri.queryParameters['name'] ?? 'Asset',
+              role: ref.read(profileProvider).valueOrNull?.role,
+            ),
+          ),
+          GoRoute(
             path: '/owner/engines/:engineId/hours',
             builder: (_, state) => HourLogScreen(
               engineId: state.pathParameters['engineId']!,
@@ -258,6 +267,14 @@ final routerProvider = Provider<GoRouter>((ref) {
                 workOrderId: state.pathParameters['workOrderId']!),
           ),
           GoRoute(
+            path: '/employee/assets/:id/checklist-history',
+            builder: (_, state) => AssetChecklistHistoryScreen(
+              assetId: state.pathParameters['id']!,
+              assetName: state.uri.queryParameters['name'] ?? 'Asset',
+              role: ref.read(profileProvider).valueOrNull?.role,
+            ),
+          ),
+          GoRoute(
               path: '/employee/service-reports',
               builder: (_, __) => const ServiceReportListScreen()),
           GoRoute(
@@ -301,6 +318,14 @@ final routerProvider = Provider<GoRouter>((ref) {
             builder: (_, state) => ServiceIntervalScreen(
               assetId: state.pathParameters['id']!,
               readOnly: true,
+            ),
+          ),
+          GoRoute(
+            path: '/client/assets/:id/checklist-history',
+            builder: (_, state) => AssetChecklistHistoryScreen(
+              assetId: state.pathParameters['id']!,
+              assetName: state.uri.queryParameters['name'] ?? 'Asset',
+              role: ref.read(profileProvider).valueOrNull?.role,
             ),
           ),
           GoRoute(
@@ -353,6 +378,14 @@ final routerProvider = Provider<GoRouter>((ref) {
           GoRoute(
               path: '/operator/dashboard',
               builder: (_, __) => const OperatorDashboard()),
+          GoRoute(
+            path: '/operator/assets/:id/checklist-history',
+            builder: (_, state) => AssetChecklistHistoryScreen(
+              assetId: state.pathParameters['id']!,
+              assetName: state.uri.queryParameters['name'] ?? 'Asset',
+              role: ref.read(profileProvider).valueOrNull?.role,
+            ),
+          ),
           GoRoute(
             path: '/operator/checklist',
             builder: (_, state) => _OperatorChecklistCapabilityGate(

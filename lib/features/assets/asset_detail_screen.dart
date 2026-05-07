@@ -189,6 +189,10 @@ class _AssetDetailBody extends ConsumerWidget {
         _DetailRow(label: l10n.year, value: asset.year?.toString()),
         _DetailRow(label: l10n.location, value: asset.location),
         if (role == UserRole.owner) _ClientAssignRow(asset: asset),
+        if (_canSeeChecklistHistory(role)) ...[
+          const SizedBox(height: 16),
+          _ChecklistHistoryCard(asset: asset, routePrefix: prefix),
+        ],
         // Engines card (owner only)
         if (role == UserRole.owner) ...[
           const SizedBox(height: 16),
@@ -296,6 +300,65 @@ bool _canSeeMaintenancePlan(UserRole? role) => switch (role) {
         true,
       _ => false,
     };
+
+bool _canSeeChecklistHistory(UserRole? role) => switch (role) {
+      UserRole.owner ||
+      UserRole.employee ||
+      UserRole.client ||
+      UserRole.clientAdmin ||
+      UserRole.clientMechanic ||
+      UserRole.operator ||
+      UserRole.clientOperator =>
+        true,
+      _ => false,
+    };
+
+class _ChecklistHistoryCard extends StatelessWidget {
+  final Asset asset;
+  final String routePrefix;
+
+  const _ChecklistHistoryCard({required this.asset, required this.routePrefix});
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      borderRadius: BorderRadius.circular(12),
+      onTap: () => context.push(
+        '$routePrefix/assets/${asset.id}/checklist-history?name=${Uri.encodeComponent(asset.name)}',
+      ),
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: AppColors.surface,
+          borderRadius: BorderRadius.circular(12),
+          border: const Border.fromBorderSide(
+              BorderSide(color: AppColors.cardBorder)),
+        ),
+        child: Row(
+          children: [
+            const Icon(Icons.fact_check_outlined, color: AppColors.primary),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('Checklist History',
+                      style: Theme.of(context).textTheme.titleSmall),
+                  const Text(
+                    'Saved maintenance and operations checklist records',
+                    style:
+                        TextStyle(color: AppColors.textSecondary, fontSize: 12),
+                  ),
+                ],
+              ),
+            ),
+            const Icon(Icons.chevron_right, color: AppColors.textSecondary),
+          ],
+        ),
+      ),
+    );
+  }
+}
 
 class _MaintenancePlanCard extends ConsumerWidget {
   final String assetId;
