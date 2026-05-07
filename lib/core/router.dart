@@ -337,6 +337,7 @@ final routerProvider = Provider<GoRouter>((ref) {
             path: '/operator/checklist',
             builder: (_, state) => OperatorChecklistScreen(
               initialAssetId: state.uri.queryParameters['assetId'],
+              initialTemplateId: state.uri.queryParameters['templateId'],
             ),
           ),
           GoRoute(

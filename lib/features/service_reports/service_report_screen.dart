@@ -1,8 +1,11 @@
+import 'dart:async';
+import 'dart:convert';
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' show FileOptions;
 import 'package:vortice_app/core/constants.dart';
 import 'package:vortice_app/core/supabase_client.dart';
@@ -32,19 +35,127 @@ class _ServiceReportScreenState extends ConsumerState<ServiceReportScreen> {
   final _commentsCtrl = TextEditingController();
 
   String? _selectedWorkOrderId;
+  String? _pendingReportId;
   Uint8List? _signatureBytes;
   bool _signatureSaved = false;
+  bool _restoringDraft = false;
   final List<Uint8List> _photos = [];
   final ImagePicker _picker = ImagePicker();
 
+  String get _draftKey => 'service_report_draft';
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      await _loadDraft();
+      _complaintCtrl.addListener(_saveDraft);
+      _causeCtrl.addListener(_saveDraft);
+      _correctionCtrl.addListener(_saveDraft);
+      _collateralCtrl.addListener(_saveDraft);
+      _commentsCtrl.addListener(_saveDraft);
+    });
+  }
+
   @override
   void dispose() {
+    _complaintCtrl.removeListener(_saveDraft);
+    _causeCtrl.removeListener(_saveDraft);
+    _correctionCtrl.removeListener(_saveDraft);
+    _collateralCtrl.removeListener(_saveDraft);
+    _commentsCtrl.removeListener(_saveDraft);
     _complaintCtrl.dispose();
     _causeCtrl.dispose();
     _correctionCtrl.dispose();
     _collateralCtrl.dispose();
     _commentsCtrl.dispose();
     super.dispose();
+  }
+
+  static const _submitFailedMessage =
+      'Service report could not be submitted right now. Reconnect and try again.';
+  static const _signatureFailedMessage =
+      'Signature could not be uploaded right now. Reconnect and try again.';
+  static const _photosPendingMessage =
+      'Report saved, but photos are still on this device. Reopen and retry when connected.';
+
+  Future<void> _loadDraft() async {
+    final prefs = await SharedPreferences.getInstance();
+    final raw = prefs.getString(_draftKey);
+    if (raw == null) return;
+
+    _restoringDraft = true;
+    try {
+      final data = (jsonDecode(raw) as Map).cast<String, dynamic>();
+      _selectedWorkOrderId = data['workOrderId'] as String?;
+      _pendingReportId = data['pendingReportId'] as String?;
+      _complaintCtrl.text = data['complaint'] as String? ?? '';
+      _causeCtrl.text = data['cause'] as String? ?? '';
+      _correctionCtrl.text = data['correction'] as String? ?? '';
+      _collateralCtrl.text = data['collateral'] as String? ?? '';
+      _commentsCtrl.text = data['comments'] as String? ?? '';
+
+      final signature = data['signatureBytes'];
+      if (signature is String && signature.isNotEmpty) {
+        _signatureBytes = base64Decode(signature);
+        _signatureSaved = true;
+      }
+
+      _photos.clear();
+      final photos = data['photos'];
+      if (photos is List) {
+        for (final value in photos) {
+          if (value is String && value.isNotEmpty) {
+            _photos.add(base64Decode(value));
+          }
+        }
+      }
+      if (mounted) setState(() {});
+    } catch (_) {
+      await prefs.remove(_draftKey);
+    } finally {
+      _restoringDraft = false;
+    }
+  }
+
+  Future<void> _saveDraft() async {
+    if (_restoringDraft) return;
+    final prefs = await SharedPreferences.getInstance();
+    final hasDraft = _selectedWorkOrderId != null ||
+        _pendingReportId != null ||
+        _complaintCtrl.text.trim().isNotEmpty ||
+        _causeCtrl.text.trim().isNotEmpty ||
+        _correctionCtrl.text.trim().isNotEmpty ||
+        _collateralCtrl.text.trim().isNotEmpty ||
+        _commentsCtrl.text.trim().isNotEmpty ||
+        _signatureBytes != null ||
+        _photos.isNotEmpty;
+
+    if (!hasDraft) {
+      await prefs.remove(_draftKey);
+      return;
+    }
+
+    await prefs.setString(
+      _draftKey,
+      jsonEncode({
+        'workOrderId': _selectedWorkOrderId,
+        'pendingReportId': _pendingReportId,
+        'complaint': _complaintCtrl.text,
+        'cause': _causeCtrl.text,
+        'correction': _correctionCtrl.text,
+        'collateral': _collateralCtrl.text,
+        'comments': _commentsCtrl.text,
+        'signatureBytes':
+            _signatureBytes == null ? null : base64Encode(_signatureBytes!),
+        'photos': _photos.map(base64Encode).toList(),
+      }),
+    );
+  }
+
+  Future<void> _clearDraft() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove(_draftKey);
   }
 
   Future<String?> _uploadSignature() async {
@@ -57,10 +168,44 @@ class _ServiceReportScreenState extends ConsumerState<ServiceReportScreen> {
           path,
           _signatureBytes!,
           fileOptions: const FileOptions(contentType: 'image/png'),
-        );
+        )
+        .timeout(const Duration(seconds: 4));
     return supabase.storage
         .from(AppConstants.bucketSignatures)
         .getPublicUrl(path);
+  }
+
+  Map<String, dynamic> _reportPayload(String? signatureUrl) => {
+        'work_order_id': _selectedWorkOrderId?.isNotEmpty == true
+            ? _selectedWorkOrderId
+            : null,
+        'complaint': _complaintCtrl.text.trim().isNotEmpty
+            ? _complaintCtrl.text.trim()
+            : null,
+        'cause':
+            _causeCtrl.text.trim().isNotEmpty ? _causeCtrl.text.trim() : null,
+        'correction': _correctionCtrl.text.trim().isNotEmpty
+            ? _correctionCtrl.text.trim()
+            : null,
+        'collateral': _collateralCtrl.text.trim().isNotEmpty
+            ? _collateralCtrl.text.trim()
+            : null,
+        'comments': _commentsCtrl.text.trim().isNotEmpty
+            ? _commentsCtrl.text.trim()
+            : null,
+        if (signatureUrl != null) ...{
+          'tech_signature_url': signatureUrl,
+          'signed_at': DateTime.now().toIso8601String(),
+        },
+      };
+
+  Future<void> _updatePendingReport(
+      String reportId, String? signatureUrl) async {
+    await supabase
+        .from(AppConstants.tServiceReports)
+        .update(_reportPayload(signatureUrl))
+        .eq('id', reportId)
+        .timeout(const Duration(seconds: 4));
   }
 
   Future<void> _uploadPhotos(String serviceReportId) async {
@@ -73,7 +218,8 @@ class _ServiceReportScreenState extends ConsumerState<ServiceReportScreen> {
             path,
             _photos[i],
             fileOptions: const FileOptions(contentType: 'image/jpeg'),
-          );
+          )
+          .timeout(const Duration(seconds: 4));
       final photoUrl = supabase.storage
           .from(AppConstants.bucketReportPhotos)
           .getPublicUrl(path);
@@ -81,7 +227,7 @@ class _ServiceReportScreenState extends ConsumerState<ServiceReportScreen> {
         'service_report_id': serviceReportId,
         'photo_url': photoUrl,
         'sort_order': i,
-      });
+      }).timeout(const Duration(seconds: 4));
     }
   }
 
@@ -95,6 +241,7 @@ class _ServiceReportScreenState extends ConsumerState<ServiceReportScreen> {
     if (pickedFile != null) {
       final bytes = await pickedFile.readAsBytes();
       setState(() => _photos.add(bytes));
+      await _saveDraft();
     }
   }
 
@@ -108,6 +255,7 @@ class _ServiceReportScreenState extends ConsumerState<ServiceReportScreen> {
     if (pickedFile != null) {
       final bytes = await pickedFile.readAsBytes();
       setState(() => _photos.add(bytes));
+      await _saveDraft();
     }
   }
 
@@ -134,16 +282,21 @@ class _ServiceReportScreenState extends ConsumerState<ServiceReportScreen> {
       if (proceed != true) return;
     }
 
-    // Upload signature to Supabase Storage
+    await _saveDraft();
+
+    // Upload signature to Supabase Storage. If a previous report was created
+    // but photo upload failed, retry against that report instead of creating a
+    // duplicate report. When retrying, update the saved report fields first so
+    // field edits made after the partial failure are not silently dropped.
     String? signatureUrl;
     if (_signatureBytes != null) {
       try {
         signatureUrl = await _uploadSignature();
-      } catch (e) {
+      } catch (_) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('Signature upload failed: $e'),
+            const SnackBar(
+              content: Text(_signatureFailedMessage),
               backgroundColor: AppColors.error,
             ),
           );
@@ -152,66 +305,88 @@ class _ServiceReportScreenState extends ConsumerState<ServiceReportScreen> {
       }
     }
 
-    final reportId = await ref
-        .read(serviceReportControllerProvider.notifier)
-        .createReport(
-          workOrderId: _selectedWorkOrderId,
-          complaint: _complaintCtrl.text.trim().isNotEmpty
-              ? _complaintCtrl.text.trim()
-              : null,
-          cause: _causeCtrl.text.trim().isNotEmpty
-              ? _causeCtrl.text.trim()
-              : null,
-          correction: _correctionCtrl.text.trim().isNotEmpty
-              ? _correctionCtrl.text.trim()
-              : null,
-          collateral: _collateralCtrl.text.trim().isNotEmpty
-              ? _collateralCtrl.text.trim()
-              : null,
-          comments: _commentsCtrl.text.trim().isNotEmpty
-              ? _commentsCtrl.text.trim()
-              : null,
-          techSignatureUrl: signatureUrl,
-        );
+    if (_pendingReportId != null) {
+      try {
+        await _updatePendingReport(_pendingReportId!, signatureUrl);
+      } catch (_) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text(_submitFailedMessage),
+              backgroundColor: AppColors.error,
+            ),
+          );
+        }
+        return;
+      }
+    }
 
-    if (reportId != null && mounted) {
+    final reportId = _pendingReportId ??
+        await ref.read(serviceReportControllerProvider.notifier).createReport(
+              workOrderId: _selectedWorkOrderId,
+              complaint: _complaintCtrl.text.trim().isNotEmpty
+                  ? _complaintCtrl.text.trim()
+                  : null,
+              cause: _causeCtrl.text.trim().isNotEmpty
+                  ? _causeCtrl.text.trim()
+                  : null,
+              correction: _correctionCtrl.text.trim().isNotEmpty
+                  ? _correctionCtrl.text.trim()
+                  : null,
+              collateral: _collateralCtrl.text.trim().isNotEmpty
+                  ? _collateralCtrl.text.trim()
+                  : null,
+              comments: _commentsCtrl.text.trim().isNotEmpty
+                  ? _commentsCtrl.text.trim()
+                  : null,
+              techSignatureUrl: signatureUrl,
+            );
+
+    if (reportId != null) {
+      _pendingReportId = reportId;
+      await _saveDraft();
+      var photosUploaded = true;
       if (_photos.isNotEmpty) {
         try {
           await _uploadPhotos(reportId);
         } catch (_) {
-          // Photos failed but report succeeded — non-fatal
+          photosUploaded = false;
         }
       }
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(AppLocalizations.of(context).reportSubmitted),
-          backgroundColor: AppColors.success,
+          content: Text(photosUploaded
+              ? AppLocalizations.of(context).reportSubmitted
+              : _photosPendingMessage),
+          backgroundColor:
+              photosUploaded ? AppColors.success : AppColors.warning,
         ),
       );
-      _formKey.currentState!.reset();
-      setState(() {
-        _selectedWorkOrderId = null;
-        _signatureBytes = null;
-        _signatureSaved = false;
-        _photos.clear();
-      });
-      if (mounted) context.pop();
+      if (photosUploaded) {
+        _formKey.currentState!.reset();
+        setState(() {
+          _selectedWorkOrderId = null;
+          _pendingReportId = null;
+          _signatureBytes = null;
+          _signatureSaved = false;
+          _photos.clear();
+        });
+        await _clearDraft();
+        if (mounted) context.pop();
+      }
     } else if (mounted) {
-      final error = ref.read(serviceReportControllerProvider);
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            error.hasError
-                ? 'Submit failed: ${error.error}'
-                : 'Submit failed — please try again.',
-          ),
+        const SnackBar(
+          content: Text(_submitFailedMessage),
           backgroundColor: AppColors.error,
         ),
       );
     }
   }
 
-  Widget _sectionHeader(BuildContext context, String title, {String? subtitle}) {
+  Widget _sectionHeader(BuildContext context, String title,
+      {String? subtitle}) {
     return Padding(
       padding: const EdgeInsets.only(top: 24, bottom: 8),
       child: Column(
@@ -228,8 +403,8 @@ class _ServiceReportScreenState extends ConsumerState<ServiceReportScreen> {
             const SizedBox(height: 2),
             Text(
               subtitle,
-              style: const TextStyle(
-                  color: AppColors.textSecondary, fontSize: 11),
+              style:
+                  const TextStyle(color: AppColors.textSecondary, fontSize: 11),
             ),
           ],
         ],
@@ -252,7 +427,6 @@ class _ServiceReportScreenState extends ConsumerState<ServiceReportScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-
               // ── Work order selector ─────────────────────────────────
               _sectionHeader(context, l10n.linkedWorkOrder),
               workOrdersAsync.when(
@@ -265,8 +439,11 @@ class _ServiceReportScreenState extends ConsumerState<ServiceReportScreen> {
                           w.status == WorkOrderStatus.draft ||
                           w.status == WorkOrderStatus.assigned)
                       .toList();
+                  final hasSelectedWorkOrder = active.any(
+                    (w) => w.id == _selectedWorkOrderId,
+                  );
                   return DropdownButtonFormField<String>(
-                    value: _selectedWorkOrderId,
+                    value: hasSelectedWorkOrder ? _selectedWorkOrderId : null,
                     decoration: InputDecoration(
                       labelText: l10n.linkedWorkOrder,
                       prefixIcon: const Icon(Icons.build_outlined),
@@ -279,10 +456,10 @@ class _ServiceReportScreenState extends ConsumerState<ServiceReportScreen> {
                                   overflow: TextOverflow.ellipsis),
                             ))
                         .toList(),
-                    onChanged: (v) =>
-                        setState(() => _selectedWorkOrderId = v),
-                    validator: (v) =>
-                        v == null ? l10n.fieldRequired : null,
+                    onChanged: (v) {
+                      setState(() => _selectedWorkOrderId = v);
+                      _saveDraft();
+                    },
                   );
                 },
               ),
@@ -416,7 +593,10 @@ class _ServiceReportScreenState extends ConsumerState<ServiceReportScreen> {
                             top: 4,
                             right: 4,
                             child: GestureDetector(
-                              onTap: () => setState(() => _photos.removeAt(i)),
+                              onTap: () {
+                                setState(() => _photos.removeAt(i));
+                                _saveDraft();
+                              },
                               child: Container(
                                 padding: const EdgeInsets.all(4),
                                 decoration: const BoxDecoration(
@@ -446,6 +626,7 @@ class _ServiceReportScreenState extends ConsumerState<ServiceReportScreen> {
                     _signatureBytes = bytes;
                     _signatureSaved = true;
                   });
+                  await _saveDraft();
                   if (context.mounted) {
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(

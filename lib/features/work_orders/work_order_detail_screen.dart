@@ -95,6 +95,17 @@ class _WorkOrderBody extends ConsumerWidget {
         WorkOrderStatus.closed => AppColors.success,
       };
 
+  void _showWorkOrderActionFailed(BuildContext context, WidgetRef ref) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text(
+          'Work order could not be updated right now. Reconnect and try again.',
+        ),
+        backgroundColor: AppColors.error,
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context);
@@ -203,13 +214,13 @@ class _WorkOrderBody extends ConsumerWidget {
 
         // Assigned tech(s)
         assignmentNamesAsync.when(
-          loading: () => _InfoRow(
+          loading: () => const _InfoRow(
               icon: Icons.people_outline,
               label: 'Assigned Techs',
               value: '...'),
           error: (_, __) {
             if (techNameAsync == null) {
-              return _InfoRow(
+              return const _InfoRow(
                 icon: Icons.people_outline,
                 label: 'Assigned Techs',
                 value: '—',
@@ -349,9 +360,17 @@ class _WorkOrderBody extends ConsumerWidget {
             ElevatedButton.icon(
               onPressed: isLoading
                   ? null
-                  : () => ref
-                      .read(workOrderControllerProvider.notifier)
-                      .updateStatus(workOrder.id, WorkOrderStatus.inProgress),
+                  : () async {
+                      final success = await ref
+                          .read(workOrderControllerProvider.notifier)
+                          .updateStatus(
+                            workOrder.id,
+                            WorkOrderStatus.inProgress,
+                          );
+                      if (!success && context.mounted) {
+                        _showWorkOrderActionFailed(context, ref);
+                      }
+                    },
               icon: const Icon(Icons.play_arrow),
               label: Text(l10n.startWorkOrder),
             ),
@@ -363,7 +382,12 @@ class _WorkOrderBody extends ConsumerWidget {
                       final success = await ref
                           .read(workOrderControllerProvider.notifier)
                           .updateStatus(workOrder.id, WorkOrderStatus.closed);
-                      if (success && context.mounted) context.pop();
+                      if (!context.mounted) return;
+                      if (success) {
+                        context.pop();
+                      } else {
+                        _showWorkOrderActionFailed(context, ref);
+                      }
                     },
               icon: const Icon(Icons.check),
               label: Text(l10n.completeWorkOrder),
@@ -444,13 +468,16 @@ class _WorkOrderBody extends ConsumerWidget {
                       final success = await ref
                           .read(workOrderControllerProvider.notifier)
                           .reopenStatus(workOrder.id);
-                      if (success && context.mounted) {
+                      if (!context.mounted) return;
+                      if (success) {
                         ScaffoldMessenger.of(context).showSnackBar(
                           const SnackBar(
                             content: Text('Work order reopened'),
                             backgroundColor: AppColors.primary,
                           ),
                         );
+                      } else {
+                        _showWorkOrderActionFailed(context, ref);
                       }
                     },
               icon: const Icon(Icons.refresh),
@@ -896,7 +923,9 @@ class _LogHoursSheetState extends ConsumerState<_LogHoursSheet> {
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Failed to save. Please try again.'),
+            content: Text(
+              'Changes could not be saved right now. Reconnect and try again.',
+            ),
             backgroundColor: AppColors.error,
           ),
         );

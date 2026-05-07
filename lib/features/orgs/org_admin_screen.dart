@@ -14,7 +14,6 @@ import 'package:vortice_app/models/client_org.dart';
 import 'package:vortice_app/models/invoice.dart';
 import 'package:vortice_app/models/profile.dart';
 
-
 class OrgAdminScreen extends ConsumerWidget {
   const OrgAdminScreen({super.key});
 
@@ -84,23 +83,32 @@ class OrgAdminScreen extends ConsumerWidget {
                 ),
               ],
             ),
-            body: const Center(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(Icons.business_outlined,
-                      size: 56, color: AppColors.textSecondary),
-                  SizedBox(height: 16),
-                  Text('No organization found.',
-                      style: TextStyle(color: AppColors.textSecondary)),
-                  SizedBox(height: 8),
-                  Text(
-                    'Your account hasn\'t been linked to an organization yet.\nContact Vórtice to get set up.',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                        color: AppColors.textSecondary, fontSize: 12),
-                  ),
-                ],
+            body: Center(
+              child: Padding(
+                padding: const EdgeInsets.all(24),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(Icons.business_outlined,
+                        size: 56, color: AppColors.textSecondary),
+                    const SizedBox(height: 16),
+                    const Text('No organization found.',
+                        style: TextStyle(color: AppColors.textSecondary)),
+                    const SizedBox(height: 8),
+                    const Text(
+                      'Create a team workspace to invite operators/mechanics and assign vessel checklists.',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                          color: AppColors.textSecondary, fontSize: 12),
+                    ),
+                    const SizedBox(height: 20),
+                    ElevatedButton.icon(
+                      onPressed: () => _showCreateOrgDialog(context, ref),
+                      icon: const Icon(Icons.add_business_outlined),
+                      label: const Text('Create Team Workspace'),
+                    ),
+                  ],
+                ),
               ),
             ),
           );
@@ -204,8 +212,7 @@ class _TeamTab extends ConsumerWidget {
     );
   }
 
-  void _showInviteSheet(
-      BuildContext context, WidgetRef ref, String orgId) {
+  void _showInviteSheet(BuildContext context, WidgetRef ref, String orgId) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -280,8 +287,7 @@ class _MemberCard extends ConsumerWidget {
             ),
           ),
           Container(
-            padding:
-                const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
             decoration: BoxDecoration(
               color: color.withOpacity(0.12),
               borderRadius: BorderRadius.circular(20),
@@ -304,8 +310,8 @@ class _MemberCard extends ConsumerWidget {
                       context: context,
                       builder: (ctx) => AlertDialog(
                         title: const Text('Remove Member'),
-                        content: Text(
-                            'Remove ${profile.fullName} from this org?'),
+                        content:
+                            Text('Remove ${profile.fullName} from this org?'),
                         actions: [
                           TextButton(
                             onPressed: () => Navigator.pop(ctx, false),
@@ -362,16 +368,17 @@ class _InviteSheetState extends ConsumerState<_InviteSheet> {
     setState(() => _submitting = true);
 
     final code = OrgCodeController.generateCode();
-    final success = await ref.read(orgCodeControllerProvider.notifier).createCode(
-          code: code,
-          intendedRole: _selectedRole,
-          maxUses: 1,
-          singleUse: true,
-          orgId: widget.orgId,
-          notes:
-              'Invite for ${_nameCtrl.text.trim()} (${_emailCtrl.text.trim()})',
-          expiresAt: DateTime.now().add(const Duration(days: 7)),
-        );
+    final success =
+        await ref.read(orgCodeControllerProvider.notifier).createCode(
+              code: code,
+              intendedRole: _selectedRole,
+              maxUses: 1,
+              singleUse: true,
+              orgId: widget.orgId,
+              notes:
+                  'Invite for ${_nameCtrl.text.trim()} (${_emailCtrl.text.trim()})',
+              expiresAt: DateTime.now().add(const Duration(days: 7)),
+            );
 
     setState(() => _submitting = false);
 
@@ -455,8 +462,7 @@ class _InviteSheetState extends ConsumerState<_InviteSheet> {
           const SizedBox(height: 16),
           // Role picker
           const Text('Role',
-              style:
-                  TextStyle(color: AppColors.textSecondary, fontSize: 12)),
+              style: TextStyle(color: AppColors.textSecondary, fontSize: 12)),
           const SizedBox(height: 8),
           Row(
             children: [
@@ -534,8 +540,7 @@ class _RoleChip extends StatelessWidget {
               : AppColors.surfaceVariant,
           borderRadius: BorderRadius.circular(10),
           border: Border.all(
-            color:
-                selected ? AppColors.primary : AppColors.cardBorder,
+            color: selected ? AppColors.primary : AppColors.cardBorder,
             width: selected ? 1.5 : 1,
           ),
         ),
@@ -543,10 +548,8 @@ class _RoleChip extends StatelessWidget {
           label,
           textAlign: TextAlign.center,
           style: TextStyle(
-            color:
-                selected ? AppColors.primary : AppColors.textSecondary,
-            fontWeight:
-                selected ? FontWeight.w600 : FontWeight.normal,
+            color: selected ? AppColors.primary : AppColors.textSecondary,
+            fontWeight: selected ? FontWeight.w600 : FontWeight.normal,
             fontSize: 14,
           ),
         ),
@@ -573,9 +576,8 @@ class _FleetTab extends ConsumerWidget {
       ),
       data: (assets) {
         // Filter assets belonging to the org's owner
-        final orgAssets = assets
-            .where((a) => a.clientId == ownerProfileId)
-            .toList();
+        final orgAssets =
+            assets.where((a) => a.clientId == ownerProfileId).toList();
 
         if (orgAssets.isEmpty) {
           return const Center(
@@ -617,8 +619,7 @@ class _AssetCard extends StatelessWidget {
       ),
       child: Row(
         children: [
-          const Icon(Icons.directions_boat,
-              color: AppColors.primary, size: 24),
+          const Icon(Icons.directions_boat, color: AppColors.primary, size: 24),
           const SizedBox(width: 12),
           Expanded(
             child: Column(
@@ -671,8 +672,8 @@ class _ChecklistsTab extends ConsumerWidget {
       body: assignmentsAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (err, _) => Center(
-          child: Text(err.toString(),
-              style: const TextStyle(color: AppColors.error))),
+            child: Text(err.toString(),
+                style: const TextStyle(color: AppColors.error))),
         data: (assignments) {
           if (assignments.isEmpty) {
             return const Center(
@@ -698,7 +699,8 @@ class _ChecklistsTab extends ConsumerWidget {
             separatorBuilder: (_, __) => const SizedBox(height: 8),
             itemBuilder: (_, i) {
               final a = assignments[i];
-              final template = a['checklist_templates'] as Map<String, dynamic>?;
+              final template =
+                  a['checklist_templates'] as Map<String, dynamic>?;
               final asset = a['assets'] as Map<String, dynamic>?;
               final assignee = a['assignee'] as Map<String, dynamic>?;
               final status = a['status'] as String? ?? 'pending';
@@ -712,8 +714,9 @@ class _ChecklistsTab extends ConsumerWidget {
               return Card(
                 child: ListTile(
                   leading: CircleAvatar(
-                    backgroundColor: (isPM ? AppColors.primary : AppColors.warning)
-                        .withOpacity(0.15),
+                    backgroundColor:
+                        (isPM ? AppColors.primary : AppColors.warning)
+                            .withOpacity(0.15),
                     child: Icon(
                       isPM ? Icons.build_outlined : Icons.checklist_outlined,
                       color: isPM ? AppColors.primary : AppColors.warning,
@@ -735,8 +738,8 @@ class _ChecklistsTab extends ConsumerWidget {
                         color: AppColors.textSecondary, fontSize: 12),
                   ),
                   trailing: Container(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 8, vertical: 4),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                     decoration: BoxDecoration(
                       color: statusColor.withOpacity(0.15),
                       borderRadius: BorderRadius.circular(6),
@@ -767,7 +770,8 @@ class _ChecklistsTab extends ConsumerWidget {
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
       ),
-      builder: (_) => _AssignChecklistSheet(orgId: orgId, assignedBy: profile?.id ?? ''),
+      builder: (_) =>
+          _AssignChecklistSheet(orgId: orgId, assignedBy: profile?.id ?? ''),
     );
   }
 }
@@ -782,10 +786,8 @@ class _AssignChecklistSheet extends ConsumerStatefulWidget {
       _AssignChecklistSheetState();
 }
 
-class _AssignChecklistSheetState
-    extends ConsumerState<_AssignChecklistSheet> {
+class _AssignChecklistSheetState extends ConsumerState<_AssignChecklistSheet> {
   String? _selectedTemplateId;
-  String? _selectedTemplateType;
   String? _selectedMemberId;
   String? _selectedAssetId;
   bool _submitting = false;
@@ -798,8 +800,7 @@ class _AssignChecklistSheetState
     final membersAsync = ref.watch(orgMembersProvider(widget.orgId));
     final assetsAsync = ref.watch(operatorScopedAssetsProvider);
 
-    final templates =
-        _checklistType == 'pm' ? pmAsync : preOpAsync;
+    final templates = _checklistType == 'pm' ? pmAsync : preOpAsync;
 
     return Padding(
       padding: EdgeInsets.fromLTRB(
@@ -809,16 +810,14 @@ class _AssignChecklistSheetState
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           const Text('Assign Checklist',
-              style: TextStyle(
-                  fontSize: 16, fontWeight: FontWeight.bold)),
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
           const SizedBox(height: 16),
 
           // Type toggle
           SegmentedButton<String>(
             segments: const [
               ButtonSegment(value: 'pm', label: Text('PM Checklist')),
-              ButtonSegment(
-                  value: 'operator_daily', label: Text('Pre-Op')),
+              ButtonSegment(value: 'operator_daily', label: Text('Pre-Op')),
             ],
             selected: {_checklistType},
             onSelectionChanged: (v) => setState(() {
@@ -835,8 +834,8 @@ class _AssignChecklistSheetState
             error: (_, __) => const SizedBox.shrink(),
             data: (list) => DropdownButtonFormField<String>(
               value: _selectedTemplateId,
-              decoration: const InputDecoration(
-                  labelText: 'Checklist template'),
+              decoration:
+                  const InputDecoration(labelText: 'Checklist template'),
               dropdownColor: AppColors.surfaceVariant,
               items: list
                   .map((t) => DropdownMenuItem(
@@ -860,7 +859,8 @@ class _AssignChecklistSheetState
               final filtered = members
                   .where((m) => _checklistType == 'pm'
                       ? m.role == UserRole.clientMechanic
-                      : m.role == UserRole.clientOperator)
+                      : m.role == UserRole.clientOperator ||
+                          m.role == UserRole.operator)
                   .toList();
               return DropdownButtonFormField<String>(
                 value: _selectedMemberId,
@@ -887,12 +887,10 @@ class _AssignChecklistSheetState
             error: (_, __) => const SizedBox.shrink(),
             data: (assets) => DropdownButtonFormField<String>(
               value: _selectedAssetId,
-              decoration: const InputDecoration(
-                  labelText: 'Vessel (optional)'),
+              decoration: const InputDecoration(labelText: 'Vessel (optional)'),
               dropdownColor: AppColors.surfaceVariant,
               items: [
-                const DropdownMenuItem(
-                    value: null, child: Text('No vessel')),
+                const DropdownMenuItem(value: null, child: Text('No vessel')),
                 ...assets.map((a) => DropdownMenuItem(
                       value: a.id,
                       child: Text(a.name),
@@ -938,8 +936,7 @@ class _AssignChecklistSheetState
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-              content: Text(e.toString()),
-              backgroundColor: AppColors.error),
+              content: Text(e.toString()), backgroundColor: AppColors.error),
         );
       }
     } finally {
@@ -1023,8 +1020,7 @@ class _InvoicesTab extends ConsumerWidget {
                             Text(
                               '\$${inv.totalUsd!.toStringAsFixed(2)} USD',
                               style: const TextStyle(
-                                  color: AppColors.textSecondary,
-                                  fontSize: 12),
+                                  color: AppColors.textSecondary, fontSize: 12),
                             ),
                         ],
                       ),

@@ -1,7 +1,10 @@
+import 'dart:async';
+import 'dart:convert';
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:vortice_app/l10n/app_localizations.dart';
 import 'package:vortice_app/core/supabase_client.dart';
 import 'package:vortice_app/core/theme.dart';
@@ -13,7 +16,12 @@ import 'package:vortice_app/models/checklist_template.dart';
 
 class OperatorChecklistScreen extends ConsumerStatefulWidget {
   final String? initialAssetId;
-  const OperatorChecklistScreen({super.key, this.initialAssetId});
+  final String? initialTemplateId;
+  const OperatorChecklistScreen({
+    super.key,
+    this.initialAssetId,
+    this.initialTemplateId,
+  });
 
   @override
   ConsumerState<OperatorChecklistScreen> createState() =>
@@ -22,6 +30,11 @@ class OperatorChecklistScreen extends ConsumerStatefulWidget {
 
 class _OperatorChecklistScreenState
     extends ConsumerState<OperatorChecklistScreen> {
+  static const _offlineSubmitMessage =
+      'Checklist could not be submitted right now. Reconnect and try again.';
+  static const _photoNotSubmittedMessage =
+      'Checklist saved, but attached photos stay on this device for now and were not submitted.';
+  static const _draftKey = 'operator_checklist_draft';
   Map<String, dynamic>? _selectedAsset;
   ChecklistTemplate? _selectedTemplate;
   final String _runType = 'pre_departure';
@@ -29,20 +42,134 @@ class _OperatorChecklistScreenState
   final Map<String, String> _notes = {};
   final Map<String, Uint8List?> _photos = {};
   bool _submitting = false;
+  bool _restoredDraft = false;
 
   @override
   void initState() {
     super.initState();
-    if (widget.initialAssetId != null) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        final rows =
-            ref.read(operatorAssignedAssetsProvider).valueOrNull ?? [];
-        final row = rows
-            .where((r) => r['id'] == widget.initialAssetId)
-            .firstOrNull;
-        if (row != null) setState(() => _selectedAsset = row);
+    WidgetsBinding.instance.addPostFrameCallback((_) => _restoreDraftIfReady());
+  }
+
+  Future<void> _restoreDraftIfReady() async {
+    if (_restoredDraft) return;
+
+    final assets = ref.read(operatorAssignedAssetsProvider).valueOrNull;
+    final templates = ref.read(checklistTemplatesProvider).valueOrNull;
+    if (assets == null || templates == null) {
+      return;
+    }
+
+    final prefs = await SharedPreferences.getInstance();
+    final raw = prefs.getString(_draftKey);
+
+    Map<String, dynamic>? assetToSet = _selectedAsset;
+    ChecklistTemplate? templateToSet = _selectedTemplate;
+
+    if (raw != null) {
+      try {
+        final data = jsonDecode(raw) as Map<String, dynamic>;
+        final assetId = data['assetId'] as String?;
+        final templateId = data['templateId'] as String?;
+        final responses =
+            (data['responses'] as Map?)?.cast<String, dynamic>() ?? {};
+        final notes = (data['notes'] as Map?)?.cast<String, dynamic>() ?? {};
+        final photos = (data['photos'] as Map?)?.cast<String, dynamic>() ?? {};
+
+        assetToSet = assetId == null
+            ? null
+            : assets.where((r) => r['id'] == assetId).firstOrNull;
+        templateToSet = templateId == null
+            ? null
+            : templates.where((t) => t.id == templateId).firstOrNull;
+
+        if (mounted) {
+          setState(() {
+            _selectedAsset = assetToSet;
+            _selectedTemplate = templateToSet;
+            _responses
+              ..clear()
+              ..addAll(
+                responses.map(
+                  (key, value) => MapEntry(key, value as String?),
+                ),
+              );
+            _notes
+              ..clear()
+              ..addAll(
+                notes.map(
+                  (key, value) => MapEntry(key, value as String),
+                ),
+              );
+            _photos
+              ..clear()
+              ..addAll(
+                photos.map(
+                  (key, value) => MapEntry(
+                    key,
+                    value is String && value.isNotEmpty
+                        ? base64Decode(value)
+                        : null,
+                  ),
+                ),
+              );
+          });
+        }
+      } catch (_) {
+        await prefs.remove(_draftKey);
+      }
+    }
+
+    if (assetToSet == null && widget.initialAssetId != null) {
+      assetToSet =
+          assets.where((r) => r['id'] == widget.initialAssetId).firstOrNull;
+    }
+    if (templateToSet == null && widget.initialTemplateId != null) {
+      templateToSet =
+          templates.where((t) => t.id == widget.initialTemplateId).firstOrNull;
+    }
+    if (mounted) {
+      setState(() {
+        _selectedAsset = assetToSet;
+        _selectedTemplate = templateToSet;
       });
     }
+
+    _restoredDraft = true;
+  }
+
+  Future<void> _saveDraft() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(
+      _draftKey,
+      jsonEncode({
+        'assetId': _selectedAsset?['id'] as String?,
+        'templateId': _selectedTemplate?.id,
+        'responses': _responses,
+        'notes': _notes,
+        'photos': _photos.map(
+          (key, value) => MapEntry(
+            key,
+            value == null ? null : base64Encode(value),
+          ),
+        ),
+      }),
+    );
+  }
+
+  Future<void> _clearDraft() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove(_draftKey);
+  }
+
+  void _resetChecklist() {
+    setState(() {
+      _selectedAsset = null;
+      _selectedTemplate = null;
+      _responses.clear();
+      _notes.clear();
+      _photos.clear();
+    });
+    _saveDraft();
   }
 
   @override
@@ -50,6 +177,17 @@ class _OperatorChecklistScreenState
     final l10n = AppLocalizations.of(context);
     final assetsAsync = ref.watch(operatorAssignedAssetsProvider);
     final templatesAsync = ref.watch(checklistTemplatesProvider);
+
+    ref.listen(operatorAssignedAssetsProvider, (_, next) {
+      if (next.hasValue) {
+        unawaited(_restoreDraftIfReady());
+      }
+    });
+    ref.listen(checklistTemplatesProvider, (_, next) {
+      if (next.hasValue) {
+        unawaited(_restoreDraftIfReady());
+      }
+    });
 
     return Scaffold(
       appBar: AppBar(title: Text(l10n.operatorChecklistTitle)),
@@ -59,8 +197,14 @@ class _OperatorChecklistScreenState
               templatesAsync: templatesAsync,
               selectedAsset: _selectedAsset,
               selectedTemplate: _selectedTemplate,
-              onAssetSelected: (a) => setState(() => _selectedAsset = a),
-              onTemplateSelected: (t) => setState(() => _selectedTemplate = t),
+              onAssetSelected: (a) {
+                setState(() => _selectedAsset = a);
+                _saveDraft();
+              },
+              onTemplateSelected: (t) {
+                setState(() => _selectedTemplate = t);
+                _saveDraft();
+              },
             )
           : _RunChecklist(
               assetName: _selectedAsset!['name'] as String,
@@ -68,27 +212,28 @@ class _OperatorChecklistScreenState
               responses: _responses,
               notes: _notes,
               photos: _photos,
-              onResponseChanged: (id, v) =>
-                  setState(() => _responses[id] = v),
-              onNoteChanged: (id, v) =>
-                  setState(() => _notes[id] = v),
-              onPhotoChanged: (id, v) =>
-                  setState(() => _photos[id] = v),
+              onResponseChanged: (id, v) {
+                setState(() => _responses[id] = v);
+                _saveDraft();
+              },
+              onNoteChanged: (id, v) {
+                setState(() => _notes[id] = v);
+                _saveDraft();
+              },
+              onPhotoChanged: (id, v) {
+                setState(() => _photos[id] = v);
+                _saveDraft();
+              },
               onSubmit: _submit,
               submitting: _submitting,
-              onReset: () => setState(() {
-                _selectedAsset = null;
-                _selectedTemplate = null;
-                _responses.clear();
-                _notes.clear();
-                _photos.clear();
-              }),
+              onReset: _resetChecklist,
             ),
     );
   }
 
   Future<void> _submit() async {
     final profile = ref.read(profileProvider).valueOrNull;
+    await _saveDraft();
     setState(() => _submitting = true);
     try {
       final run = await supabase
@@ -101,7 +246,8 @@ class _OperatorChecklistScreenState
             'completed_at': DateTime.now().toIso8601String(),
           })
           .select()
-          .single();
+          .single()
+          .timeout(const Duration(seconds: 4));
 
       final runId = run['id'] as String;
 
@@ -116,27 +262,47 @@ class _OperatorChecklistScreenState
                   if (_notes[e.key]?.isNotEmpty == true) 'notes': _notes[e.key],
                 })
             .toList();
-        await supabase.from('operator_checklist_responses').insert(rows);
+        await supabase
+            .from('operator_checklist_responses')
+            .insert(rows)
+            .timeout(const Duration(seconds: 4));
       }
 
+      final hasPhotos = _photos.values.any((photo) => photo != null);
+      await _clearDraft();
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(AppLocalizations.of(context).checklistSubmitted),
-            backgroundColor: AppColors.success,
+            content: Text(
+              hasPhotos
+                  ? _photoNotSubmittedMessage
+                  : AppLocalizations.of(context).checklistSubmitted,
+            ),
+            backgroundColor: hasPhotos ? AppColors.warning : AppColors.success,
           ),
         );
         setState(() {
           _selectedAsset = null;
           _selectedTemplate = null;
           _responses.clear();
+          _notes.clear();
+          _photos.clear();
         });
       }
-    } catch (e) {
+    } on TimeoutException {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(e.toString()),
+          const SnackBar(
+            content: Text(_offlineSubmitMessage),
+            backgroundColor: AppColors.error,
+          ),
+        );
+      }
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(_offlineSubmitMessage),
             backgroundColor: AppColors.error,
           ),
         );
@@ -177,14 +343,14 @@ class _SelectionStep extends StatelessWidget {
           const SizedBox(height: 8),
           assetsAsync.when(
             loading: () => const CircularProgressIndicator(),
-            error: (e, _) =>
-                Text(e.toString(), style: const TextStyle(color: AppColors.error)),
+            error: (e, _) => Text(e.toString(),
+                style: const TextStyle(color: AppColors.error)),
             data: (assets) {
               // Group by client
               final grouped = <String, List<Map<String, dynamic>>>{};
               for (final a in assets) {
-                final client = (a['profiles'] as Map<String, dynamic>?)?['full_name']
-                        as String? ??
+                final client = (a['profiles']
+                        as Map<String, dynamic>?)?['full_name'] as String? ??
                     'Unknown';
                 grouped.putIfAbsent(client, () => []).add(a);
               }
@@ -203,7 +369,7 @@ class _SelectionStep extends StatelessWidget {
               ];
 
               return DropdownButtonFormField<String>(
-                value: selectedAsset?['id'] as String?,
+                initialValue: selectedAsset?['id'] as String?,
                 decoration: const InputDecoration(),
                 dropdownColor: AppColors.surfaceVariant,
                 items: allItems,
@@ -223,22 +389,23 @@ class _SelectionStep extends StatelessWidget {
           const SizedBox(height: 8),
           templatesAsync.when(
             loading: () => const CircularProgressIndicator(),
-            error: (e, _) =>
-                Text(e.toString(), style: const TextStyle(color: AppColors.error)),
+            error: (e, _) => Text(e.toString(),
+                style: const TextStyle(color: AppColors.error)),
             data: (templates) {
               final operatorTemplates = templates
                   .where((t) => t.checklistType == 'operator_daily')
                   .toList();
               return DropdownButtonFormField<String>(
-                value: selectedTemplate?.id,
+                initialValue: selectedTemplate?.id,
                 decoration: const InputDecoration(),
                 dropdownColor: AppColors.surfaceVariant,
-                items: (operatorTemplates.isEmpty ? templates : operatorTemplates)
-                    .map((t) => DropdownMenuItem(
-                          value: t.id,
-                          child: Text(t.name),
-                        ))
-                    .toList(),
+                items:
+                    (operatorTemplates.isEmpty ? templates : operatorTemplates)
+                        .map((t) => DropdownMenuItem(
+                              value: t.id,
+                              child: Text(t.name),
+                            ))
+                        .toList(),
                 hint: Text(l10n.selectTemplate,
                     style: const TextStyle(color: AppColors.textSecondary)),
                 onChanged: (id) {
@@ -294,7 +461,8 @@ class _RunChecklist extends ConsumerWidget {
           color: AppColors.surfaceVariant,
           child: Row(
             children: [
-              const Icon(Icons.directions_boat, color: AppColors.primary, size: 18),
+              const Icon(Icons.directions_boat,
+                  color: AppColors.primary, size: 18),
               const SizedBox(width: 8),
               Expanded(
                 child: Text(
@@ -387,18 +555,28 @@ class _QuickCheckItemState extends State<_QuickCheckItem> {
   }
 
   @override
+  void didUpdateWidget(covariant _QuickCheckItem oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.note != widget.note && _noteCtrl.text != widget.note) {
+      _noteCtrl.text = widget.note;
+    }
+  }
+
+  @override
   void dispose() {
     _noteCtrl.dispose();
     super.dispose();
   }
 
   Future<void> _pickPhoto() async {
-    final file = await _picker.pickImage(source: ImageSource.gallery, imageQuality: 70);
+    final file =
+        await _picker.pickImage(source: ImageSource.gallery, imageQuality: 70);
     if (file != null) widget.onPhotoChanged(await file.readAsBytes());
   }
 
   Future<void> _takePhoto() async {
-    final file = await _picker.pickImage(source: ImageSource.camera, imageQuality: 70);
+    final file =
+        await _picker.pickImage(source: ImageSource.camera, imageQuality: 70);
     if (file != null) widget.onPhotoChanged(await file.readAsBytes());
   }
 
@@ -415,21 +593,34 @@ class _QuickCheckItemState extends State<_QuickCheckItem> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(widget.item.descriptionEn,
-                style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500)),
+                style:
+                    const TextStyle(fontSize: 13, fontWeight: FontWeight.w500)),
             const SizedBox(height: 10),
             Row(
               children: [
-                _StatusButton(label: 'PASS', value: 'pass', current: status,
+                _StatusButton(
+                    label: 'PASS',
+                    value: 'pass',
+                    current: status,
                     color: AppColors.success,
-                    onTap: () => widget.onChanged(status == 'pass' ? null : 'pass')),
+                    onTap: () =>
+                        widget.onChanged(status == 'pass' ? null : 'pass')),
                 const SizedBox(width: 6),
-                _StatusButton(label: 'ALERT', value: 'alert', current: status,
+                _StatusButton(
+                    label: 'ALERT',
+                    value: 'alert',
+                    current: status,
                     color: AppColors.warning,
-                    onTap: () => widget.onChanged(status == 'alert' ? null : 'alert')),
+                    onTap: () =>
+                        widget.onChanged(status == 'alert' ? null : 'alert')),
                 const SizedBox(width: 6),
-                _StatusButton(label: 'ACTION', value: 'action', current: status,
+                _StatusButton(
+                    label: 'ACTION',
+                    value: 'action',
+                    current: status,
                     color: AppColors.error,
-                    onTap: () => widget.onChanged(status == 'action' ? null : 'action')),
+                    onTap: () =>
+                        widget.onChanged(status == 'action' ? null : 'action')),
               ],
             ),
             AnimatedSize(
@@ -443,11 +634,13 @@ class _QuickCheckItemState extends State<_QuickCheckItem> {
                           controller: _noteCtrl,
                           maxLines: 2,
                           style: const TextStyle(fontSize: 12),
-                          decoration: InputDecoration(
+                          decoration: const InputDecoration(
                             hintText: 'Describe issue / action',
-                            hintStyle: const TextStyle(color: AppColors.textSecondary, fontSize: 12),
+                            hintStyle: TextStyle(
+                                color: AppColors.textSecondary, fontSize: 12),
                             isDense: true,
-                            contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                            contentPadding: EdgeInsets.symmetric(
+                                horizontal: 8, vertical: 6),
                           ),
                           onChanged: widget.onNoteChanged,
                         ),
@@ -457,32 +650,39 @@ class _QuickCheckItemState extends State<_QuickCheckItem> {
                             if (widget.photo != null) ...[
                               ClipRRect(
                                 borderRadius: BorderRadius.circular(4),
-                                child: Image.memory(widget.photo!, width: 48, height: 48, fit: BoxFit.cover),
+                                child: Image.memory(widget.photo!,
+                                    width: 48, height: 48, fit: BoxFit.cover),
                               ),
                               IconButton(
-                                icon: const Icon(Icons.close, size: 14, color: AppColors.error),
+                                icon: const Icon(Icons.close,
+                                    size: 14, color: AppColors.error),
                                 onPressed: () => widget.onPhotoChanged(null),
-                                padding: EdgeInsets.zero, constraints: const BoxConstraints(),
+                                padding: EdgeInsets.zero,
+                                constraints: const BoxConstraints(),
                               ),
                               const SizedBox(width: 4),
                             ],
                             OutlinedButton.icon(
                               onPressed: _pickPhoto,
                               icon: const Icon(Icons.photo_library, size: 14),
-                              label: const Text('Photo', style: TextStyle(fontSize: 11)),
+                              label: const Text('Photo',
+                                  style: TextStyle(fontSize: 11)),
                               style: OutlinedButton.styleFrom(
                                 minimumSize: Size.zero,
-                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 8, vertical: 4),
                               ),
                             ),
                             const SizedBox(width: 4),
                             OutlinedButton.icon(
                               onPressed: _takePhoto,
                               icon: const Icon(Icons.camera_alt, size: 14),
-                              label: const Text('Camera', style: TextStyle(fontSize: 11)),
+                              label: const Text('Camera',
+                                  style: TextStyle(fontSize: 11)),
                               style: OutlinedButton.styleFrom(
                                 minimumSize: Size.zero,
-                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 8, vertical: 4),
                               ),
                             ),
                           ],
@@ -506,8 +706,11 @@ class _StatusButton extends StatelessWidget {
   final VoidCallback onTap;
 
   const _StatusButton({
-    required this.label, required this.value, required this.current,
-    required this.color, required this.onTap,
+    required this.label,
+    required this.value,
+    required this.current,
+    required this.color,
+    required this.onTap,
   });
 
   @override
@@ -521,15 +724,21 @@ class _StatusButton extends StatelessWidget {
           duration: const Duration(milliseconds: 130),
           padding: const EdgeInsets.symmetric(vertical: 7),
           decoration: BoxDecoration(
-            color: selected ? color.withOpacity(0.18) : AppColors.surfaceVariant,
+            color: selected
+                ? color.withValues(alpha: 0.18)
+                : AppColors.surfaceVariant,
             borderRadius: BorderRadius.circular(7),
-            border: Border.all(color: selected ? color : AppColors.divider, width: selected ? 1.5 : 1),
+            border: Border.all(
+                color: selected ? color : AppColors.divider,
+                width: selected ? 1.5 : 1),
           ),
           alignment: Alignment.center,
-          child: Text(label,
+          child: Text(
+            label,
             style: TextStyle(
               color: selected ? color : AppColors.textSecondary,
-              fontWeight: FontWeight.bold, fontSize: 11,
+              fontWeight: FontWeight.bold,
+              fontSize: 11,
             ),
           ),
         ),

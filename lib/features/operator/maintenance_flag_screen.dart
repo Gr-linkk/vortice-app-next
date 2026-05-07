@@ -9,7 +9,6 @@ import 'package:vortice_app/features/assets/asset_provider.dart';
 import 'package:vortice_app/models/profile.dart';
 import 'package:vortice_app/features/auth/auth_provider.dart';
 import 'package:vortice_app/features/operator/operator_runs_provider.dart';
-import 'package:vortice_app/models/asset.dart';
 
 class MaintenanceFlagScreen extends ConsumerStatefulWidget {
   const MaintenanceFlagScreen({super.key});
@@ -19,8 +18,7 @@ class MaintenanceFlagScreen extends ConsumerStatefulWidget {
       _MaintenanceFlagScreenState();
 }
 
-class _MaintenanceFlagScreenState
-    extends ConsumerState<MaintenanceFlagScreen> {
+class _MaintenanceFlagScreenState extends ConsumerState<MaintenanceFlagScreen> {
   final _formKey = GlobalKey<FormState>();
   final _descCtrl = TextEditingController();
   String? _selectedAssetId;
@@ -60,7 +58,7 @@ class _MaintenanceFlagScreenState
         'description': description,
         'severity': _severity,
         'status': 'open',
-      });
+      }).timeout(const Duration(seconds: 4));
 
       // Invalidate providers so dashboards refresh immediately
       ref.invalidate(openMaintenanceRequestsProvider);
@@ -74,7 +72,7 @@ class _MaintenanceFlagScreenState
         'type': 'maintenance_flag',
         'reference_id': _selectedAssetId,
         'read': false,
-      });
+      }).timeout(const Duration(seconds: 4));
 
       // Send push notification to client (stub — replace with FCM when configured)
       await NotificationService.notifyClientOfMaintenanceFlag(
@@ -143,9 +141,10 @@ class _MaintenanceFlagScreenState
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: AppColors.warning.withOpacity(0.1),
+                  color: AppColors.warning.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(10),
-                  border: Border.all(color: AppColors.warning.withOpacity(0.4)),
+                  border: Border.all(
+                      color: AppColors.warning.withValues(alpha: 0.4)),
                 ),
                 child: Row(
                   children: [
@@ -168,7 +167,7 @@ class _MaintenanceFlagScreenState
                 error: (e, _) => Text(e.toString(),
                     style: const TextStyle(color: AppColors.error)),
                 data: (assets) => DropdownButtonFormField<String>(
-                  value: _selectedAssetId,
+                  initialValue: _selectedAssetId,
                   decoration: InputDecoration(
                     labelText: l10n.selectAsset,
                     prefixIcon: const Icon(Icons.directions_boat_outlined),
@@ -181,8 +180,7 @@ class _MaintenanceFlagScreenState
                           ))
                       .toList(),
                   onChanged: (v) => setState(() => _selectedAssetId = v),
-                  validator: (v) =>
-                      v == null ? l10n.fieldRequired : null,
+                  validator: (v) => v == null ? l10n.fieldRequired : null,
                 ),
               ),
               const SizedBox(height: 16),
@@ -204,10 +202,8 @@ class _MaintenanceFlagScreenState
               const SizedBox(height: 16),
               Text(
                 'SEVERITY',
-                style: Theme.of(context)
-                    .textTheme
-                    .labelSmall
-                    ?.copyWith(color: AppColors.textSecondary, letterSpacing: 1),
+                style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                    color: AppColors.textSecondary, letterSpacing: 1),
               ),
               const SizedBox(height: 8),
               Row(
@@ -280,7 +276,9 @@ class _SeverityButton extends StatelessWidget {
           duration: const Duration(milliseconds: 150),
           padding: const EdgeInsets.symmetric(vertical: 10),
           decoration: BoxDecoration(
-            color: selected ? color.withOpacity(0.2) : AppColors.surfaceVariant,
+            color: selected
+                ? color.withValues(alpha: 0.2)
+                : AppColors.surfaceVariant,
             borderRadius: BorderRadius.circular(8),
             border: Border.all(
               color: selected ? color : AppColors.divider,

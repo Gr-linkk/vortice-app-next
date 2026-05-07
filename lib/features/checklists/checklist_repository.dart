@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math';
 
 import 'package:drift/drift.dart' show Value;
@@ -5,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:vortice_app/core/constants.dart';
 import 'package:vortice_app/core/supabase_client.dart';
 import 'package:vortice_app/db/database.dart';
+import 'package:vortice_app/features/checklists/work_order_checklist_snapshot_repository.dart';
 import 'package:vortice_app/models/checklist_item.dart';
 import 'package:vortice_app/models/checklist_response.dart';
 import 'package:vortice_app/models/checklist_template.dart';
@@ -14,6 +16,15 @@ final checklistRepositoryProvider = Provider<ChecklistRepository>((ref) {
   final db = ref.watch(databaseProvider);
   return ChecklistRepository(db);
 });
+
+class LocalChecklistPendingException implements Exception {
+  const LocalChecklistPendingException(this.message);
+
+  final String message;
+
+  @override
+  String toString() => message;
+}
 
 class ChecklistRepository {
   ChecklistRepository(this._db);
@@ -71,6 +82,15 @@ class ChecklistRepository {
       if (cached.isNotEmpty) return cached;
       rethrow;
     }
+  }
+
+  Future<void> cacheSnapshot(WorkOrderChecklistSnapshot snapshot) async {
+    await _db.checklistsDao.upsertTemplate(
+      _templateToCompanion(snapshot.asTemplate()),
+    );
+    await _db.checklistsDao.upsertItems(
+      snapshot.items.map(_itemToCompanion).toList(),
+    );
   }
 
   Future<List<ChecklistResponse>> listResponsesForWorkOrder(
@@ -147,6 +167,7 @@ class ChecklistRepository {
     required Map<String, String?> responses,
     Map<String, String>? notes,
     Map<String, String?>? photoUrls,
+    String? holdForSyncReason,
   }) async {
     final now = DateTime.now();
     final answered = responses.entries.where((e) => e.value != null).toList();
@@ -190,34 +211,70 @@ class ChecklistRepository {
       );
     }
 
-    try {
-      await supabase.from(AppConstants.tChecklistResponses).insert(rows);
-      await _db.checklistsDao.upsertResponses(localEntries);
-    } catch (error) {
-      final fallbackEntries = <ChecklistResponsesTableCompanion>[];
-      for (var i = 0; i < answered.length; i++) {
-        final entry = answered[i];
-        final existing = existingByItem[entry.key];
-        final response = localResponses[i].copyWith(
-          syncStatus: existing == null
-              ? SyncStatusValues.pendingCreate
-              : SyncStatusValues.pendingUpdate,
+    final pendingEntries = <ChecklistResponsesTableCompanion>[];
+    for (var i = 0; i < answered.length; i++) {
+      final entry = answered[i];
+      final existing = existingByItem[entry.key];
+      final response = localResponses[i].copyWith(
+        syncStatus: existing == null
+            ? SyncStatusValues.pendingCreate
+            : SyncStatusValues.pendingUpdate,
+        lastSyncedAt: existing?.lastSyncedAt,
+      );
+      pendingEntries.add(
+        _responseToCompanion(
+          response,
+          syncStatus: response.syncStatus,
+          updatedAt: now,
           lastSyncedAt: existing?.lastSyncedAt,
-          lastError: error.toString(),
-        );
-        fallbackEntries.add(
-          _responseToCompanion(
-            response,
-            syncStatus: response.syncStatus,
-            updatedAt: now,
-            lastSyncedAt: existing?.lastSyncedAt,
-            lastError: error.toString(),
-          ),
-        );
-      }
-      await _db.checklistsDao.upsertResponses(fallbackEntries);
-      rethrow;
+          lastError: null,
+        ),
+      );
     }
+
+    // Save locally before touching the network. This makes airplane-mode field
+    // saves visible immediately instead of waiting for a long HTTP timeout.
+    await _db.checklistsDao.upsertResponses(pendingEntries);
+
+    if (holdForSyncReason != null) {
+      await _markPendingResponsesWithError(pendingEntries, holdForSyncReason);
+      throw const LocalChecklistPendingException(
+        'Saved locally. Sync pending.',
+      );
+    }
+
+    try {
+      await supabase
+          .from(AppConstants.tChecklistResponses)
+          .upsert(rows, onConflict: 'id')
+          .timeout(const Duration(seconds: 4));
+      await _db.checklistsDao.upsertResponses(localEntries);
+    } on TimeoutException catch (error) {
+      await _markPendingResponsesWithError(pendingEntries, error);
+      throw const LocalChecklistPendingException(
+        'Saved locally. Sync pending.',
+      );
+    } catch (error) {
+      await _markPendingResponsesWithError(pendingEntries, error);
+      throw const LocalChecklistPendingException(
+        'Saved locally. Sync pending.',
+      );
+    }
+  }
+
+  Future<void> _markPendingResponsesWithError(
+    List<ChecklistResponsesTableCompanion> entries,
+    Object error,
+  ) async {
+    await _db.checklistsDao.upsertResponses(
+      entries
+          .map(
+            (entry) => entry.copyWith(
+              lastError: Value(error.toString()),
+            ),
+          )
+          .toList(),
+    );
   }
 }
 

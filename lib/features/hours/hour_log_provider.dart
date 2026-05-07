@@ -42,13 +42,14 @@ class HourLogController extends StateNotifier<AsyncValue<void>> {
         'hours': hours,
         'source': 'manual',
         'notes': notes,
-      });
+      }).timeout(const Duration(seconds: 4));
 
       // Update engine current_hours
       await supabase
           .from(AppConstants.tAssetEngines)
           .update({'current_hours': hours})
-          .eq('id', engineId);
+          .eq('id', engineId)
+          .timeout(const Duration(seconds: 4));
 
       _ref.invalidate(hourLogsForEngineProvider(engineId));
       _ref.invalidate(enginesForAssetProvider(assetId));

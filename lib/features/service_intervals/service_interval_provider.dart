@@ -14,18 +14,16 @@ final serviceIntervalsProvider =
       .select()
       .eq('asset_id', assetId)
       .order('interval_hours');
-  return (data as List)
-      .map((e) {
-        final row = Map<String, dynamic>.from(e as Map<String, dynamic>);
-        if (row.containsKey('interval_label')) {
-          row['label'] = row['interval_label'];
-        }
-        if (row.containsKey('is_active')) {
-          row['enabled'] = row['is_active'];
-        }
-        return AssetServiceInterval.fromJson(row);
-      })
-      .toList();
+  return (data as List).map((e) {
+    final row = Map<String, dynamic>.from(e as Map<String, dynamic>);
+    if (row.containsKey('interval_label')) {
+      row['label'] = row['interval_label'];
+    }
+    if (row.containsKey('is_active')) {
+      row['enabled'] = row['is_active'];
+    }
+    return AssetServiceInterval.fromJson(row);
+  }).toList();
 });
 
 double? _hoursFromWorkOrder(Map<String, dynamic>? row) {
@@ -129,7 +127,8 @@ _ServiceReminderRecord? _pickReminderForInterval(
     }
 
     if (reminder.serviceIntervalId == null &&
-        reminder.intervalHours == (previousIntervalHours ?? interval.intervalHours.toInt())) {
+        reminder.intervalHours ==
+            (previousIntervalHours ?? interval.intervalHours.toInt())) {
       if (legacyReminder == null ||
           (legacyReminder.acknowledged && !reminder.acknowledged) ||
           ((legacyReminder.acknowledged == reminder.acknowledged) &&
@@ -151,7 +150,8 @@ final serviceIntervalSummariesProvider =
 
   final remindersRows = await supabase
       .from(AppConstants.tServiceReminders)
-      .select('id, service_interval_id, interval_hours, due_at_hours, acknowledged')
+      .select(
+          'id, service_interval_id, interval_hours, due_at_hours, acknowledged')
       .eq('asset_id', assetId);
   final reminders = (remindersRows as List)
       .cast<Map<String, dynamic>>()
@@ -255,7 +255,8 @@ class ServiceIntervalController extends StateNotifier<AsyncValue<void>> {
 
     final existingRows = await supabase
         .from(AppConstants.tServiceReminders)
-        .select('id, service_interval_id, due_at_hours, interval_hours, acknowledged')
+        .select(
+            'id, service_interval_id, due_at_hours, interval_hours, acknowledged')
         .eq('asset_id', assetId);
 
     final existing = _pickReminderForInterval(
@@ -358,7 +359,8 @@ class ServiceIntervalController extends StateNotifier<AsyncValue<void>> {
 
       final reminderRows = await supabase
           .from(AppConstants.tServiceReminders)
-          .select('id, service_interval_id, interval_hours, due_at_hours, acknowledged')
+          .select(
+              'id, service_interval_id, interval_hours, due_at_hours, acknowledged')
           .eq('asset_id', assetId);
       final reminder = _pickReminderForInterval(
         AssetServiceInterval(
@@ -374,16 +376,20 @@ class ServiceIntervalController extends StateNotifier<AsyncValue<void>> {
       final nextDueHours = completionHours + intervalHours.toDouble();
 
       if (reminder != null) {
-        await supabase.from(AppConstants.tServiceReminders).update({
-          'engine_id': engineId,
-          'service_interval_id': interval['id'],
-          'interval_hours': intervalHours,
-          'due_at_hours': nextDueHours,
-          'acknowledged': false,
-          'threshold_50hr_sent': false,
-          'threshold_10hr_sent': false,
-          'threshold_due_sent': false,
-        }).eq('id', reminder.id);
+        await supabase
+            .from(AppConstants.tServiceReminders)
+            .update({
+              'engine_id': engineId,
+              'service_interval_id': interval['id'],
+              'interval_hours': intervalHours,
+              'due_at_hours': nextDueHours,
+              'acknowledged': false,
+              'threshold_50hr_sent': false,
+              'threshold_10hr_sent': false,
+              'threshold_due_sent': false,
+            })
+            .eq('id', reminder.id)
+            .timeout(const Duration(seconds: 4));
       } else {
         await supabase.from(AppConstants.tServiceReminders).insert({
           'asset_id': assetId,
@@ -392,13 +398,17 @@ class ServiceIntervalController extends StateNotifier<AsyncValue<void>> {
           'interval_hours': intervalHours,
           'due_at_hours': nextDueHours,
           'acknowledged': false,
-        });
+        }).timeout(const Duration(seconds: 4));
       }
 
-      await supabase.from(AppConstants.tWorkOrders).update({
-        'status': WorkOrderStatus.closed.dbValue,
-        'completed_at': DateTime.now().toIso8601String(),
-      }).eq('id', workOrderId);
+      await supabase
+          .from(AppConstants.tWorkOrders)
+          .update({
+            'status': WorkOrderStatus.closed.dbValue,
+            'completed_at': DateTime.now().toIso8601String(),
+          })
+          .eq('id', workOrderId)
+          .timeout(const Duration(seconds: 4));
 
       _ref.invalidate(serviceIntervalsProvider(assetId));
       _ref.invalidate(serviceIntervalSummariesProvider(assetId));
@@ -473,16 +483,19 @@ class ServiceIntervalController extends StateNotifier<AsyncValue<void>> {
                     0)
                 .toInt();
 
-        await supabase.from(AppConstants.tAssetServiceIntervals).update({
-          if (intervalHours != null) 'interval_hours': intervalHours,
-          if (clearChecklistTemplate || checklistTemplateId != null)
-            'checklist_template_id': clearChecklistTemplate
-                ? null
-                : checklistTemplateId,
-          if (label != null)
-            'interval_label': label.trim().isEmpty ? null : label.trim(),
-          if (enabled != null) 'is_active': enabled,
-        }).eq('id', id);
+        await supabase
+            .from(AppConstants.tAssetServiceIntervals)
+            .update({
+              if (intervalHours != null) 'interval_hours': intervalHours,
+              if (clearChecklistTemplate || checklistTemplateId != null)
+                'checklist_template_id':
+                    clearChecklistTemplate ? null : checklistTemplateId,
+              if (label != null)
+                'interval_label': label.trim().isEmpty ? null : label.trim(),
+              if (enabled != null) 'is_active': enabled,
+            })
+            .eq('id', id)
+            .timeout(const Duration(seconds: 4));
         await _ensureReminder(
           assetId: assetId,
           intervalId: id,
@@ -517,7 +530,8 @@ class ServiceIntervalController extends StateNotifier<AsyncValue<void>> {
 
         final reminderRows = await supabase
             .from(AppConstants.tServiceReminders)
-            .select('id, service_interval_id, interval_hours, due_at_hours, acknowledged')
+            .select(
+                'id, service_interval_id, interval_hours, due_at_hours, acknowledged')
             .eq('asset_id', assetId);
         final matchingReminder = _pickReminderForInterval(
           AssetServiceInterval(
@@ -534,18 +548,21 @@ class ServiceIntervalController extends StateNotifier<AsyncValue<void>> {
         await supabase
             .from(AppConstants.tAssetServiceIntervals)
             .delete()
-            .eq('id', id);
+            .eq('id', id)
+            .timeout(const Duration(seconds: 4));
         if (matchingReminder != null) {
           await supabase
               .from(AppConstants.tServiceReminders)
               .delete()
-              .eq('id', matchingReminder.id);
+              .eq('id', matchingReminder.id)
+              .timeout(const Duration(seconds: 4));
         } else if (intervalHours > 0) {
           await supabase
               .from(AppConstants.tServiceReminders)
               .delete()
               .eq('asset_id', assetId)
-              .eq('interval_hours', intervalHours);
+              .eq('interval_hours', intervalHours)
+              .timeout(const Duration(seconds: 4));
         }
         _ref.invalidate(serviceIntervalsProvider(assetId));
         _ref.invalidate(serviceIntervalSummariesProvider(assetId));
