@@ -7,6 +7,7 @@ import 'package:vortice_app/core/theme.dart';
 import 'package:vortice_app/features/auth/auth_provider.dart';
 import 'package:vortice_app/features/work_orders/work_order_provider.dart';
 import 'package:vortice_app/features/service_reports/service_report_provider.dart';
+import 'package:vortice_app/features/service_requests/service_request_provider.dart';
 import 'package:vortice_app/models/work_order.dart';
 
 class EmployeeDashboard extends ConsumerWidget {
@@ -18,6 +19,7 @@ class EmployeeDashboard extends ConsumerWidget {
     final profile = ref.watch(profileProvider).valueOrNull;
     final workOrdersAsync = ref.watch(workOrdersProvider);
     final reportsAsync = ref.watch(serviceReportsProvider);
+    final newServiceRequestCount = ref.watch(newServiceRequestCountProvider);
 
     final today = DateFormat('EEEE, MMMM d').format(DateTime.now());
 
@@ -36,6 +38,7 @@ class EmployeeDashboard extends ConsumerWidget {
         onRefresh: () async {
           ref.invalidate(workOrdersProvider);
           ref.invalidate(serviceReportsProvider);
+          ref.invalidate(newServiceRequestCountProvider);
         },
         child: workOrdersAsync.when(
           loading: () => const Center(child: CircularProgressIndicator()),
@@ -140,10 +143,12 @@ class EmployeeDashboard extends ConsumerWidget {
                   child: Row(
                     children: [
                       _QuickAction(
-                        icon: Icons.description_outlined,
-                        label: 'New Report',
-                        onTap: () =>
-                            context.push('/employee/service-reports/new'),
+                        icon: Icons.support_agent_outlined,
+                        label: newServiceRequestCount.valueOrNull == null ||
+                                newServiceRequestCount.valueOrNull == 0
+                            ? 'Requests'
+                            : 'Requests (${newServiceRequestCount.valueOrNull})',
+                        onTap: () => context.push('/employee/service-requests'),
                       ),
                       const SizedBox(width: 10),
                       _QuickAction(

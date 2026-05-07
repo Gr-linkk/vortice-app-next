@@ -11,6 +11,7 @@ import 'package:vortice_app/features/auth/auth_provider.dart';
 import 'package:vortice_app/features/notifications/notification_provider.dart';
 import 'package:vortice_app/features/work_orders/work_order_provider.dart';
 import 'package:vortice_app/features/reminders/reminder_provider.dart';
+import 'package:vortice_app/features/service_requests/service_request_provider.dart';
 import 'package:vortice_app/features/telemetry/telemetry_provider.dart';
 import 'package:vortice_app/models/telemetry_alert.dart';
 import 'package:vortice_app/models/work_order.dart';
@@ -101,6 +102,7 @@ class OwnerDashboard extends ConsumerWidget {
     final assetsAsync = ref.watch(assetsProvider);
     final workOrdersAsync = ref.watch(workOrdersProvider);
     final urgentCount = ref.watch(reminderUrgentCountProvider);
+    final newServiceRequestCount = ref.watch(newServiceRequestCountProvider);
     final clientsAsync = ref.watch(clientSummaryProvider);
 
     return Scaffold(
@@ -119,6 +121,7 @@ class OwnerDashboard extends ConsumerWidget {
         onRefresh: () async {
           ref.invalidate(assetsProvider);
           ref.invalidate(workOrdersProvider);
+          ref.invalidate(newServiceRequestCountProvider);
         },
         child: ListView(
           padding: const EdgeInsets.only(bottom: 24),
@@ -214,6 +217,16 @@ class OwnerDashboard extends ConsumerWidget {
                 color: AppColors.error,
                 badge: urgentCount.valueOrNull,
                 onTap: () => context.push('/owner/reminders'),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+              child: _QuickAccessCard(
+                icon: Icons.support_agent_outlined,
+                label: 'Service Requests',
+                color: AppColors.warning,
+                badge: newServiceRequestCount.valueOrNull,
+                onTap: () => context.push('/owner/service-requests'),
               ),
             ),
             Padding(

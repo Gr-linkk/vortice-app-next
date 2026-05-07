@@ -9,9 +9,9 @@ import 'package:vortice_app/features/auth/auth_provider.dart';
 import 'package:vortice_app/features/invoices/invoice_provider.dart';
 import 'package:vortice_app/features/notifications/notification_provider.dart';
 import 'package:vortice_app/features/service_reports/service_report_provider.dart';
+import 'package:vortice_app/features/service_requests/service_request_provider.dart';
 import 'package:vortice_app/models/asset.dart';
 import 'package:vortice_app/models/invoice.dart';
-import 'package:vortice_app/models/service_report.dart';
 
 /// Managed Tier (T1+) client dashboard.
 /// Clients do NOT see work orders — only service reports, invoices, vessels, flags.
@@ -25,6 +25,7 @@ class ClientDashboardManaged extends ConsumerWidget {
     final invoicesAsync = ref.watch(invoicesProvider);
     final reportsAsync = ref.watch(clientServiceReportsProvider);
     final flagsAsync = ref.watch(clientFlaggedIssuesProvider);
+    final serviceRequestsAsync = ref.watch(clientServiceRequestsProvider);
 
     return Scaffold(
       appBar: AppBar(
@@ -33,7 +34,8 @@ class ClientDashboardManaged extends ConsumerWidget {
           _MBellButton(route: '/client/notifications'),
           IconButton(
             icon: const Icon(Icons.logout),
-            onPressed: () => ref.read(authControllerProvider.notifier).signOut(),
+            onPressed: () =>
+                ref.read(authControllerProvider.notifier).signOut(),
           ),
         ],
       ),
@@ -43,6 +45,7 @@ class ClientDashboardManaged extends ConsumerWidget {
           ref.invalidate(invoicesProvider);
           ref.invalidate(clientServiceReportsProvider);
           ref.invalidate(clientFlaggedIssuesProvider);
+          ref.invalidate(clientServiceRequestsProvider);
         },
         child: ListView(
           padding: const EdgeInsets.only(bottom: 32),
@@ -84,8 +87,7 @@ class ClientDashboardManaged extends ConsumerWidget {
                   final createdAt = r['created_at'] != null
                       ? DateTime.tryParse(r['created_at'] as String)
                       : null;
-                  return createdAt != null &&
-                      createdAt.isAfter(thirtyDaysAgo);
+                  return createdAt != null && createdAt.isAfter(thirtyDaysAgo);
                 }).toList();
                 if (recent.isEmpty) {
                   return const _MEmptyStateTile(
@@ -94,40 +96,37 @@ class ClientDashboardManaged extends ConsumerWidget {
                   );
                 }
                 return Column(
-                  children: recent
-                      .take(5)
-                      .map((r) {
-                        final assetName = ((r['work_orders']
-                              as Map<String, dynamic>?)?['assets']
+                  children: recent.take(5).map((r) {
+                    final assetName =
+                        ((r['work_orders'] as Map<String, dynamic>?)?['assets']
                             as Map<String, dynamic>?)?['name'] as String?;
-                        final createdAt = r['created_at'] != null
-                            ? DateTime.tryParse(r['created_at'] as String)
-                            : null;
-                        return ListTile(
-                          leading: const CircleAvatar(
-                            backgroundColor: AppColors.surfaceVariant,
-                            child: Icon(Icons.build_outlined,
-                                size: 18, color: AppColors.textSecondary),
-                          ),
-                          title: Text(
-                            r['correction'] as String? ??
-                                r['comments'] as String? ??
-                                'Service completed',
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                          subtitle: Text(
-                            [
-                              if (assetName != null) assetName,
-                              if (createdAt != null)
-                                DateFormat('MMM d, yyyy').format(createdAt),
-                            ].join(' • '),
-                            style: const TextStyle(
-                                color: AppColors.textSecondary, fontSize: 12),
-                          ),
-                        );
-                      })
-                      .toList(),
+                    final createdAt = r['created_at'] != null
+                        ? DateTime.tryParse(r['created_at'] as String)
+                        : null;
+                    return ListTile(
+                      leading: const CircleAvatar(
+                        backgroundColor: AppColors.surfaceVariant,
+                        child: Icon(Icons.build_outlined,
+                            size: 18, color: AppColors.textSecondary),
+                      ),
+                      title: Text(
+                        r['correction'] as String? ??
+                            r['comments'] as String? ??
+                            'Service completed',
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      subtitle: Text(
+                        [
+                          if (assetName != null) assetName,
+                          if (createdAt != null)
+                            DateFormat('MMM d, yyyy').format(createdAt),
+                        ].join(' • '),
+                        style: const TextStyle(
+                            color: AppColors.textSecondary, fontSize: 12),
+                      ),
+                    );
+                  }).toList(),
                 );
               },
             ),
@@ -146,9 +145,8 @@ class ClientDashboardManaged extends ConsumerWidget {
                       color: AppColors.warning,
                     ),
                     ...flags.map((flag) {
-                      final assetName =
-                          (flag['assets'] as Map<String, dynamic>?)?['name']
-                              as String? ??
+                      final assetName = (flag['assets']
+                              as Map<String, dynamic>?)?['name'] as String? ??
                           'Unknown vessel';
                       final isUrgent = flag['severity'] == 'urgent';
                       return Card(
@@ -156,10 +154,9 @@ class ClientDashboardManaged extends ConsumerWidget {
                             horizontal: 16, vertical: 4),
                         child: ListTile(
                           leading: CircleAvatar(
-                            backgroundColor: (isUrgent
-                                    ? AppColors.error
-                                    : AppColors.warning)
-                                .withOpacity(0.15),
+                            backgroundColor:
+                                (isUrgent ? AppColors.error : AppColors.warning)
+                                    .withOpacity(0.15),
                             child: Icon(
                               isUrgent ? Icons.warning : Icons.flag,
                               color: isUrgent
@@ -205,6 +202,54 @@ class ClientDashboardManaged extends ConsumerWidget {
               },
             ),
 
+            // ── Service Requests ─────────────────────────────────────────
+            _SectionHeader(title: 'Service Requests'),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+              child: ElevatedButton.icon(
+                onPressed: () => context.push('/client/service-requests/new'),
+                icon: const Icon(Icons.support_agent_outlined),
+                label: const Text('Request Service'),
+                style: ElevatedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                ),
+              ),
+            ),
+            serviceRequestsAsync.when(
+              loading: () => const SizedBox.shrink(),
+              error: (_, __) => const SizedBox.shrink(),
+              data: (requests) {
+                if (requests.isEmpty) {
+                  return const _MEmptyStateTile(
+                    icon: Icons.inbox_outlined,
+                    message: 'No service requests yet.',
+                  );
+                }
+                return Column(
+                  children: requests.take(3).map((request) {
+                    return ListTile(
+                      leading: const CircleAvatar(
+                        backgroundColor: AppColors.surfaceVariant,
+                        child: Icon(Icons.support_agent_outlined,
+                            size: 18, color: AppColors.textSecondary),
+                      ),
+                      title: Text(
+                        request.title,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      subtitle: Text(
+                        '${request.clientStatusLabel} • ${request.createdLabel}',
+                        style: const TextStyle(
+                            color: AppColors.textSecondary, fontSize: 12),
+                      ),
+                      onTap: () => context.push('/client/service-requests'),
+                    );
+                  }).toList(),
+                );
+              },
+            ),
+
             // ── My Vessels ───────────────────────────────────────────────
             _SectionHeader(title: 'My Vessels'),
             assetsAsync.when(
@@ -214,8 +259,7 @@ class ClientDashboardManaged extends ConsumerWidget {
                 if (assets.isEmpty) {
                   return const _MEmptyStateTile(
                     icon: Icons.directions_boat_outlined,
-                    message:
-                        'No vessels yet. Contact Vórtice to get started.',
+                    message: 'No vessels yet. Contact Vórtice to get started.',
                   );
                 }
                 return Column(
@@ -258,40 +302,37 @@ class ClientDashboardManaged extends ConsumerWidget {
                   );
                 }
                 return Column(
-                  children: reports
-                      .take(5)
-                      .map((r) {
-                        final assetName = ((r['work_orders']
-                              as Map<String, dynamic>?)?['assets']
+                  children: reports.take(5).map((r) {
+                    final assetName =
+                        ((r['work_orders'] as Map<String, dynamic>?)?['assets']
                             as Map<String, dynamic>?)?['name'] as String?;
-                        final createdAt = r['created_at'] != null
-                            ? DateTime.tryParse(r['created_at'] as String)
-                            : null;
-                        return ListTile(
-                          leading: const CircleAvatar(
-                            backgroundColor: AppColors.surfaceVariant,
-                            child: Icon(Icons.assignment_outlined,
-                                size: 18, color: AppColors.textSecondary),
-                          ),
-                          title: Text(
-                            r['correction'] as String? ??
-                                r['comments'] as String? ??
-                                'Service report',
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                          subtitle: Text(
-                            [
-                              if (assetName != null) assetName,
-                              if (createdAt != null)
-                                DateFormat('MMM d, yyyy').format(createdAt),
-                            ].join(' • '),
-                            style: const TextStyle(
-                                color: AppColors.textSecondary, fontSize: 12),
-                          ),
-                        );
-                      })
-                      .toList(),
+                    final createdAt = r['created_at'] != null
+                        ? DateTime.tryParse(r['created_at'] as String)
+                        : null;
+                    return ListTile(
+                      leading: const CircleAvatar(
+                        backgroundColor: AppColors.surfaceVariant,
+                        child: Icon(Icons.assignment_outlined,
+                            size: 18, color: AppColors.textSecondary),
+                      ),
+                      title: Text(
+                        r['correction'] as String? ??
+                            r['comments'] as String? ??
+                            'Service report',
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      subtitle: Text(
+                        [
+                          if (assetName != null) assetName,
+                          if (createdAt != null)
+                            DateFormat('MMM d, yyyy').format(createdAt),
+                        ].join(' • '),
+                        style: const TextStyle(
+                            color: AppColors.textSecondary, fontSize: 12),
+                      ),
+                    );
+                  }).toList(),
                 );
               },
             ),
@@ -315,10 +356,7 @@ class _SectionHeader extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(16, 24, 16, 8),
       child: Text(
         title,
-        style: Theme.of(context)
-            .textTheme
-            .titleMedium
-            ?.copyWith(color: color),
+        style: Theme.of(context).textTheme.titleMedium?.copyWith(color: color),
       ),
     );
   }
@@ -486,4 +524,3 @@ class _MInvoiceTile extends StatelessWidget {
 }
 
 // ── Service report tile ────────────────────────────────────────────────────────
-

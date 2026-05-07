@@ -57,4 +57,5 @@ class AppConstants {
   static const String tWorkOrderAssignments = 'work_order_assignments';
   static const String tClientOrgs = 'client_orgs';
   static const String tMeetingRequests = 'meeting_requests';
+  static const String tServiceRequests = 'service_requests';
 }
