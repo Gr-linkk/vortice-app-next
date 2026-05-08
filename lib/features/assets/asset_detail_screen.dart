@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:vortice_app/core/asset_icons.dart';
 import 'package:vortice_app/core/theme.dart';
 import 'package:vortice_app/features/assets/asset_provider.dart';
+import 'package:vortice_app/features/assets/asset_workflow_policy.dart';
 import 'package:vortice_app/features/auth/auth_provider.dart';
 import 'package:vortice_app/features/engines/engine_provider.dart';
 import 'package:vortice_app/features/service_intervals/service_interval_provider.dart';
@@ -27,7 +28,7 @@ class AssetDetailScreen extends ConsumerWidget {
     final l10n = AppLocalizations.of(context);
     final assetAsync = ref.watch(assetByIdProvider(assetId));
     final profile = ref.watch(profileProvider).valueOrNull;
-    final canEdit = profile?.role == UserRole.owner;
+    final canEdit = AssetWorkflowPolicy.canManageAsset(profile?.role);
 
     return Scaffold(
       appBar: AppBar(
@@ -125,16 +126,7 @@ class _AssetDetailBody extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context);
     final role = ref.watch(profileProvider).valueOrNull?.role;
-    final prefix = switch (role) {
-      UserRole.owner => '/owner',
-      UserRole.employee => '/employee',
-      UserRole.client => '/client',
-      UserRole.operator => '/operator',
-      UserRole.clientAdmin => '/client',
-      UserRole.clientMechanic => '/client',
-      UserRole.clientOperator => '/client',
-      null => '/owner',
-    };
+    final prefix = AssetWorkflowPolicy.routePrefixForRole(role);
 
     return ListView(
       padding: const EdgeInsets.all(16),
@@ -188,22 +180,23 @@ class _AssetDetailBody extends ConsumerWidget {
         _DetailRow(label: l10n.serialNumber, value: asset.serialNumber),
         _DetailRow(label: l10n.year, value: asset.year?.toString()),
         _DetailRow(label: l10n.location, value: asset.location),
-        if (role == UserRole.owner) _ClientAssignRow(asset: asset),
-        if (_canSeeChecklistHistory(role)) ...[
+        if (AssetWorkflowPolicy.canManageAsset(role))
+          _ClientAssignRow(asset: asset),
+        if (AssetWorkflowPolicy.canSeeChecklistHistory(role)) ...[
           const SizedBox(height: 16),
           _ChecklistHistoryCard(asset: asset, routePrefix: prefix),
         ],
         // Engines card (owner only)
-        if (role == UserRole.owner) ...[
+        if (AssetWorkflowPolicy.canSeeEngines(role)) ...[
           const SizedBox(height: 16),
           _EnginesCard(assetId: asset.id, routePrefix: prefix),
         ],
-        if (_canSeeMaintenancePlan(role)) ...[
+        if (AssetWorkflowPolicy.canSeeMaintenancePlan(role)) ...[
           const SizedBox(height: 16),
           _MaintenancePlanCard(
             assetId: asset.id,
             routePrefix: prefix,
-            readOnly: role != UserRole.owner,
+            readOnly: !AssetWorkflowPolicy.canManageAsset(role),
           ),
         ],
         // Device status strip + Live Telemetry
@@ -291,27 +284,6 @@ class _EnginesCard extends ConsumerWidget {
     );
   }
 }
-
-bool _canSeeMaintenancePlan(UserRole? role) => switch (role) {
-      UserRole.owner ||
-      UserRole.client ||
-      UserRole.clientAdmin ||
-      UserRole.clientMechanic =>
-        true,
-      _ => false,
-    };
-
-bool _canSeeChecklistHistory(UserRole? role) => switch (role) {
-      UserRole.owner ||
-      UserRole.employee ||
-      UserRole.client ||
-      UserRole.clientAdmin ||
-      UserRole.clientMechanic ||
-      UserRole.operator ||
-      UserRole.clientOperator =>
-        true,
-      _ => false,
-    };
 
 class _ChecklistHistoryCard extends StatelessWidget {
   final Asset asset;
