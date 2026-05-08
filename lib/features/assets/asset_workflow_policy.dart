@@ -39,6 +39,14 @@ class AssetWorkflowPolicy {
         _ => false,
       };
 
+  static bool canStartClientChecklist(UserRole? role) => switch (role) {
+        UserRole.client ||
+        UserRole.clientAdmin ||
+        UserRole.clientMechanic =>
+          true,
+        _ => false,
+      };
+
   static bool canManageAsset(UserRole? role) => role == UserRole.owner;
 
   static bool canSeeEngines(UserRole? role) => role == UserRole.owner;

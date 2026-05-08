@@ -322,6 +322,15 @@ final routerProvider = Provider<GoRouter>((ref) {
             ),
           ),
           GoRoute(
+            path: '/client/assets/:id/checklists/new',
+            builder: (_, state) => ChecklistScreen(
+              assetId: state.pathParameters['id']!,
+              assetClientId: state.uri.queryParameters['clientId'],
+              assetName: state.uri.queryParameters['name'] ?? 'Asset',
+              clientHistoryOnly: true,
+            ),
+          ),
+          GoRoute(
               path: '/client/work-orders',
               builder: (_, __) => const WorkOrderListScreen()),
           GoRoute(

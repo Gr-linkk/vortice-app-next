@@ -10,7 +10,8 @@ void main() {
         AssetWorkflowPolicy.routePrefixForRole(UserRole.employee),
         '/employee',
       );
-      expect(AssetWorkflowPolicy.routePrefixForRole(UserRole.client), '/client');
+      expect(
+          AssetWorkflowPolicy.routePrefixForRole(UserRole.client), '/client');
       expect(
         AssetWorkflowPolicy.routePrefixForRole(UserRole.operator),
         '/operator',
@@ -51,7 +52,8 @@ void main() {
       expect(AssetWorkflowPolicy.canSeeChecklistHistory(null), isFalse);
     });
 
-    test('allows maintenance plan for owner and client maintenance roles only', () {
+    test('allows maintenance plan for owner and client maintenance roles only',
+        () {
       const visibleRoles = [
         UserRole.owner,
         UserRole.client,
@@ -79,6 +81,36 @@ void main() {
         );
       }
       expect(AssetWorkflowPolicy.canSeeMaintenancePlan(null), isFalse);
+    });
+
+    test('allows client maintenance roles to start client-side checklists', () {
+      const allowedRoles = [
+        UserRole.client,
+        UserRole.clientAdmin,
+        UserRole.clientMechanic,
+      ];
+      const hiddenRoles = [
+        UserRole.owner,
+        UserRole.employee,
+        UserRole.operator,
+        UserRole.clientOperator,
+      ];
+
+      for (final role in allowedRoles) {
+        expect(
+          AssetWorkflowPolicy.canStartClientChecklist(role),
+          isTrue,
+          reason: '$role should start client-side checklists',
+        );
+      }
+      for (final role in hiddenRoles) {
+        expect(
+          AssetWorkflowPolicy.canStartClientChecklist(role),
+          isFalse,
+          reason: '$role should not start client-side checklists',
+        );
+      }
+      expect(AssetWorkflowPolicy.canStartClientChecklist(null), isFalse);
     });
 
     test('keeps asset management and engine visibility owner-only', () {

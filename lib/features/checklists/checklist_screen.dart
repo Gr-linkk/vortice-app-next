@@ -21,13 +21,25 @@ import 'package:vortice_app/models/checklist_template.dart';
 import 'package:vortice_app/sync/sync_status.dart';
 
 class ChecklistScreen extends ConsumerStatefulWidget {
-  final String workOrderId;
+  final String? workOrderId;
+  final String? assetId;
+  final String? assetClientId;
+  final String? assetName;
+  final bool clientHistoryOnly;
   final String? preSelectedTemplateId;
+
   const ChecklistScreen({
     super.key,
-    required this.workOrderId,
+    this.workOrderId,
+    this.assetId,
+    this.assetClientId,
+    this.assetName,
+    this.clientHistoryOnly = false,
     this.preSelectedTemplateId,
-  });
+  }) : assert(
+          workOrderId != null || (assetId != null && assetClientId != null),
+          'ChecklistScreen needs a work order or asset/client pair.',
+        );
 
   @override
   ConsumerState<ChecklistScreen> createState() => _ChecklistScreenState();
@@ -59,8 +71,10 @@ class _ChecklistScreenState extends ConsumerState<ChecklistScreen> {
     });
   }
 
-  String get _draftKey => 'checklist_draft_${widget.workOrderId}';
-  String get _photoCacheKey => 'checklist_photo_cache_${widget.workOrderId}';
+  String get _checklistRunKey =>
+      widget.workOrderId ?? 'asset_${widget.assetId}';
+  String get _draftKey => 'checklist_draft_$_checklistRunKey';
+  String get _photoCacheKey => 'checklist_photo_cache_$_checklistRunKey';
 
   Future<void> _loadCachedPhotos(SharedPreferences prefs) async {
     final raw = prefs.getString(_photoCacheKey);
@@ -98,24 +112,27 @@ class _ChecklistScreenState extends ConsumerState<ChecklistScreen> {
 
   Future<void> _loadSavedChecklistState() async {
     try {
-      final savedResponses = await ref
-          .read(checklistRepositoryProvider)
-          .listResponsesForWorkOrder(widget.workOrderId);
-      for (final response in savedResponses) {
-        final itemId = response.checklistItemId;
-        _responses[itemId] = response.responseStatus ??
-            (response.completed ? 'pass' : 'monitor');
-        final note = response.notes;
-        if (note?.isNotEmpty == true) {
-          _notes[itemId] = note!;
-        }
-        final photoUrl = response.photoUrl;
-        final hasLocalPendingPhoto =
-            response.syncStatus != SyncStatusValues.synced &&
-                response.lastError != null &&
-                response.lastError!.isNotEmpty;
-        if (photoUrl?.isNotEmpty == true && !hasLocalPendingPhoto) {
-          _photoUrls[itemId] = photoUrl;
+      final workOrderId = widget.workOrderId;
+      if (workOrderId != null) {
+        final savedResponses = await ref
+            .read(checklistRepositoryProvider)
+            .listResponsesForWorkOrder(workOrderId);
+        for (final response in savedResponses) {
+          final itemId = response.checklistItemId;
+          _responses[itemId] = response.responseStatus ??
+              (response.completed ? 'pass' : 'monitor');
+          final note = response.notes;
+          if (note?.isNotEmpty == true) {
+            _notes[itemId] = note!;
+          }
+          final photoUrl = response.photoUrl;
+          final hasLocalPendingPhoto =
+              response.syncStatus != SyncStatusValues.synced &&
+                  response.lastError != null &&
+                  response.lastError!.isNotEmpty;
+          if (photoUrl?.isNotEmpty == true && !hasLocalPendingPhoto) {
+            _photoUrls[itemId] = photoUrl;
+          }
         }
       }
     } catch (_) {
@@ -203,7 +220,7 @@ class _ChecklistScreenState extends ConsumerState<ChecklistScreen> {
       }
       final existingUrl = urls[entry.key];
       final ts = DateTime.now().millisecondsSinceEpoch;
-      final path = 'checklists/${widget.workOrderId}/${entry.key}_$ts.jpg';
+      final path = 'checklists/$_checklistRunKey/${entry.key}_$ts.jpg';
       try {
         await supabase.storage
             .from(AppConstants.bucketReportPhotos)
@@ -246,16 +263,22 @@ class _ChecklistScreenState extends ConsumerState<ChecklistScreen> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final templatesAsync = ref.watch(checklistTemplatesProvider);
-    final workOrderAsync = ref.watch(workOrderByIdProvider(widget.workOrderId));
-    final snapshotAsync =
-        ref.watch(workOrderChecklistSnapshotProvider(widget.workOrderId));
-    final profile = ref.watch(profileProvider).valueOrNull;
-    final workOrder = workOrderAsync.valueOrNull;
-    final assetName = workOrder == null
+    final workOrderId = widget.workOrderId;
+    final workOrder = workOrderId == null
         ? null
-        : ref.watch(assetNameProvider(workOrder.assetId)).valueOrNull;
-    final boundTemplateId = snapshotAsync.valueOrNull?.templateId ??
-        workOrderAsync.valueOrNull?.checklistTemplateId ??
+        : ref.watch(workOrderByIdProvider(workOrderId)).valueOrNull;
+    final snapshot = workOrderId == null
+        ? null
+        : ref
+            .watch(workOrderChecklistSnapshotProvider(workOrderId))
+            .valueOrNull;
+    final profile = ref.watch(profileProvider).valueOrNull;
+    final assetName = widget.assetName ??
+        (workOrder == null
+            ? null
+            : ref.watch(assetNameProvider(workOrder.assetId)).valueOrNull);
+    final boundTemplateId = snapshot?.templateId ??
+        workOrder?.checklistTemplateId ??
         widget.preSelectedTemplateId;
     final templateSelectionLocked = boundTemplateId != null;
 
@@ -281,7 +304,6 @@ class _ChecklistScreenState extends ConsumerState<ChecklistScreen> {
               style: const TextStyle(color: AppColors.error)),
         ),
         data: (templates) {
-          final snapshot = snapshotAsync.valueOrNull;
           final snapshotTemplate = snapshot?.asTemplate();
 
           if (snapshotTemplate != null &&
@@ -352,7 +374,8 @@ class _ChecklistScreenState extends ConsumerState<ChecklistScreen> {
 
           return _ChecklistForm(
             template: _selectedTemplate!,
-            workOrderId: widget.workOrderId,
+            workOrderId: _checklistRunKey,
+            showSyncStatus: widget.workOrderId != null,
             snapshotItems: snapshotItems,
             metadataCaption: metaBits.isEmpty ? null : metaBits.join(' • '),
             responses: _responses,
@@ -416,42 +439,59 @@ class _ChecklistScreenState extends ConsumerState<ChecklistScreen> {
                 ..addAll(photoUrls);
               await _savePhotoCache();
               await _saveDraft();
-              await ref.read(maintenanceChecklistSubmissionProvider).submit(
-                    workOrderId: widget.workOrderId,
-                    assetId: workOrder?.assetId,
-                    clientId: workOrder?.clientId,
-                    template: _selectedTemplate!,
-                    loadItems: () async =>
-                        snapshotItems ??
-                        await ref.read(
-                            checklistItemsProvider(_selectedTemplate!.id)
-                                .future),
-                    completedBy: profile?.id ?? '',
-                    submittedByRole: profile?.role.name,
-                    submittedAt: _completedAt,
-                    responses: _responses,
-                    notes: _notes,
-                    photoUrls: photoUrls,
-                    currentHours: _currentHours,
-                    generalNotes: _generalNotes,
-                    holdForSyncReason: _photoUploadDeferredReason,
-                  );
-              final submitState = ref.read(checklistControllerProvider);
-              if (submitState.hasError) {
-                final error = submitState.error;
-                if (context.mounted) {
-                  final savedLocally = error is LocalChecklistPendingException;
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text(savedLocally
-                          ? error.message
-                          : 'Checklist save failed: $error'),
-                      backgroundColor:
-                          savedLocally ? AppColors.warning : AppColors.error,
-                    ),
-                  );
+              final List<ChecklistItem> items = snapshotItems ??
+                  await ref.read(
+                      checklistItemsProvider(_selectedTemplate!.id).future);
+              if (widget.clientHistoryOnly) {
+                await ref.read(clientChecklistSubmissionProvider).submit(
+                      assetId: widget.assetId!,
+                      clientId: widget.assetClientId!,
+                      submittedBy: profile?.id ?? '',
+                      submittedByRole: profile?.role.name,
+                      template: _selectedTemplate!,
+                      items: items,
+                      responses: _responses,
+                      notes: _notes,
+                      photoUrls: photoUrls,
+                      submittedAt: _completedAt,
+                      currentHours: _currentHours,
+                      generalNotes: _generalNotes,
+                    );
+              } else {
+                await ref.read(maintenanceChecklistSubmissionProvider).submit(
+                      workOrderId: widget.workOrderId!,
+                      assetId: workOrder?.assetId,
+                      clientId: workOrder?.clientId,
+                      template: _selectedTemplate!,
+                      loadItems: () async => items,
+                      completedBy: profile?.id ?? '',
+                      submittedByRole: profile?.role.name,
+                      submittedAt: _completedAt,
+                      responses: _responses,
+                      notes: _notes,
+                      photoUrls: photoUrls,
+                      currentHours: _currentHours,
+                      generalNotes: _generalNotes,
+                      holdForSyncReason: _photoUploadDeferredReason,
+                    );
+                final submitState = ref.read(checklistControllerProvider);
+                if (submitState.hasError) {
+                  final error = submitState.error;
+                  if (context.mounted) {
+                    final savedLocally =
+                        error is LocalChecklistPendingException;
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(savedLocally
+                            ? error.message
+                            : 'Checklist save failed: $error'),
+                        backgroundColor:
+                            savedLocally ? AppColors.warning : AppColors.error,
+                      ),
+                    );
+                  }
+                  return;
                 }
-                return;
               }
               final prefs = await SharedPreferences.getInstance();
               await prefs.remove(_draftKey);
@@ -685,6 +725,7 @@ class _GroupedTemplateSelector extends StatelessWidget {
 class _ChecklistForm extends ConsumerStatefulWidget {
   final ChecklistTemplate template;
   final String workOrderId;
+  final bool showSyncStatus;
   final List<ChecklistItem>? snapshotItems;
   final String? metadataCaption;
   final Map<String, String?> responses;
@@ -707,6 +748,7 @@ class _ChecklistForm extends ConsumerStatefulWidget {
   const _ChecklistForm({
     required this.template,
     required this.workOrderId,
+    required this.showSyncStatus,
     this.snapshotItems,
     this.metadataCaption,
     required this.responses,
@@ -774,11 +816,13 @@ class _ChecklistFormState extends ConsumerState<_ChecklistForm> {
         ? AsyncValue.data(widget.snapshotItems!)
         : ref.watch(checklistItemsProvider(widget.template.id));
     final isLoading = ref.watch(checklistControllerProvider).isLoading;
-    final syncStatusByItem = ref
-            .watch(
-                checklistResponseSyncStatusByItemProvider(widget.workOrderId))
-            .valueOrNull ??
-        const <String, String>{};
+    final syncStatusByItem = widget.showSyncStatus
+        ? ref
+                .watch(checklistResponseSyncStatusByItemProvider(
+                    widget.workOrderId))
+                .valueOrNull ??
+            const <String, String>{}
+        : const <String, String>{};
     final visibleSyncStatuses = syncStatusByItem.values
         .where(_isVisibleChecklistSyncStatus)
         .toList(growable: false);
