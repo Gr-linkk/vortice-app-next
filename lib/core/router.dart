@@ -21,7 +21,6 @@ import 'package:vortice_app/features/invoices/invoice_detail_screen.dart';
 import 'package:vortice_app/features/operator/maintenance_flag_screen.dart';
 import 'package:vortice_app/features/operator/operator_checklist_screen.dart';
 import 'package:vortice_app/features/parts/parts_log_screen.dart';
-import 'package:vortice_app/features/parts/parts_inventory_screen.dart';
 import 'package:vortice_app/features/parts/pm_kits_screen.dart';
 import 'package:vortice_app/features/parts/pm_parts_setup_screen.dart';
 import 'package:vortice_app/features/service_reports/service_report_screen.dart';
@@ -223,9 +222,6 @@ final routerProvider = Provider<GoRouter>((ref) {
               path: '/owner/notifications',
               builder: (_, __) => const NotificationsScreen()),
           GoRoute(
-              path: '/owner/parts/inventory',
-              builder: (_, __) => const PartsInventoryScreen()),
-          GoRoute(
             path: '/owner/checklists/:workOrderId',
             builder: (_, state) => ChecklistScreen(
                 workOrderId: state.pathParameters['workOrderId']!),
@@ -288,9 +284,6 @@ final routerProvider = Provider<GoRouter>((ref) {
           GoRoute(
               path: '/employee/parts',
               builder: (_, __) => const PartsLogScreen()),
-          GoRoute(
-              path: '/employee/parts/inventory',
-              builder: (_, __) => const PartsInventoryScreen()),
 
           // Client
           GoRoute(

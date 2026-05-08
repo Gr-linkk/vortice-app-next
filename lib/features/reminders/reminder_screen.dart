@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:vortice_app/l10n/app_localizations.dart';
 import 'package:vortice_app/core/theme.dart';
-import 'package:vortice_app/features/parts/pm_parts_provider.dart';
 import 'package:vortice_app/features/reminders/reminder_provider.dart';
 
 class ReminderScreen extends ConsumerWidget {
@@ -204,10 +203,6 @@ class _ReminderCard extends ConsumerWidget {
                   fontWeight: FontWeight.w500,
                 ),
               ),
-              if (reminder.checklistTemplateId != null) ...[
-                const SizedBox(height: 8),
-                _ReadinessBadge(templateId: reminder.checklistTemplateId!),
-              ],
             ],
           ),
         ),
@@ -240,81 +235,5 @@ class _ReminderCard extends ConsumerWidget {
           .read(reminderControllerProvider.notifier)
           .acknowledgeReminder(reminder.reminder.id);
     }
-  }
-}
-
-// ── Readiness badge ─────────────────────────────────────────────────────────
-
-class _ReadinessBadge extends ConsumerWidget {
-  final String templateId;
-
-  const _ReadinessBadge({required this.templateId});
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final l10n = AppLocalizations.of(context);
-    final readinessAsync = ref.watch(pmReadinessProvider(templateId));
-
-    return readinessAsync.when(
-      loading: () => const SizedBox(
-        height: 20,
-        width: 20,
-        child: CircularProgressIndicator(strokeWidth: 2),
-      ),
-      error: (_, __) => const SizedBox.shrink(),
-      data: (readiness) {
-        final Color chipColor;
-        final String chipLabel;
-
-        switch (readiness.level) {
-          case ReadinessLevel.ready:
-            chipColor = AppColors.success;
-            chipLabel = l10n.partsReady;
-          case ReadinessLevel.partial:
-            chipColor = AppColors.warning;
-            chipLabel =
-                '${l10n.partsPartial} (${l10n.partsMissing(readiness.missingParts.length)})';
-          case ReadinessLevel.notReady:
-            chipColor = AppColors.error;
-            chipLabel = l10n.partsNotReady;
-        }
-
-        return Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-              decoration: BoxDecoration(
-                color: chipColor.withValues(alpha: 0.15),
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: chipColor.withValues(alpha: 0.5)),
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(
-                    readiness.level == ReadinessLevel.ready
-                        ? Icons.check_circle_outline
-                        : readiness.level == ReadinessLevel.partial
-                            ? Icons.warning_amber_outlined
-                            : Icons.cancel_outlined,
-                    color: chipColor,
-                    size: 14,
-                  ),
-                  const SizedBox(width: 4),
-                  Text(
-                    chipLabel,
-                    style: TextStyle(
-                      color: chipColor,
-                      fontSize: 11,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        );
-      },
-    );
   }
 }
