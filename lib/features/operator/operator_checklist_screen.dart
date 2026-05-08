@@ -6,12 +6,11 @@ import 'package:image_picker/image_picker.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:vortice_app/l10n/app_localizations.dart';
-import 'package:vortice_app/core/supabase_client.dart';
 import 'package:vortice_app/core/theme.dart';
 import 'package:vortice_app/features/operator/operator_runs_provider.dart';
 import 'package:vortice_app/features/auth/auth_provider.dart';
 import 'package:vortice_app/features/checklists/checklist_provider.dart';
-import 'package:vortice_app/features/checklists/saved_checklists_repository.dart';
+import 'package:vortice_app/features/checklists/checklist_submission_orchestrator.dart';
 import 'package:vortice_app/models/checklist_item.dart';
 import 'package:vortice_app/models/checklist_template.dart';
 
@@ -281,60 +280,21 @@ class _OperatorChecklistScreenState
         }
         return;
       }
-      final run = await supabase
-          .from('operator_checklist_runs')
-          .insert({
-            'asset_id': _selectedAsset!['id'] as String,
-            'operator_id': profile?.id,
-            'template_id': _selectedTemplate!.id,
-            'run_type': _runType,
-            'completed_at': _completedAt.toIso8601String(),
-          })
-          .select()
-          .single()
-          .timeout(const Duration(seconds: 4));
-
-      final runId = run['id'] as String;
-
-      if (_responses.isNotEmpty) {
-        final rows = _responses.entries
-            .where((e) => e.value != null)
-            .map((e) => {
-                  'run_id': runId,
-                  'checklist_item_id': e.key,
-                  'result': e.value,
-                  'response_status': e.value,
-                  if (_notes[e.key]?.isNotEmpty == true) 'notes': _notes[e.key],
-                })
-            .toList();
-        await supabase
-            .from('operator_checklist_responses')
-            .insert(rows)
-            .timeout(const Duration(seconds: 4));
-      }
-
       final items =
           await ref.read(checklistItemsProvider(_selectedTemplate!.id).future);
-      await ref.read(savedChecklistsRepositoryProvider).createSavedChecklist(
+      await ref.read(operationsChecklistSubmissionProvider).submit(
             assetId: _selectedAsset!['id'] as String,
-            clientId: _selectedAsset!['client_id'] as String? ??
-                (run['client_id'] as String? ?? ''),
+            assetClientId: _selectedAsset!['client_id'] as String?,
+            operatorId: profile?.id,
+            submittedByRole: profile?.role.name,
+            runType: _runType,
             template: _selectedTemplate!,
             items: items,
             responses: _responses,
             notes: _notes,
-            photoUrls: const {},
-            sourceType: 'operator',
-            checklistType: 'operations',
-            completedBy: profile?.id ?? '',
-            submittedByRole: profile?.role.name,
             submittedAt: _completedAt,
             currentHours: _currentHours,
             generalNotes: _generalNotes,
-            extraHeader: {
-              'run_id': runId,
-              'run_type': _runType,
-            },
           );
 
       final hasPhotos = _photos.values.any((photo) => photo != null);
