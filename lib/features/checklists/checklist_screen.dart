@@ -7,6 +7,7 @@ import 'package:go_router/go_router.dart';
 import 'package:vortice_app/l10n/app_localizations.dart';
 import 'package:vortice_app/core/theme.dart';
 import 'package:vortice_app/features/auth/auth_provider.dart';
+import 'package:vortice_app/features/checklists/asset_checklist_template_filter.dart';
 import 'package:vortice_app/features/checklists/checklist_provider.dart';
 import 'package:vortice_app/features/checklists/checklist_repository.dart';
 import 'package:vortice_app/features/checklists/checklist_submission_orchestrator.dart';
@@ -25,6 +26,7 @@ class ChecklistScreen extends ConsumerStatefulWidget {
   final String? assetId;
   final String? assetClientId;
   final String? assetName;
+  final String? assetTypeId;
   final bool clientHistoryOnly;
   final String? preSelectedTemplateId;
 
@@ -34,6 +36,7 @@ class ChecklistScreen extends ConsumerStatefulWidget {
     this.assetId,
     this.assetClientId,
     this.assetName,
+    this.assetTypeId,
     this.clientHistoryOnly = false,
     this.preSelectedTemplateId,
   }) : assert(
@@ -303,7 +306,13 @@ class _ChecklistScreenState extends ConsumerState<ChecklistScreen> {
           child: Text(err.toString(),
               style: const TextStyle(color: AppColors.error)),
         ),
-        data: (templates) {
+        data: (allTemplates) {
+          final templates = widget.clientHistoryOnly
+              ? templatesForAssetChecklist(
+                  templates: allTemplates,
+                  assetTypeId: widget.assetTypeId,
+                )
+              : allTemplates;
           final snapshotTemplate = snapshot?.asTemplate();
 
           if (snapshotTemplate != null &&
@@ -331,6 +340,9 @@ class _ChecklistScreenState extends ConsumerState<ChecklistScreen> {
               (_showPicker || _selectedTemplate == null)) {
             return _GroupedTemplateSelector(
               templates: templates,
+              emptyMessage: widget.clientHistoryOnly
+                  ? 'No checklists are assigned to this asset type yet.'
+                  : 'No checklist templates available.',
               preselected: _selectedTemplate,
               onSelect: (t) {
                 setState(() {
@@ -637,11 +649,13 @@ class _HeaderText extends StatelessWidget {
 class _GroupedTemplateSelector extends StatelessWidget {
   final List<ChecklistTemplate> templates;
   final ChecklistTemplate? preselected;
+  final String emptyMessage;
   final ValueChanged<ChecklistTemplate> onSelect;
 
   const _GroupedTemplateSelector({
     required this.templates,
     this.preselected,
+    required this.emptyMessage,
     required this.onSelect,
   });
 
@@ -667,6 +681,19 @@ class _GroupedTemplateSelector extends StatelessWidget {
       'general': 'General',
       'dredge': 'Dredge',
     };
+
+    if (templates.isEmpty) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Text(
+            emptyMessage,
+            textAlign: TextAlign.center,
+            style: const TextStyle(color: AppColors.textSecondary),
+          ),
+        ),
+      );
+    }
 
     return ListView(
       padding: const EdgeInsets.symmetric(vertical: 8),

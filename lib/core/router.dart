@@ -327,6 +327,7 @@ final routerProvider = Provider<GoRouter>((ref) {
               assetId: state.pathParameters['id']!,
               assetClientId: state.uri.queryParameters['clientId'],
               assetName: state.uri.queryParameters['name'] ?? 'Asset',
+              assetTypeId: state.uri.queryParameters['assetTypeId'],
               clientHistoryOnly: true,
             ),
           ),

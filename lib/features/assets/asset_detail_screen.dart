@@ -467,7 +467,7 @@ class _StartChecklistCard extends StatelessWidget {
     return InkWell(
       borderRadius: BorderRadius.circular(12),
       onTap: () => context.push(
-        '$routePrefix/assets/${asset.id}/checklists/new?clientId=${Uri.encodeComponent(asset.clientId)}&name=${Uri.encodeComponent(asset.name)}',
+        '$routePrefix/assets/${asset.id}/checklists/new?clientId=${Uri.encodeComponent(asset.clientId)}&name=${Uri.encodeComponent(asset.name)}&assetTypeId=${Uri.encodeComponent(asset.assetTypeId)}',
       ),
       child: Container(
         padding: const EdgeInsets.all(16),
