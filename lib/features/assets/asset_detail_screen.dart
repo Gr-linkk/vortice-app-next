@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:intl/intl.dart';
 import 'package:vortice_app/core/asset_icons.dart';
 import 'package:vortice_app/core/theme.dart';
 import 'package:vortice_app/features/assets/asset_provider.dart';
 import 'package:vortice_app/features/assets/asset_workflow_policy.dart';
+import 'package:vortice_app/features/assets/asset_workflow_summary.dart';
 import 'package:vortice_app/features/auth/auth_provider.dart';
 import 'package:vortice_app/features/engines/engine_provider.dart';
 import 'package:vortice_app/features/service_intervals/service_interval_provider.dart';
@@ -182,6 +184,8 @@ class _AssetDetailBody extends ConsumerWidget {
         _DetailRow(label: l10n.location, value: asset.location),
         if (AssetWorkflowPolicy.canManageAsset(role))
           _ClientAssignRow(asset: asset),
+        const SizedBox(height: 16),
+        _WorkflowSummaryCard(assetId: asset.id, role: role),
         if (AssetWorkflowPolicy.canSeeChecklistHistory(role)) ...[
           const SizedBox(height: 16),
           _ChecklistHistoryCard(asset: asset, routePrefix: prefix),
@@ -216,6 +220,169 @@ class _AssetDetailBody extends ConsumerWidget {
           ),
         ],
       ],
+    );
+  }
+}
+
+class _WorkflowSummaryCard extends ConsumerWidget {
+  final String assetId;
+  final UserRole? role;
+
+  const _WorkflowSummaryCard({required this.assetId, required this.role});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final summaryAsync = ref.watch(
+      assetWorkflowSummaryProvider((assetId: assetId, role: role)),
+    );
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(12),
+        border: const Border.fromBorderSide(
+            BorderSide(color: AppColors.cardBorder)),
+      ),
+      child: summaryAsync.when(
+        loading: () => const Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _WorkflowSummaryHeader(),
+            SizedBox(height: 12),
+            LinearProgressIndicator(),
+          ],
+        ),
+        error: (_, __) => const Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _WorkflowSummaryHeader(),
+            SizedBox(height: 8),
+            Text(
+              'Workflow summary unavailable.',
+              style: TextStyle(color: AppColors.textSecondary, fontSize: 12),
+            ),
+          ],
+        ),
+        data: (summary) => Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const _WorkflowSummaryHeader(),
+            const SizedBox(height: 12),
+            if (summary.canSeeMaintenanceChecklist)
+              _WorkflowSummaryLine(
+                icon: Icons.build_circle_outlined,
+                label: 'Latest maintenance',
+                value: _checklistValue(summary.latestMaintenanceChecklist),
+              ),
+            if (summary.canSeeOperationsChecklist)
+              _WorkflowSummaryLine(
+                icon: Icons.fact_check_outlined,
+                label: 'Latest operations',
+                value: _checklistValue(summary.latestOperationsChecklist),
+              ),
+            if (summary.pmDueSummary.visible)
+              _WorkflowSummaryLine(
+                icon: Icons.event_busy_outlined,
+                label: 'Due/overdue PM',
+                value: _pmValue(summary.pmDueSummary),
+                highlight: summary.pmDueSummary.dueOrOverdueCount > 0,
+              ),
+            if (summary.openServiceRequestCount != null)
+              _WorkflowSummaryLine(
+                icon: Icons.support_agent_outlined,
+                label: 'New service requests',
+                value: '${summary.openServiceRequestCount}',
+                highlight: summary.openServiceRequestCount! > 0,
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  String _checklistValue(AssetChecklistSummary? checklist) {
+    if (checklist == null) return 'None saved yet';
+    return '${checklist.name} • ${DateFormat('MMM d, yyyy').format(checklist.submittedAt.toLocal())}';
+  }
+
+  String _pmValue(AssetPmDueSummary summary) {
+    final count = summary.dueOrOverdueCount;
+    if (count == 0) return 'Nothing due';
+    final suffix = count == 1 ? 'interval' : 'intervals';
+    final labels = summary.labels.take(2).join(', ');
+    final more = count > 2 ? ' +${count - 2} more' : '';
+    return '$count $suffix • $labels$more';
+  }
+}
+
+class _WorkflowSummaryHeader extends StatelessWidget {
+  const _WorkflowSummaryHeader();
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        const Icon(
+          Icons.dashboard_customize_outlined,
+          color: AppColors.primary,
+          size: 18,
+        ),
+        const SizedBox(width: 8),
+        Text('Workflow Summary', style: Theme.of(context).textTheme.titleSmall),
+      ],
+    );
+  }
+}
+
+class _WorkflowSummaryLine extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final String value;
+  final bool highlight;
+
+  const _WorkflowSummaryLine({
+    required this.icon,
+    required this.label,
+    required this.value,
+    this.highlight = false,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(
+            icon,
+            size: 16,
+            color: highlight ? AppColors.warning : AppColors.textSecondary,
+          ),
+          const SizedBox(width: 8),
+          SizedBox(
+            width: 132,
+            child: Text(
+              label,
+              style: const TextStyle(
+                color: AppColors.textSecondary,
+                fontSize: 12,
+              ),
+            ),
+          ),
+          Expanded(
+            child: Text(
+              value,
+              style: TextStyle(
+                color: highlight ? AppColors.warning : AppColors.textPrimary,
+                fontSize: 12,
+                fontWeight: highlight ? FontWeight.w600 : FontWeight.normal,
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
