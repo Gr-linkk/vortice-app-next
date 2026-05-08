@@ -141,7 +141,7 @@ class _AddAssetScreenState extends ConsumerState<AddAssetScreen> {
                 loading: () => const LinearProgressIndicator(),
                 error: (_, __) => const SizedBox.shrink(),
                 data: (types) => DropdownButtonFormField<String>(
-                  value: _selectedAssetTypeId,
+                  initialValue: _selectedAssetTypeId,
                   decoration: InputDecoration(
                     labelText: l10n.assetType,
                     prefixIcon: const Icon(Icons.category_outlined),
@@ -258,7 +258,7 @@ class _AddAssetScreenState extends ConsumerState<AddAssetScreen> {
               ),
               const SizedBox(height: 12),
               DropdownButtonFormField<String>(
-                value: _engineKind,
+                initialValue: _engineKind,
                 decoration: const InputDecoration(
                   labelText: 'Title',
                   prefixIcon: Icon(Icons.engineering),
@@ -356,7 +356,7 @@ class _ClientDropdown extends ConsumerWidget {
       loading: () => const LinearProgressIndicator(),
       error: (_, __) => const SizedBox.shrink(),
       data: (clients) => DropdownButtonFormField<String>(
-        value: selectedClientId,
+        initialValue: selectedClientId,
         decoration: const InputDecoration(
           labelText: 'Client (optional)',
           prefixIcon: Icon(Icons.person_outline),

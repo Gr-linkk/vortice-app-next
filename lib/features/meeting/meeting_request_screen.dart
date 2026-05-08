@@ -52,15 +52,15 @@ class _MeetingRequestScreenState extends ConsumerState<MeetingRequestScreen> {
     if (success && mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content:
-              Text("Request sent! We'll be in touch within 24 hours."),
+          content: Text("Request sent! We'll be in touch within 24 hours."),
           backgroundColor: AppColors.success,
         ),
       );
       context.pop();
     } else if (mounted) {
       final err =
-          ref.read(meetingRequestControllerProvider).error?.toString() ?? 'Unknown error';
+          ref.read(meetingRequestControllerProvider).error?.toString() ??
+              'Unknown error';
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(err),
@@ -101,7 +101,7 @@ class _MeetingRequestScreenState extends ConsumerState<MeetingRequestScreen> {
 
                 // What are you looking for?
                 DropdownButtonFormField<String>(
-                  value: _interest,
+                  initialValue: _interest,
                   decoration: const InputDecoration(
                     labelText: 'What are you looking for?',
                     prefixIcon: Icon(Icons.build_outlined),
@@ -120,7 +120,7 @@ class _MeetingRequestScreenState extends ConsumerState<MeetingRequestScreen> {
 
                 // How many vessels?
                 DropdownButtonFormField<String>(
-                  value: _vesselCount,
+                  initialValue: _vesselCount,
                   decoration: const InputDecoration(
                     labelText: 'How many vessels?',
                     prefixIcon: Icon(Icons.directions_boat_outlined),
@@ -139,7 +139,7 @@ class _MeetingRequestScreenState extends ConsumerState<MeetingRequestScreen> {
 
                 // Preferred contact method
                 DropdownButtonFormField<String>(
-                  value: _contactMethod,
+                  initialValue: _contactMethod,
                   decoration: const InputDecoration(
                     labelText: 'Preferred contact method',
                     prefixIcon: Icon(Icons.contact_phone_outlined),

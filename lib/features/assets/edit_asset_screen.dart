@@ -112,7 +112,7 @@ class _EditAssetScreenState extends ConsumerState<EditAssetScreen> {
                 loading: () => const LinearProgressIndicator(),
                 error: (_, __) => const SizedBox.shrink(),
                 data: (types) => DropdownButtonFormField<String>(
-                  value: _selectedAssetTypeId,
+                  initialValue: _selectedAssetTypeId,
                   decoration: InputDecoration(
                     labelText: l10n.assetType,
                     prefixIcon: const Icon(Icons.category_outlined),

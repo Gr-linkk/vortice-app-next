@@ -833,7 +833,7 @@ class _AssignChecklistSheetState extends ConsumerState<_AssignChecklistSheet> {
             loading: () => const LinearProgressIndicator(),
             error: (_, __) => const SizedBox.shrink(),
             data: (list) => DropdownButtonFormField<String>(
-              value: _selectedTemplateId,
+              initialValue: _selectedTemplateId,
               decoration:
                   const InputDecoration(labelText: 'Checklist template'),
               dropdownColor: AppColors.surfaceVariant,
@@ -863,7 +863,7 @@ class _AssignChecklistSheetState extends ConsumerState<_AssignChecklistSheet> {
                           m.role == UserRole.operator)
                   .toList();
               return DropdownButtonFormField<String>(
-                value: _selectedMemberId,
+                initialValue: _selectedMemberId,
                 decoration: InputDecoration(
                     labelText: _checklistType == 'pm'
                         ? 'Assign to mechanic'
@@ -886,7 +886,7 @@ class _AssignChecklistSheetState extends ConsumerState<_AssignChecklistSheet> {
             loading: () => const LinearProgressIndicator(),
             error: (_, __) => const SizedBox.shrink(),
             data: (assets) => DropdownButtonFormField<String>(
-              value: _selectedAssetId,
+              initialValue: _selectedAssetId,
               decoration: const InputDecoration(labelText: 'Vessel (optional)'),
               dropdownColor: AppColors.surfaceVariant,
               items: [

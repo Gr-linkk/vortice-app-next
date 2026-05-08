@@ -109,7 +109,7 @@ class _ServiceIntervalScreenState extends ConsumerState<ServiceIntervalScreen> {
                 error: (err, _) => Text(err.toString(),
                     style: const TextStyle(color: AppColors.error)),
                 data: (assets) => DropdownButtonFormField<Asset>(
-                  value: _selectedAsset,
+                  initialValue: _selectedAsset,
                   decoration: const InputDecoration(
                     labelText: 'Select Asset',
                     prefixIcon: Icon(Icons.directions_boat_outlined),
@@ -780,7 +780,7 @@ class _AddIntervalSheetState extends ConsumerState<_AddIntervalSheet> {
                 ),
                 const SizedBox(height: 12),
                 DropdownButtonFormField<ChecklistTemplate?>(
-                  value: _selectedTemplate,
+                  initialValue: _selectedTemplate,
                   isExpanded: true,
                   decoration: InputDecoration(
                     labelText: 'Checklist Template (optional)',
@@ -978,7 +978,7 @@ class _EditIntervalSheetState extends ConsumerState<_EditIntervalSheet> {
                       .where((t) => t.id == interval.checklistTemplateId)
                       .firstOrNull;
                   return DropdownButtonFormField<ChecklistTemplate?>(
-                    value: _selectedTemplate,
+                    initialValue: _selectedTemplate,
                     isExpanded: true,
                     decoration: InputDecoration(
                       labelText: 'Checklist Template (optional)',
