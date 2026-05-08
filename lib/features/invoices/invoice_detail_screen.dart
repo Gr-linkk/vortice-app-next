@@ -135,8 +135,9 @@ class _InvoiceDetailScreenState extends ConsumerState<InvoiceDetailScreen> {
               tooltip: l10n.exportExcel,
               onPressed: () async {
                 final inv = invoiceAsync.valueOrNull;
-                if (inv != null)
+                if (inv != null) {
                   await InvoiceExcelService.generateAndShare(inv);
+                }
               },
             ),
           ],
@@ -273,7 +274,7 @@ class _InvoiceDetailScreenState extends ConsumerState<InvoiceDetailScreen> {
                         await ref
                             .read(invoiceControllerProvider.notifier)
                             .updateStatus(widget.invoiceId, InvoiceStatus.sent);
-                        if (mounted) {
+                        if (context.mounted) {
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(
                               content: Text(l10n.invoiceSent),
@@ -294,7 +295,7 @@ class _InvoiceDetailScreenState extends ConsumerState<InvoiceDetailScreen> {
                         await ref
                             .read(invoiceControllerProvider.notifier)
                             .markAsPaid(widget.invoiceId);
-                        if (mounted) {
+                        if (context.mounted) {
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(
                               content: Text(l10n.invoiceMarkedPaid),
