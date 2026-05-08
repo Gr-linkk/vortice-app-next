@@ -229,15 +229,6 @@ class OwnerDashboard extends ConsumerWidget {
                 onTap: () => context.push('/owner/service-requests'),
               ),
             ),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
-              child: _QuickAccessCard(
-                icon: Icons.inventory_2,
-                label: l10n.partsInventoryTitle,
-                color: AppColors.primary,
-                onTap: () => context.push('/owner/parts/inventory'),
-              ),
-            ),
             // ── Clients section ──────────────────────────────────────
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 20, 16, 8),
