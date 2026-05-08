@@ -282,20 +282,19 @@ class _AddPartSheetState extends ConsumerState<_AddPartSheet> {
                                 : null,
                             loggedBy: profile?.id ?? '',
                           );
-                      if (mounted) {
-                        if (success) {
-                          Navigator.pop(context);
-                        } else {
-                          final errorState = ref.read(partsControllerProvider);
-                          final errorMsg = errorState.error?.toString() ??
-                              'Failed to save part. Check your connection and try again.';
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text(errorMsg),
-                              backgroundColor: AppColors.error,
-                            ),
-                          );
-                        }
+                      if (!context.mounted) return;
+                      if (success) {
+                        Navigator.pop(context);
+                      } else {
+                        final errorState = ref.read(partsControllerProvider);
+                        final errorMsg = errorState.error?.toString() ??
+                            'Failed to save part. Check your connection and try again.';
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text(errorMsg),
+                            backgroundColor: AppColors.error,
+                          ),
+                        );
                       }
                     },
               child: Text(l10n.addPart),

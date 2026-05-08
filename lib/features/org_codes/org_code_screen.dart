@@ -331,7 +331,7 @@ class _OrgCodeFormState extends ConsumerState<_OrgCodeForm> {
                 title:
                     Text(l10n.singleUse, style: const TextStyle(fontSize: 14)),
                 contentPadding: EdgeInsets.zero,
-                activeColor: AppColors.primary,
+                activeThumbColor: AppColors.primary,
               ),
               ListTile(
                 contentPadding: EdgeInsets.zero,
