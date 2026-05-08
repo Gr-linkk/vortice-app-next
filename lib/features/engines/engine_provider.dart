@@ -14,7 +14,7 @@ final engineByIdProvider =
       .maybeSingle();
 
   if (data == null) return null;
-  return AssetEngine.fromJson(data as Map<String, dynamic>);
+  return AssetEngine.fromJson(data);
 });
 
 // ── Fetch engines for a specific asset ─────────────────────────────────────

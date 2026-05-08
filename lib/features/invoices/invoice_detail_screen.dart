@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 import 'package:vortice_app/l10n/app_localizations.dart';
 import 'package:vortice_app/core/theme.dart';
 import 'package:vortice_app/features/invoices/invoice_provider.dart';
@@ -15,7 +14,8 @@ class InvoiceDetailScreen extends ConsumerStatefulWidget {
   const InvoiceDetailScreen({super.key, required this.invoiceId});
 
   @override
-  ConsumerState<InvoiceDetailScreen> createState() => _InvoiceDetailScreenState();
+  ConsumerState<InvoiceDetailScreen> createState() =>
+      _InvoiceDetailScreenState();
 }
 
 class _InvoiceDetailScreenState extends ConsumerState<InvoiceDetailScreen> {
@@ -60,9 +60,11 @@ class _InvoiceDetailScreenState extends ConsumerState<InvoiceDetailScreen> {
 
   void _initControllers(Invoice invoice) {
     _labourHoursCtrl.text = invoice.labourHours?.toStringAsFixed(2) ?? '0.00';
-    _billableRateCtrl.text = invoice.billableRateUsd?.toStringAsFixed(2) ?? '60.00';
+    _billableRateCtrl.text =
+        invoice.billableRateUsd?.toStringAsFixed(2) ?? '60.00';
     _partsTotalCtrl.text = invoice.partsTotalUsd?.toStringAsFixed(2) ?? '0.00';
-    _consumablesCtrl.text = invoice.consumablesTotalUsd?.toStringAsFixed(2) ?? '0.00';
+    _consumablesCtrl.text =
+        invoice.consumablesTotalUsd?.toStringAsFixed(2) ?? '0.00';
     _notesCtrl.text = invoice.notes ?? '';
   }
 
@@ -74,15 +76,18 @@ class _InvoiceDetailScreenState extends ConsumerState<InvoiceDetailScreen> {
 
     final labourTotal = (labourHours ?? 0) * (billableRate ?? 0);
 
-    final success = await ref.read(invoiceControllerProvider.notifier).updateLineItems(
-      widget.invoiceId,
-      labourHours: labourHours,
-      billableRate: billableRate,
-      labourTotal: labourTotal,
-      partsTotal: partsTotal,
-      consumablesTotal: consumables,
-      notes: _notesCtrl.text.trim().isNotEmpty ? _notesCtrl.text.trim() : null,
-    );
+    final success =
+        await ref.read(invoiceControllerProvider.notifier).updateLineItems(
+              widget.invoiceId,
+              labourHours: labourHours,
+              billableRate: billableRate,
+              labourTotal: labourTotal,
+              partsTotal: partsTotal,
+              consumablesTotal: consumables,
+              notes: _notesCtrl.text.trim().isNotEmpty
+                  ? _notesCtrl.text.trim()
+                  : null,
+            );
 
     if (success && mounted) {
       setState(() => _isEditing = false);
@@ -130,36 +135,39 @@ class _InvoiceDetailScreenState extends ConsumerState<InvoiceDetailScreen> {
               tooltip: l10n.exportExcel,
               onPressed: () async {
                 final inv = invoiceAsync.valueOrNull;
-                if (inv != null) await InvoiceExcelService.generateAndShare(inv);
+                if (inv != null)
+                  await InvoiceExcelService.generateAndShare(inv);
               },
             ),
           ],
           // Edit button — only available for draft invoices
-          if (isOwner && !_isEditing) Builder(
-            builder: (_) {
-              final invoice = invoiceAsync.valueOrNull;
-              final isLocked = invoice?.status == InvoiceStatus.sent ||
-                  invoice?.status == InvoiceStatus.paid;
-              return IconButton(
-                icon: Icon(isLocked ? Icons.lock_outline : Icons.edit),
-                onPressed: isLocked
-                    ? null
-                    : () {
-                        if (invoice != null) {
-                          _initControllers(invoice);
-                          setState(() => _isEditing = true);
-                        }
-                      },
-                tooltip: isLocked ? null : l10n.edit,
-              );
-            },
-          ),
+          if (isOwner && !_isEditing)
+            Builder(
+              builder: (_) {
+                final invoice = invoiceAsync.valueOrNull;
+                final isLocked = invoice?.status == InvoiceStatus.sent ||
+                    invoice?.status == InvoiceStatus.paid;
+                return IconButton(
+                  icon: Icon(isLocked ? Icons.lock_outline : Icons.edit),
+                  onPressed: isLocked
+                      ? null
+                      : () {
+                          if (invoice != null) {
+                            _initControllers(invoice);
+                            setState(() => _isEditing = true);
+                          }
+                        },
+                  tooltip: isLocked ? null : l10n.edit,
+                );
+              },
+            ),
           if (isOwner)
             PopupMenuButton<String>(
               icon: const Icon(Icons.more_vert),
               onSelected: (value) async {
                 if (value == 'refresh_rate') {
-                  await ref.read(invoiceControllerProvider.notifier)
+                  await ref
+                      .read(invoiceControllerProvider.notifier)
                       .refreshExchangeRate(widget.invoiceId);
                 }
               },
@@ -181,7 +189,8 @@ class _InvoiceDetailScreenState extends ConsumerState<InvoiceDetailScreen> {
       body: invoiceAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (err, _) => Center(
-          child: Text(err.toString(), style: const TextStyle(color: AppColors.error)),
+          child: Text(err.toString(),
+              style: const TextStyle(color: AppColors.error)),
         ),
         data: (invoice) {
           if (invoice == null) {
@@ -246,7 +255,8 @@ class _InvoiceDetailScreenState extends ConsumerState<InvoiceDetailScreen> {
                               ? const SizedBox(
                                   width: 20,
                                   height: 20,
-                                  child: CircularProgressIndicator(strokeWidth: 2),
+                                  child:
+                                      CircularProgressIndicator(strokeWidth: 2),
                                 )
                               : Text(l10n.save),
                         ),
@@ -260,7 +270,8 @@ class _InvoiceDetailScreenState extends ConsumerState<InvoiceDetailScreen> {
                         // 1. Generate PDF and open share/print sheet
                         await InvoicePdfService.generateAndShare(invoice);
                         // 2. Flip status to sent
-                        await ref.read(invoiceControllerProvider.notifier)
+                        await ref
+                            .read(invoiceControllerProvider.notifier)
                             .updateStatus(widget.invoiceId, InvoiceStatus.sent);
                         if (mounted) {
                           ScaffoldMessenger.of(context).showSnackBar(
@@ -280,7 +291,8 @@ class _InvoiceDetailScreenState extends ConsumerState<InvoiceDetailScreen> {
                       invoice.status != InvoiceStatus.voided)
                     ElevatedButton.icon(
                       onPressed: () async {
-                        await ref.read(invoiceControllerProvider.notifier)
+                        await ref
+                            .read(invoiceControllerProvider.notifier)
                             .markAsPaid(widget.invoiceId);
                         if (mounted) {
                           ScaffoldMessenger.of(context).showSnackBar(
@@ -293,7 +305,8 @@ class _InvoiceDetailScreenState extends ConsumerState<InvoiceDetailScreen> {
                       },
                       icon: const Icon(Icons.check_circle),
                       label: Text(l10n.markPaid),
-                      style: ElevatedButton.styleFrom(backgroundColor: AppColors.success),
+                      style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColors.success),
                     ),
                 ],
               ],
@@ -343,7 +356,8 @@ class _InvoiceHeader extends StatelessWidget {
                 ),
               ),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                 decoration: BoxDecoration(
                   color: _statusColor().withOpacity(0.2),
                   borderRadius: BorderRadius.circular(12),
@@ -382,7 +396,8 @@ class _InvoiceHeader extends StatelessWidget {
               if (invoice.paidAt != null)
                 _MetaItem(
                   label: 'Paid',
-                  value: '${invoice.paidAt!.day}/${invoice.paidAt!.month}/${invoice.paidAt!.year}',
+                  value:
+                      '${invoice.paidAt!.day}/${invoice.paidAt!.month}/${invoice.paidAt!.year}',
                 ),
             ],
           ),
@@ -409,7 +424,8 @@ class _MetaItem extends StatelessWidget {
           ),
           TextSpan(
             text: value,
-            style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
+            style: const TextStyle(
+                color: Colors.white, fontWeight: FontWeight.w600),
           ),
         ],
       ),
@@ -505,14 +521,16 @@ class _LineItemsCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    final labourTotal = (invoice.labourHours ?? 0) * (invoice.billableRateUsd ?? 0);
+    final labourTotal =
+        (invoice.labourHours ?? 0) * (invoice.billableRateUsd ?? 0);
 
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: AppColors.surface,
         borderRadius: BorderRadius.circular(14),
-        border: const Border.fromBorderSide(BorderSide(color: AppColors.cardBorder)),
+        border: const Border.fromBorderSide(
+            BorderSide(color: AppColors.cardBorder)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -529,19 +547,22 @@ class _LineItemsCard extends StatelessWidget {
           const Divider(height: 20),
           _LineItemRow(
             label: l10n.labour,
-            detail: '${invoice.labourHours?.toStringAsFixed(1) ?? 0} hrs @ ${formatCurrency(invoice.billableRateUsd, mxn: showMxn)}/hr',
+            detail:
+                '${invoice.labourHours?.toStringAsFixed(1) ?? 0} hrs @ ${formatCurrency(invoice.billableRateUsd, mxn: showMxn)}/hr',
             amount: formatCurrency(_convert(labourTotal), mxn: showMxn),
           ),
           const SizedBox(height: 12),
           _LineItemRow(
             label: l10n.partsWithMarkup,
-            amount: formatCurrency(_convert(invoice.partsTotalUsd), mxn: showMxn),
+            amount:
+                formatCurrency(_convert(invoice.partsTotalUsd), mxn: showMxn),
           ),
           const SizedBox(height: 12),
           _LineItemRow(
             label: l10n.consumables,
             detail: '5% of labour',
-            amount: formatCurrency(_convert(invoice.consumablesTotalUsd), mxn: showMxn),
+            amount: formatCurrency(_convert(invoice.consumablesTotalUsd),
+                mxn: showMxn),
             isSubtle: true,
           ),
         ],
@@ -574,14 +595,17 @@ class _LineItemRow extends StatelessWidget {
               Text(
                 label,
                 style: TextStyle(
-                  color: isSubtle ? AppColors.textSecondary : AppColors.textPrimary,
+                  color: isSubtle
+                      ? AppColors.textSecondary
+                      : AppColors.textPrimary,
                   fontSize: 14,
                 ),
               ),
               if (detail != null)
                 Text(
                   detail!,
-                  style: const TextStyle(color: AppColors.textSecondary, fontSize: 12),
+                  style: const TextStyle(
+                      color: AppColors.textSecondary, fontSize: 12),
                 ),
             ],
           ),
@@ -623,7 +647,8 @@ class _EditableLineItems extends StatelessWidget {
       decoration: BoxDecoration(
         color: AppColors.surface,
         borderRadius: BorderRadius.circular(14),
-        border: const Border.fromBorderSide(BorderSide(color: AppColors.cardBorder)),
+        border: const Border.fromBorderSide(
+            BorderSide(color: AppColors.cardBorder)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -706,7 +731,8 @@ class _SummaryCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: const Color(0xFF0F1722),
         borderRadius: BorderRadius.circular(14),
-        border: const Border.fromBorderSide(BorderSide(color: AppColors.cardBorder)),
+        border: const Border.fromBorderSide(
+            BorderSide(color: AppColors.cardBorder)),
       ),
       child: Column(
         children: [
@@ -731,7 +757,8 @@ class _SummaryCard extends StatelessWidget {
               padding: const EdgeInsets.only(top: 8),
               child: Text(
                 '(${formatCurrency(invoice.totalMxn, mxn: true)})',
-                style: const TextStyle(color: AppColors.textSecondary, fontSize: 12),
+                style: const TextStyle(
+                    color: AppColors.textSecondary, fontSize: 12),
               ),
             ),
           if (invoice.exchangeRate != null)
@@ -739,7 +766,8 @@ class _SummaryCard extends StatelessWidget {
               padding: const EdgeInsets.only(top: 8),
               child: Text(
                 '${l10n.exchangeRate}: 1 USD = ${invoice.exchangeRate!.toStringAsFixed(4)} MXN',
-                style: const TextStyle(color: AppColors.textSecondary, fontSize: 11),
+                style: const TextStyle(
+                    color: AppColors.textSecondary, fontSize: 11),
               ),
             ),
         ],
@@ -769,7 +797,8 @@ class _SummaryRow extends StatelessWidget {
           Text(
             label,
             style: TextStyle(
-              color: isGrand ? const Color(0xFF60A5FA) : AppColors.textSecondary,
+              color:
+                  isGrand ? const Color(0xFF60A5FA) : AppColors.textSecondary,
               fontSize: isGrand ? 18 : 14,
               fontWeight: isGrand ? FontWeight.w900 : FontWeight.normal,
             ),

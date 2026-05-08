@@ -27,7 +27,7 @@ class UpgradePrompt extends StatelessWidget {
           Icon(Icons.lock_outline, color: AppColors.warning, size: 48),
           const SizedBox(height: 16),
           Text(
-            '${l10n.upgradeRequired ?? 'Upgrade Required'}',
+            l10n.upgradeRequired,
             style: Theme.of(context).textTheme.titleMedium?.copyWith(
                   fontWeight: FontWeight.w600,
                 ),
@@ -36,13 +36,14 @@ class UpgradePrompt extends StatelessWidget {
           const SizedBox(height: 8),
           Text(
             l10n.upgradeMessage(requiredTier.displayName),
-            style: const TextStyle(color: AppColors.textSecondary, fontSize: 14),
+            style:
+                const TextStyle(color: AppColors.textSecondary, fontSize: 14),
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 20),
           OutlinedButton(
             onPressed: () => Navigator.pop(context),
-            child: Text(l10n.gotIt ?? 'Got it'),
+            child: Text(l10n.gotIt),
           ),
         ],
       ),

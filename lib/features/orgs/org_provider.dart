@@ -34,10 +34,8 @@ final orgByIdProvider =
 
 final orgMembersProvider =
     FutureProvider.family<List<Profile>, String>((ref, orgId) async {
-  final data = await supabase
-      .from(AppConstants.tProfiles)
-      .select()
-      .eq('org_id', orgId);
+  final data =
+      await supabase.from(AppConstants.tProfiles).select().eq('org_id', orgId);
   return (data as List)
       .map((e) => Profile.fromJson(e as Map<String, dynamic>))
       .toList();
@@ -58,7 +56,7 @@ final currentUserOrgProvider = FutureProvider<ClientOrg?>((ref) async {
       .select()
       .eq('owner_profile_id', userId)
       .maybeSingle();
-  if (owned != null) return ClientOrg.fromJson(owned as Map<String, dynamic>);
+  if (owned != null) return ClientOrg.fromJson(owned);
 
   // 2. Check if user's profile has an org_id
   final profileRow = await supabase
@@ -75,7 +73,7 @@ final currentUserOrgProvider = FutureProvider<ClientOrg?>((ref) async {
       .eq('id', orgId)
       .maybeSingle();
   if (org == null) return null;
-  return ClientOrg.fromJson(org as Map<String, dynamic>);
+  return ClientOrg.fromJson(org);
 });
 
 // ── Org controller ───────────────────────────────────────────────────────────
@@ -140,8 +138,7 @@ class OrgController extends StateNotifier<AsyncValue<void>> {
     state = await AsyncValue.guard(() async {
       await supabase
           .from(AppConstants.tClientOrgs)
-          .update({'name': newName})
-          .eq('id', orgId);
+          .update({'name': newName}).eq('id', orgId);
       _ref.invalidate(clientOrgsProvider);
       _ref.invalidate(orgByIdProvider(orgId));
       success = true;
@@ -158,10 +155,7 @@ class OrgController extends StateNotifier<AsyncValue<void>> {
           .from(AppConstants.tProfiles)
           .update({'org_id': null}).eq('org_id', orgId);
       // Then delete the org
-      await supabase
-          .from(AppConstants.tClientOrgs)
-          .delete()
-          .eq('id', orgId);
+      await supabase.from(AppConstants.tClientOrgs).delete().eq('id', orgId);
       _ref.invalidate(clientOrgsProvider);
       _ref.invalidate(orgMembersProvider(orgId));
       _ref.invalidate(currentUserOrgProvider);

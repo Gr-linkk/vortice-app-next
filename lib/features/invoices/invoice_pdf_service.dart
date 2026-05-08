@@ -10,12 +10,10 @@ class InvoicePdfService {
   // Palette — clean business print style
   static const _navy = PdfColor.fromInt(0xFF1E3A5F);
   static const _accent = PdfColor.fromInt(0xFF2563EB);
-  static const _black = PdfColors.black;
   static const _darkGrey = PdfColor.fromInt(0xFF374151);
   static const _midGrey = PdfColor.fromInt(0xFF6B7280);
   static const _lightGrey = PdfColor.fromInt(0xFFF3F4F6);
   static const _borderGrey = PdfColor.fromInt(0xFFD1D5DB);
-  static const _white = PdfColors.white;
 
   static Future<void> generateAndShare(Invoice invoice) async {
     final pdf = pw.Document();
@@ -35,7 +33,8 @@ class InvoicePdfService {
   }
 
   static pw.Widget _buildPage(Invoice invoice) {
-    final labourTotal = (invoice.labourHours ?? 0) * (invoice.billableRateUsd ?? 0);
+    final labourTotal =
+        (invoice.labourHours ?? 0) * (invoice.billableRateUsd ?? 0);
     final subtotal = invoice.subtotalUsd ?? 0;
     final iva = invoice.ivaTotalUsd ?? 0;
     final totalUsd = invoice.totalUsd ?? 0;
@@ -142,19 +141,24 @@ class InvoicePdfService {
                 '${invoice.labourHours?.toStringAsFixed(1) ?? '0'} hrs @ \$${invoice.billableRateUsd?.toStringAsFixed(2) ?? '0.00'}/hr',
                 muted: true,
               ),
-              _tableCell('\$${labourTotal.toStringAsFixed(2)}', align: pw.TextAlign.right),
+              _tableCell('\$${labourTotal.toStringAsFixed(2)}',
+                  align: pw.TextAlign.right),
             ]),
             // Parts
             pw.TableRow(children: [
               _tableCell('Parts (with markup)'),
               _tableCell('—', muted: true),
-              _tableCell('\$${(invoice.partsTotalUsd ?? 0).toStringAsFixed(2)}', align: pw.TextAlign.right),
+              _tableCell('\$${(invoice.partsTotalUsd ?? 0).toStringAsFixed(2)}',
+                  align: pw.TextAlign.right),
             ]),
             // Consumables
             pw.TableRow(children: [
               _tableCell('Consumables (5%)'),
               _tableCell('—', muted: true),
-              _tableCell('\$${(invoice.consumablesTotalUsd ?? 0).toStringAsFixed(2)}', align: pw.TextAlign.right, muted: true),
+              _tableCell(
+                  '\$${(invoice.consumablesTotalUsd ?? 0).toStringAsFixed(2)}',
+                  align: pw.TextAlign.right,
+                  muted: true),
             ]),
           ],
         ),
@@ -177,7 +181,8 @@ class InvoicePdfService {
                 children: [
                   _totalRow('Subtotal', '\$${subtotal.toStringAsFixed(2)} USD'),
                   pw.SizedBox(height: 4),
-                  _totalRow('IVA (${invoice.ivaPct.toStringAsFixed(0)}%)', '\$${iva.toStringAsFixed(2)} USD'),
+                  _totalRow('IVA (${invoice.ivaPct.toStringAsFixed(0)}%)',
+                      '\$${iva.toStringAsFixed(2)} USD'),
                   pw.Divider(color: _borderGrey, height: 14),
                   _totalRow(
                     'Total Due (USD)',
@@ -251,7 +256,9 @@ class InvoicePdfService {
       mainAxisSize: pw.MainAxisSize.min,
       children: [
         pw.Text('$label: ', style: pw.TextStyle(color: _midGrey, fontSize: 9)),
-        pw.Text(value, style: pw.TextStyle(color: _darkGrey, fontSize: 9, fontWeight: pw.FontWeight.bold)),
+        pw.Text(value,
+            style: pw.TextStyle(
+                color: _darkGrey, fontSize: 9, fontWeight: pw.FontWeight.bold)),
       ],
     );
   }
@@ -268,7 +275,8 @@ class InvoicePdfService {
     );
   }
 
-  static pw.Widget _tableHeader(String text, {pw.TextAlign align = pw.TextAlign.left}) {
+  static pw.Widget _tableHeader(String text,
+      {pw.TextAlign align = pw.TextAlign.left}) {
     return pw.Padding(
       padding: const pw.EdgeInsets.symmetric(horizontal: 8, vertical: 6),
       child: pw.Text(
@@ -283,7 +291,8 @@ class InvoicePdfService {
     );
   }
 
-  static pw.Widget _tableCell(String text, {pw.TextAlign align = pw.TextAlign.left, bool muted = false}) {
+  static pw.Widget _tableCell(String text,
+      {pw.TextAlign align = pw.TextAlign.left, bool muted = false}) {
     return pw.Padding(
       padding: const pw.EdgeInsets.symmetric(horizontal: 8, vertical: 7),
       child: pw.Text(
@@ -294,7 +303,8 @@ class InvoicePdfService {
     );
   }
 
-  static pw.Widget _totalRow(String label, String value, {bool bold = false, PdfColor? color}) {
+  static pw.Widget _totalRow(String label, String value,
+      {bool bold = false, PdfColor? color}) {
     final style = pw.TextStyle(
       fontSize: bold ? 12 : 10,
       fontWeight: bold ? pw.FontWeight.bold : pw.FontWeight.normal,
@@ -311,7 +321,20 @@ class InvoicePdfService {
 
   static String _formatDate(DateTime? date) {
     if (date == null) return '-';
-    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    const months = [
+      'Jan',
+      'Feb',
+      'Mar',
+      'Apr',
+      'May',
+      'Jun',
+      'Jul',
+      'Aug',
+      'Sep',
+      'Oct',
+      'Nov',
+      'Dec'
+    ];
     return '${months[date.month - 1]} ${date.day}, ${date.year}';
   }
 }

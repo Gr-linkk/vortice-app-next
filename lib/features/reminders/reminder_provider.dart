@@ -41,11 +41,11 @@ final remindersProvider = FutureProvider<List<ReminderWithAsset>>((ref) async {
 
   final remoteRows = (remote as List).cast<Map<String, dynamic>>();
   final reminderTemplateIds = {
-    for (final row in remoteRows) row['id'] as String: row['template_id'] as String?,
+    for (final row in remoteRows)
+      row['id'] as String: row['template_id'] as String?,
   };
 
-  final reminders = remoteRows.map((e) {
-    final json = e as Map<String, dynamic>;
+  final reminders = remoteRows.map((json) {
     final assetData = json['assets'] as Map<String, dynamic>?;
     final engineData = json['asset_engines'] as Map<String, dynamic>?;
 
@@ -83,8 +83,7 @@ final remindersProvider = FutureProvider<List<ReminderWithAsset>>((ref) async {
                 .eq('interval_hours', r.reminder.intervalHours)
                 .limit(1);
         templateId = rows.isNotEmpty
-            ? (rows.first as Map<String, dynamic>)['checklist_template_id']
-                as String?
+            ? rows.first['checklist_template_id'] as String?
             : null;
       }
 
@@ -124,8 +123,7 @@ class ReminderController extends StateNotifier<AsyncValue<void>> {
     state = await AsyncValue.guard(() async {
       await supabase
           .from(AppConstants.tServiceReminders)
-          .update({'acknowledged': true})
-          .eq('id', id);
+          .update({'acknowledged': true}).eq('id', id);
       _ref.invalidate(remindersProvider);
       _ref.invalidate(reminderUrgentCountProvider);
       success = true;

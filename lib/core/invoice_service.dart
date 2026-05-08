@@ -38,12 +38,13 @@ class InvoiceService {
         .select('id')
         .gte('created_at', '$year-01-01')
         .count();
-    final count = (countData.count ?? 0) + 1;
+    final count = countData.count + 1;
     return 'INV-$year-${count.toString().padLeft(4, '0')}';
   }
 
   /// Calculates all invoice amounts from a work order
-  static Future<InvoiceCalculation> calculateFromWorkOrder(String workOrderId) async {
+  static Future<InvoiceCalculation> calculateFromWorkOrder(
+      String workOrderId) async {
     // Fetch work order
     final woData = await supabase
         .from(AppConstants.tWorkOrders)
@@ -81,7 +82,8 @@ class InvoiceService {
       labourTotal = 0;
       for (final assignment in techAssignments) {
         final hrs = assignment.hoursLogged ?? 0;
-        final rate = assignment.billableRate ?? AppConstants.defaultBillableRate;
+        final rate =
+            assignment.billableRate ?? AppConstants.defaultBillableRate;
         labourHours += hrs;
         labourTotal += hrs * rate;
       }
@@ -146,23 +148,27 @@ class InvoiceService {
     final calc = await calculateFromWorkOrder(workOrderId);
     final invoiceNumber = await generateInvoiceNumber();
 
-    final result = await supabase.from(AppConstants.tInvoices).insert({
-      'work_order_id': calc.workOrderId,
-      'client_id': calc.clientId,
-      'invoice_number': invoiceNumber,
-      'status': 'draft',
-      'labour_hours': calc.labourHours,
-      'billable_rate_usd': calc.billableRate,
-      'labour_total_usd': calc.labourTotal,
-      'parts_total_usd': calc.partsTotal,
-      'consumables_total_usd': calc.consumablesTotal,
-      'subtotal_usd': calc.subtotal,
-      'iva_pct': calc.ivaPct,
-      'iva_total_usd': calc.ivaTotal,
-      'total_usd': calc.totalUsd,
-      'exchange_rate': calc.exchangeRate,
-      'total_mxn': calc.totalMxn,
-    }).select('id').single();
+    final result = await supabase
+        .from(AppConstants.tInvoices)
+        .insert({
+          'work_order_id': calc.workOrderId,
+          'client_id': calc.clientId,
+          'invoice_number': invoiceNumber,
+          'status': 'draft',
+          'labour_hours': calc.labourHours,
+          'billable_rate_usd': calc.billableRate,
+          'labour_total_usd': calc.labourTotal,
+          'parts_total_usd': calc.partsTotal,
+          'consumables_total_usd': calc.consumablesTotal,
+          'subtotal_usd': calc.subtotal,
+          'iva_pct': calc.ivaPct,
+          'iva_total_usd': calc.ivaTotal,
+          'total_usd': calc.totalUsd,
+          'exchange_rate': calc.exchangeRate,
+          'total_mxn': calc.totalMxn,
+        })
+        .select('id')
+        .single();
 
     // Update work order status to invoiced
     await supabase.from(AppConstants.tWorkOrders).update({
@@ -189,9 +195,12 @@ class InvoiceService {
         .eq('id', invoiceId)
         .single();
 
-    final currentLabourTotal = labourTotal ?? invoiceData['labour_total_usd'] as double?;
-    final currentPartsTotal = partsTotal ?? invoiceData['parts_total_usd'] as double?;
-    final currentConsumablesTotal = consumablesTotal ?? invoiceData['consumables_total_usd'] as double?;
+    final currentLabourTotal =
+        labourTotal ?? invoiceData['labour_total_usd'] as double?;
+    final currentPartsTotal =
+        partsTotal ?? invoiceData['parts_total_usd'] as double?;
+    final currentConsumablesTotal =
+        consumablesTotal ?? invoiceData['consumables_total_usd'] as double?;
 
     final subtotal = (currentLabourTotal ?? 0) +
         (currentPartsTotal ?? 0) +
@@ -199,7 +208,8 @@ class InvoiceService {
     final ivaTotal = subtotal * _ivaPct;
     final totalUsd = subtotal + ivaTotal;
 
-    final exchangeRate = invoiceData['exchange_rate'] as double? ?? await fetchExchangeRate();
+    final exchangeRate =
+        invoiceData['exchange_rate'] as double? ?? await fetchExchangeRate();
     final totalMxn = totalUsd * exchangeRate;
 
     await supabase.from(AppConstants.tInvoices).update({
