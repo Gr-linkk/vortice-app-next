@@ -12,7 +12,6 @@ class OperatorDashboard extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context);
-    final profile = ref.watch(profileProvider).valueOrNull;
     final assetsAsync = ref.watch(operatorAssignedAssetsProvider);
 
     return Scaffold(
@@ -21,7 +20,8 @@ class OperatorDashboard extends ConsumerWidget {
         actions: [
           IconButton(
             icon: const Icon(Icons.logout),
-            onPressed: () => ref.read(authControllerProvider.notifier).signOut(),
+            onPressed: () =>
+                ref.read(authControllerProvider.notifier).signOut(),
           ),
         ],
       ),
@@ -53,10 +53,9 @@ class OperatorDashboard extends ConsumerWidget {
             // Group by client name
             final grouped = <String, List<Map<String, dynamic>>>{};
             for (final row in rows) {
-              final clientName =
-                  (row['profiles'] as Map<String, dynamic>?)?['full_name']
-                          as String? ??
-                      'Unknown Client';
+              final clientName = (row['profiles']
+                      as Map<String, dynamic>?)?['full_name'] as String? ??
+                  'Unknown Client';
               grouped.putIfAbsent(clientName, () => []).add(row);
             }
 
@@ -147,15 +146,16 @@ class _AssetTile extends StatelessWidget {
       child: ListTile(
         leading: const CircleAvatar(
           backgroundColor: AppColors.surfaceVariant,
-          child: Icon(Icons.directions_boat, color: AppColors.primary, size: 20),
+          child:
+              Icon(Icons.directions_boat, color: AppColors.primary, size: 20),
         ),
         title: Text(assetName),
         subtitle: Text(
           [make, location].whereType<String>().join(' · '),
           style: const TextStyle(color: AppColors.textSecondary, fontSize: 12),
         ),
-        trailing: const Icon(Icons.checklist_rtl,
-            color: AppColors.primary, size: 20),
+        trailing:
+            const Icon(Icons.checklist_rtl, color: AppColors.primary, size: 20),
         onTap: () => context.go('/operator/checklist?assetId=$assetId'),
       ),
     );

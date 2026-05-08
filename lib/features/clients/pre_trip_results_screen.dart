@@ -65,7 +65,8 @@ class PreTripResultsScreen extends ConsumerWidget {
                         const SizedBox(height: 12),
                         Text(
                           l10n.noPreTripChecks,
-                          style: const TextStyle(color: AppColors.textSecondary),
+                          style:
+                              const TextStyle(color: AppColors.textSecondary),
                         ),
                       ],
                     ),
@@ -99,7 +100,6 @@ class _ChecklistRunCard extends ConsumerWidget {
     final l10n = AppLocalizations.of(context);
     final hasFlagged = run.hasFlaggedItems;
     final flaggedCount = run.flaggedCount;
-    final totalCount = run.responses.length;
     final passedCount = run.responses.where((r) => r.result == 'good').length;
 
     return Card(
@@ -124,7 +124,8 @@ class _ChecklistRunCard extends ConsumerWidget {
           children: [
             Text(
               l10n.preDeparture,
-              style: const TextStyle(color: AppColors.textSecondary, fontSize: 12),
+              style:
+                  const TextStyle(color: AppColors.textSecondary, fontSize: 12),
             ),
             const SizedBox(height: 4),
             Row(
@@ -155,7 +156,8 @@ class _ChecklistRunCard extends ConsumerWidget {
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Icon(Icons.notes, size: 16, color: AppColors.textSecondary),
+                  const Icon(Icons.notes,
+                      size: 16, color: AppColors.textSecondary),
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
@@ -215,7 +217,8 @@ class _StatBadge extends StatelessWidget {
           const SizedBox(width: 4),
           Text(
             label,
-            style: TextStyle(color: color, fontSize: 11, fontWeight: FontWeight.bold),
+            style: TextStyle(
+                color: color, fontSize: 11, fontWeight: FontWeight.bold),
           ),
         ],
       ),
@@ -233,7 +236,8 @@ class _ResponseTile extends ConsumerWidget {
     final itemsAsync = ref.watch(allChecklistItemsProvider);
     final itemDescription = itemsAsync.whenOrNull(
       data: (items) {
-        final item = items.where((i) => i.id == response.checklistItemId).firstOrNull;
+        final item =
+            items.where((i) => i.id == response.checklistItemId).firstOrNull;
         return item?.descriptionEn;
       },
     ) as String?;
@@ -260,7 +264,8 @@ class _ResponseTile extends ConsumerWidget {
       subtitle: response.notes != null && response.notes!.isNotEmpty
           ? Text(
               response.notes!,
-              style: const TextStyle(color: AppColors.textSecondary, fontSize: 11),
+              style:
+                  const TextStyle(color: AppColors.textSecondary, fontSize: 11),
             )
           : null,
     );
