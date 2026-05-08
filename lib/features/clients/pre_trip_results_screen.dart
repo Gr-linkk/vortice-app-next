@@ -107,8 +107,8 @@ class _ChecklistRunCard extends ConsumerWidget {
       child: ExpansionTile(
         leading: CircleAvatar(
           backgroundColor: hasFlagged
-              ? AppColors.warning.withOpacity(0.15)
-              : AppColors.success.withOpacity(0.15),
+              ? AppColors.warning.withValues(alpha: 0.15)
+              : AppColors.success.withValues(alpha: 0.15),
           child: Icon(
             hasFlagged ? Icons.warning_amber_rounded : Icons.check_circle,
             color: hasFlagged ? AppColors.warning : AppColors.success,
@@ -207,7 +207,7 @@ class _StatBadge extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.15),
+        color: color.withValues(alpha: 0.15),
         borderRadius: BorderRadius.circular(12),
       ),
       child: Row(

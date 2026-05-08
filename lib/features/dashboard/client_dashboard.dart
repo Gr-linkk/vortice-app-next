@@ -49,7 +49,8 @@ class ClientDashboard extends ConsumerWidget {
           _BellButton(route: '/client/notifications'),
           IconButton(
             icon: const Icon(Icons.logout),
-            onPressed: () => ref.read(authControllerProvider.notifier).signOut(),
+            onPressed: () =>
+                ref.read(authControllerProvider.notifier).signOut(),
           ),
         ],
       ),
@@ -137,9 +138,9 @@ class ClientDashboard extends ConsumerWidget {
             assetsAsync.when(
               loading: () => const Center(
                   child: Padding(
-                    padding: EdgeInsets.all(24),
-                    child: CircularProgressIndicator(),
-                  )),
+                padding: EdgeInsets.all(24),
+                child: CircularProgressIndicator(),
+              )),
               error: (err, _) => Padding(
                 padding: const EdgeInsets.all(16),
                 child: Text(err.toString(),
@@ -220,9 +221,8 @@ class ClientDashboard extends ConsumerWidget {
                 }
                 return Column(
                   children: runs.map((run) {
-                    final assetName =
-                        (run['assets'] as Map<String, dynamic>?)?['name']
-                            as String? ??
+                    final assetName = (run['assets']
+                            as Map<String, dynamic>?)?['name'] as String? ??
                         '—';
                     final completedAt = run['completed_at'] != null
                         ? DateTime.tryParse(run['completed_at'] as String)
@@ -247,7 +247,7 @@ class ClientDashboard extends ConsumerWidget {
                           padding: const EdgeInsets.symmetric(
                               horizontal: 8, vertical: 3),
                           decoration: BoxDecoration(
-                            color: AppColors.success.withOpacity(0.15),
+                            color: AppColors.success.withValues(alpha: 0.15),
                             borderRadius: BorderRadius.circular(4),
                           ),
                           child: Text(
@@ -285,23 +285,20 @@ class ClientDashboard extends ConsumerWidget {
                 }
                 return Column(
                   children: flags.map((flag) {
-                    final assetName =
-                        (flag['assets'] as Map<String, dynamic>?)?['name']
-                            as String? ??
+                    final assetName = (flag['assets']
+                            as Map<String, dynamic>?)?['name'] as String? ??
                         '—';
                     final isUrgent = flag['severity'] == 'urgent';
                     return Card(
                       child: ListTile(
                         leading: CircleAvatar(
-                          backgroundColor: (isUrgent
-                                  ? AppColors.error
-                                  : AppColors.warning)
-                              .withOpacity(0.15),
+                          backgroundColor:
+                              (isUrgent ? AppColors.error : AppColors.warning)
+                                  .withValues(alpha: 0.15),
                           child: Icon(
                             isUrgent ? Icons.warning : Icons.flag,
-                            color: isUrgent
-                                ? AppColors.error
-                                : AppColors.warning,
+                            color:
+                                isUrgent ? AppColors.error : AppColors.warning,
                             size: 18,
                           ),
                         ),
@@ -313,13 +310,12 @@ class ClientDashboard extends ConsumerWidget {
                         ),
                         subtitle: Text(assetName,
                             style: const TextStyle(
-                                color: AppColors.textSecondary,
-                                fontSize: 12)),
+                                color: AppColors.textSecondary, fontSize: 12)),
                         trailing: Container(
                           padding: const EdgeInsets.symmetric(
                               horizontal: 8, vertical: 3),
                           decoration: BoxDecoration(
-                            color: AppColors.warning.withOpacity(0.15),
+                            color: AppColors.warning.withValues(alpha: 0.15),
                             borderRadius: BorderRadius.circular(4),
                           ),
                           child: Text(
@@ -365,7 +361,8 @@ class _AssetChip extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(Icons.directions_boat, color: AppColors.primary, size: 28),
+            const Icon(Icons.directions_boat,
+                color: AppColors.primary, size: 28),
             const SizedBox(height: 8),
             Text(
               asset.name,
@@ -516,7 +513,7 @@ class _WorkOrderCard extends StatelessWidget {
                           padding: const EdgeInsets.symmetric(
                               horizontal: 8, vertical: 3),
                           decoration: BoxDecoration(
-                            color: color.withOpacity(0.12),
+                            color: color.withValues(alpha: 0.12),
                             borderRadius: BorderRadius.circular(20),
                           ),
                           child: Text(

@@ -47,8 +47,7 @@ class ReminderScreen extends ConsumerWidget {
               reminders.where((r) => r.urgency == 'dueSoon').toList();
           final upcoming =
               reminders.where((r) => r.urgency == 'upcoming').toList();
-          final later =
-              reminders.where((r) => r.urgency == 'later').toList();
+          final later = reminders.where((r) => r.urgency == 'later').toList();
 
           return RefreshIndicator(
             onRefresh: () async => ref.invalidate(remindersProvider),
@@ -283,12 +282,11 @@ class _ReadinessBadge extends ConsumerWidget {
         return Row(
           children: [
             Container(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
               decoration: BoxDecoration(
-                color: chipColor.withOpacity(0.15),
+                color: chipColor.withValues(alpha: 0.15),
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: chipColor.withOpacity(0.5)),
+                border: Border.all(color: chipColor.withValues(alpha: 0.5)),
               ),
               child: Row(
                 mainAxisSize: MainAxisSize.min,

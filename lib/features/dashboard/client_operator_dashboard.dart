@@ -143,7 +143,7 @@ class ClientOperatorDashboard extends ConsumerWidget {
                           child: ListTile(
                             leading: CircleAvatar(
                               backgroundColor:
-                                  AppColors.warning.withOpacity(0.1),
+                                  AppColors.warning.withValues(alpha: 0.1),
                               child: const Icon(Icons.checklist_outlined,
                                   size: 18, color: AppColors.warning),
                             ),
@@ -162,7 +162,7 @@ class ClientOperatorDashboard extends ConsumerWidget {
                               padding: const EdgeInsets.symmetric(
                                   horizontal: 8, vertical: 4),
                               decoration: BoxDecoration(
-                                color: statusColor.withOpacity(0.15),
+                                color: statusColor.withValues(alpha: 0.15),
                                 borderRadius: BorderRadius.circular(6),
                               ),
                               child: Text(
@@ -373,7 +373,7 @@ class _RecentRunTile extends StatelessWidget {
               width: 40,
               height: 40,
               decoration: BoxDecoration(
-                color: AppColors.success.withOpacity(0.12),
+                color: AppColors.success.withValues(alpha: 0.12),
                 shape: BoxShape.circle,
               ),
               child: const Icon(Icons.check_circle_outline,
@@ -404,7 +404,7 @@ class _RecentRunTile extends StatelessWidget {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
               decoration: BoxDecoration(
-                color: AppColors.success.withOpacity(0.12),
+                color: AppColors.success.withValues(alpha: 0.12),
                 borderRadius: BorderRadius.circular(20),
               ),
               child: Text(

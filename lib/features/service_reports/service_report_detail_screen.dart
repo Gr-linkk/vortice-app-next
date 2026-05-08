@@ -18,15 +18,13 @@ class ServiceReportDetailScreen extends ConsumerWidget {
     return Scaffold(
       appBar: AppBar(title: Text(l10n.serviceReportTitle)),
       body: reportsAsync.when(
-        loading: () =>
-            const Center(child: CircularProgressIndicator()),
+        loading: () => const Center(child: CircularProgressIndicator()),
         error: (err, _) => Center(
           child: Text(err.toString(),
               style: const TextStyle(color: AppColors.error)),
         ),
         data: (reports) {
-          final report =
-              reports.where((r) => r.id == reportId).firstOrNull;
+          final report = reports.where((r) => r.id == reportId).firstOrNull;
           if (report == null) {
             return Center(child: Text(l10n.notFound));
           }
@@ -46,8 +44,7 @@ class _ReportBody extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final date = report.createdAt != null
-        ? DateFormat('MMMM d, yyyy · h:mm a')
-            .format(report.createdAt!)
+        ? DateFormat('MMMM d, yyyy · h:mm a').format(report.createdAt!)
         : '—';
 
     return SingleChildScrollView(
@@ -65,8 +62,8 @@ class _ReportBody extends StatelessWidget {
                 end: Alignment.bottomRight,
               ),
               borderRadius: BorderRadius.circular(14),
-              border:
-                  const Border.fromBorderSide(BorderSide(color: AppColors.cardBorder)),
+              border: const Border.fromBorderSide(
+                  BorderSide(color: AppColors.cardBorder)),
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -121,8 +118,7 @@ class _ReportBody extends StatelessWidget {
                     Text(
                       date,
                       style: const TextStyle(
-                          color: AppColors.textSecondary,
-                          fontSize: 12),
+                          color: AppColors.textSecondary, fontSize: 12),
                     ),
                   ],
                 ),
@@ -251,7 +247,7 @@ class _Section extends StatelessWidget {
               width: 36,
               padding: const EdgeInsets.symmetric(vertical: 14),
               decoration: BoxDecoration(
-                color: color.withOpacity(0.1),
+                color: color.withValues(alpha: 0.1),
                 borderRadius: const BorderRadius.only(
                   topLeft: Radius.circular(12),
                   bottomLeft: Radius.circular(12),

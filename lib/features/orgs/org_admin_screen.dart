@@ -259,7 +259,7 @@ class _MemberCard extends ConsumerWidget {
       child: Row(
         children: [
           CircleAvatar(
-            backgroundColor: color.withOpacity(0.15),
+            backgroundColor: color.withValues(alpha: 0.15),
             child: Icon(Icons.person_outline, color: color, size: 20),
           ),
           const SizedBox(width: 12),
@@ -289,7 +289,7 @@ class _MemberCard extends ConsumerWidget {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
             decoration: BoxDecoration(
-              color: color.withOpacity(0.12),
+              color: color.withValues(alpha: 0.12),
               borderRadius: BorderRadius.circular(20),
             ),
             child: Text(
@@ -414,7 +414,8 @@ class _InviteSheetState extends ConsumerState<_InviteSheet> {
               decoration: BoxDecoration(
                 color: AppColors.surfaceVariant,
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: AppColors.primary.withOpacity(0.5)),
+                border:
+                    Border.all(color: AppColors.primary.withValues(alpha: 0.5)),
               ),
               child: Text(
                 code,
@@ -536,7 +537,7 @@ class _RoleChip extends StatelessWidget {
         padding: const EdgeInsets.symmetric(vertical: 12),
         decoration: BoxDecoration(
           color: selected
-              ? AppColors.primary.withOpacity(0.15)
+              ? AppColors.primary.withValues(alpha: 0.15)
               : AppColors.surfaceVariant,
           borderRadius: BorderRadius.circular(10),
           border: Border.all(
@@ -716,7 +717,7 @@ class _ChecklistsTab extends ConsumerWidget {
                   leading: CircleAvatar(
                     backgroundColor:
                         (isPM ? AppColors.primary : AppColors.warning)
-                            .withOpacity(0.15),
+                            .withValues(alpha: 0.15),
                     child: Icon(
                       isPM ? Icons.build_outlined : Icons.checklist_outlined,
                       color: isPM ? AppColors.primary : AppColors.warning,
@@ -741,7 +742,7 @@ class _ChecklistsTab extends ConsumerWidget {
                     padding:
                         const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                     decoration: BoxDecoration(
-                      color: statusColor.withOpacity(0.15),
+                      color: statusColor.withValues(alpha: 0.15),
                       borderRadius: BorderRadius.circular(6),
                     ),
                     child: Text(
@@ -1029,7 +1030,7 @@ class _InvoicesTab extends ConsumerWidget {
                       padding: const EdgeInsets.symmetric(
                           horizontal: 8, vertical: 3),
                       decoration: BoxDecoration(
-                        color: color.withOpacity(0.12),
+                        color: color.withValues(alpha: 0.12),
                         borderRadius: BorderRadius.circular(20),
                       ),
                       child: Text(

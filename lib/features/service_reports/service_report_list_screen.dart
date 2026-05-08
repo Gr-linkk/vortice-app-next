@@ -45,12 +45,11 @@ class ServiceReportListScreen extends ConsumerWidget {
                 children: [
                   Icon(Icons.description_outlined,
                       size: 56,
-                      color: AppColors.textSecondary.withOpacity(0.4)),
+                      color: AppColors.textSecondary.withValues(alpha: 0.4)),
                   const SizedBox(height: 12),
                   Text(
                     l10n.noServiceReports,
-                    style:
-                        const TextStyle(color: AppColors.textSecondary),
+                    style: const TextStyle(color: AppColors.textSecondary),
                   ),
                   const SizedBox(height: 16),
                   OutlinedButton.icon(
@@ -65,19 +64,17 @@ class ServiceReportListScreen extends ConsumerWidget {
           }
 
           return RefreshIndicator(
-            onRefresh: () async =>
-                ref.invalidate(serviceReportsProvider),
+            onRefresh: () async => ref.invalidate(serviceReportsProvider),
             child: ListView.separated(
               padding: const EdgeInsets.fromLTRB(16, 12, 16, 100),
               itemCount: reports.length,
-              separatorBuilder: (_, __) =>
-                  const SizedBox(height: 10),
+              separatorBuilder: (_, __) => const SizedBox(height: 10),
               itemBuilder: (context, index) {
                 final report = reports[index];
                 return _ReportCard(
                   report: report,
-                  onTap: () => context.push(
-                      '$prefix/service-reports/${report.id}'),
+                  onTap: () =>
+                      context.push('$prefix/service-reports/${report.id}'),
                 );
               },
             ),
@@ -120,7 +117,7 @@ class _ReportCard extends StatelessWidget {
               width: 42,
               height: 42,
               decoration: BoxDecoration(
-                color: AppColors.primary.withOpacity(0.1),
+                color: AppColors.primary.withValues(alpha: 0.1),
                 shape: BoxShape.circle,
               ),
               child: const Icon(Icons.description_outlined,
@@ -150,16 +147,14 @@ class _ReportCard extends StatelessWidget {
                           padding: const EdgeInsets.symmetric(
                               horizontal: 7, vertical: 2),
                           decoration: BoxDecoration(
-                            color:
-                                AppColors.success.withOpacity(0.12),
+                            color: AppColors.success.withValues(alpha: 0.12),
                             borderRadius: BorderRadius.circular(20),
                           ),
                           child: Row(
                             mainAxisSize: MainAxisSize.min,
                             children: const [
                               Icon(Icons.draw_outlined,
-                                  size: 10,
-                                  color: AppColors.success),
+                                  size: 10, color: AppColors.success),
                               SizedBox(width: 3),
                               Text(
                                 'Signed',
@@ -189,8 +184,7 @@ class _ReportCard extends StatelessWidget {
                   Row(
                     children: [
                       const Icon(Icons.calendar_today_outlined,
-                          size: 11,
-                          color: AppColors.textSecondary),
+                          size: 11, color: AppColors.textSecondary),
                       const SizedBox(width: 4),
                       Text(
                         date,

@@ -50,7 +50,8 @@ class NotificationsScreen extends ConsumerWidget {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Icon(Icons.notifications_none,
-                      size: 56, color: AppColors.textSecondary.withOpacity(0.4)),
+                      size: 56,
+                      color: AppColors.textSecondary.withValues(alpha: 0.4)),
                   const SizedBox(height: 12),
                   Text(
                     l10n.noNotifications,
@@ -153,7 +154,7 @@ class _NotificationTile extends ConsumerWidget {
           : null,
       child: Container(
         color: isUnread
-            ? AppColors.primary.withOpacity(0.06)
+            ? AppColors.primary.withValues(alpha: 0.06)
             : Colors.transparent,
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         child: Row(
@@ -164,7 +165,7 @@ class _NotificationTile extends ConsumerWidget {
               width: 40,
               height: 40,
               decoration: BoxDecoration(
-                color: _colorFor(notification.type).withOpacity(0.15),
+                color: _colorFor(notification.type).withValues(alpha: 0.15),
                 shape: BoxShape.circle,
               ),
               child: Icon(
@@ -187,9 +188,8 @@ class _NotificationTile extends ConsumerWidget {
                           notification.title,
                           style: TextStyle(
                             color: AppColors.textPrimary,
-                            fontWeight: isUnread
-                                ? FontWeight.w600
-                                : FontWeight.normal,
+                            fontWeight:
+                                isUnread ? FontWeight.w600 : FontWeight.normal,
                             fontSize: 14,
                           ),
                         ),

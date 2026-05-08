@@ -64,7 +64,8 @@ class MaintenanceFlagsScreen extends ConsumerWidget {
                         const SizedBox(height: 12),
                         Text(
                           l10n.noMaintenanceFlags,
-                          style: const TextStyle(color: AppColors.textSecondary),
+                          style:
+                              const TextStyle(color: AppColors.textSecondary),
                         ),
                       ],
                     ),
@@ -76,8 +77,8 @@ class MaintenanceFlagsScreen extends ConsumerWidget {
                 final resolved = flags.where((f) => !f.isOpen).toList();
 
                 return RefreshIndicator(
-                  onRefresh: () async =>
-                      ref.invalidate(maintenanceRequestsForAssetProvider(assetId)),
+                  onRefresh: () async => ref
+                      .invalidate(maintenanceRequestsForAssetProvider(assetId)),
                   child: ListView(
                     padding: const EdgeInsets.all(16),
                     children: [
@@ -140,7 +141,7 @@ class _SectionHeader extends StatelessWidget {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
             decoration: BoxDecoration(
-              color: color.withOpacity(0.15),
+              color: color.withValues(alpha: 0.15),
               borderRadius: BorderRadius.circular(10),
             ),
             child: Text(
@@ -186,10 +187,11 @@ class _FlagCard extends StatelessWidget {
                 const SizedBox(width: 8),
                 if (isUrgent && flag.isOpen)
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                     margin: const EdgeInsets.only(right: 8),
                     decoration: BoxDecoration(
-                      color: AppColors.error.withOpacity(0.15),
+                      color: AppColors.error.withValues(alpha: 0.15),
                       borderRadius: BorderRadius.circular(4),
                     ),
                     child: Text(
@@ -221,7 +223,7 @@ class _FlagCard extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                 decoration: BoxDecoration(
-                  color: AppColors.success.withOpacity(0.1),
+                  color: AppColors.success.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(6),
                 ),
                 child: Row(

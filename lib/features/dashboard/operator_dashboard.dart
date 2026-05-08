@@ -93,7 +93,7 @@ class OperatorDashboard extends ConsumerWidget {
                             padding: const EdgeInsets.symmetric(
                                 horizontal: 7, vertical: 1),
                             decoration: BoxDecoration(
-                              color: AppColors.primary.withOpacity(0.15),
+                              color: AppColors.primary.withValues(alpha: 0.15),
                               borderRadius: BorderRadius.circular(10),
                             ),
                             child: Text(
