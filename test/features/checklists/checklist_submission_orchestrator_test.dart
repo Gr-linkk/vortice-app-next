@@ -105,6 +105,41 @@ void main() {
     });
   });
 
+  group('ClientChecklistSubmission', () {
+    test(
+        'writes saved checklist history without PM completion or work order response writes',
+        () async {
+      final events = <String>[];
+      final repository = _RecordingSavedChecklistsRepository(events);
+      final submission = ClientChecklistSubmission(
+        historyWriter: SavedChecklistHistoryWriter(repository),
+      );
+
+      await submission.submit(
+        assetId: 'asset-1',
+        clientId: 'client-1',
+        submittedBy: 'client-user-1',
+        submittedByRole: 'clientMechanic',
+        template: _template(),
+        items: [_item()],
+        responses: {'item-1': 'pass'},
+        notes: {'item-1': 'ok'},
+        photoUrls: const {},
+        submittedAt: DateTime.utc(2026, 5, 8, 14),
+        currentHours: 789,
+        generalNotes: 'client note',
+      );
+
+      expect(events, ['history']);
+      expect(repository.calls.single, containsPair('sourceType', 'client'));
+      expect(repository.calls.single,
+          containsPair('checklistType', 'maintenance'));
+      expect(repository.calls.single, containsPair('workOrderId', null));
+      expect(
+          repository.calls.single['extraHeader'], {'client_submitted': true});
+    });
+  });
+
   group('OperationsChecklistSubmission', () {
     test('creates run and responses before saved operations history', () async {
       final events = <String>[];

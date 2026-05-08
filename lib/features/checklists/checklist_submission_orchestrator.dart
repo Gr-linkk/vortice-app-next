@@ -28,6 +28,12 @@ final operationsChecklistSubmissionProvider =
   );
 });
 
+final clientChecklistSubmissionProvider = Provider<ClientChecklistSubmission>(
+  (ref) => ClientChecklistSubmission(
+    historyWriter: ref.watch(savedChecklistHistoryWriterProvider),
+  ),
+);
+
 typedef SubmitMaintenanceResponses = Future<void> Function({
   required String workOrderId,
   required String completedBy,
@@ -103,6 +109,44 @@ class MaintenanceChecklistSubmission {
     );
     await _preventativeMaintenanceCompletion
         .satisfyIntervalFromCompletedWorkOrder(workOrderId);
+  }
+}
+
+class ClientChecklistSubmission {
+  const ClientChecklistSubmission({
+    required SavedChecklistHistoryWriter historyWriter,
+  }) : _historyWriter = historyWriter;
+
+  final SavedChecklistHistoryWriter _historyWriter;
+
+  Future<void> submit({
+    required String assetId,
+    required String clientId,
+    required String submittedBy,
+    required String? submittedByRole,
+    required ChecklistTemplate template,
+    required List<ChecklistItem> items,
+    required Map<String, String?> responses,
+    required Map<String, String> notes,
+    required Map<String, String?> photoUrls,
+    required DateTime submittedAt,
+    required double? currentHours,
+    required String? generalNotes,
+  }) {
+    return _historyWriter.recordClientSubmittedHistory(
+      assetId: assetId,
+      clientId: clientId,
+      template: template,
+      items: items,
+      responses: responses,
+      notes: notes,
+      photoUrls: photoUrls,
+      completedBy: submittedBy,
+      submittedByRole: submittedByRole,
+      submittedAt: submittedAt,
+      currentHours: currentHours,
+      generalNotes: generalNotes,
+    );
   }
 }
 

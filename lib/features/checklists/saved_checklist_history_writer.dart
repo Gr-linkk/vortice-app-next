@@ -52,6 +52,47 @@ class SavedChecklistHistoryWriter {
     );
   }
 
+  Future<void> recordClientSubmittedHistory({
+    required String assetId,
+    required String clientId,
+    required ChecklistTemplate template,
+    required List<ChecklistItem> items,
+    required Map<String, String?> responses,
+    required Map<String, String> notes,
+    required Map<String, String?> photoUrls,
+    required String completedBy,
+    required String? submittedByRole,
+    required DateTime submittedAt,
+    required double? currentHours,
+    required String? generalNotes,
+  }) {
+    final normalizedChecklistType = template.checklistType == 'operations' ||
+            template.checklistType == 'operator_daily' ||
+            template.checklistType == 'pre_ops'
+        ? 'operations'
+        : 'maintenance';
+
+    return _repository.createSavedChecklist(
+      assetId: assetId,
+      clientId: clientId,
+      template: template,
+      items: items,
+      responses: responses,
+      notes: notes,
+      photoUrls: photoUrls,
+      sourceType: 'client',
+      checklistType: normalizedChecklistType,
+      completedBy: completedBy,
+      submittedByRole: submittedByRole,
+      submittedAt: submittedAt,
+      currentHours: currentHours,
+      generalNotes: generalNotes,
+      extraHeader: const {
+        'client_submitted': true,
+      },
+    );
+  }
+
   Future<void> recordOperationsRunHistory({
     required String assetId,
     required String clientId,
