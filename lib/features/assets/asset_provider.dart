@@ -34,19 +34,16 @@ final assetsProvider = FutureProvider<List<Asset>>((ref) async {
   }
 
   try {
-    final remote = await supabase
-        .from(AppConstants.tAssets)
-        .select()
-        .order('name');
+    final remote =
+        await supabase.from(AppConstants.tAssets).select().order('name');
 
     final assets = (remote as List)
         .map((e) => Asset.fromJson(e as Map<String, dynamic>))
         .toList();
 
-    if (assets.isEmpty) {
-      final cached = await cachedAssets();
-      if (cached.isNotEmpty) return cached;
-    }
+    // A successful empty remote result is authoritative for the current user.
+    // Do not fall back to the unscoped local cache here, or a different login
+    // can see stale assets from a previous account.
 
     // Persist to local cache
     for (final asset in assets) {
