@@ -1,7 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:vortice_app/core/constants.dart';
 import 'package:vortice_app/core/supabase_client.dart';
-// AppConstants has tClientOrgs, tWorkOrders, tWorkOrderAssignments, tProfiles
+import 'package:vortice_app/features/assets/client_team_asset_access.dart';
 
 /// Represents an operator checklist run with its responses
 class OperatorChecklistRun {
@@ -211,77 +211,12 @@ final clientFlaggedIssuesProvider =
   return List<Map<String, dynamic>>.from(data as List);
 });
 
-/// Fetch assets for the operator, scoped to their org if applicable.
-/// - If the operator has an org_id, returns assets belonging to the org's owner.
-/// - Otherwise, returns all assets (legacy operator role fallback).
+/// Fetch assets for the operator, scoped to their client org.
+///
+/// No org means no inherited fleet visibility. This intentionally avoids the old
+/// all-assets fallback.
 final operatorAssignedAssetsProvider =
     FutureProvider<List<Map<String, dynamic>>>((ref) async {
-  final userId = supabase.auth.currentUser?.id;
-
-  if (userId != null) {
-    // Try to get the operator's org_id from their profile
-    final profileRow = await supabase
-        .from(AppConstants.tProfiles)
-        .select('org_id, role')
-        .eq('id', userId)
-        .maybeSingle();
-
-    final orgId = profileRow?['org_id'] as String?;
-    if (orgId != null) {
-      // Scoped to org: find the org's owner and return their assets
-      final orgRow = await supabase
-          .from(AppConstants.tClientOrgs)
-          .select('owner_profile_id')
-          .eq('id', orgId)
-          .maybeSingle();
-
-      final ownerId = orgRow?['owner_profile_id'] as String?;
-      if (ownerId != null) {
-        final data = await supabase
-            .from(AppConstants.tAssets)
-            .select('id, client_id, name, make, model, profiles(full_name)')
-            .eq('client_id', ownerId)
-            .order('name');
-        return List<Map<String, dynamic>>.from(data as List);
-      }
-    }
-
-    // Fallback: check work_order_assignments for legacy operator role
-    final assignments = await supabase
-        .from(AppConstants.tWorkOrderAssignments)
-        .select('work_order_id')
-        .eq('profile_id', userId);
-
-    final woIds = (assignments as List)
-        .map((e) => e['work_order_id'] as String)
-        .toSet()
-        .toList();
-
-    if (woIds.isNotEmpty) {
-      // Get asset IDs from those work orders
-      final wos = await supabase
-          .from(AppConstants.tWorkOrders)
-          .select('asset_id')
-          .inFilter('id', woIds);
-
-      final assetIds =
-          (wos as List).map((e) => e['asset_id'] as String).toSet().toList();
-
-      if (assetIds.isNotEmpty) {
-        final data = await supabase
-            .from(AppConstants.tAssets)
-            .select('id, client_id, name, make, model, profiles(full_name)')
-            .inFilter('id', assetIds)
-            .order('name');
-        return List<Map<String, dynamic>>.from(data as List);
-      }
-    }
-  }
-
-  // Legacy fallback: return all assets
-  final data = await supabase
-      .from(AppConstants.tAssets)
-      .select('id, client_id, name, make, model, profiles(full_name)')
-      .order('name');
-  return List<Map<String, dynamic>>.from(data as List);
+  final assets = await ref.watch(currentClientFleetAssetsProvider.future);
+  return assets.map(clientTeamAssetRow).toList();
 });

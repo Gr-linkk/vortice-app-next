@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:vortice_app/core/constants.dart';
 import 'package:vortice_app/core/supabase_client.dart';
 import 'package:vortice_app/db/database.dart';
+import 'package:vortice_app/features/assets/client_team_asset_access.dart';
 import 'package:vortice_app/models/asset.dart';
 
 // ── Remote fetch ───────────────────────────────────────────────────────────
@@ -73,44 +74,9 @@ final assetsProvider = FutureProvider<List<Asset>>((ref) async {
   }
 });
 
-/// For operators/client_mechanics: assets scoped to their org's owner.
-/// Falls back to assetsProvider for other roles.
-final operatorScopedAssetsProvider = FutureProvider<List<Asset>>((ref) async {
-  final userId = supabase.auth.currentUser?.id;
-  if (userId == null) return [];
-
-  final profileRow = await supabase
-      .from('profiles')
-      .select('org_id, role')
-      .eq('id', userId)
-      .maybeSingle();
-
-  final orgId = profileRow?['org_id'] as String?;
-  if (orgId == null) {
-    // No org — fall back to all accessible assets (RLS handles scoping)
-    return ref.watch(assetsProvider).valueOrNull ?? [];
-  }
-
-  // Find org owner
-  final orgRow = await supabase
-      .from('client_orgs')
-      .select('owner_profile_id')
-      .eq('id', orgId)
-      .maybeSingle();
-
-  final ownerId = orgRow?['owner_profile_id'] as String?;
-  if (ownerId == null) return [];
-
-  final remote = await supabase
-      .from('assets')
-      .select()
-      .eq('client_id', ownerId)
-      .order('name');
-
-  return (remote as List)
-      .map((e) => Asset.fromJson(e as Map<String, dynamic>))
-      .toList();
-});
+/// For client-side operators/mechanics/admins: assets scoped to their client org.
+/// No org means no inherited fleet visibility.
+final operatorScopedAssetsProvider = currentClientFleetAssetsProvider;
 
 final assetByIdProvider =
     FutureProvider.family<Asset?, String>((ref, id) async {

@@ -53,7 +53,8 @@ class AppAuthStatus {
   });
 
   static const loading = AppAuthStatus(isLoading: true, isAuthenticated: false);
-  static const unauthenticated = AppAuthStatus(isLoading: false, isAuthenticated: false);
+  static const unauthenticated =
+      AppAuthStatus(isLoading: false, isAuthenticated: false);
 }
 
 final authStatusProvider = Provider<AppAuthStatus>((ref) {
@@ -102,7 +103,8 @@ class AuthController extends StateNotifier<AsyncValue<void>> {
       // Validate org code
       final org = await supabase
           .from(AppConstants.tOrgCodes)
-          .select('id, code, intended_role, single_use, max_uses, use_count, expires_at, org_id')
+          .select(
+              'id, code, intended_role, single_use, max_uses, use_count, expires_at, org_id')
           .eq('code', orgCode.toUpperCase())
           .maybeSingle();
 
@@ -110,7 +112,8 @@ class AuthController extends StateNotifier<AsyncValue<void>> {
 
       // Check expiry
       final expiresAt = org['expires_at'] as String?;
-      if (expiresAt != null && DateTime.parse(expiresAt).isBefore(DateTime.now())) {
+      if (expiresAt != null &&
+          DateTime.parse(expiresAt).isBefore(DateTime.now())) {
         throw Exception('orgCodeExpired');
       }
 
@@ -122,15 +125,20 @@ class AuthController extends StateNotifier<AsyncValue<void>> {
         throw Exception('orgCodeUsed');
       }
 
-      // Capture org_id from code (for org-scoped invites)
+      // Capture org_id and role from code. The DB trigger is the durable
+      // source of truth, but passing both values makes the signup intent
+      // explicit and keeps local/dev environments from drifting.
+      final normalizedCode = orgCode.toUpperCase();
       final orgId = org['org_id'] as String?;
+      final intendedRole = org['intended_role'] as String?;
 
       await supabase.auth.signUp(
         email: email,
         password: password,
         data: {
           'full_name': fullName,
-          'org_code_used': orgCode.toUpperCase(),
+          'org_code_used': normalizedCode,
+          if (intendedRole != null) 'role': intendedRole,
           if (orgId != null) 'org_id': orgId,
         },
       );
@@ -138,19 +146,17 @@ class AuthController extends StateNotifier<AsyncValue<void>> {
       // Increment use count
       await supabase
           .from(AppConstants.tOrgCodes)
-          .update({'use_count': useCount + 1})
-          .eq('id', org['id']);
+          .update({'use_count': useCount + 1}).eq('id', org['id']);
 
-      // If org_id on code, also set it on the profile directly
-      // (in case the DB trigger doesn't handle it yet)
-      if (orgId != null) {
-        final userId = supabase.auth.currentUser?.id;
-        if (userId != null) {
-          await supabase
-              .from(AppConstants.tProfiles)
-              .update({'org_id': orgId})
-              .eq('id', userId);
-        }
+      // If the session is immediately available, also repair the profile
+      // directly in case an older DB trigger only created a partial profile.
+      final userId = supabase.auth.currentUser?.id;
+      if (userId != null) {
+        await supabase.from(AppConstants.tProfiles).update({
+          if (intendedRole != null) 'role': intendedRole,
+          if (orgId != null) 'org_id': orgId,
+          'org_code_used': normalizedCode,
+        }).eq('id', userId);
       }
     });
   }
@@ -174,9 +180,12 @@ class AuthController extends StateNotifier<AsyncValue<void>> {
           'role': 'client',
           'subscription_tier': 0,
           if (phone != null && phone.isNotEmpty) 'phone': phone,
-          if (vesselName != null && vesselName.isNotEmpty) 'vessel_name': vesselName,
-          if (vesselType != null && vesselType.isNotEmpty) 'vessel_type': vesselType,
-          if (marinaLocation != null && marinaLocation.isNotEmpty) 'marina_location': marinaLocation,
+          if (vesselName != null && vesselName.isNotEmpty)
+            'vessel_name': vesselName,
+          if (vesselType != null && vesselType.isNotEmpty)
+            'vessel_type': vesselType,
+          if (marinaLocation != null && marinaLocation.isNotEmpty)
+            'marina_location': marinaLocation,
         },
       );
     });

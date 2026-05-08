@@ -5,46 +5,18 @@ import 'package:intl/intl.dart';
 import 'package:vortice_app/core/constants.dart';
 import 'package:vortice_app/core/supabase_client.dart';
 import 'package:vortice_app/core/theme.dart';
+import 'package:vortice_app/features/assets/client_team_asset_access.dart';
 import 'package:vortice_app/features/auth/auth_provider.dart';
 import 'package:vortice_app/features/checklists/checklist_assignment_provider.dart';
 import 'package:vortice_app/features/clients/client_capability_gate.dart';
 import 'package:vortice_app/models/client_capability.dart';
 
-// ── Provider: assets assigned to this client_operator ────────────────────────
+// ── Provider: assets assigned to this client_operator's org ─────────────────
 
 final clientOperatorAssignedAssetsProvider =
     FutureProvider<List<Map<String, dynamic>>>((ref) async {
-  final userId = supabase.auth.currentUser?.id;
-  if (userId == null) return [];
-
-  // Get the operator's org_id from their profile
-  final profileRow = await supabase
-      .from(AppConstants.tProfiles)
-      .select('org_id')
-      .eq('id', userId)
-      .maybeSingle();
-
-  final orgId = profileRow?['org_id'] as String?;
-  if (orgId == null) return [];
-
-  // Get the org owner (client) whose assets we should show
-  final orgRow = await supabase
-      .from(AppConstants.tClientOrgs)
-      .select('owner_profile_id')
-      .eq('id', orgId)
-      .maybeSingle();
-
-  final ownerId = orgRow?['owner_profile_id'] as String?;
-  if (ownerId == null) return [];
-
-  // Fetch assets for that client
-  final data = await supabase
-      .from(AppConstants.tAssets)
-      .select('id, name, model, make')
-      .eq('client_id', ownerId)
-      .order('name');
-
-  return List<Map<String, dynamic>>.from(data as List);
+  final assets = await ref.watch(currentClientFleetAssetsProvider.future);
+  return assets.map(clientTeamAssetRow).toList();
 });
 
 // ── Provider: recent pre-departure checklist runs for this operator ──────────
