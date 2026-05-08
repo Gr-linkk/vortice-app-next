@@ -46,7 +46,7 @@ class ClientDashboard extends ConsumerWidget {
       appBar: AppBar(
         title: Text(l10n.clientDashboardTitle),
         actions: [
-          _BellButton(route: '/client/notifications'),
+          const _BellButton(route: '/client/notifications'),
           IconButton(
             icon: const Icon(Icons.logout),
             onPressed: () =>
@@ -318,9 +318,9 @@ class ClientDashboard extends ConsumerWidget {
                             color: AppColors.warning.withValues(alpha: 0.15),
                             borderRadius: BorderRadius.circular(4),
                           ),
-                          child: Text(
+                          child: const Text(
                             'OPEN',
-                            style: const TextStyle(
+                            style: TextStyle(
                                 color: AppColors.warning,
                                 fontSize: 10,
                                 fontWeight: FontWeight.bold),

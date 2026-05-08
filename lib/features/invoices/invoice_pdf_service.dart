@@ -63,12 +63,12 @@ class InvoicePdfService {
                 pw.SizedBox(height: 2),
                 pw.Text(
                   'Marine & Heavy Equipment Maintenance',
-                  style: pw.TextStyle(color: _midGrey, fontSize: 10),
+                  style: const pw.TextStyle(color: _midGrey, fontSize: 10),
                 ),
                 pw.SizedBox(height: 4),
                 pw.Text(
                   'Puerto Vallarta, Jalisco, Mexico',
-                  style: pw.TextStyle(color: _midGrey, fontSize: 9),
+                  style: const pw.TextStyle(color: _midGrey, fontSize: 9),
                 ),
               ],
             ),
@@ -115,7 +115,7 @@ class InvoicePdfService {
         _sectionLabel('LINE ITEMS'),
         pw.SizedBox(height: 6),
         pw.Table(
-          border: pw.TableBorder(
+          border: const pw.TableBorder(
             bottom: pw.BorderSide(color: _borderGrey),
             horizontalInside: pw.BorderSide(color: _borderGrey, width: 0.5),
           ),
@@ -127,7 +127,7 @@ class InvoicePdfService {
           children: [
             // Header row
             pw.TableRow(
-              decoration: pw.BoxDecoration(color: _lightGrey),
+              decoration: const pw.BoxDecoration(color: _lightGrey),
               children: [
                 _tableHeader('Description'),
                 _tableHeader('Detail'),
@@ -200,7 +200,7 @@ class InvoicePdfService {
                   pw.SizedBox(height: 6),
                   pw.Text(
                     'Exchange rate: 1 USD = ${invoice.exchangeRate?.toStringAsFixed(4) ?? '-'} MXN',
-                    style: pw.TextStyle(color: _midGrey, fontSize: 8),
+                    style: const pw.TextStyle(color: _midGrey, fontSize: 8),
                     textAlign: pw.TextAlign.center,
                   ),
                 ],
@@ -222,7 +222,7 @@ class InvoicePdfService {
             ),
             child: pw.Text(
               invoice.notes!,
-              style: pw.TextStyle(color: _darkGrey, fontSize: 10),
+              style: const pw.TextStyle(color: _darkGrey, fontSize: 10),
             ),
           ),
         ],
@@ -237,11 +237,11 @@ class InvoicePdfService {
           children: [
             pw.Text(
               'Vortice Mechanical — Puerto Vallarta, Jalisco, Mexico',
-              style: pw.TextStyle(color: _midGrey, fontSize: 8),
+              style: const pw.TextStyle(color: _midGrey, fontSize: 8),
             ),
             pw.Text(
               invoice.invoiceNumber,
-              style: pw.TextStyle(color: _midGrey, fontSize: 8),
+              style: const pw.TextStyle(color: _midGrey, fontSize: 8),
             ),
           ],
         ),
@@ -255,7 +255,8 @@ class InvoicePdfService {
     return pw.Row(
       mainAxisSize: pw.MainAxisSize.min,
       children: [
-        pw.Text('$label: ', style: pw.TextStyle(color: _midGrey, fontSize: 9)),
+        pw.Text('$label: ',
+            style: const pw.TextStyle(color: _midGrey, fontSize: 9)),
         pw.Text(value,
             style: pw.TextStyle(
                 color: _darkGrey, fontSize: 9, fontWeight: pw.FontWeight.bold)),

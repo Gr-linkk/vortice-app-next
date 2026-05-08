@@ -49,7 +49,7 @@ class ClientDashboardFree extends ConsumerWidget {
       appBar: AppBar(
         title: const Text('My Dashboard'),
         actions: [
-          _BellButton(route: '/client/notifications'),
+          const _BellButton(route: '/client/notifications'),
           IconButton(
             icon: const Icon(Icons.logout),
             onPressed: () =>
@@ -91,7 +91,7 @@ class ClientDashboardFree extends ConsumerWidget {
             ),
 
             // ── My Vessels ──────────────────────────────────────────────────
-            _SectionHeader(title: 'My Vessels'),
+            const _SectionHeader(title: 'My Vessels'),
             assetsAsync.when(
               loading: () => const _LoadingTile(),
               error: (err, _) => _ErrorTile(message: err.toString()),
@@ -110,7 +110,7 @@ class ClientDashboardFree extends ConsumerWidget {
             ),
 
             // ── Invoices ────────────────────────────────────────────────────
-            _SectionHeader(title: 'Invoices'),
+            const _SectionHeader(title: 'Invoices'),
             invoicesAsync.when(
               loading: () => const _LoadingTile(),
               error: (err, _) => _ErrorTile(message: err.toString()),
@@ -131,7 +131,7 @@ class ClientDashboardFree extends ConsumerWidget {
             ),
 
             // ── Service Requests ─────────────────────────────────────────────
-            _SectionHeader(title: 'Service Requests'),
+            const _SectionHeader(title: 'Service Requests'),
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
               child: ElevatedButton.icon(

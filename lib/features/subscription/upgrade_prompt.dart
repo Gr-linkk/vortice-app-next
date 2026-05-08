@@ -24,7 +24,7 @@ class UpgradePrompt extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(Icons.lock_outline, color: AppColors.warning, size: 48),
+          const Icon(Icons.lock_outline, color: AppColors.warning, size: 48),
           const SizedBox(height: 16),
           Text(
             l10n.upgradeRequired,
@@ -80,7 +80,8 @@ class TierGateBanner extends StatelessWidget {
           ),
           child: Row(
             children: [
-              Icon(Icons.lock_outline, color: AppColors.warning, size: 18),
+              const Icon(Icons.lock_outline,
+                  color: AppColors.warning, size: 18),
               const SizedBox(width: 8),
               Expanded(
                 child: Text(

@@ -150,9 +150,9 @@ class _ReportCard extends StatelessWidget {
                             color: AppColors.success.withValues(alpha: 0.12),
                             borderRadius: BorderRadius.circular(20),
                           ),
-                          child: Row(
+                          child: const Row(
                             mainAxisSize: MainAxisSize.min,
-                            children: const [
+                            children: [
                               Icon(Icons.draw_outlined,
                                   size: 10, color: AppColors.success),
                               SizedBox(width: 3),

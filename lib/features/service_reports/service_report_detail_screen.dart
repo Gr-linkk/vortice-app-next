@@ -73,7 +73,7 @@ class _ReportBody extends StatelessWidget {
                     const Icon(Icons.description_outlined,
                         color: AppColors.primary, size: 20),
                     const SizedBox(width: 8),
-                    Text(
+                    const Text(
                       'SERVICE REPORT',
                       style: TextStyle(
                         color: AppColors.primary,
@@ -84,8 +84,8 @@ class _ReportBody extends StatelessWidget {
                     ),
                     const Spacer(),
                     if (report.techSignatureUrl != null)
-                      Row(
-                        children: const [
+                      const Row(
+                        children: [
                           Icon(Icons.draw_outlined,
                               size: 13, color: AppColors.success),
                           SizedBox(width: 4),

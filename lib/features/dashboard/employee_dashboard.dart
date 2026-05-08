@@ -134,8 +134,8 @@ class EmployeeDashboard extends ConsumerWidget {
                 ),
 
                 // ── Quick actions ──────────────────────────────────
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+                const Padding(
+                  padding: EdgeInsets.fromLTRB(16, 0, 16, 8),
                   child: _SectionHeader(title: 'QUICK ACTIONS'),
                 ),
                 Padding(

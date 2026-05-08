@@ -59,7 +59,7 @@ class MaintenanceFlagsScreen extends ConsumerWidget {
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Icon(Icons.flag_outlined,
+                        const Icon(Icons.flag_outlined,
                             size: 48, color: AppColors.textSecondary),
                         const SizedBox(height: 12),
                         Text(
@@ -194,7 +194,7 @@ class _FlagCard extends StatelessWidget {
                       color: AppColors.error.withValues(alpha: 0.15),
                       borderRadius: BorderRadius.circular(4),
                     ),
-                    child: Text(
+                    child: const Text(
                       'URGENT',
                       style: TextStyle(
                         color: AppColors.error,
@@ -229,11 +229,11 @@ class _FlagCard extends StatelessWidget {
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Icon(Icons.check, size: 14, color: AppColors.success),
+                    const Icon(Icons.check, size: 14, color: AppColors.success),
                     const SizedBox(width: 4),
                     Text(
                       _statusLabel(flag.status),
-                      style: TextStyle(
+                      style: const TextStyle(
                         color: AppColors.success,
                         fontSize: 12,
                         fontWeight: FontWeight.w500,

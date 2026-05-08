@@ -60,7 +60,7 @@ class PreTripResultsScreen extends ConsumerWidget {
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Icon(Icons.checklist,
+                        const Icon(Icons.checklist,
                             size: 48, color: AppColors.textSecondary),
                         const SizedBox(height: 12),
                         Text(
