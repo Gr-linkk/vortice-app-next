@@ -329,7 +329,7 @@ class _WorkflowSummaryHeader extends StatelessWidget {
           size: 18,
         ),
         const SizedBox(width: 8),
-        Text('Workflow Summary', style: Theme.of(context).textTheme.titleSmall),
+        Text('Summary', style: Theme.of(context).textTheme.titleSmall),
       ],
     );
   }
