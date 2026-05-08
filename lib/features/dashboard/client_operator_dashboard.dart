@@ -211,7 +211,7 @@ class ClientOperatorDashboard extends ConsumerWidget {
 
             // ── 1. Pre-Departure Checklists ───────────────────────────
             if (showOperationalChecklists) ...[
-              _SectionHeader(
+              const _SectionHeader(
                 title: 'Pre-Departure Checklists',
                 icon: Icons.checklist_outlined,
               ),
@@ -250,7 +250,7 @@ class ClientOperatorDashboard extends ConsumerWidget {
             ),
 
             // ── 3. Recent Checks ──────────────────────────────────────
-            _SectionHeader(
+            const _SectionHeader(
               title: 'Recent Checks',
               icon: Icons.history_outlined,
             ),

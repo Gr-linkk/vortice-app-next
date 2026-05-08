@@ -31,7 +31,7 @@ class ClientDashboardManaged extends ConsumerWidget {
       appBar: AppBar(
         title: const Text('My Dashboard'),
         actions: [
-          _MBellButton(route: '/client/notifications'),
+          const _MBellButton(route: '/client/notifications'),
           IconButton(
             icon: const Icon(Icons.logout),
             onPressed: () =>
@@ -68,7 +68,7 @@ class ClientDashboardManaged extends ConsumerWidget {
             ),
 
             // ── Scheduled Maintenance ────────────────────────────────────
-            _SectionHeader(title: 'Scheduled Maintenance'),
+            const _SectionHeader(title: 'Scheduled Maintenance'),
             const _MEmptyStateTile(
               icon: Icons.event_available_outlined,
               message:
@@ -76,7 +76,7 @@ class ClientDashboardManaged extends ConsumerWidget {
             ),
 
             // ── Recent Service ───────────────────────────────────────────
-            _SectionHeader(title: 'Recent Service'),
+            const _SectionHeader(title: 'Recent Service'),
             reportsAsync.when(
               loading: () => const _MLoadingTile(),
               error: (_, __) => const SizedBox.shrink(),
@@ -204,7 +204,7 @@ class ClientDashboardManaged extends ConsumerWidget {
             ),
 
             // ── Service Requests ─────────────────────────────────────────
-            _SectionHeader(title: 'Service Requests'),
+            const _SectionHeader(title: 'Service Requests'),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
               child: ElevatedButton.icon(
@@ -252,7 +252,7 @@ class ClientDashboardManaged extends ConsumerWidget {
             ),
 
             // ── My Vessels ───────────────────────────────────────────────
-            _SectionHeader(title: 'My Vessels'),
+            const _SectionHeader(title: 'My Vessels'),
             assetsAsync.when(
               loading: () => const _MLoadingTile(),
               error: (err, _) => _MErrorTile(message: err.toString()),
@@ -270,7 +270,7 @@ class ClientDashboardManaged extends ConsumerWidget {
             ),
 
             // ── Invoices ─────────────────────────────────────────────────
-            _SectionHeader(title: 'Invoices'),
+            const _SectionHeader(title: 'Invoices'),
             invoicesAsync.when(
               loading: () => const _MLoadingTile(),
               error: (err, _) => _MErrorTile(message: err.toString()),
@@ -291,7 +291,7 @@ class ClientDashboardManaged extends ConsumerWidget {
             ),
 
             // ── Service Reports ───────────────────────────────────────────
-            _SectionHeader(title: 'Service Reports'),
+            const _SectionHeader(title: 'Service Reports'),
             reportsAsync.when(
               loading: () => const _MLoadingTile(),
               error: (_, __) => const SizedBox.shrink(),

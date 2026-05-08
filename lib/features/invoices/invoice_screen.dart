@@ -160,7 +160,7 @@ class InvoiceScreen extends ConsumerWidget {
                   ...paid.map((i) => _InvoiceTile(invoice: i)),
                 ],
                 if (voided.isNotEmpty) ...[
-                  _SectionHeader(
+                  const _SectionHeader(
                       label: 'VOIDED', color: AppColors.textSecondary),
                   ...voided.map((i) => _InvoiceTile(invoice: i)),
                 ],
