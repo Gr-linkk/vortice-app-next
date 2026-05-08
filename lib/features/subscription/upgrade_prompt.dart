@@ -17,8 +17,8 @@ class UpgradePrompt extends StatelessWidget {
       margin: const EdgeInsets.all(24),
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
-        color: AppColors.warning.withOpacity(0.08),
-        border: Border.all(color: AppColors.warning.withOpacity(0.4)),
+        color: AppColors.warning.withValues(alpha: 0.08),
+        border: Border.all(color: AppColors.warning.withValues(alpha: 0.4)),
         borderRadius: BorderRadius.circular(16),
       ),
       child: Column(
@@ -72,9 +72,10 @@ class TierGateBanner extends StatelessWidget {
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
           decoration: BoxDecoration(
-            color: AppColors.warning.withOpacity(0.08),
+            color: AppColors.warning.withValues(alpha: 0.08),
             border: Border(
-              bottom: BorderSide(color: AppColors.warning.withOpacity(0.25)),
+              bottom:
+                  BorderSide(color: AppColors.warning.withValues(alpha: 0.25)),
             ),
           ),
           child: Row(

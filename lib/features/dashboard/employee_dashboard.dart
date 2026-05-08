@@ -196,7 +196,7 @@ class EmployeeDashboard extends ConsumerWidget {
                         children: [
                           Icon(Icons.check_circle_outline,
                               size: 48,
-                              color: AppColors.success.withOpacity(0.7)),
+                              color: AppColors.success.withValues(alpha: 0.7)),
                           const SizedBox(height: 10),
                           Text(
                             l10n.noAssignedWorkOrders,
@@ -284,10 +284,10 @@ class EmployeeDashboard extends ConsumerWidget {
                     child: Container(
                       padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
-                        color: AppColors.warning.withOpacity(0.08),
+                        color: AppColors.warning.withValues(alpha: 0.08),
                         borderRadius: BorderRadius.circular(10),
                         border: Border.all(
-                            color: AppColors.warning.withOpacity(0.3)),
+                            color: AppColors.warning.withValues(alpha: 0.3)),
                       ),
                       child: Row(
                         children: [
@@ -518,7 +518,7 @@ class _WorkOrderCard extends StatelessWidget {
                           padding: const EdgeInsets.symmetric(
                               horizontal: 8, vertical: 3),
                           decoration: BoxDecoration(
-                            color: color.withOpacity(0.12),
+                            color: color.withValues(alpha: 0.12),
                             borderRadius: BorderRadius.circular(20),
                           ),
                           child: Text(

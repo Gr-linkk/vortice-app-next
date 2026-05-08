@@ -141,7 +141,7 @@ class _OrgCodeTile extends StatelessWidget {
               width: 40,
               height: 40,
               decoration: BoxDecoration(
-                color: roleColor.withOpacity(0.15),
+                color: roleColor.withValues(alpha: 0.15),
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Icon(Icons.vpn_key, color: roleColor, size: 22),
@@ -156,7 +156,7 @@ class _OrgCodeTile extends StatelessWidget {
                   padding:
                       const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                   decoration: BoxDecoration(
-                    color: roleColor.withOpacity(0.15),
+                    color: roleColor.withValues(alpha: 0.15),
                     borderRadius: BorderRadius.circular(4),
                   ),
                   child: Text(

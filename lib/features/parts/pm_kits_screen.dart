@@ -278,7 +278,7 @@ class _PmKitCardState extends State<_PmKitCard> {
         children: [
           ListTile(
             leading: CircleAvatar(
-              backgroundColor: AppColors.primary.withOpacity(0.1),
+              backgroundColor: AppColors.primary.withValues(alpha: 0.1),
               child: const Icon(Icons.inventory_2_outlined,
                   size: 18, color: AppColors.primary),
             ),
@@ -593,8 +593,8 @@ class PmPartsListSheet extends ConsumerWidget {
                           mainAxisSize: MainAxisSize.min,
                           children: [
                             const Text('No parts list for this service.',
-                                style: TextStyle(
-                                    color: AppColors.textSecondary)),
+                                style:
+                                    TextStyle(color: AppColors.textSecondary)),
                             if (canEdit) ...[
                               const SizedBox(height: 12),
                               ElevatedButton.icon(

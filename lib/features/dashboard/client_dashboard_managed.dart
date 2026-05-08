@@ -156,7 +156,7 @@ class ClientDashboardManaged extends ConsumerWidget {
                           leading: CircleAvatar(
                             backgroundColor:
                                 (isUrgent ? AppColors.error : AppColors.warning)
-                                    .withOpacity(0.15),
+                                    .withValues(alpha: 0.15),
                             child: Icon(
                               isUrgent ? Icons.warning : Icons.flag,
                               color: isUrgent
@@ -181,7 +181,8 @@ class ClientDashboardManaged extends ConsumerWidget {
                                   padding: const EdgeInsets.symmetric(
                                       horizontal: 8, vertical: 4),
                                   decoration: BoxDecoration(
-                                    color: AppColors.error.withOpacity(0.15),
+                                    color:
+                                        AppColors.error.withValues(alpha: 0.15),
                                     borderRadius: BorderRadius.circular(6),
                                   ),
                                   child: const Text(
@@ -493,7 +494,7 @@ class _MInvoiceTile extends StatelessWidget {
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
       child: ListTile(
         leading: CircleAvatar(
-          backgroundColor: color.withOpacity(0.15),
+          backgroundColor: color.withValues(alpha: 0.15),
           child: Icon(
             isPaid ? Icons.check_circle_outline : Icons.receipt_long_outlined,
             color: color,
@@ -508,7 +509,7 @@ class _MInvoiceTile extends StatelessWidget {
         trailing: Container(
           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
           decoration: BoxDecoration(
-            color: color.withOpacity(0.15),
+            color: color.withValues(alpha: 0.15),
             borderRadius: BorderRadius.circular(6),
           ),
           child: Text(

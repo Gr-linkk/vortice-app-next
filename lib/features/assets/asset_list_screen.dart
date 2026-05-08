@@ -24,7 +24,8 @@ class _AssetListScreenState extends ConsumerState<AssetListScreen> {
     final l10n = AppLocalizations.of(context);
     final assetsAsync = ref.watch(assetsProvider);
     final profile = ref.watch(profileProvider).valueOrNull;
-    final canAdd = profile?.role == UserRole.owner || profile?.role == UserRole.employee;
+    final canAdd =
+        profile?.role == UserRole.owner || profile?.role == UserRole.employee;
 
     final prefix = switch (profile?.role) {
       UserRole.owner => '/owner',
@@ -53,8 +54,7 @@ class _AssetListScreenState extends ConsumerState<AssetListScreen> {
         ),
       ),
       body: assetsAsync.when(
-        loading: () =>
-            const Center(child: CircularProgressIndicator()),
+        loading: () => const Center(child: CircularProgressIndicator()),
         error: (err, _) => Center(
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -124,8 +124,9 @@ class _AssetListTile extends StatelessWidget {
     return Card(
       child: ListTile(
         leading: CircleAvatar(
-          backgroundColor: AppColors.primary.withOpacity(0.15),
-          child: Icon(assetIconFor(asset.assetTypeId), color: AppColors.primary, size: 22),
+          backgroundColor: AppColors.primary.withValues(alpha: 0.15),
+          child: Icon(assetIconFor(asset.assetTypeId),
+              color: AppColors.primary, size: 22),
         ),
         title: Text(asset.name),
         subtitle: Column(
@@ -133,11 +134,9 @@ class _AssetListTile extends StatelessWidget {
           children: [
             if (asset.model != null || asset.make != null)
               Text(
-                [asset.make, asset.model]
-                    .whereType<String>()
-                    .join(' · '),
-                style:
-                    const TextStyle(color: AppColors.textSecondary, fontSize: 12),
+                [asset.make, asset.model].whereType<String>().join(' · '),
+                style: const TextStyle(
+                    color: AppColors.textSecondary, fontSize: 12),
               ),
             if (asset.location != null)
               Row(
@@ -154,7 +153,8 @@ class _AssetListTile extends StatelessWidget {
               ),
           ],
         ),
-        trailing: const Icon(Icons.chevron_right, color: AppColors.textSecondary),
+        trailing:
+            const Icon(Icons.chevron_right, color: AppColors.textSecondary),
         onTap: onTap,
         isThreeLine: asset.location != null,
       ),

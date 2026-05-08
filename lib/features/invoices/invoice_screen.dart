@@ -216,7 +216,7 @@ class _InvoiceTile extends ConsumerWidget {
       child: ListTile(
         onTap: () => context.push('$basePath/invoices/${invoice.id}'),
         leading: CircleAvatar(
-          backgroundColor: _statusColor().withOpacity(0.15),
+          backgroundColor: _statusColor().withValues(alpha: 0.15),
           child: Icon(
             invoice.status == InvoiceStatus.paid
                 ? Icons.check_circle
@@ -261,7 +261,7 @@ class _InvoiceTile extends ConsumerWidget {
             : Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                 decoration: BoxDecoration(
-                  color: _statusColor().withOpacity(0.15),
+                  color: _statusColor().withValues(alpha: 0.15),
                   borderRadius: BorderRadius.circular(4),
                 ),
                 child: Text(

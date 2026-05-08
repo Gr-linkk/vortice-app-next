@@ -301,7 +301,7 @@ class _EngineTile extends ConsumerWidget {
             width: 40,
             height: 40,
             decoration: BoxDecoration(
-              color: _kindColor().withOpacity(0.15),
+              color: _kindColor().withValues(alpha: 0.15),
               borderRadius: BorderRadius.circular(8),
             ),
             child: Icon(Icons.engineering, color: _kindColor(), size: 22),
@@ -317,7 +317,7 @@ class _EngineTile extends ConsumerWidget {
                     padding:
                         const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                     decoration: BoxDecoration(
-                      color: _kindColor().withOpacity(0.15),
+                      color: _kindColor().withValues(alpha: 0.15),
                       borderRadius: BorderRadius.circular(4),
                     ),
                     child: Text(

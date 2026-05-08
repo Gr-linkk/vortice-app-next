@@ -99,7 +99,7 @@ class _HourLogTile extends StatelessWidget {
           width: 40,
           height: 40,
           decoration: BoxDecoration(
-            color: AppColors.primary.withOpacity(0.15),
+            color: AppColors.primary.withValues(alpha: 0.15),
             borderRadius: BorderRadius.circular(8),
           ),
           child: const Icon(Icons.schedule, color: AppColors.primary, size: 22),
