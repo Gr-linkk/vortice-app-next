@@ -17,8 +17,8 @@ class PartsLogScreen extends ConsumerWidget {
     final l10n = AppLocalizations.of(context);
     final partsAsync = ref.watch(allPartsProvider);
     final profile = ref.watch(profileProvider).valueOrNull;
-    final canAdd = profile?.role == UserRole.owner ||
-        profile?.role == UserRole.employee;
+    final canAdd =
+        profile?.role == UserRole.owner || profile?.role == UserRole.employee;
 
     return Scaffold(
       appBar: embedded ? null : AppBar(title: Text(l10n.partsTitle)),
@@ -180,36 +180,31 @@ class _AddPartSheetState extends ConsumerState<_AddPartSheet> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Text(l10n.addPart,
-                style: Theme.of(context).textTheme.titleMedium),
+            Text(l10n.addPart, style: Theme.of(context).textTheme.titleMedium),
             const SizedBox(height: 16),
             workOrdersAsync.when(
               loading: () => const SizedBox.shrink(),
               error: (_, __) => const SizedBox.shrink(),
               data: (orders) => DropdownButtonFormField<String>(
-                value: _selectedWorkOrderId,
-                decoration:
-                    InputDecoration(labelText: l10n.linkedWorkOrder),
+                initialValue: _selectedWorkOrderId,
+                decoration: InputDecoration(labelText: l10n.linkedWorkOrder),
                 dropdownColor: AppColors.surfaceVariant,
                 items: orders
                     .map((w) => DropdownMenuItem(
                           value: w.id,
-                          child: Text(w.title,
-                              overflow: TextOverflow.ellipsis),
+                          child: Text(w.title, overflow: TextOverflow.ellipsis),
                         ))
                     .toList(),
                 onChanged: (v) => setState(() => _selectedWorkOrderId = v),
-                validator: (v) =>
-                    v == null ? l10n.fieldRequired : null,
+                validator: (v) => v == null ? l10n.fieldRequired : null,
               ),
             ),
             const SizedBox(height: 12),
             TextFormField(
               controller: _descCtrl,
               decoration: InputDecoration(labelText: l10n.partName),
-              validator: (v) => (v == null || v.trim().isEmpty)
-                  ? l10n.fieldRequired
-                  : null,
+              validator: (v) =>
+                  (v == null || v.trim().isEmpty) ? l10n.fieldRequired : null,
             ),
             const SizedBox(height: 12),
             Row(
@@ -224,7 +219,8 @@ class _AddPartSheetState extends ConsumerState<_AddPartSheet> {
                 Expanded(
                   child: TextFormField(
                     controller: _qtyCtrl,
-                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                    keyboardType:
+                        const TextInputType.numberWithOptions(decimal: true),
                     decoration: InputDecoration(labelText: l10n.quantity),
                     validator: (v) {
                       if (v == null || v.isEmpty) return l10n.fieldRequired;
@@ -291,7 +287,8 @@ class _AddPartSheetState extends ConsumerState<_AddPartSheet> {
                           Navigator.pop(context);
                         } else {
                           final errorState = ref.read(partsControllerProvider);
-                          final errorMsg = errorState.error?.toString() ?? 'Failed to save part. Check your connection and try again.';
+                          final errorMsg = errorState.error?.toString() ??
+                              'Failed to save part. Check your connection and try again.';
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(
                               content: Text(errorMsg),

@@ -150,8 +150,7 @@ class _OrgCodeTile extends StatelessWidget {
               children: [
                 Text(code.code,
                     style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                        fontFamily: 'monospace',
-                        letterSpacing: 1.5)),
+                        fontFamily: 'monospace', letterSpacing: 1.5)),
                 const SizedBox(width: 8),
                 Container(
                   padding:
@@ -224,8 +223,7 @@ class _OrgCodeFormState extends ConsumerState<_OrgCodeForm> {
   @override
   void initState() {
     super.initState();
-    _codeCtrl =
-        TextEditingController(text: OrgCodeController.generateCode());
+    _codeCtrl = TextEditingController(text: OrgCodeController.generateCode());
   }
 
   @override
@@ -249,17 +247,16 @@ class _OrgCodeFormState extends ConsumerState<_OrgCodeForm> {
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
 
-    final success =
-        await ref.read(orgCodeControllerProvider.notifier).createCode(
-              code: _codeCtrl.text.trim(),
-              intendedRole: _role,
-              maxUses: int.tryParse(_maxUsesCtrl.text) ?? 1,
-              singleUse: _singleUse,
-              expiresAt: _expiresAt,
-              notes: _notesCtrl.text.trim().isEmpty
-                  ? null
-                  : _notesCtrl.text.trim(),
-            );
+    final success = await ref
+        .read(orgCodeControllerProvider.notifier)
+        .createCode(
+          code: _codeCtrl.text.trim(),
+          intendedRole: _role,
+          maxUses: int.tryParse(_maxUsesCtrl.text) ?? 1,
+          singleUse: _singleUse,
+          expiresAt: _expiresAt,
+          notes: _notesCtrl.text.trim().isEmpty ? null : _notesCtrl.text.trim(),
+        );
     if (success && mounted) Navigator.pop(context);
   }
 
@@ -310,7 +307,7 @@ class _OrgCodeFormState extends ConsumerState<_OrgCodeForm> {
               ),
               const SizedBox(height: 12),
               DropdownButtonFormField<String>(
-                value: _role,
+                initialValue: _role,
                 decoration: InputDecoration(labelText: l10n.intendedRole),
                 dropdownColor: AppColors.surfaceVariant,
                 items: const [
@@ -331,8 +328,8 @@ class _OrgCodeFormState extends ConsumerState<_OrgCodeForm> {
               SwitchListTile(
                 value: _singleUse,
                 onChanged: (v) => setState(() => _singleUse = v),
-                title: Text(l10n.singleUse,
-                    style: const TextStyle(fontSize: 14)),
+                title:
+                    Text(l10n.singleUse, style: const TextStyle(fontSize: 14)),
                 contentPadding: EdgeInsets.zero,
                 activeColor: AppColors.primary,
               ),

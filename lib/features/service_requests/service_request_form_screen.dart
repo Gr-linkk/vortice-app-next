@@ -191,7 +191,7 @@ class _AssetField extends StatelessWidget {
     if (assets.isEmpty) return const SizedBox.shrink();
 
     return DropdownButtonFormField<String?>(
-      value: value,
+      initialValue: value,
       decoration: const InputDecoration(
         labelText: 'Vessel (optional)',
         prefixIcon: Icon(Icons.directions_boat_outlined),

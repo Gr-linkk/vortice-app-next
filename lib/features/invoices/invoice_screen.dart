@@ -46,11 +46,10 @@ class InvoiceScreen extends ConsumerWidget {
               const SizedBox(height: 16),
               if ((woData as List).isEmpty)
                 Text(l10n.noCompletedWorkOrders,
-                    style:
-                        const TextStyle(color: AppColors.textSecondary))
+                    style: const TextStyle(color: AppColors.textSecondary))
               else
                 DropdownButtonFormField<String>(
-                  value: selectedWoId,
+                  initialValue: selectedWoId,
                   decoration: const InputDecoration(),
                   dropdownColor: AppColors.surfaceVariant,
                   items: (woData as List)
@@ -78,13 +77,11 @@ class InvoiceScreen extends ConsumerWidget {
                               backgroundColor: AppColors.success,
                             ),
                           );
-                          final basePath = ref
-                                      .read(profileProvider)
-                                      .valueOrNull
-                                      ?.role ==
-                                  UserRole.owner
-                              ? '/owner'
-                              : '/client';
+                          final basePath =
+                              ref.read(profileProvider).valueOrNull?.role ==
+                                      UserRole.owner
+                                  ? '/owner'
+                                  : '/client';
                           context.push('$basePath/invoices/$newId');
                         }
                       },
@@ -155,13 +152,11 @@ class InvoiceScreen extends ConsumerWidget {
             child: ListView(
               children: [
                 if (unpaid.isNotEmpty) ...[
-                  _SectionHeader(
-                      label: l10n.unpaid, color: AppColors.warning),
+                  _SectionHeader(label: l10n.unpaid, color: AppColors.warning),
                   ...unpaid.map((i) => _InvoiceTile(invoice: i)),
                 ],
                 if (paid.isNotEmpty) ...[
-                  _SectionHeader(
-                      label: l10n.paid, color: AppColors.success),
+                  _SectionHeader(label: l10n.paid, color: AppColors.success),
                   ...paid.map((i) => _InvoiceTile(invoice: i)),
                 ],
                 if (voided.isNotEmpty) ...[
@@ -264,8 +259,7 @@ class _InvoiceTile extends ConsumerWidget {
                 child: Text(l10n.markPaid),
               )
             : Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                 decoration: BoxDecoration(
                   color: _statusColor().withOpacity(0.15),
                   borderRadius: BorderRadius.circular(4),

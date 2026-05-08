@@ -454,7 +454,7 @@ class _EngineFormState extends ConsumerState<_EngineForm> {
               ),
               const SizedBox(height: 16),
               DropdownButtonFormField<String>(
-                value: _kind,
+                initialValue: _kind,
                 decoration: const InputDecoration(labelText: 'Title'),
                 dropdownColor: AppColors.surfaceVariant,
                 items: kEngineKindOptions

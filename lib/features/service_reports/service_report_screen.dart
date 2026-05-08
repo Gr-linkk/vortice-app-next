@@ -443,7 +443,8 @@ class _ServiceReportScreenState extends ConsumerState<ServiceReportScreen> {
                     (w) => w.id == _selectedWorkOrderId,
                   );
                   return DropdownButtonFormField<String>(
-                    value: hasSelectedWorkOrder ? _selectedWorkOrderId : null,
+                    initialValue:
+                        hasSelectedWorkOrder ? _selectedWorkOrderId : null,
                     decoration: InputDecoration(
                       labelText: l10n.linkedWorkOrder,
                       prefixIcon: const Icon(Icons.build_outlined),
