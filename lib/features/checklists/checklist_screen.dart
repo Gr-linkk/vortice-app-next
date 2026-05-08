@@ -9,8 +9,7 @@ import 'package:vortice_app/core/theme.dart';
 import 'package:vortice_app/features/auth/auth_provider.dart';
 import 'package:vortice_app/features/checklists/checklist_provider.dart';
 import 'package:vortice_app/features/checklists/checklist_repository.dart';
-import 'package:vortice_app/features/checklists/saved_checklists_repository.dart';
-import 'package:vortice_app/features/service_intervals/service_interval_provider.dart';
+import 'package:vortice_app/features/checklists/checklist_submission_orchestrator.dart';
 import 'package:vortice_app/features/work_orders/work_order_provider.dart';
 import 'package:vortice_app/models/checklist_item.dart';
 import 'package:image_picker/image_picker.dart';
@@ -399,7 +398,6 @@ class _ChecklistScreenState extends ConsumerState<ChecklistScreen> {
               _saveDraft();
             },
             onSubmit: () async {
-              final ctrl = ref.read(checklistControllerProvider.notifier);
               if (_requiresAttentionDetail(
                   _responses, _notes, _photos, _photoUrls)) {
                 ScaffoldMessenger.of(context).showSnackBar(
@@ -418,45 +416,26 @@ class _ChecklistScreenState extends ConsumerState<ChecklistScreen> {
                 ..addAll(photoUrls);
               await _savePhotoCache();
               await _saveDraft();
-              await ctrl.submitBatch(
-                workOrderId: widget.workOrderId,
-                completedBy: profile?.id ?? '',
-                responses: _responses,
-                notes: _notes,
-                photoUrls: photoUrls,
-                holdForSyncReason: _photoUploadDeferredReason,
-              );
-              if (!ref.read(checklistControllerProvider).hasError &&
-                  workOrder != null) {
-                final List<ChecklistItem> items = snapshotItems ??
-                    await ref.read(
-                        checklistItemsProvider(_selectedTemplate!.id).future);
-                await ref
-                    .read(savedChecklistsRepositoryProvider)
-                    .createSavedChecklist(
-                  assetId: workOrder.assetId,
-                  clientId: workOrder.clientId,
-                  template: _selectedTemplate!,
-                  items: items,
-                  responses: _responses,
-                  notes: _notes,
-                  photoUrls: photoUrls,
-                  sourceType: 'work_order',
-                  checklistType: 'maintenance',
-                  completedBy: profile?.id ?? '',
-                  submittedByRole: profile?.role.name,
-                  submittedAt: _completedAt,
-                  currentHours: _currentHours,
-                  generalNotes: _generalNotes,
-                  workOrderId: widget.workOrderId,
-                  extraHeader: {
-                    'work_order_id': widget.workOrderId,
-                  },
-                );
-                await ref
-                    .read(serviceIntervalControllerProvider.notifier)
-                    .markIntervalSatisfiedFromWorkOrder(widget.workOrderId);
-              }
+              await ref.read(maintenanceChecklistSubmissionProvider).submit(
+                    workOrderId: widget.workOrderId,
+                    assetId: workOrder?.assetId,
+                    clientId: workOrder?.clientId,
+                    template: _selectedTemplate!,
+                    loadItems: () async =>
+                        snapshotItems ??
+                        await ref.read(
+                            checklistItemsProvider(_selectedTemplate!.id)
+                                .future),
+                    completedBy: profile?.id ?? '',
+                    submittedByRole: profile?.role.name,
+                    submittedAt: _completedAt,
+                    responses: _responses,
+                    notes: _notes,
+                    photoUrls: photoUrls,
+                    currentHours: _currentHours,
+                    generalNotes: _generalNotes,
+                    holdForSyncReason: _photoUploadDeferredReason,
+                  );
               final submitState = ref.read(checklistControllerProvider);
               if (submitState.hasError) {
                 final error = submitState.error;
