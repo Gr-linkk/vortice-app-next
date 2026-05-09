@@ -2,8 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:vortice_app/l10n/app_localizations.dart';
 import 'package:vortice_app/core/theme.dart';
+import 'package:vortice_app/features/clients/client_capability_gate.dart';
 import 'package:vortice_app/features/telemetry/telemetry_provider.dart';
 import 'package:vortice_app/features/engines/engine_provider.dart';
+import 'package:vortice_app/models/client_capability.dart';
 import 'package:vortice_app/models/telemetry_reading.dart';
 import 'package:vortice_app/models/telemetry_alert.dart';
 
@@ -72,7 +74,22 @@ class _TelemetryHistoryScreenState extends ConsumerState<TelemetryHistoryScreen>
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    return _buildHistoryScaffold(context, l10n);
+    return ClientCapabilityGate(
+      clientId: null,
+      capability: ClientCapability.telemetry,
+      allowedBuilder: (_) => _buildHistoryScaffold(context, l10n),
+      blockedBuilder: (_) => Scaffold(
+        appBar: AppBar(title: Text(l10n.telemetryHistory)),
+        body: const Center(
+          child: Padding(
+            padding: EdgeInsets.all(24),
+            child: ClientCapabilityDisabledPanel(
+              capability: ClientCapability.telemetry,
+            ),
+          ),
+        ),
+      ),
+    );
   }
 
   Widget _buildHistoryScaffold(

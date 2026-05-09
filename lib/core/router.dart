@@ -323,13 +323,30 @@ final routerProvider = Provider<GoRouter>((ref) {
           ),
           GoRoute(
             path: '/client/assets/:id/checklists/new',
-            builder: (_, state) => ChecklistScreen(
-              assetId: state.pathParameters['id']!,
-              assetClientId: state.uri.queryParameters['clientId'],
-              assetName: state.uri.queryParameters['name'] ?? 'Asset',
-              assetTypeId: state.uri.queryParameters['assetTypeId'],
-              clientHistoryOnly: true,
-              preSelectedTemplateId: state.uri.queryParameters['templateId'],
+            builder: (_, state) => ClientCapabilityGate(
+              clientId: state.uri.queryParameters['clientId'],
+              capability: ClientCapability.pmChecklists,
+              allowedBuilder: (_) => ChecklistScreen(
+                assetId: state.pathParameters['id']!,
+                assetClientId: state.uri.queryParameters['clientId'],
+                assetName: state.uri.queryParameters['name'] ?? 'Asset',
+                assetTypeId: state.uri.queryParameters['assetTypeId'],
+                clientHistoryOnly: true,
+                preSelectedTemplateId: state.uri.queryParameters['templateId'],
+              ),
+              blockedBuilder: (_) => Scaffold(
+                appBar: AppBar(title: const Text('Checklist')),
+                body: const Center(
+                  child: Padding(
+                    padding: EdgeInsets.all(24),
+                    child: ClientCapabilityDisabledPanel(
+                      capability: ClientCapability.pmChecklists,
+                      message:
+                          'PM / mechanic checklists are not enabled for this client.',
+                    ),
+                  ),
+                ),
+              ),
             ),
           ),
           GoRoute(
@@ -342,8 +359,25 @@ final routerProvider = Provider<GoRouter>((ref) {
           ),
           GoRoute(
             path: '/client/checklists/:workOrderId',
-            builder: (_, state) => ChecklistScreen(
-              workOrderId: state.pathParameters['workOrderId']!,
+            builder: (_, state) => ClientCapabilityGate(
+              clientId: null,
+              capability: ClientCapability.pmChecklists,
+              allowedBuilder: (_) => ChecklistScreen(
+                workOrderId: state.pathParameters['workOrderId']!,
+              ),
+              blockedBuilder: (_) => Scaffold(
+                appBar: AppBar(title: const Text('Checklist')),
+                body: const Center(
+                  child: Padding(
+                    padding: EdgeInsets.all(24),
+                    child: ClientCapabilityDisabledPanel(
+                      capability: ClientCapability.pmChecklists,
+                      message:
+                          'PM / mechanic checklists are not enabled for this client.',
+                    ),
+                  ),
+                ),
+              ),
             ),
           ),
           GoRoute(

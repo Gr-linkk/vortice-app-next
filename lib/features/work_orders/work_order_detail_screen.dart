@@ -6,11 +6,13 @@ import 'package:vortice_app/l10n/app_localizations.dart';
 import 'package:vortice_app/core/theme.dart';
 import 'package:vortice_app/features/auth/auth_provider.dart';
 import 'package:vortice_app/features/work_orders/work_order_provider.dart';
+import 'package:vortice_app/models/client_capability.dart';
 import 'package:vortice_app/models/profile.dart';
 import 'package:vortice_app/models/saved_checklist.dart';
 import 'package:vortice_app/models/work_order.dart';
 import 'package:vortice_app/features/invoices/invoice_provider.dart';
 import 'package:vortice_app/features/checklists/checklist_provider.dart';
+import 'package:vortice_app/features/clients/client_capability_gate.dart';
 import 'package:vortice_app/features/checklists/saved_checklists_provider.dart';
 import 'package:vortice_app/features/parts/pm_parts_provider.dart';
 import 'package:vortice_app/features/parts/pm_kits_screen.dart';
@@ -364,8 +366,17 @@ class _WorkOrderBody extends ConsumerWidget {
           builder: (context, ref, _) {
             final assignedAsync =
                 ref.watch(currentUserAssignedToWorkOrderProvider(workOrder.id));
+            final pmChecklistsAllowedAsync =
+                ref.watch(clientCapabilityGateProvider((
+              clientId: null,
+              capability: ClientCapability.pmChecklists,
+            )));
             final isAssignedContributor = assignedAsync.valueOrNull ?? false;
-            final canUseChecklist = isOwnerOrEmployee || isAssignedContributor;
+            final pmChecklistsAllowed = isOwnerOrEmployee ||
+                (pmChecklistsAllowedAsync.valueOrNull ?? false);
+            final canUseChecklist =
+                (isOwnerOrEmployee || isAssignedContributor) &&
+                    pmChecklistsAllowed;
             final canManageStatus = isOwnerOrEmployee;
             final canOpenChecklist = canUseChecklist &&
                 workOrder.checklistTemplateId != null &&
