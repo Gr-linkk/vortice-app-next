@@ -159,8 +159,11 @@ final routerProvider = Provider<GoRouter>((ref) {
               path: '/owner/service-reports',
               builder: (_, __) => const ServiceReportListScreen()),
           GoRoute(
-              path: '/owner/service-reports/new',
-              builder: (_, __) => const ServiceReportScreen()),
+            path: '/owner/service-reports/new',
+            builder: (_, state) => ServiceReportScreen(
+              initialWorkOrderId: state.uri.queryParameters['workOrderId'],
+            ),
+          ),
           GoRoute(
             path: '/owner/service-reports/:id',
             builder: (_, state) => ServiceReportDetailScreen(
@@ -274,8 +277,11 @@ final routerProvider = Provider<GoRouter>((ref) {
               path: '/employee/service-reports',
               builder: (_, __) => const ServiceReportListScreen()),
           GoRoute(
-              path: '/employee/service-reports/new',
-              builder: (_, __) => const ServiceReportScreen()),
+            path: '/employee/service-reports/new',
+            builder: (_, state) => ServiceReportScreen(
+              initialWorkOrderId: state.uri.queryParameters['workOrderId'],
+            ),
+          ),
           GoRoute(
             path: '/employee/service-reports/:id',
             builder: (_, state) => ServiceReportDetailScreen(
