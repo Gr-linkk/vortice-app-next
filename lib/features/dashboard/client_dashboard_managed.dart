@@ -9,7 +9,6 @@ import 'package:vortice_app/features/auth/auth_provider.dart';
 import 'package:vortice_app/features/invoices/invoice_provider.dart';
 import 'package:vortice_app/features/notifications/notification_provider.dart';
 import 'package:vortice_app/features/service_reports/service_report_provider.dart';
-import 'package:vortice_app/features/service_requests/service_request_provider.dart';
 import 'package:vortice_app/models/asset.dart';
 import 'package:vortice_app/models/invoice.dart';
 
@@ -21,11 +20,10 @@ class ClientDashboardManaged extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final profile = ref.watch(profileProvider).valueOrNull;
-    final assetsAsync = ref.watch(assetsProvider);
+    final assetsAsync = ref.watch(visibleAssetsProvider);
     final invoicesAsync = ref.watch(invoicesProvider);
     final reportsAsync = ref.watch(clientServiceReportsProvider);
     final flagsAsync = ref.watch(clientFlaggedIssuesProvider);
-    final serviceRequestsAsync = ref.watch(clientServiceRequestsProvider);
 
     return Scaffold(
       appBar: AppBar(
@@ -41,11 +39,10 @@ class ClientDashboardManaged extends ConsumerWidget {
       ),
       body: RefreshIndicator(
         onRefresh: () async {
-          ref.invalidate(assetsProvider);
+          ref.invalidate(visibleAssetsProvider);
           ref.invalidate(invoicesProvider);
           ref.invalidate(clientServiceReportsProvider);
           ref.invalidate(clientFlaggedIssuesProvider);
-          ref.invalidate(clientServiceRequestsProvider);
         },
         child: ListView(
           padding: const EdgeInsets.only(bottom: 32),
@@ -203,8 +200,8 @@ class ClientDashboardManaged extends ConsumerWidget {
               },
             ),
 
-            // ── Service Requests ─────────────────────────────────────────
-            const _SectionHeader(title: 'Service Requests'),
+            // ── Service Request Intake ──────────────────────────────────
+            const _SectionHeader(title: 'Need Service?'),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
               child: ElevatedButton.icon(
@@ -215,40 +212,6 @@ class ClientDashboardManaged extends ConsumerWidget {
                   padding: const EdgeInsets.symmetric(vertical: 14),
                 ),
               ),
-            ),
-            serviceRequestsAsync.when(
-              loading: () => const SizedBox.shrink(),
-              error: (_, __) => const SizedBox.shrink(),
-              data: (requests) {
-                if (requests.isEmpty) {
-                  return const _MEmptyStateTile(
-                    icon: Icons.inbox_outlined,
-                    message: 'No service requests yet.',
-                  );
-                }
-                return Column(
-                  children: requests.take(3).map((request) {
-                    return ListTile(
-                      leading: const CircleAvatar(
-                        backgroundColor: AppColors.surfaceVariant,
-                        child: Icon(Icons.support_agent_outlined,
-                            size: 18, color: AppColors.textSecondary),
-                      ),
-                      title: Text(
-                        request.title,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      subtitle: Text(
-                        '${request.clientStatusLabel} • ${request.createdLabel}',
-                        style: const TextStyle(
-                            color: AppColors.textSecondary, fontSize: 12),
-                      ),
-                      onTap: () => context.push('/client/service-requests'),
-                    );
-                  }).toList(),
-                );
-              },
             ),
 
             // ── My Vessels ───────────────────────────────────────────────

@@ -28,6 +28,8 @@ class ReminderWithAsset {
     if (hoursRemaining <= 50) return 'upcoming';
     return 'later';
   }
+
+  bool get shouldShowOnClientMaintenanceDashboard => urgency != 'later';
 }
 
 // ── Fetch all reminders with asset info ────────────────────────────────────

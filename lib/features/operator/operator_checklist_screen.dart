@@ -58,7 +58,7 @@ class _OperatorChecklistScreenState
 
     final assets = ref.read(operatorAssignedAssetsProvider).valueOrNull;
     final templates = ref.read(checklistTemplatesProvider).valueOrNull;
-    if (assets == null || templates == null) {
+    if (templates == null) {
       return;
     }
 
@@ -84,9 +84,13 @@ class _OperatorChecklistScreenState
         _currentHours = (data['currentHours'] as num?)?.toDouble();
         _generalNotes = data['generalNotes'] as String?;
 
+        final savedAsset = data['asset'];
         assetToSet = assetId == null
             ? null
-            : assets.where((r) => r['id'] == assetId).firstOrNull;
+            : assets?.where((r) => r['id'] == assetId).firstOrNull;
+        if (assetToSet == null && savedAsset is Map) {
+          assetToSet = savedAsset.cast<String, dynamic>();
+        }
         templateToSet = templateId == null
             ? null
             : templates.where((t) => t.id == templateId).firstOrNull;
@@ -130,7 +134,7 @@ class _OperatorChecklistScreenState
 
     if (assetToSet == null && widget.initialAssetId != null) {
       assetToSet =
-          assets.where((r) => r['id'] == widget.initialAssetId).firstOrNull;
+          assets?.where((r) => r['id'] == widget.initialAssetId).firstOrNull;
     }
     if (templateToSet == null && widget.initialTemplateId != null) {
       templateToSet =
@@ -152,6 +156,7 @@ class _OperatorChecklistScreenState
       _draftKey,
       jsonEncode({
         'assetId': _selectedAsset?['id'] as String?,
+        'asset': _selectedAsset,
         'templateId': _selectedTemplate?.id,
         'responses': _responses,
         'notes': _notes,

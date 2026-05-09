@@ -7,9 +7,11 @@ import 'package:vortice_app/core/theme.dart';
 import 'package:vortice_app/features/auth/auth_provider.dart';
 import 'package:vortice_app/features/work_orders/work_order_provider.dart';
 import 'package:vortice_app/models/profile.dart';
+import 'package:vortice_app/models/saved_checklist.dart';
 import 'package:vortice_app/models/work_order.dart';
 import 'package:vortice_app/features/invoices/invoice_provider.dart';
 import 'package:vortice_app/features/checklists/checklist_provider.dart';
+import 'package:vortice_app/features/checklists/saved_checklists_provider.dart';
 import 'package:vortice_app/features/parts/pm_parts_provider.dart';
 import 'package:vortice_app/features/parts/pm_kits_screen.dart';
 
@@ -124,6 +126,12 @@ class _WorkOrderBody extends ConsumerWidget {
     final prefix = switch (profile?.role) {
       UserRole.owner => '/owner',
       UserRole.employee => '/employee',
+      UserRole.client ||
+      UserRole.clientAdmin ||
+      UserRole.clientMechanic ||
+      UserRole.clientOperator ||
+      UserRole.operator =>
+        '/client',
       _ => '/owner',
     };
 
@@ -339,6 +347,12 @@ class _WorkOrderBody extends ConsumerWidget {
             color: AppColors.success,
           ),
 
+        // ── Client checklist context ───────────────────────────────────
+        if (canManage) ...[
+          const SizedBox(height: 16),
+          _ClientChecklistContextSection(workOrder: workOrder),
+        ],
+
         // ── PM Parts Kit (read-only for tech) ──────────────────────────
         if (workOrder.checklistTemplateId != null)
           _PmKitSection(templateId: workOrder.checklistTemplateId!),
@@ -346,182 +360,530 @@ class _WorkOrderBody extends ConsumerWidget {
         const SizedBox(height: 24),
 
         // ── Actions ────────────────────────────────────────────────
-        if (canManage) ...[
-          Text(
-            l10n.actions.toUpperCase(),
-            style: Theme.of(context)
-                .textTheme
-                .labelSmall
-                ?.copyWith(color: AppColors.primary, letterSpacing: 1.2),
-          ),
-          const SizedBox(height: 12),
-          if (workOrder.status == WorkOrderStatus.draft ||
-              workOrder.status == WorkOrderStatus.assigned)
-            ElevatedButton.icon(
-              onPressed: isLoading
-                  ? null
-                  : () async {
-                      final success = await ref
-                          .read(workOrderControllerProvider.notifier)
-                          .updateStatus(
-                            workOrder.id,
-                            WorkOrderStatus.inProgress,
-                          );
-                      if (!success && context.mounted) {
-                        _showWorkOrderActionFailed(context, ref);
-                      }
-                    },
-              icon: const Icon(Icons.play_arrow),
-              label: Text(l10n.startWorkOrder),
-            ),
-          if (workOrder.status == WorkOrderStatus.inProgress) ...[
-            ElevatedButton.icon(
-              onPressed: isLoading
-                  ? null
-                  : () async {
-                      final success = await ref
-                          .read(workOrderControllerProvider.notifier)
-                          .updateStatus(workOrder.id, WorkOrderStatus.closed);
-                      if (!context.mounted) return;
-                      if (success) {
-                        context.pop();
-                      } else {
-                        _showWorkOrderActionFailed(context, ref);
-                      }
-                    },
-              icon: const Icon(Icons.check),
-              label: Text(l10n.completeWorkOrder),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.success,
-              ),
-            ),
-            const SizedBox(height: 8),
-            OutlinedButton.icon(
-              onPressed: () =>
-                  context.push('$prefix/checklists/${workOrder.id}'),
-              icon: Icon(
-                checklistDone ? Icons.check_circle : Icons.checklist,
-                color: checklistDone ? AppColors.success : null,
-              ),
-              label: Text(
-                checklistDone
-                    ? '${l10n.viewChecklist} \u2022 ${l10n.statusCompleted}'
-                    : l10n.viewChecklist,
-              ),
-              style: checklistDone
-                  ? OutlinedButton.styleFrom(
-                      foregroundColor: AppColors.success,
-                      side: const BorderSide(color: AppColors.success),
-                    )
-                  : null,
-            ),
-            const SizedBox(height: 8),
-            OutlinedButton.icon(
-              onPressed: () => context.push('$prefix/service-reports'),
-              icon: const Icon(Icons.description_outlined),
-              label: Text(l10n.serviceReport),
-            ),
-            if (profile?.role == UserRole.employee) ...[
-              const SizedBox(height: 8),
-              OutlinedButton.icon(
-                onPressed: () => showModalBottomSheet(
-                  context: context,
-                  isScrollControlled: true,
-                  backgroundColor: AppColors.surface,
-                  shape: const RoundedRectangleBorder(
-                    borderRadius:
-                        BorderRadius.vertical(top: Radius.circular(16)),
-                  ),
-                  builder: (_) => _LogHoursSheet(workOrderId: workOrder.id),
+        Consumer(
+          builder: (context, ref, _) {
+            final assignedAsync =
+                ref.watch(currentUserAssignedToWorkOrderProvider(workOrder.id));
+            final isAssignedContributor = assignedAsync.valueOrNull ?? false;
+            final canUseChecklist = isOwnerOrEmployee || isAssignedContributor;
+            final canManageStatus = isOwnerOrEmployee;
+            final canOpenChecklist = canUseChecklist &&
+                workOrder.checklistTemplateId != null &&
+                workOrder.status != WorkOrderStatus.closed &&
+                workOrder.status != WorkOrderStatus.invoiced;
+
+            if (!canManageStatus && !canOpenChecklist) {
+              return const SizedBox.shrink();
+            }
+
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Text(
+                  l10n.actions.toUpperCase(),
+                  style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                        color: AppColors.primary,
+                        letterSpacing: 1.2,
+                      ),
                 ),
-                icon: const Icon(Icons.access_time),
-                label: Text(l10n.logHours),
-              ),
-            ],
-          ],
-          // Reopen — both owner and tech can reopen a closed WO
-          if (workOrder.status == WorkOrderStatus.closed) ...[
-            const SizedBox(height: 16),
-            OutlinedButton.icon(
-              onPressed: isLoading
-                  ? null
-                  : () async {
-                      final confirm = await showDialog<bool>(
+                const SizedBox(height: 12),
+                if (canManageStatus &&
+                    (workOrder.status == WorkOrderStatus.draft ||
+                        workOrder.status == WorkOrderStatus.assigned))
+                  ElevatedButton.icon(
+                    onPressed: isLoading
+                        ? null
+                        : () async {
+                            final success = await ref
+                                .read(workOrderControllerProvider.notifier)
+                                .updateStatus(
+                                  workOrder.id,
+                                  WorkOrderStatus.inProgress,
+                                );
+                            if (!success && context.mounted) {
+                              _showWorkOrderActionFailed(context, ref);
+                            }
+                          },
+                    icon: const Icon(Icons.play_arrow),
+                    label: Text(l10n.startWorkOrder),
+                  ),
+                if (canOpenChecklist) ...[
+                  if (canManageStatus &&
+                      (workOrder.status == WorkOrderStatus.draft ||
+                          workOrder.status == WorkOrderStatus.assigned))
+                    const SizedBox(height: 8),
+                  OutlinedButton.icon(
+                    onPressed: () =>
+                        context.push('$prefix/checklists/${workOrder.id}'),
+                    icon: Icon(
+                      checklistDone ? Icons.check_circle : Icons.checklist,
+                      color: checklistDone ? AppColors.success : null,
+                    ),
+                    label: Text(
+                      checklistDone
+                          ? '${l10n.viewChecklist} • ${l10n.statusCompleted}'
+                          : 'Continue checklist',
+                    ),
+                    style: checklistDone
+                        ? OutlinedButton.styleFrom(
+                            foregroundColor: AppColors.success,
+                            side: const BorderSide(color: AppColors.success),
+                          )
+                        : null,
+                  ),
+                ],
+                if (canManageStatus &&
+                    workOrder.status == WorkOrderStatus.inProgress) ...[
+                  const SizedBox(height: 8),
+                  ElevatedButton.icon(
+                    onPressed: isLoading
+                        ? null
+                        : () async {
+                            final success = await ref
+                                .read(workOrderControllerProvider.notifier)
+                                .updateStatus(
+                                  workOrder.id,
+                                  WorkOrderStatus.closed,
+                                );
+                            if (!context.mounted) return;
+                            if (success) {
+                              context.pop();
+                            } else {
+                              _showWorkOrderActionFailed(context, ref);
+                            }
+                          },
+                    icon: const Icon(Icons.check),
+                    label: Text(l10n.completeWorkOrder),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.success,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  OutlinedButton.icon(
+                    onPressed: () => context.push('$prefix/service-reports'),
+                    icon: const Icon(Icons.description_outlined),
+                    label: Text(l10n.serviceReport),
+                  ),
+                  if (profile?.role == UserRole.employee) ...[
+                    const SizedBox(height: 8),
+                    OutlinedButton.icon(
+                      onPressed: () => showModalBottomSheet(
                         context: context,
-                        builder: (ctx) => AlertDialog(
-                          title: Text(l10n.reopenWorkOrder),
-                          content: const Text(
-                              'Reopen this work order and continue working?'),
-                          actions: [
-                            TextButton(
-                              onPressed: () => Navigator.pop(ctx, false),
-                              child: const Text('Cancel'),
-                            ),
-                            ElevatedButton(
-                              onPressed: () => Navigator.pop(ctx, true),
-                              child: Text(l10n.reopenWorkOrder),
-                            ),
-                          ],
+                        isScrollControlled: true,
+                        backgroundColor: AppColors.surface,
+                        shape: const RoundedRectangleBorder(
+                          borderRadius:
+                              BorderRadius.vertical(top: Radius.circular(16)),
                         ),
-                      );
-                      if (confirm != true) return;
-                      final success = await ref
-                          .read(workOrderControllerProvider.notifier)
-                          .reopenStatus(workOrder.id);
-                      if (!context.mounted) return;
-                      if (success) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text('Work order reopened'),
-                            backgroundColor: AppColors.primary,
-                          ),
-                        );
-                      } else {
-                        _showWorkOrderActionFailed(context, ref);
-                      }
-                    },
-              icon: const Icon(Icons.refresh),
-              label: Text(l10n.reopenWorkOrder),
-              style: OutlinedButton.styleFrom(
-                foregroundColor: AppColors.warning,
-                side: const BorderSide(color: AppColors.warning),
-              ),
-            ),
-          ],
-          // Generate Invoice — owner only, when WO is pending review or completed
-          if (isOwner &&
-              (workOrder.status == WorkOrderStatus.pendingReview ||
-                  workOrder.status == WorkOrderStatus.inProgress ||
-                  workOrder.status == WorkOrderStatus.closed)) ...[
-            const SizedBox(height: 8),
-            ElevatedButton.icon(
-              onPressed: isLoading
-                  ? null
-                  : () async {
-                      final newId = await ref
-                          .read(invoiceControllerProvider.notifier)
-                          .generateFromWorkOrder(workOrder.id);
-                      if (newId != null && context.mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text(l10n.invoiceGenerated),
-                            backgroundColor: AppColors.success,
-                          ),
-                        );
-                        context.push('$prefix/invoices/$newId');
-                      }
-                    },
-              icon: const Icon(Icons.receipt_long),
-              label: Text(l10n.generateInvoice),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF1E40AF),
-              ),
-            ),
-          ],
-        ],
+                        builder: (_) =>
+                            _LogHoursSheet(workOrderId: workOrder.id),
+                      ),
+                      icon: const Icon(Icons.access_time),
+                      label: Text(l10n.logHours),
+                    ),
+                  ],
+                ],
+                if (canManageStatus &&
+                    workOrder.status == WorkOrderStatus.closed) ...[
+                  const SizedBox(height: 16),
+                  OutlinedButton.icon(
+                    onPressed: isLoading
+                        ? null
+                        : () async {
+                            final confirm = await showDialog<bool>(
+                              context: context,
+                              builder: (ctx) => AlertDialog(
+                                title: Text(l10n.reopenWorkOrder),
+                                content: const Text(
+                                  'Reopen this work order and continue working?',
+                                ),
+                                actions: [
+                                  TextButton(
+                                    onPressed: () => Navigator.pop(ctx, false),
+                                    child: const Text('Cancel'),
+                                  ),
+                                  ElevatedButton(
+                                    onPressed: () => Navigator.pop(ctx, true),
+                                    child: Text(l10n.reopenWorkOrder),
+                                  ),
+                                ],
+                              ),
+                            );
+                            if (confirm != true) return;
+                            final success = await ref
+                                .read(workOrderControllerProvider.notifier)
+                                .reopenStatus(workOrder.id);
+                            if (!context.mounted) return;
+                            if (success) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text('Work order reopened'),
+                                  backgroundColor: AppColors.primary,
+                                ),
+                              );
+                            } else {
+                              _showWorkOrderActionFailed(context, ref);
+                            }
+                          },
+                    icon: const Icon(Icons.refresh),
+                    label: Text(l10n.reopenWorkOrder),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: AppColors.warning,
+                      side: const BorderSide(color: AppColors.warning),
+                    ),
+                  ),
+                ],
+                if (isOwner &&
+                    (workOrder.status == WorkOrderStatus.pendingReview ||
+                        workOrder.status == WorkOrderStatus.inProgress ||
+                        workOrder.status == WorkOrderStatus.closed)) ...[
+                  const SizedBox(height: 8),
+                  ElevatedButton.icon(
+                    onPressed: isLoading
+                        ? null
+                        : () async {
+                            final newId = await ref
+                                .read(invoiceControllerProvider.notifier)
+                                .generateFromWorkOrder(workOrder.id);
+                            if (newId != null && context.mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text(l10n.invoiceGenerated),
+                                  backgroundColor: AppColors.success,
+                                ),
+                              );
+                              context.push('$prefix/invoices/$newId');
+                            }
+                          },
+                    icon: const Icon(Icons.receipt_long),
+                    label: Text(l10n.generateInvoice),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF1E40AF),
+                    ),
+                  ),
+                ],
+              ],
+            );
+          },
+        ),
       ],
     );
   }
+}
+
+class _ClientChecklistContextSection extends ConsumerWidget {
+  final WorkOrder workOrder;
+
+  const _ClientChecklistContextSection({required this.workOrder});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final rowsAsync = ref.watch(
+      savedChecklistsForAssetProvider(
+        (assetId: workOrder.assetId, type: SavedChecklistType.maintenance),
+      ),
+    );
+
+    return rowsAsync.when(
+      loading: () => const SizedBox.shrink(),
+      error: (_, __) => const SizedBox.shrink(),
+      data: (rows) {
+        final clientRows = rows
+            .where((row) => row.sourceType == 'client')
+            .take(3)
+            .toList(growable: false);
+        if (clientRows.isEmpty) return const SizedBox.shrink();
+
+        return Container(
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+            color: AppColors.surface,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: AppColors.cardBorder),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  const Icon(Icons.history_toggle_off,
+                      color: AppColors.primary, size: 20),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'Recent client checklists',
+                      style: Theme.of(context).textTheme.titleSmall,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 4),
+              const Text(
+                'Reference only — these do not complete the work order checklist.',
+                style: TextStyle(color: AppColors.textSecondary, fontSize: 12),
+              ),
+              const SizedBox(height: 10),
+              ...clientRows.map(
+                (row) => _ClientChecklistReferenceTile(
+                  workOrder: workOrder,
+                  row: row,
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _ClientChecklistReferenceTile extends ConsumerWidget {
+  final WorkOrder workOrder;
+  final SavedChecklist row;
+
+  const _ClientChecklistReferenceTile({
+    required this.workOrder,
+    required this.row,
+  });
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final flagged = _flaggedCount(row);
+    final dateLabel = DateFormat.MMMd().add_jm().format(row.submittedAt);
+    final attached = (workOrder.notesInternal ?? '').contains(row.id);
+
+    return Card(
+      margin: const EdgeInsets.only(top: 8),
+      color: AppColors.surfaceVariant.withValues(alpha: 0.45),
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        row.templateName,
+                        style: Theme.of(context).textTheme.titleSmall,
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        [
+                          dateLabel,
+                          if (row.currentHours != null)
+                            '${row.currentHours!.toStringAsFixed(0)}h',
+                        ].join(' • '),
+                        style: const TextStyle(
+                          color: AppColors.textSecondary,
+                          fontSize: 12,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                if (flagged > 0)
+                  Chip(
+                    visualDensity: VisualDensity.compact,
+                    backgroundColor: AppColors.warning.withValues(alpha: 0.15),
+                    label: Text(
+                      '$flagged flagged',
+                      style: const TextStyle(
+                        color: AppColors.warning,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                TextButton.icon(
+                  onPressed: () => _showSavedChecklist(context, row),
+                  icon: const Icon(Icons.visibility_outlined, size: 18),
+                  label: const Text('View'),
+                ),
+                const SizedBox(width: 8),
+                OutlinedButton.icon(
+                  onPressed: attached
+                      ? null
+                      : () => _attachReference(context, ref, row),
+                  icon: Icon(
+                    attached ? Icons.check : Icons.attach_file,
+                    size: 18,
+                  ),
+                  label: Text(attached ? 'Attached' : 'Attach reference'),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _attachReference(
+    BuildContext context,
+    WidgetRef ref,
+    SavedChecklist row,
+  ) async {
+    final existing = workOrder.notesInternal?.trim();
+    final dateLabel = DateFormat.yMMMd().add_jm().format(row.submittedAt);
+    final reference = [
+      'Client checklist reference:',
+      row.templateName,
+      dateLabel,
+      if (row.currentHours != null) '${row.currentHours!.toStringAsFixed(0)}h',
+      'id:${row.id}',
+    ].join(' • ');
+    final nextNotes = existing == null || existing.isEmpty
+        ? reference
+        : '$existing\n\n$reference';
+
+    final success =
+        await ref.read(workOrderControllerProvider.notifier).updateWorkOrder(
+      workOrder.id,
+      {'notes_internal': nextNotes},
+    );
+    if (!context.mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          success
+              ? 'Client checklist attached as WO reference.'
+              : 'Could not attach reference right now.',
+        ),
+        backgroundColor: success ? AppColors.success : AppColors.error,
+      ),
+    );
+  }
+}
+
+void _showSavedChecklist(BuildContext context, SavedChecklist row) {
+  showModalBottomSheet(
+    context: context,
+    isScrollControlled: true,
+    backgroundColor: AppColors.surface,
+    shape: const RoundedRectangleBorder(
+      borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+    ),
+    builder: (_) => _SavedChecklistReferenceSheet(row: row),
+  );
+}
+
+class _SavedChecklistReferenceSheet extends StatelessWidget {
+  final SavedChecklist row;
+
+  const _SavedChecklistReferenceSheet({required this.row});
+
+  @override
+  Widget build(BuildContext context) {
+    final header = row.snapshot['header'] as Map<String, dynamic>? ?? const {};
+    final items = (row.snapshot['items'] as List?)?.cast<Map>() ?? const [];
+    final submittedLabel = DateFormat.yMMMd().add_jm().format(row.submittedAt);
+
+    return SafeArea(
+      child: DraggableScrollableSheet(
+        initialChildSize: 0.82,
+        minChildSize: 0.45,
+        maxChildSize: 0.95,
+        expand: false,
+        builder: (context, controller) => ListView(
+          controller: controller,
+          padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
+          children: [
+            Text(row.templateName,
+                style: Theme.of(context).textTheme.titleMedium),
+            const SizedBox(height: 6),
+            const Text(
+              'Client-submitted checklist reference',
+              style: TextStyle(color: AppColors.textSecondary, fontSize: 12),
+            ),
+            const SizedBox(height: 14),
+            _SavedChecklistHeaderLine(
+                label: 'Submitted', value: submittedLabel),
+            _SavedChecklistHeaderLine(
+              label: 'Completed by',
+              value: '${header['completed_by'] ?? row.submittedBy ?? '—'}',
+            ),
+            if (row.currentHours != null)
+              _SavedChecklistHeaderLine(
+                label: 'Hours',
+                value: row.currentHours!.toStringAsFixed(0),
+              ),
+            if ((row.generalNotes ?? '').trim().isNotEmpty)
+              _SavedChecklistHeaderLine(
+                  label: 'Notes', value: row.generalNotes!.trim()),
+            const SizedBox(height: 12),
+            ...items.map((item) {
+              final response = (item['response'] ?? '').toString();
+              final note = (item['note'] ?? '').toString();
+              final isFlagged = response == 'monitor' || response == 'action';
+              return ListTile(
+                dense: true,
+                contentPadding: EdgeInsets.zero,
+                title: Text(
+                  (item['description_en'] ?? 'Checklist item').toString(),
+                ),
+                subtitle: note.isNotEmpty ? Text(note) : null,
+                trailing: Text(
+                  response.toUpperCase(),
+                  style: TextStyle(
+                    color: isFlagged ? AppColors.warning : null,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              );
+            }),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _SavedChecklistHeaderLine extends StatelessWidget {
+  final String label;
+  final String value;
+
+  const _SavedChecklistHeaderLine({required this.label, required this.value});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 4),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 110,
+            child: Text(
+              label,
+              style: const TextStyle(
+                color: AppColors.textSecondary,
+                fontSize: 12,
+              ),
+            ),
+          ),
+          Expanded(child: Text(value)),
+        ],
+      ),
+    );
+  }
+}
+
+int _flaggedCount(SavedChecklist row) {
+  final items = (row.snapshot['items'] as List?)?.cast<Map>() ?? const [];
+  return items.where((item) {
+    final response = (item['response'] ?? '').toString();
+    return response == 'monitor' || response == 'action';
+  }).length;
 }
 
 // ── Edit work order bottom sheet ─────────────────────────────────────────────
@@ -748,8 +1110,11 @@ class _EditWorkOrderSheetState extends ConsumerState<_EditWorkOrderSheet> {
               const SizedBox(height: 12),
               // Tech reassignment
               Consumer(builder: (context, ref, _) {
-                final employeesAsync = ref.watch(employeesProvider);
-                return employeesAsync.when(
+                final assignableAsync = ref.watch(
+                  assignableWorkOrderProfilesProvider(
+                      widget.workOrder.clientId),
+                );
+                return assignableAsync.when(
                   loading: () => const LinearProgressIndicator(),
                   error: (_, __) => const SizedBox.shrink(),
                   data: (employees) {

@@ -9,7 +9,9 @@ import 'package:vortice_app/features/invoices/invoice_provider.dart';
 import 'package:vortice_app/features/org_codes/org_code_provider.dart';
 import 'package:vortice_app/features/orgs/org_provider.dart';
 import 'package:vortice_app/features/checklists/checklist_assignment_provider.dart';
+import 'package:vortice_app/features/clients/client_capability_provider.dart';
 import 'package:vortice_app/models/asset.dart';
+import 'package:vortice_app/models/client_capability.dart';
 import 'package:vortice_app/models/client_org.dart';
 import 'package:vortice_app/models/invoice.dart';
 import 'package:vortice_app/models/profile.dart';
@@ -149,7 +151,7 @@ class _OrgAdminBody extends ConsumerWidget {
         ),
         body: TabBarView(
           children: [
-            _TeamTab(orgId: org.id),
+            _TeamTab(orgId: org.id, ownerProfileId: org.ownerProfileId),
             _FleetTab(ownerProfileId: org.ownerProfileId),
             _ChecklistsTab(orgId: org.id),
             const _InvoicesTab(),
@@ -164,7 +166,8 @@ class _OrgAdminBody extends ConsumerWidget {
 
 class _TeamTab extends ConsumerWidget {
   final String orgId;
-  const _TeamTab({required this.orgId});
+  final String ownerProfileId;
+  const _TeamTab({required this.orgId, required this.ownerProfileId});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -199,12 +202,13 @@ class _TeamTab extends ConsumerWidget {
             itemBuilder: (_, i) => _MemberCard(
               profile: members[i],
               orgId: orgId,
+              ownerProfileId: ownerProfileId,
             ),
           );
         },
       ),
       floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => _showInviteSheet(context, ref, orgId),
+        onPressed: () => _showInviteSheet(context, ref, orgId, ownerProfileId),
         icon: const Icon(Icons.person_add_outlined),
         label: const Text('Invite Team Member'),
         backgroundColor: AppColors.primary,
@@ -212,7 +216,12 @@ class _TeamTab extends ConsumerWidget {
     );
   }
 
-  void _showInviteSheet(BuildContext context, WidgetRef ref, String orgId) {
+  void _showInviteSheet(
+    BuildContext context,
+    WidgetRef ref,
+    String orgId,
+    String ownerProfileId,
+  ) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -220,7 +229,10 @@ class _TeamTab extends ConsumerWidget {
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
       ),
-      builder: (_) => _InviteSheet(orgId: orgId),
+      builder: (_) => _InviteSheet(
+        orgId: orgId,
+        ownerProfileId: ownerProfileId,
+      ),
     );
   }
 }
@@ -228,7 +240,12 @@ class _TeamTab extends ConsumerWidget {
 class _MemberCard extends ConsumerWidget {
   final Profile profile;
   final String orgId;
-  const _MemberCard({required this.profile, required this.orgId});
+  final String ownerProfileId;
+  const _MemberCard({
+    required this.profile,
+    required this.orgId,
+    required this.ownerProfileId,
+  });
 
   Color _roleColor() => switch (profile.role) {
         UserRole.clientMechanic => AppColors.primary,
@@ -247,6 +264,18 @@ class _MemberCard extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final isLoading = ref.watch(orgControllerProvider).isLoading;
+    final capabilities =
+        ref.watch(clientCapabilitiesProvider(ownerProfileId)).valueOrNull;
+    final roleCapability = switch (profile.role) {
+      UserRole.clientMechanic => ClientCapability.pmChecklists,
+      UserRole.clientOperator ||
+      UserRole.operator =>
+        ClientCapability.operationalChecklists,
+      _ => null,
+    };
+    final workflowDisabled = roleCapability != null &&
+        capabilities != null &&
+        !capabilities.isEnabled(roleCapability);
     final color = _roleColor();
 
     return Container(
@@ -283,6 +312,16 @@ class _MemberCard extends ConsumerWidget {
                     fontSize: 12,
                   ),
                 ),
+                if (workflowDisabled) ...[
+                  const SizedBox(height: 4),
+                  Text(
+                    '${roleCapability.label} disabled for this client',
+                    style: const TextStyle(
+                      color: AppColors.warning,
+                      fontSize: 11,
+                    ),
+                  ),
+                ],
               ],
             ),
           ),
@@ -344,7 +383,8 @@ class _MemberCard extends ConsumerWidget {
 
 class _InviteSheet extends ConsumerStatefulWidget {
   final String orgId;
-  const _InviteSheet({required this.orgId});
+  final String ownerProfileId;
+  const _InviteSheet({required this.orgId, required this.ownerProfileId});
 
   @override
   ConsumerState<_InviteSheet> createState() => _InviteSheetState();
@@ -363,8 +403,27 @@ class _InviteSheetState extends ConsumerState<_InviteSheet> {
     super.dispose();
   }
 
-  Future<void> _sendInvite() async {
+  ClientCapability _requiredCapabilityForRole(String role) =>
+      role == 'client_mechanic'
+          ? ClientCapability.pmChecklists
+          : ClientCapability.operationalChecklists;
+
+  Future<void> _sendInvite(ClientCapabilitySwitchboard switchboard) async {
     if (_nameCtrl.text.trim().isEmpty) return;
+
+    final requiredCapability = _requiredCapabilityForRole(_selectedRole);
+    if (!switchboard.isEnabled(requiredCapability)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            '${requiredCapability.label} must be enabled before inviting this role.',
+          ),
+          backgroundColor: AppColors.warning,
+        ),
+      );
+      return;
+    }
+
     setState(() => _submitting = true);
 
     final code = OrgCodeController.generateCode();
@@ -387,9 +446,11 @@ class _InviteSheetState extends ConsumerState<_InviteSheet> {
       Navigator.pop(context);
       _showCodeDialog(code);
     } else {
+      final error = ref.read(orgCodeControllerProvider).error;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Failed to create invite code. Try again.'),
+        SnackBar(
+          content: Text(
+              error?.toString() ?? 'Failed to create invite code. Try again.'),
           backgroundColor: AppColors.error,
         ),
       );
@@ -446,78 +507,126 @@ class _InviteSheetState extends ConsumerState<_InviteSheet> {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: EdgeInsets.fromLTRB(
-          16, 16, 16, MediaQuery.of(context).viewInsets.bottom + 16),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          const Text(
-            'Invite Team Member',
-            style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w600,
-                color: AppColors.textPrimary),
-          ),
-          const SizedBox(height: 16),
-          // Role picker
-          const Text('Role',
-              style: TextStyle(color: AppColors.textSecondary, fontSize: 12)),
-          const SizedBox(height: 8),
-          Row(
+    final capabilitiesAsync =
+        ref.watch(clientCapabilitiesProvider(widget.ownerProfileId));
+
+    return capabilitiesAsync.when(
+      loading: () => Padding(
+        padding: EdgeInsets.fromLTRB(
+            16, 16, 16, MediaQuery.of(context).viewInsets.bottom + 16),
+        child: const Center(child: CircularProgressIndicator()),
+      ),
+      error: (err, _) => Padding(
+        padding: EdgeInsets.fromLTRB(
+            16, 16, 16, MediaQuery.of(context).viewInsets.bottom + 16),
+        child: Text(err.toString(),
+            style: const TextStyle(color: AppColors.error)),
+      ),
+      data: (switchboard) {
+        final mechanicEnabled =
+            switchboard.isEnabled(ClientCapability.pmChecklists);
+        final operatorEnabled =
+            switchboard.isEnabled(ClientCapability.operationalChecklists);
+        final selectedCapability = _requiredCapabilityForRole(_selectedRole);
+        final selectedEnabled = switchboard.isEnabled(selectedCapability);
+
+        return Padding(
+          padding: EdgeInsets.fromLTRB(
+              16, 16, 16, MediaQuery.of(context).viewInsets.bottom + 16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Expanded(
-                child: _RoleChip(
-                  label: 'Mechanic',
-                  selected: _selectedRole == 'client_mechanic',
-                  onTap: () =>
-                      setState(() => _selectedRole = 'client_mechanic'),
+              const Text(
+                'Invite Team Member',
+                style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.textPrimary),
+              ),
+              const SizedBox(height: 16),
+              const Text('Role',
+                  style:
+                      TextStyle(color: AppColors.textSecondary, fontSize: 12)),
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  Expanded(
+                    child: _RoleChip(
+                      label: 'Mechanic',
+                      selected: _selectedRole == 'client_mechanic',
+                      enabled: mechanicEnabled,
+                      onTap: mechanicEnabled
+                          ? () =>
+                              setState(() => _selectedRole = 'client_mechanic')
+                          : null,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: _RoleChip(
+                      label: 'Operator',
+                      selected: _selectedRole == 'client_operator',
+                      enabled: operatorEnabled,
+                      onTap: operatorEnabled
+                          ? () =>
+                              setState(() => _selectedRole = 'client_operator')
+                          : null,
+                    ),
+                  ),
+                ],
+              ),
+              if (!mechanicEnabled || !operatorEnabled) ...[
+                const SizedBox(height: 8),
+                Text(
+                  [
+                    if (!mechanicEnabled)
+                      'Enable PM / Mechanic Checklists to invite mechanics.',
+                    if (!operatorEnabled)
+                      'Enable Operational Checklists to invite operators.',
+                  ].join('\n'),
+                  style: const TextStyle(
+                    color: AppColors.warning,
+                    fontSize: 12,
+                  ),
+                ),
+              ],
+              const SizedBox(height: 12),
+              TextField(
+                controller: _nameCtrl,
+                decoration: const InputDecoration(
+                  labelText: 'Name',
+                  prefixIcon: Icon(Icons.person_outline),
                 ),
               ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: _RoleChip(
-                  label: 'Operator',
-                  selected: _selectedRole == 'client_operator',
-                  onTap: () =>
-                      setState(() => _selectedRole = 'client_operator'),
+              const SizedBox(height: 12),
+              TextField(
+                controller: _emailCtrl,
+                keyboardType: TextInputType.emailAddress,
+                decoration: const InputDecoration(
+                  labelText: 'Email (for reference)',
+                  prefixIcon: Icon(Icons.email_outlined),
                 ),
+              ),
+              const SizedBox(height: 20),
+              ElevatedButton.icon(
+                onPressed: _submitting || !selectedEnabled
+                    ? null
+                    : () => _sendInvite(switchboard),
+                icon: _submitting
+                    ? const SizedBox(
+                        width: 16,
+                        height: 16,
+                        child: CircularProgressIndicator(
+                            strokeWidth: 2, color: Colors.white),
+                      )
+                    : const Icon(Icons.send),
+                label: const Text('Send Invite'),
               ),
             ],
           ),
-          const SizedBox(height: 12),
-          TextField(
-            controller: _nameCtrl,
-            decoration: const InputDecoration(
-              labelText: 'Name',
-              prefixIcon: Icon(Icons.person_outline),
-            ),
-          ),
-          const SizedBox(height: 12),
-          TextField(
-            controller: _emailCtrl,
-            keyboardType: TextInputType.emailAddress,
-            decoration: const InputDecoration(
-              labelText: 'Email (for reference)',
-              prefixIcon: Icon(Icons.email_outlined),
-            ),
-          ),
-          const SizedBox(height: 20),
-          ElevatedButton.icon(
-            onPressed: _submitting ? null : _sendInvite,
-            icon: _submitting
-                ? const SizedBox(
-                    width: 16,
-                    height: 16,
-                    child: CircularProgressIndicator(
-                        strokeWidth: 2, color: Colors.white),
-                  )
-                : const Icon(Icons.send),
-            label: const Text('Send Invite'),
-          ),
-        ],
-      ),
+        );
+      },
     );
   }
 }
@@ -525,9 +634,14 @@ class _InviteSheetState extends ConsumerState<_InviteSheet> {
 class _RoleChip extends StatelessWidget {
   final String label;
   final bool selected;
-  final VoidCallback onTap;
-  const _RoleChip(
-      {required this.label, required this.selected, required this.onTap});
+  final bool enabled;
+  final VoidCallback? onTap;
+  const _RoleChip({
+    required this.label,
+    required this.selected,
+    this.enabled = true,
+    required this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -536,12 +650,18 @@ class _RoleChip extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 12),
         decoration: BoxDecoration(
-          color: selected
-              ? AppColors.primary.withValues(alpha: 0.15)
-              : AppColors.surfaceVariant,
+          color: !enabled
+              ? AppColors.surfaceVariant.withValues(alpha: 0.55)
+              : selected
+                  ? AppColors.primary.withValues(alpha: 0.15)
+                  : AppColors.surfaceVariant,
           borderRadius: BorderRadius.circular(10),
           border: Border.all(
-            color: selected ? AppColors.primary : AppColors.cardBorder,
+            color: !enabled
+                ? AppColors.cardBorder.withValues(alpha: 0.4)
+                : selected
+                    ? AppColors.primary
+                    : AppColors.cardBorder,
             width: selected ? 1.5 : 1,
           ),
         ),
@@ -549,7 +669,11 @@ class _RoleChip extends StatelessWidget {
           label,
           textAlign: TextAlign.center,
           style: TextStyle(
-            color: selected ? AppColors.primary : AppColors.textSecondary,
+            color: !enabled
+                ? AppColors.textSecondary.withValues(alpha: 0.5)
+                : selected
+                    ? AppColors.primary
+                    : AppColors.textSecondary,
             fontWeight: selected ? FontWeight.w600 : FontWeight.normal,
             fontSize: 14,
           ),

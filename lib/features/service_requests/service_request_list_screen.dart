@@ -136,7 +136,7 @@ class _ServiceRequestCard extends ConsumerWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        request.title,
+                        request.kindLabel,
                         style: Theme.of(context).textTheme.titleSmall,
                       ),
                       const SizedBox(height: 4),
@@ -163,6 +163,46 @@ class _ServiceRequestCard extends ConsumerWidget {
               request.description,
               style: Theme.of(context).textTheme.bodyMedium,
             ),
+            if (request.engineHours != null) ...[
+              const SizedBox(height: 10),
+              Text(
+                'Engine hours: ${request.engineHours}',
+                style: const TextStyle(
+                  color: AppColors.textSecondary,
+                  fontSize: 12,
+                ),
+              ),
+            ],
+            if (request.contactPhoneOrWhatsapp?.trim().isNotEmpty == true) ...[
+              const SizedBox(height: 10),
+              Text(
+                'Phone / WhatsApp: ${request.contactPhoneOrWhatsapp}',
+                style: const TextStyle(
+                  color: AppColors.textSecondary,
+                  fontSize: 12,
+                ),
+              ),
+            ],
+            if (request.photoUrls.isNotEmpty) ...[
+              const SizedBox(height: 12),
+              SizedBox(
+                height: 76,
+                child: ListView.separated(
+                  scrollDirection: Axis.horizontal,
+                  itemCount: request.photoUrls.length,
+                  separatorBuilder: (_, __) => const SizedBox(width: 8),
+                  itemBuilder: (_, index) => ClipRRect(
+                    borderRadius: BorderRadius.circular(8),
+                    child: Image.network(
+                      request.photoUrls[index],
+                      width: 76,
+                      height: 76,
+                      fit: BoxFit.cover,
+                    ),
+                  ),
+                ),
+              ),
+            ],
             if (!clientMode && isNew) ...[
               const SizedBox(height: 14),
               Row(
@@ -181,25 +221,13 @@ class _ServiceRequestCard extends ConsumerWidget {
                   const SizedBox(width: 10),
                   Expanded(
                     child: ElevatedButton.icon(
-                      onPressed: () => _mark(
-                        context,
-                        ref,
-                        ServiceRequestStatus.resolved,
-                      ),
-                      icon: const Icon(Icons.check),
-                      label: const Text('Handle'),
+                      onPressed: () => _generateWorkOrder(context),
+                      icon: const Icon(Icons.add_task_outlined),
+                      label: const Text('Accept + WO'),
                     ),
                   ),
                 ],
               ),
-              if (staffPrefix != null) ...[
-                const SizedBox(height: 8),
-                OutlinedButton.icon(
-                  onPressed: () => _generateWorkOrder(context),
-                  icon: const Icon(Icons.add_task_outlined),
-                  label: const Text('Generate Work Order'),
-                ),
-              ],
             ],
           ],
         ),
@@ -209,7 +237,10 @@ class _ServiceRequestCard extends ConsumerWidget {
 
   String get _subtitle => [
         if (!clientMode && request.clientName != null) request.clientName,
-        if (request.assetName != null) request.assetName,
+        if (request.assetName != null || request.otherAssetName != null)
+          request.assetDisplayName,
+        if (request.assetLocation?.trim().isNotEmpty == true)
+          request.assetLocation,
         request.createdLabel,
         if (request.urgency == ServiceRequestUrgency.urgent) 'Urgent',
       ].join(' • ');
@@ -221,15 +252,56 @@ class _ServiceRequestCard extends ConsumerWidget {
     final draft = MaintenanceWorkOrderDraft(
       assetId: request.assetId,
       serviceRequestId: request.id,
-      title: request.title,
-      description: request.description,
+      title: _workOrderTitle,
+      description: _workOrderDescription,
       jobType: WorkOrderJobType.repair,
+      engineHours: request.engineHours,
     );
 
     context.push(Uri(
       path: '$staffPrefix/work-orders/create',
       queryParameters: draft.toQueryParameters(),
     ).toString());
+  }
+
+  String get _workOrderTitle => [
+        request.kindLabel,
+        request.assetName ?? request.otherAssetName,
+      ]
+          .whereType<String>()
+          .where((value) => value.trim().isNotEmpty)
+          .join(' — ');
+
+  String get _workOrderDescription {
+    final buffer = StringBuffer();
+    buffer.writeln('Generated from client service request.');
+    buffer.writeln();
+    buffer.writeln('Request type: ${request.kindLabel}');
+    if (request.clientName?.trim().isNotEmpty == true) {
+      buffer.writeln('Client: ${request.clientName}');
+    }
+    if (request.assetName != null || request.otherAssetName != null) {
+      buffer.writeln('Asset: ${request.assetDisplayName}');
+    }
+    if (request.assetLocation?.trim().isNotEmpty == true) {
+      buffer.writeln('Location: ${request.assetLocation}');
+    }
+    if (request.contactPhoneOrWhatsapp?.trim().isNotEmpty == true) {
+      buffer.writeln('Phone / WhatsApp: ${request.contactPhoneOrWhatsapp}');
+    }
+    if (request.engineHours != null) {
+      buffer.writeln('Engine hours: ${request.engineHours}');
+    }
+    buffer.writeln();
+    buffer.writeln(request.description.trim());
+    if (request.photoUrls.isNotEmpty) {
+      buffer.writeln();
+      buffer.writeln('Photos:');
+      for (final url in request.photoUrls) {
+        buffer.writeln(url);
+      }
+    }
+    return buffer.toString().trim();
   }
 
   Future<void> _mark(

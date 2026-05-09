@@ -18,10 +18,15 @@ import 'package:vortice_app/models/work_order.dart';
 
 final clientPreTripRunsProvider =
     FutureProvider<List<Map<String, dynamic>>>((ref) async {
+  final assets = await ref.watch(visibleAssetsProvider.future);
+  final assetIds = assets.map((asset) => asset.id).toList();
+  if (assetIds.isEmpty) return [];
+
   final data = await supabase
       .from(AppConstants.tOperatorChecklistRuns)
       .select('id, asset_id, run_type, completed_at, assets(name)')
       .eq('run_type', 'pre_departure')
+      .inFilter('asset_id', assetIds)
       .order('completed_at', ascending: false)
       .limit(5);
   return List<Map<String, dynamic>>.from(data as List);
@@ -37,7 +42,7 @@ class ClientDashboard extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context);
     final profile = ref.watch(profileProvider).valueOrNull;
-    final assetsAsync = ref.watch(assetsProvider);
+    final assetsAsync = ref.watch(visibleAssetsProvider);
     final workOrdersAsync = ref.watch(workOrdersProvider);
     final preTripAsync = ref.watch(clientPreTripRunsProvider);
     final flagsAsync = ref.watch(clientFlaggedIssuesProvider);
@@ -56,7 +61,7 @@ class ClientDashboard extends ConsumerWidget {
       ),
       body: RefreshIndicator(
         onRefresh: () async {
-          ref.invalidate(assetsProvider);
+          ref.invalidate(visibleAssetsProvider);
           ref.invalidate(workOrdersProvider);
           ref.invalidate(clientPreTripRunsProvider);
           ref.invalidate(clientFlaggedIssuesProvider);

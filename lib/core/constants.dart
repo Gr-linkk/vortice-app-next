@@ -42,6 +42,7 @@ class AppConstants {
   // ── Storage buckets ────────────────────────────────────────────────────────
   static const String bucketSignatures = 'signatures';
   static const String bucketReportPhotos = 'service-report-photos';
+  static const String bucketServiceRequestPhotos = 'service-request-photos';
 
   // ── SharedPreferences keys ─────────────────────────────────────────────────
   static const String prefLocale = 'app_locale';

@@ -28,7 +28,7 @@ class ClientDashboardTelemetry extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final clientId = ref.watch(currentClientIdProvider).valueOrNull;
 
-    final assetsAsync = ref.watch(assetsProvider);
+    final assetsAsync = ref.watch(visibleAssetsProvider);
     final invoicesAsync = ref.watch(invoicesProvider);
     final fleetHealthAsync = ref.watch(fleetHealthProvider(clientId));
     final activeAlertsAsync = ref.watch(activeAlertsProvider);
@@ -75,7 +75,7 @@ class ClientDashboardTelemetry extends ConsumerWidget {
         ),
         body: RefreshIndicator(
           onRefresh: () async {
-            ref.invalidate(assetsProvider);
+            ref.invalidate(visibleAssetsProvider);
             ref.invalidate(invoicesProvider);
             ref.invalidate(remindersProvider);
             ref.invalidate(fleetHealthProvider(clientId));
@@ -184,8 +184,17 @@ class ClientDashboardTelemetry extends ConsumerWidget {
                         message: 'No upcoming maintenance.',
                       );
                     }
+                    final visibleReminders = reminders
+                        .where((r) => r.shouldShowOnClientMaintenanceDashboard)
+                        .toList();
+                    if (visibleReminders.isEmpty) {
+                      return const _EmptyStateTile(
+                        icon: Icons.event_available_outlined,
+                        message: 'No upcoming maintenance.',
+                      );
+                    }
                     return Column(
-                      children: reminders
+                      children: visibleReminders
                           .take(5)
                           .map(
                             (r) => _MaintenanceTile(

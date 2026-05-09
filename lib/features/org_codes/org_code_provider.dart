@@ -3,6 +3,8 @@ import 'dart:math';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:vortice_app/core/constants.dart';
 import 'package:vortice_app/core/supabase_client.dart';
+import 'package:vortice_app/features/clients/client_capability_provider.dart';
+import 'package:vortice_app/models/client_capability.dart';
 
 // ── Org code model (lightweight, no Freezed needed) ────────────────────────
 
@@ -90,6 +92,11 @@ class OrgCodeController extends StateNotifier<AsyncValue<void>> {
     state = const AsyncLoading();
     bool success = false;
     state = await AsyncValue.guard(() async {
+      await _ensureInviteCapabilityEnabled(
+        intendedRole: intendedRole,
+        orgId: orgId,
+      );
+
       await supabase.from(AppConstants.tOrgCodes).insert({
         'code': code.toUpperCase(),
         'intended_role': intendedRole,
@@ -103,6 +110,37 @@ class OrgCodeController extends StateNotifier<AsyncValue<void>> {
       success = true;
     });
     return success;
+  }
+
+  Future<void> _ensureInviteCapabilityEnabled({
+    required String intendedRole,
+    required String? orgId,
+  }) async {
+    final requiredCapability = switch (intendedRole) {
+      'client_mechanic' => ClientCapability.pmChecklists,
+      'client_operator' || 'operator' => ClientCapability.operationalChecklists,
+      _ => null,
+    };
+    if (requiredCapability == null || orgId == null || orgId.isEmpty) return;
+
+    final org = await supabase
+        .from(AppConstants.tClientOrgs)
+        .select('owner_profile_id')
+        .eq('id', orgId)
+        .maybeSingle();
+    final clientId = org?['owner_profile_id'] as String?;
+    if (clientId == null || clientId.isEmpty) {
+      throw StateError('Client organization could not be resolved.');
+    }
+
+    final switchboard = await _ref
+        .read(clientCapabilitiesRepositoryProvider)
+        .fetchForClient(clientId);
+    if (!switchboard.isEnabled(requiredCapability)) {
+      throw StateError(
+        '${requiredCapability.label} must be enabled before inviting this role.',
+      );
+    }
   }
 
   Future<bool> deleteCode(String id) async {

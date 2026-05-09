@@ -2,6 +2,13 @@ import 'package:intl/intl.dart';
 
 enum ServiceRequestUrgency { normal, urgent }
 
+enum ServiceRequestKind {
+  breakdown,
+  serviceMaintenance,
+  safetyConcern,
+  otherIssue,
+}
+
 enum ServiceRequestStatus { newRequest, resolved, declined }
 
 class ServiceRequest {
@@ -11,6 +18,11 @@ class ServiceRequest {
     this.assetId,
     required this.title,
     required this.description,
+    this.requestTypeValue,
+    this.contactPhoneOrWhatsapp,
+    this.otherAssetName,
+    this.photoUrls = const [],
+    this.engineHours,
     required this.urgency,
     required this.status,
     this.sourceMaintenanceRequestId,
@@ -21,6 +33,7 @@ class ServiceRequest {
     this.handledBy,
     this.clientName,
     this.assetName,
+    this.assetLocation,
   });
 
   final String id;
@@ -28,6 +41,11 @@ class ServiceRequest {
   final String? assetId;
   final String title;
   final String description;
+  final String? requestTypeValue;
+  final String? contactPhoneOrWhatsapp;
+  final String? otherAssetName;
+  final List<String> photoUrls;
+  final double? engineHours;
   final ServiceRequestUrgency urgency;
   final ServiceRequestStatus status;
   final String? sourceMaintenanceRequestId;
@@ -38,6 +56,7 @@ class ServiceRequest {
   final String? handledBy;
   final String? clientName;
   final String? assetName;
+  final String? assetLocation;
 
   factory ServiceRequest.fromJson(Map<String, dynamic> json) {
     final client = json['client'] is Map<String, dynamic>
@@ -57,6 +76,11 @@ class ServiceRequest {
       assetId: json['asset_id'] as String?,
       title: json['title'] as String? ?? 'Service request',
       description: json['description'] as String? ?? '',
+      requestTypeValue: json['request_type'] as String?,
+      contactPhoneOrWhatsapp: json['contact_phone_or_whatsapp'] as String?,
+      otherAssetName: json['other_asset_name'] as String?,
+      photoUrls: _photoUrlsFromJson(json['photo_urls']),
+      engineHours: (json['engine_hours'] as num?)?.toDouble(),
       urgency: _urgencyFromJson(json['urgency']),
       status: _statusFromJson(json['status']),
       sourceMaintenanceRequestId:
@@ -69,8 +93,16 @@ class ServiceRequest {
       clientName:
           client?['full_name'] as String? ?? client?['email'] as String?,
       assetName: asset?['name'] as String?,
+      assetLocation: asset?['location'] as String?,
     );
   }
+
+  String get assetDisplayName => assetName ?? otherAssetName ?? 'Other asset';
+
+  ServiceRequestKind get kind =>
+      _kindFromValue(requestTypeValue) ?? _kindFromTitle(title);
+
+  String get kindLabel => kind.label;
 
   String get urgencyValue => switch (urgency) {
         ServiceRequestUrgency.normal => 'normal',
@@ -117,4 +149,47 @@ ServiceRequestStatus _statusFromJson(dynamic value) {
 DateTime? _dateFromJson(dynamic value) {
   if (value is! String || value.isEmpty) return null;
   return DateTime.tryParse(value);
+}
+
+List<String> _photoUrlsFromJson(dynamic value) {
+  if (value is List) {
+    return value.whereType<String>().where((e) => e.isNotEmpty).toList();
+  }
+  return const [];
+}
+
+ServiceRequestKind? _kindFromValue(String? value) {
+  switch (value) {
+    case 'breakdown':
+      return ServiceRequestKind.breakdown;
+    case 'service_maintenance':
+      return ServiceRequestKind.serviceMaintenance;
+    case 'safety_concern':
+      return ServiceRequestKind.safetyConcern;
+    case 'other_issue':
+      return ServiceRequestKind.otherIssue;
+  }
+  return null;
+}
+
+ServiceRequestKind _kindFromTitle(String value) {
+  switch (value.trim().toLowerCase()) {
+    case 'breakdown':
+      return ServiceRequestKind.breakdown;
+    case 'service / maintenance':
+      return ServiceRequestKind.serviceMaintenance;
+    case 'safety concern':
+      return ServiceRequestKind.safetyConcern;
+    default:
+      return ServiceRequestKind.otherIssue;
+  }
+}
+
+extension ServiceRequestKindLabel on ServiceRequestKind {
+  String get label => switch (this) {
+        ServiceRequestKind.breakdown => 'Breakdown',
+        ServiceRequestKind.serviceMaintenance => 'Service / maintenance',
+        ServiceRequestKind.safetyConcern => 'Safety concern',
+        ServiceRequestKind.otherIssue => 'Other issue',
+      };
 }

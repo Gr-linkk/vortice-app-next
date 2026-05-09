@@ -1,6 +1,8 @@
+import 'package:drift/drift.dart' show Value;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:vortice_app/core/constants.dart';
 import 'package:vortice_app/core/supabase_client.dart';
+import 'package:vortice_app/db/database.dart';
 import 'package:vortice_app/features/auth/auth_provider.dart';
 import 'package:vortice_app/models/asset.dart';
 import 'package:vortice_app/models/profile.dart';
@@ -45,15 +47,71 @@ final currentClientFleetAssetsProvider =
   final ownerId = await ref.watch(currentClientFleetOwnerIdProvider.future);
   if (ownerId == null || ownerId.isEmpty) return [];
 
-  final remote = await supabase
-      .from(AppConstants.tAssets)
-      .select()
-      .eq('client_id', ownerId)
-      .order('name');
+  final db = ref.watch(databaseProvider);
 
-  return (remote as List)
-      .map((e) => Asset.fromJson(e as Map<String, dynamic>))
-      .toList();
+  Future<List<Asset>> cachedFleet() async {
+    final cached = await db.assetsDao.getAll();
+    return cached
+        .where((asset) => asset.clientId == ownerId)
+        .map(
+          (asset) => Asset(
+            id: asset.id,
+            clientId: asset.clientId,
+            assetTypeId: asset.assetTypeId,
+            name: asset.name,
+            make: asset.make,
+            model: asset.model,
+            year: asset.year,
+            serialNumber: asset.serialNumber,
+            location: asset.location,
+            notes: asset.notes,
+            telemetryEnabled: asset.telemetryEnabled,
+            telemetrySource: asset.telemetrySource,
+            createdAt: asset.createdAt,
+            updatedAt: asset.updatedAt,
+          ),
+        )
+        .toList();
+  }
+
+  try {
+    final remote = await supabase
+        .from(AppConstants.tAssets)
+        .select()
+        .eq('client_id', ownerId)
+        .order('name');
+
+    final assets = (remote as List)
+        .map((e) => Asset.fromJson(e as Map<String, dynamic>))
+        .toList();
+
+    for (final asset in assets) {
+      await db.assetsDao.upsert(
+        AssetsTableCompanion(
+          id: Value(asset.id),
+          clientId: Value(asset.clientId),
+          assetTypeId: Value(asset.assetTypeId),
+          name: Value(asset.name),
+          make: Value(asset.make),
+          model: Value(asset.model),
+          year: Value(asset.year),
+          serialNumber: Value(asset.serialNumber),
+          location: Value(asset.location),
+          notes: Value(asset.notes),
+          telemetryEnabled: Value(asset.telemetryEnabled),
+          telemetrySource: Value(asset.telemetrySource),
+          createdAt: Value(asset.createdAt),
+          updatedAt: Value(asset.updatedAt),
+        ),
+      );
+    }
+
+    return assets;
+  } catch (_) {
+    final cached = await cachedFleet();
+    if (cached.isNotEmpty) return cached;
+    rethrow;
+  }
 });
 
 Map<String, dynamic> clientTeamAssetRow(Asset asset) => {

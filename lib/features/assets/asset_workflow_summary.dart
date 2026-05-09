@@ -48,12 +48,7 @@ final assetWorkflowSummaryProvider = FutureProvider.family
           await ref.watch(staffServiceRequestsProvider.future),
           assetId,
         )
-      : _canSeeClientServiceRequests(role)
-          ? countNewServiceRequestsForAsset(
-              await ref.watch(clientServiceRequestsProvider.future),
-              assetId,
-            )
-          : null;
+      : null;
 
   return AssetWorkflowSummary(
     canSeeMaintenanceChecklist: canSeeMaintenanceChecklist,
@@ -170,8 +165,4 @@ bool _canSeeMaintenanceChecklistSummary(UserRole? role) {
 
 bool _canSeeStaffServiceRequests(UserRole? role) {
   return role == UserRole.owner || role == UserRole.employee;
-}
-
-bool _canSeeClientServiceRequests(UserRole? role) {
-  return role == UserRole.client || role == UserRole.clientAdmin;
 }

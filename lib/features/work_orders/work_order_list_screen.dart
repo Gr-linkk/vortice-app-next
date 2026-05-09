@@ -43,7 +43,12 @@ class _WorkOrderListScreenState extends ConsumerState<WorkOrderListScreen>
     final prefix = switch (profile?.role) {
       UserRole.owner => '/owner',
       UserRole.employee => '/employee',
-      UserRole.client => '/client',
+      UserRole.client ||
+      UserRole.clientAdmin ||
+      UserRole.clientMechanic ||
+      UserRole.clientOperator ||
+      UserRole.operator =>
+        '/client',
       _ => '/owner',
     };
 
@@ -80,16 +85,19 @@ class _WorkOrderListScreenState extends ConsumerState<WorkOrderListScreen>
         ),
         data: (all) {
           final open = all
-              .where((w) => w.status == WorkOrderStatus.draft ||
+              .where((w) =>
+                  w.status == WorkOrderStatus.draft ||
                   w.status == WorkOrderStatus.assigned)
               .toList();
           final inProgress = all
-              .where((w) => w.status == WorkOrderStatus.inProgress ||
+              .where((w) =>
+                  w.status == WorkOrderStatus.inProgress ||
                   w.status == WorkOrderStatus.onHold ||
                   w.status == WorkOrderStatus.pendingReview)
               .toList();
           final completed = all
-              .where((w) => w.status == WorkOrderStatus.invoiced ||
+              .where((w) =>
+                  w.status == WorkOrderStatus.invoiced ||
                   w.status == WorkOrderStatus.closed)
               .toList();
 
@@ -99,7 +107,9 @@ class _WorkOrderListScreenState extends ConsumerState<WorkOrderListScreen>
               controller: _tabCtrl,
               children: [
                 _WorkOrderTab(
-                    orders: open, prefix: prefix, emptyLabel: l10n.noWorkOrders),
+                    orders: open,
+                    prefix: prefix,
+                    emptyLabel: l10n.noWorkOrders),
                 _WorkOrderTab(
                     orders: inProgress,
                     prefix: prefix,
@@ -147,8 +157,7 @@ class _WorkOrderTab extends StatelessWidget {
       itemCount: orders.length,
       itemBuilder: (_, i) => _WorkOrderTile(
         order: orders[i],
-        onTap: () =>
-            context.push('$prefix/work-orders/${orders[i].id}'),
+        onTap: () => context.push('$prefix/work-orders/${orders[i].id}'),
       ),
     );
   }
@@ -172,13 +181,13 @@ class _WorkOrderTile extends StatelessWidget {
             borderRadius: BorderRadius.circular(2),
           ),
         ),
-        title: Text(order.title,
-            style: Theme.of(context).textTheme.titleSmall),
+        title: Text(order.title, style: Theme.of(context).textTheme.titleSmall),
         subtitle: Text(
           order.status.name,
           style: const TextStyle(color: AppColors.textSecondary, fontSize: 11),
         ),
-        trailing: const Icon(Icons.chevron_right, color: AppColors.textSecondary),
+        trailing:
+            const Icon(Icons.chevron_right, color: AppColors.textSecondary),
         onTap: onTap,
       ),
     );

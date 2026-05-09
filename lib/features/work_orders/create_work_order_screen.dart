@@ -51,6 +51,10 @@ class _CreateWorkOrderScreenState extends ConsumerState<CreateWorkOrderScreen> {
     _selectedChecklistTemplateId = initialDraft?.checklistTemplateId;
     _titleCtrl.text = initialDraft?.title ?? '';
     _descCtrl.text = initialDraft?.description ?? '';
+    final engineHours = initialDraft?.engineHours;
+    if (engineHours != null) {
+      _hoursCtrl.text = engineHours.toString();
+    }
   }
 
   @override
@@ -166,7 +170,7 @@ class _CreateWorkOrderScreenState extends ConsumerState<CreateWorkOrderScreen> {
       return;
     }
 
-    final assets = ref.read(assetsProvider).valueOrNull ?? [];
+    final assets = ref.read(visibleAssetsProvider).valueOrNull ?? [];
     final selectedAsset = assets.firstWhere(
       (a) => a.id == _selectedAssetId,
       orElse: () => assets.first,
@@ -319,8 +323,13 @@ class _CreateWorkOrderScreenState extends ConsumerState<CreateWorkOrderScreen> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final isLoading = ref.watch(workOrderControllerProvider).isLoading;
-    final assetsAsync = ref.watch(assetsProvider);
-    final employeesAsync = ref.watch(employeesProvider);
+    final assetsAsync = ref.watch(visibleAssetsProvider);
+    final selectedAssetForAssignment = assetsAsync.valueOrNull
+        ?.where((asset) => asset.id == _selectedAssetId)
+        .firstOrNull;
+    final assignableProfilesAsync = ref.watch(
+      assignableWorkOrderProfilesProvider(selectedAssetForAssignment?.clientId),
+    );
 
     return Scaffold(
       appBar: AppBar(title: Text(l10n.createWorkOrder)),
@@ -386,6 +395,7 @@ class _CreateWorkOrderScreenState extends ConsumerState<CreateWorkOrderScreen> {
                     _selectedAssetId = v;
                     _selectedEngineId = null;
                     _selectedChecklistTemplateId = null;
+                    _selectedTechIds = const [];
                   }),
                 ),
               ),
@@ -524,7 +534,7 @@ class _CreateWorkOrderScreenState extends ConsumerState<CreateWorkOrderScreen> {
               const SizedBox(height: 24),
               _sectionHeader('ASSIGNMENT'),
               const SizedBox(height: 8),
-              employeesAsync.when(
+              assignableProfilesAsync.when(
                 loading: () => const Center(child: CircularProgressIndicator()),
                 error: (_, __) => const SizedBox.shrink(),
                 data: (employees) {

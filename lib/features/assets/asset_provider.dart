@@ -4,7 +4,9 @@ import 'package:vortice_app/core/constants.dart';
 import 'package:vortice_app/core/supabase_client.dart';
 import 'package:vortice_app/db/database.dart';
 import 'package:vortice_app/features/assets/client_team_asset_access.dart';
+import 'package:vortice_app/features/auth/auth_provider.dart';
 import 'package:vortice_app/models/asset.dart';
+import 'package:vortice_app/models/profile.dart';
 
 // ── Remote fetch ───────────────────────────────────────────────────────────
 
@@ -74,9 +76,44 @@ final assetsProvider = FutureProvider<List<Asset>>((ref) async {
   }
 });
 
+/// Canonical asset visibility for screens and pickers.
+///
+/// Vórtice staff see every fleet. Client-side users see the fleet owned by
+/// their client profile or inherited through their client org. Use this for UI
+/// lists/pickers unless a screen explicitly needs an owner-only all-assets view.
+final visibleAssetsProvider = FutureProvider<List<Asset>>((ref) async {
+  final profile = await ref.watch(profileProvider.future);
+  if (profile == null) return [];
+
+  return switch (profile.role) {
+    UserRole.owner ||
+    UserRole.employee =>
+      await ref.watch(assetsProvider.future),
+    UserRole.client ||
+    UserRole.clientAdmin ||
+    UserRole.clientMechanic ||
+    UserRole.clientOperator ||
+    UserRole.operator =>
+      await ref.watch(currentClientFleetAssetsProvider.future),
+  };
+});
+
 /// For client-side operators/mechanics/admins: assets scoped to their client org.
 /// No org means no inherited fleet visibility.
 final operatorScopedAssetsProvider = currentClientFleetAssetsProvider;
+
+final assetAssignedProfilesProvider =
+    FutureProvider<Map<String, Profile>>((ref) async {
+  final data = await supabase
+      .from(AppConstants.tProfiles)
+      .select('id, email, full_name, role, org_id')
+      .order('full_name');
+
+  return {
+    for (final row in data as List)
+      (row as Map<String, dynamic>)['id'] as String: Profile.fromJson(row),
+  };
+});
 
 final assetByIdProvider =
     FutureProvider.family<Asset?, String>((ref, id) async {
@@ -102,6 +139,7 @@ class AssetController extends StateNotifier<AsyncValue<void>> {
     state = await AsyncValue.guard(() async {
       await supabase.from(AppConstants.tAssets).insert(data);
       _ref.invalidate(assetsProvider);
+      _ref.invalidate(visibleAssetsProvider);
       success = true;
     });
     return success;
@@ -113,6 +151,7 @@ class AssetController extends StateNotifier<AsyncValue<void>> {
     state = await AsyncValue.guard(() async {
       await supabase.from(AppConstants.tAssets).update(data).eq('id', id);
       _ref.invalidate(assetsProvider);
+      _ref.invalidate(visibleAssetsProvider);
       _ref.invalidate(assetByIdProvider(id));
       success = true;
     });
@@ -125,6 +164,7 @@ class AssetController extends StateNotifier<AsyncValue<void>> {
     state = await AsyncValue.guard(() async {
       await supabase.from(AppConstants.tAssets).delete().eq('id', id);
       _ref.invalidate(assetsProvider);
+      _ref.invalidate(visibleAssetsProvider);
       success = true;
     });
     return success;

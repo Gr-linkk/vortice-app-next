@@ -197,15 +197,15 @@ final openMaintenanceRequestsProvider =
 /// Defined here so the flag screen can invalidate it after submission.
 final clientFlaggedIssuesProvider =
     FutureProvider<List<Map<String, dynamic>>>((ref) async {
-  final userId = supabase.auth.currentUser?.id;
-  if (userId == null) return [];
+  final assets = await ref.watch(currentClientFleetAssetsProvider.future);
+  final assetIds = assets.map((asset) => asset.id).toList();
+  if (assetIds.isEmpty) return [];
 
-  // Scope to the current client's own assets via client_id
   final data = await supabase
       .from(AppConstants.tMaintenanceRequests)
       .select('id, description, severity, status, created_at, assets(name, id)')
       .eq('status', 'open')
-      .eq('client_id', userId)
+      .inFilter('asset_id', assetIds)
       .order('created_at', ascending: false)
       .limit(10);
   return List<Map<String, dynamic>>.from(data as List);
