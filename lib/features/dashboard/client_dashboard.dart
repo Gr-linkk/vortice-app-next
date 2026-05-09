@@ -7,11 +7,13 @@ import 'package:vortice_app/core/supabase_client.dart';
 import 'package:vortice_app/core/theme.dart';
 import 'package:vortice_app/features/assets/asset_provider.dart';
 import 'package:vortice_app/features/auth/auth_provider.dart';
+import 'package:vortice_app/features/clients/client_capability_gate.dart';
 import 'package:vortice_app/features/notifications/notification_provider.dart';
 import 'package:vortice_app/features/operator/operator_runs_provider.dart';
 import 'package:vortice_app/features/work_orders/work_order_provider.dart';
 import 'package:vortice_app/l10n/app_localizations.dart';
 import 'package:vortice_app/models/asset.dart';
+import 'package:vortice_app/models/client_capability.dart';
 import 'package:vortice_app/models/work_order.dart';
 
 // ── Providers for client-visible operator data ─────────────────────────────
@@ -44,7 +46,15 @@ class ClientDashboard extends ConsumerWidget {
     final profile = ref.watch(profileProvider).valueOrNull;
     final assetsAsync = ref.watch(visibleAssetsProvider);
     final workOrdersAsync = ref.watch(workOrdersProvider);
-    final preTripAsync = ref.watch(clientPreTripRunsProvider);
+    final operationalChecklistsAllowedAsync =
+        ref.watch(clientCapabilityGateProvider((
+      clientId: null,
+      capability: ClientCapability.operationalChecklists,
+    )));
+    final showOperationalChecklists =
+        operationalChecklistsAllowedAsync.valueOrNull ?? false;
+    final preTripAsync =
+        showOperationalChecklists ? ref.watch(clientPreTripRunsProvider) : null;
     final flagsAsync = ref.watch(clientFlaggedIssuesProvider);
 
     return Scaffold(
@@ -206,69 +216,71 @@ class ClientDashboard extends ConsumerWidget {
               },
             ),
 
-            // ── Pre-Trip Checks ──────────────────────────────────────
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 24, 16, 8),
-              child: Text(l10n.recentPreTripChecks,
-                  style: Theme.of(context).textTheme.titleMedium),
-            ),
-            preTripAsync.when(
-              loading: () => const SizedBox.shrink(),
-              error: (_, __) => const SizedBox.shrink(),
-              data: (runs) {
-                if (runs.isEmpty) {
-                  return Padding(
-                    padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
-                    child: Text(l10n.noRecentChecks,
-                        style: const TextStyle(
-                            color: AppColors.textSecondary, fontSize: 13)),
-                  );
-                }
-                return Column(
-                  children: runs.map((run) {
-                    final assetName = (run['assets']
-                            as Map<String, dynamic>?)?['name'] as String? ??
-                        '—';
-                    final completedAt = run['completed_at'] != null
-                        ? DateTime.tryParse(run['completed_at'] as String)
-                        : null;
-                    return Card(
-                      child: ListTile(
-                        leading: const CircleAvatar(
-                          backgroundColor: AppColors.surfaceVariant,
-                          child: Icon(Icons.checklist_rtl,
-                              color: AppColors.success, size: 18),
-                        ),
-                        title: Text(assetName,
-                            style: Theme.of(context).textTheme.titleSmall),
-                        subtitle: Text(
-                          completedAt != null
-                              ? '${completedAt.toLocal()}'.split('.').first
-                              : '—',
+            if (showOperationalChecklists) ...[
+              // ── Pre-Trip Checks ──────────────────────────────────────
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 24, 16, 8),
+                child: Text(l10n.recentPreTripChecks,
+                    style: Theme.of(context).textTheme.titleMedium),
+              ),
+              preTripAsync!.when(
+                loading: () => const SizedBox.shrink(),
+                error: (_, __) => const SizedBox.shrink(),
+                data: (runs) {
+                  if (runs.isEmpty) {
+                    return Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+                      child: Text(l10n.noRecentChecks,
                           style: const TextStyle(
-                              color: AppColors.textSecondary, fontSize: 11),
-                        ),
-                        trailing: Container(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 8, vertical: 3),
-                          decoration: BoxDecoration(
-                            color: AppColors.success.withValues(alpha: 0.15),
-                            borderRadius: BorderRadius.circular(4),
-                          ),
-                          child: Text(
-                            l10n.preDeparture.toUpperCase(),
-                            style: const TextStyle(
-                                color: AppColors.success,
-                                fontSize: 10,
-                                fontWeight: FontWeight.bold),
-                          ),
-                        ),
-                      ),
+                              color: AppColors.textSecondary, fontSize: 13)),
                     );
-                  }).toList(),
-                );
-              },
-            ),
+                  }
+                  return Column(
+                    children: runs.map((run) {
+                      final assetName = (run['assets']
+                              as Map<String, dynamic>?)?['name'] as String? ??
+                          '—';
+                      final completedAt = run['completed_at'] != null
+                          ? DateTime.tryParse(run['completed_at'] as String)
+                          : null;
+                      return Card(
+                        child: ListTile(
+                          leading: const CircleAvatar(
+                            backgroundColor: AppColors.surfaceVariant,
+                            child: Icon(Icons.checklist_rtl,
+                                color: AppColors.success, size: 18),
+                          ),
+                          title: Text(assetName,
+                              style: Theme.of(context).textTheme.titleSmall),
+                          subtitle: Text(
+                            completedAt != null
+                                ? '${completedAt.toLocal()}'.split('.').first
+                                : '—',
+                            style: const TextStyle(
+                                color: AppColors.textSecondary, fontSize: 11),
+                          ),
+                          trailing: Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 8, vertical: 3),
+                            decoration: BoxDecoration(
+                              color: AppColors.success.withValues(alpha: 0.15),
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                            child: Text(
+                              l10n.preDeparture.toUpperCase(),
+                              style: const TextStyle(
+                                  color: AppColors.success,
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.bold),
+                            ),
+                          ),
+                        ),
+                      );
+                    }).toList(),
+                  );
+                },
+              ),
+            ],
 
             // ── Flagged Issues ───────────────────────────────────────
             Padding(

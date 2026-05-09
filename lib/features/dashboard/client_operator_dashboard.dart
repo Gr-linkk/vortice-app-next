@@ -85,6 +85,16 @@ class ClientOperatorDashboard extends ConsumerWidget {
         child: ListView(
           padding: const EdgeInsets.only(bottom: 32),
           children: [
+            if (!showOperationalChecklists)
+              const Padding(
+                padding: EdgeInsets.all(16),
+                child: ClientCapabilityDisabledPanel(
+                  capability: ClientCapability.operationalChecklists,
+                  message:
+                      'Operational checklists are not enabled for this client.',
+                ),
+              ),
+
             // ── 0. Assigned Pre-Op Checklists (from client admin) ──────────
             if (showOperationalChecklists)
               assignedChecklistsAsync!.when(
@@ -206,42 +216,44 @@ class ClientOperatorDashboard extends ConsumerWidget {
               ),
             ],
 
-            // ── 2. Flag an Issue ──────────────────────────────────────
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 24, 16, 8),
-              child: ElevatedButton.icon(
-                onPressed: () => context.push('/operator/flags'),
-                icon: const Icon(Icons.flag_outlined),
-                label: const Text('Flag an Issue'),
-                style: ElevatedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(vertical: 14),
-                  backgroundColor: AppColors.warning,
-                  foregroundColor: Colors.white,
+            if (showOperationalChecklists) ...[
+              // ── 2. Flag an Issue ──────────────────────────────────────
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 24, 16, 8),
+                child: ElevatedButton.icon(
+                  onPressed: () => context.push('/operator/flags'),
+                  icon: const Icon(Icons.flag_outlined),
+                  label: const Text('Flag an Issue'),
+                  style: ElevatedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    backgroundColor: AppColors.warning,
+                    foregroundColor: Colors.white,
+                  ),
                 ),
               ),
-            ),
 
-            // ── 3. Recent Checks ──────────────────────────────────────
-            const _SectionHeader(
-              title: 'Recent Checks',
-              icon: Icons.history_outlined,
-            ),
-            runsAsync.when(
-              loading: () => const _LoadingTile(),
-              error: (err, _) => _ErrorTile(message: err.toString()),
-              data: (runs) {
-                if (runs.isEmpty) {
-                  return const _EmptyState(
-                    icon: Icons.history_outlined,
-                    message: 'No completed checks yet.',
+              // ── 3. Recent Checks ──────────────────────────────────────
+              const _SectionHeader(
+                title: 'Recent Checks',
+                icon: Icons.history_outlined,
+              ),
+              runsAsync.when(
+                loading: () => const _LoadingTile(),
+                error: (err, _) => _ErrorTile(message: err.toString()),
+                data: (runs) {
+                  if (runs.isEmpty) {
+                    return const _EmptyState(
+                      icon: Icons.history_outlined,
+                      message: 'No completed checks yet.',
+                    );
+                  }
+                  return Column(
+                    children:
+                        runs.map((run) => _RecentRunTile(run: run)).toList(),
                   );
-                }
-                return Column(
-                  children:
-                      runs.map((run) => _RecentRunTile(run: run)).toList(),
-                );
-              },
-            ),
+                },
+              ),
+            ],
           ],
         ),
       ),

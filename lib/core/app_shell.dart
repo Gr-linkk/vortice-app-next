@@ -189,13 +189,6 @@ List<_NavItem> _navItemsFor(
           activeIcon: Icons.dashboard,
           route: '/client/dashboard',
         ),
-        if (operationalChecklistsEnabled)
-          _NavItem(
-            label: l10n.navChecklist,
-            icon: Icons.checklist_outlined,
-            activeIcon: Icons.checklist,
-            route: '/operator/checklist',
-          ),
         _NavItem(
           label: l10n.navFlags,
           icon: Icons.flag_outlined,

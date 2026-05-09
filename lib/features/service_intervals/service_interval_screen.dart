@@ -160,8 +160,6 @@ class _ServiceIntervalScreenState extends ConsumerState<ServiceIntervalScreen> {
       ),
     );
 
-    if (widget.readOnly) return scaffold;
-
     return ClientCapabilityGate(
       clientId: activeAsset?.clientId,
       capability: ClientCapability.maintenancePlanning,

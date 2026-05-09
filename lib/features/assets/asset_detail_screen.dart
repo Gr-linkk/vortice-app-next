@@ -187,7 +187,17 @@ class _AssetDetailBody extends ConsumerWidget {
         _WorkflowSummaryCard(assetId: asset.id, role: role),
         if (AssetWorkflowPolicy.canStartClientChecklist(role)) ...[
           const SizedBox(height: 16),
-          _StartChecklistCard(asset: asset, routePrefix: prefix),
+          ClientCapabilityGate(
+            clientId: asset.clientId,
+            capability: ClientCapability.pmChecklists,
+            loadingBuilder: (_) => const SizedBox.shrink(),
+            errorBuilder: (_, __) => const SizedBox.shrink(),
+            blockedBuilder: (_) => const SizedBox.shrink(),
+            allowedBuilder: (_) => _StartChecklistCard(
+              asset: asset,
+              routePrefix: prefix,
+            ),
+          ),
         ],
         if (AssetWorkflowPolicy.canSeeChecklistHistory(role)) ...[
           const SizedBox(height: 16),
@@ -200,17 +210,22 @@ class _AssetDetailBody extends ConsumerWidget {
         ],
         if (AssetWorkflowPolicy.canSeeMaintenancePlan(role)) ...[
           const SizedBox(height: 16),
-          _MaintenancePlanCard(
-            assetId: asset.id,
-            routePrefix: prefix,
-            readOnly: !AssetWorkflowPolicy.canManageAsset(role),
+          ClientCapabilityGate(
+            clientId: asset.clientId,
+            capability: ClientCapability.maintenancePlanning,
+            loadingBuilder: (_) => const SizedBox.shrink(),
+            errorBuilder: (_, __) => const SizedBox.shrink(),
+            blockedBuilder: (_) => const SizedBox.shrink(),
+            allowedBuilder: (_) => _MaintenancePlanCard(
+              assetId: asset.id,
+              routePrefix: prefix,
+              readOnly: !AssetWorkflowPolicy.canManageAsset(role),
+            ),
           ),
         ],
         // Device status strip + Live Telemetry
         const SizedBox(height: 16),
-        _DeviceStatusStrip(assetId: asset.id),
-        const SizedBox(height: 16),
-        _TelemetrySection(asset: asset),
+        _TelemetryCapabilitySection(asset: asset),
         if (asset.notes != null) ...[
           const SizedBox(height: 8),
           _SectionHeader(title: l10n.notes),
@@ -653,23 +668,26 @@ class _DetailRow extends StatelessWidget {
 
 // ── Live Telemetry Section ────────────────────────────────────────────────────
 
-class _TelemetrySection extends StatelessWidget {
+class _TelemetryCapabilitySection extends StatelessWidget {
   final Asset asset;
-  const _TelemetrySection({required this.asset});
+  const _TelemetryCapabilitySection({required this.asset});
 
   @override
   Widget build(BuildContext context) {
     return ClientCapabilityGate(
       clientId: asset.clientId,
       capability: ClientCapability.telemetry,
-      loadingBuilder: (_) => const Padding(
-        padding: EdgeInsets.all(16),
-        child: Center(child: CircularProgressIndicator()),
-      ),
+      loadingBuilder: (_) => const Center(child: CircularProgressIndicator()),
       blockedBuilder: (_) => const ClientCapabilityDisabledPanel(
         capability: ClientCapability.telemetry,
       ),
-      allowedBuilder: (_) => _AssetTelemCard(assetId: asset.id),
+      allowedBuilder: (_) => Column(
+        children: [
+          _DeviceStatusStrip(assetId: asset.id),
+          const SizedBox(height: 16),
+          _AssetTelemCard(assetId: asset.id),
+        ],
+      ),
     );
   }
 }
