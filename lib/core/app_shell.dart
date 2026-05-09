@@ -227,6 +227,23 @@ List<_NavItem> _navItemsFor(
   };
 }
 
+@visibleForTesting
+String? appShellBackFallbackRoute(UserRole role, String location) {
+  final dashboardRoute = switch (role) {
+    UserRole.owner => '/owner/dashboard',
+    UserRole.employee => '/employee/dashboard',
+    UserRole.client ||
+    UserRole.clientAdmin ||
+    UserRole.clientMechanic ||
+    UserRole.clientOperator ||
+    UserRole.operator =>
+      '/client/dashboard',
+  };
+
+  if (location == dashboardRoute) return null;
+  return dashboardRoute;
+}
+
 class AppShell extends ConsumerWidget {
   final String location;
   final Widget child;
@@ -263,16 +280,25 @@ class AppShell extends ConsumerWidget {
       return 0;
     }();
 
-    return PopScope(
-      canPop: false,
-      onPopInvokedWithResult: (didPop, result) {
-        if (didPop) return;
-        if (context.mounted) {
-          final router = GoRouter.of(context);
-          if (router.canPop()) {
-            router.pop();
-          }
+    return BackButtonListener(
+      onBackButtonPressed: () async {
+        if (!context.mounted) return true;
+
+        final router = GoRouter.of(context);
+        if (router.canPop()) {
+          router.pop();
+          return true;
         }
+
+        final fallback = appShellBackFallbackRoute(role, location);
+        if (fallback != null && fallback != location && context.mounted) {
+          context.go(fallback);
+        }
+
+        // Swallow Android system back inside the authenticated shell. The app
+        // should move within Vórtice navigation, not accidentally close from a
+        // leaf screen or top-level tab.
+        return true;
       },
       child: Scaffold(
         body: child,

@@ -661,19 +661,27 @@ class _GroupedTemplateSelector extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Group templates by category
+    final serviceTemplates = templates
+        .where((template) => template.intervalHours != null)
+        .toList()
+      ..sort(_compareTemplatesByServiceHours);
+    final otherTemplates =
+        templates.where((template) => template.intervalHours == null).toList();
+
     final grouped = <String, List<ChecklistTemplate>>{};
-    for (final t in templates) {
-      grouped.putIfAbsent(t.category, () => []).add(t);
+    for (final template in otherTemplates) {
+      grouped.putIfAbsent(template.category, () => []).add(template);
+    }
+    for (final group in grouped.values) {
+      group.sort(_compareTemplatesByServiceHours);
     }
 
-    // Order: pre_ops first, then general, then dredge
     final orderedKeys = [
       'pre_ops',
       'general',
       'dredge',
       ...grouped.keys
-          .where((k) => !['pre_ops', 'general', 'dredge'].contains(k)),
+          .where((key) => !['pre_ops', 'general', 'dredge'].contains(key)),
     ];
 
     final categoryLabel = {
@@ -698,6 +706,24 @@ class _GroupedTemplateSelector extends StatelessWidget {
     return ListView(
       padding: const EdgeInsets.symmetric(vertical: 8),
       children: [
+        if (serviceTemplates.isNotEmpty) ...[
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 4),
+            child: Text(
+              'Service Hours',
+              style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                    color: AppColors.primary,
+                    fontWeight: FontWeight.bold,
+                    letterSpacing: 1.1,
+                  ),
+            ),
+          ),
+          ...serviceTemplates.map((t) => _TemplateTile(
+                template: t,
+                selected: preselected?.id == t.id,
+                onTap: () => onSelect(t),
+              )),
+        ],
         for (final key in orderedKeys)
           if (grouped.containsKey(key)) ...[
             Padding(
@@ -711,40 +737,78 @@ class _GroupedTemplateSelector extends StatelessWidget {
                     ),
               ),
             ),
-            ...grouped[key]!.map((t) => Card(
-                  margin:
-                      const EdgeInsets.symmetric(horizontal: 12, vertical: 3),
-                  color: preselected?.id == t.id
-                      ? AppColors.primary.withValues(alpha: 0.08)
-                      : AppColors.surface,
-                  child: ListTile(
-                    leading: Icon(
-                      Icons.checklist,
-                      color: preselected?.id == t.id
-                          ? AppColors.primary
-                          : AppColors.textSecondary,
-                    ),
-                    title: Text(
-                      t.name,
-                      style: TextStyle(
-                        fontWeight:
-                            preselected?.id == t.id ? FontWeight.bold : null,
-                      ),
-                    ),
-                    subtitle: t.description != null
-                        ? Text(t.description!,
-                            maxLines: 1, overflow: TextOverflow.ellipsis)
-                        : null,
-                    trailing: preselected?.id == t.id
-                        ? const Icon(Icons.check,
-                            color: AppColors.primary, size: 20)
-                        : const Icon(Icons.chevron_right,
-                            color: AppColors.textSecondary),
-                    onTap: () => onSelect(t),
-                  ),
+            ...grouped[key]!.map((t) => _TemplateTile(
+                  template: t,
+                  selected: preselected?.id == t.id,
+                  onTap: () => onSelect(t),
                 )),
           ],
       ],
+    );
+  }
+}
+
+int _compareTemplatesByServiceHours(ChecklistTemplate a, ChecklistTemplate b) {
+  final hoursCompare = (a.intervalHours ?? 1 << 30).compareTo(
+    b.intervalHours ?? 1 << 30,
+  );
+  if (hoursCompare != 0) return hoursCompare;
+  return a.name.compareTo(b.name);
+}
+
+class _TemplateTile extends StatelessWidget {
+  final ChecklistTemplate template;
+  final bool selected;
+  final VoidCallback onTap;
+
+  const _TemplateTile({
+    required this.template,
+    required this.selected,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final intervalHours = template.intervalHours;
+    return Card(
+      margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 3),
+      color: selected
+          ? AppColors.primary.withValues(alpha: 0.08)
+          : AppColors.surface,
+      child: ListTile(
+        leading: CircleAvatar(
+          backgroundColor: AppColors.surfaceVariant,
+          child: intervalHours == null
+              ? Icon(
+                  Icons.checklist,
+                  color: selected ? AppColors.primary : AppColors.textSecondary,
+                  size: 20,
+                )
+              : Text(
+                  '${intervalHours}h',
+                  style: TextStyle(
+                    color: selected ? AppColors.primary : AppColors.textPrimary,
+                    fontSize: 11,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+        ),
+        title: Text(
+          template.name,
+          style: TextStyle(fontWeight: selected ? FontWeight.bold : null),
+        ),
+        subtitle: template.description != null
+            ? Text(
+                template.description!,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              )
+            : null,
+        trailing: selected
+            ? const Icon(Icons.check, color: AppColors.primary, size: 20)
+            : const Icon(Icons.chevron_right, color: AppColors.textSecondary),
+        onTap: onTap,
+      ),
     );
   }
 }

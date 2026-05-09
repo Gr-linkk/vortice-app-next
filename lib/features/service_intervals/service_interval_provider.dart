@@ -199,26 +199,15 @@ final serviceIntervalSummariesProvider =
   }).toList();
 
   summaries.sort((a, b) {
-    final aRemaining = a.hoursRemaining;
-    final bRemaining = b.hoursRemaining;
+    final hoursCompare = a.interval.intervalHours.compareTo(
+      b.interval.intervalHours,
+    );
+    if (hoursCompare != 0) return hoursCompare;
 
-    if (aRemaining != null && bRemaining != null) {
-      final compare = aRemaining.compareTo(bRemaining);
-      if (compare != 0) return compare;
-    } else if (aRemaining != null) {
-      return -1;
-    } else if (bRemaining != null) {
-      return 1;
-    }
-
-    if (a.nextDueHours != null && b.nextDueHours != null) {
-      final compare = a.nextDueHours!.compareTo(b.nextDueHours!);
-      if (compare != 0) return compare;
-    } else if (a.nextDueHours != null) {
-      return -1;
-    } else if (b.nextDueHours != null) {
-      return 1;
-    }
+    final aLabel = a.interval.label ?? '';
+    final bLabel = b.interval.label ?? '';
+    final labelCompare = aLabel.compareTo(bLabel);
+    if (labelCompare != 0) return labelCompare;
 
     return a.sortIndex.compareTo(b.sortIndex);
   });

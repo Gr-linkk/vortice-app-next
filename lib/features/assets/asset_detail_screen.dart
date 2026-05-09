@@ -17,9 +17,8 @@ import 'package:vortice_app/l10n/app_localizations.dart';
 import 'package:vortice_app/features/assets/edit_asset_screen.dart';
 import 'package:vortice_app/models/asset.dart';
 import 'package:vortice_app/models/asset_service_interval.dart';
-import 'package:vortice_app/features/clients/client_provider.dart';
-import 'package:vortice_app/models/profile.dart';
 import 'package:vortice_app/models/client_capability.dart';
+import 'package:vortice_app/models/profile.dart';
 
 class AssetDetailScreen extends ConsumerWidget {
   final String assetId;
@@ -827,115 +826,21 @@ class _ClientAssignRow extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final clientsAsync = ref.watch(clientsProvider);
+    final assignedProfilesAsync = ref.watch(assetAssignedProfilesProvider);
 
-    return clientsAsync.when(
+    return assignedProfilesAsync.when(
       loading: () => const SizedBox.shrink(),
       error: (_, __) => const SizedBox.shrink(),
-      data: (clients) {
-        final assigned =
-            clients.where((c) => c.id == asset.clientId).firstOrNull;
+      data: (profiles) {
+        final assigned = profiles[asset.clientId];
+        final label = assigned == null
+            ? 'Unassigned / unknown'
+            : assigned.fullName.trim().isNotEmpty
+                ? assigned.fullName
+                : assigned.email;
 
-        return Padding(
-          padding: const EdgeInsets.symmetric(vertical: 6),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              const SizedBox(
-                width: 120,
-                child: Text(
-                  'Client',
-                  style:
-                      TextStyle(color: AppColors.textSecondary, fontSize: 13),
-                ),
-              ),
-              Expanded(
-                child: Text(
-                  assigned?.fullName ?? 'Unassigned',
-                  style: TextStyle(
-                    color: assigned != null
-                        ? AppColors.textPrimary
-                        : AppColors.textSecondary,
-                    fontSize: 13,
-                  ),
-                ),
-              ),
-              TextButton(
-                style: TextButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(horizontal: 8)),
-                onPressed: () =>
-                    _showReassignSheet(context, ref, clients, asset.clientId),
-                child: const Text('Reassign', style: TextStyle(fontSize: 12)),
-              ),
-            ],
-          ),
-        );
+        return _DetailRow(label: 'Client', value: label);
       },
-    );
-  }
-
-  void _showReassignSheet(
-    BuildContext context,
-    WidgetRef ref,
-    List<Profile> clients,
-    String? currentClientId,
-  ) {
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: AppColors.surface,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
-      ),
-      builder: (ctx) => SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const SizedBox(height: 8),
-            Container(
-              width: 40,
-              height: 4,
-              decoration: BoxDecoration(
-                color: AppColors.divider,
-                borderRadius: BorderRadius.circular(2),
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-              child: Text('Assign to Client',
-                  style: Theme.of(context).textTheme.titleMedium),
-            ),
-            const Divider(height: 1),
-            ...clients.map((client) => ListTile(
-                  leading: CircleAvatar(
-                    backgroundColor: AppColors.primary.withValues(alpha: 0.1),
-                    child: Text(
-                      client.fullName.isNotEmpty
-                          ? client.fullName[0].toUpperCase()
-                          : '?',
-                      style: const TextStyle(
-                          color: AppColors.primary, fontSize: 13),
-                    ),
-                  ),
-                  title: Text(client.fullName),
-                  subtitle: Text(client.email,
-                      style: const TextStyle(
-                          fontSize: 11, color: AppColors.textSecondary)),
-                  trailing: client.id == currentClientId
-                      ? const Icon(Icons.check,
-                          color: AppColors.primary, size: 18)
-                      : null,
-                  onTap: () async {
-                    ctx.pop();
-                    await ref
-                        .read(assetControllerProvider.notifier)
-                        .updateAsset(asset.id, {'client_id': client.id});
-                    ref.invalidate(assetByIdProvider(asset.id));
-                  },
-                )),
-            const SizedBox(height: 8),
-          ],
-        ),
-      ),
     );
   }
 }

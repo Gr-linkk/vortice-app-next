@@ -7,6 +7,7 @@ class MaintenanceWorkOrderDraft {
   static const descriptionParam = 'description';
   static const jobTypeParam = 'jobType';
   static const serviceRequestIdParam = 'serviceRequestId';
+  static const engineHoursParam = 'engineHours';
 
   final String? assetId;
   final String? checklistTemplateId;
@@ -14,6 +15,7 @@ class MaintenanceWorkOrderDraft {
   final String title;
   final String description;
   final WorkOrderJobType jobType;
+  final double? engineHours;
 
   const MaintenanceWorkOrderDraft({
     this.assetId,
@@ -22,6 +24,7 @@ class MaintenanceWorkOrderDraft {
     this.title = '',
     this.description = '',
     this.jobType = WorkOrderJobType.repair,
+    this.engineHours,
   });
 
   factory MaintenanceWorkOrderDraft.preventativeMaintenance({
@@ -43,8 +46,7 @@ class MaintenanceWorkOrderDraft {
           .write(' Last known hours: ${currentHours.toStringAsFixed(0)}h.');
     }
     if (nextDueHours != null) {
-      description
-          .write(' Next service due: ${nextDueHours.toStringAsFixed(0)}h.');
+      description.write(' Due: ${nextDueHours.toStringAsFixed(0)}h.');
     }
 
     return MaintenanceWorkOrderDraft(
@@ -73,6 +75,7 @@ class MaintenanceWorkOrderDraft {
       title: params[titleParam] ?? '',
       description: params[descriptionParam] ?? '',
       jobType: jobType,
+      engineHours: double.tryParse(params[engineHoursParam] ?? ''),
     );
   }
 
@@ -84,6 +87,7 @@ class MaintenanceWorkOrderDraft {
           checklistTemplateIdParam: checklistTemplateId!,
         if (serviceRequestId != null) serviceRequestIdParam: serviceRequestId!,
         jobTypeParam: jobType.dbValue,
+        if (engineHours != null) engineHoursParam: engineHours!.toString(),
       };
 
   bool get isPreventative => jobType == WorkOrderJobType.preventative;

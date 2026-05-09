@@ -22,10 +22,12 @@ class _AssetListScreenState extends ConsumerState<AssetListScreen> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    final assetsAsync = ref.watch(assetsProvider);
+    final assetsAsync = ref.watch(visibleAssetsProvider);
+    final assignedProfilesAsync = ref.watch(assetAssignedProfilesProvider);
     final profile = ref.watch(profileProvider).valueOrNull;
     final canAdd =
         profile?.role == UserRole.owner || profile?.role == UserRole.employee;
+    final showAssignedClient = canAdd;
 
     final prefix = switch (profile?.role) {
       UserRole.owner => '/owner',
@@ -64,22 +66,23 @@ class _AssetListScreenState extends ConsumerState<AssetListScreen> {
               Text(err.toString()),
               const SizedBox(height: 12),
               ElevatedButton(
-                onPressed: () => ref.invalidate(assetsProvider),
+                onPressed: () => ref.invalidate(visibleAssetsProvider),
                 child: Text(l10n.retry),
               ),
             ],
           ),
         ),
         data: (assets) {
+          final assignedProfiles = assignedProfilesAsync.valueOrNull ?? {};
           final filtered = assets.where((a) {
+            final assignedProfile = assignedProfiles[a.clientId];
+            final assignedLabel = _assignedProfileLabel(assignedProfile);
+            final query = _searchQuery.toLowerCase();
             final matchesQuery = _searchQuery.isEmpty ||
-                a.name.toLowerCase().contains(_searchQuery.toLowerCase()) ||
-                (a.model?.toLowerCase().contains(_searchQuery.toLowerCase()) ??
-                    false) ||
-                (a.serialNumber
-                        ?.toLowerCase()
-                        .contains(_searchQuery.toLowerCase()) ??
-                    false);
+                a.name.toLowerCase().contains(query) ||
+                (a.model?.toLowerCase().contains(query) ?? false) ||
+                (a.serialNumber?.toLowerCase().contains(query) ?? false) ||
+                (assignedLabel?.toLowerCase().contains(query) ?? false);
             return matchesQuery;
           }).toList();
 
@@ -91,11 +94,15 @@ class _AssetListScreenState extends ConsumerState<AssetListScreen> {
           }
 
           return RefreshIndicator(
-            onRefresh: () async => ref.invalidate(assetsProvider),
+            onRefresh: () async => ref.invalidate(visibleAssetsProvider),
             child: ListView.builder(
               itemCount: filtered.length,
               itemBuilder: (_, i) => _AssetListTile(
                 asset: filtered[i],
+                assignedProfile: showAssignedClient
+                    ? assignedProfiles[filtered[i].clientId]
+                    : null,
+                showAssignedClient: showAssignedClient,
                 onTap: () => context.push('$prefix/assets/${filtered[i].id}'),
               ),
             ),
@@ -113,11 +120,57 @@ class _AssetListScreenState extends ConsumerState<AssetListScreen> {
   }
 }
 
+String? _assignedProfileLabel(Profile? profile) {
+  if (profile == null) return null;
+  final name = profile.fullName.trim();
+  if (name.isNotEmpty) return name;
+  return profile.email;
+}
+
+class _AssignedClientLine extends StatelessWidget {
+  final Profile? profile;
+
+  const _AssignedClientLine({required this.profile});
+
+  @override
+  Widget build(BuildContext context) {
+    final label = _assignedProfileLabel(profile) ?? 'Unassigned / unknown';
+    return Padding(
+      padding: const EdgeInsets.only(top: 2, bottom: 2),
+      child: Row(
+        children: [
+          const Icon(Icons.business_outlined,
+              size: 12, color: AppColors.textSecondary),
+          const SizedBox(width: 3),
+          Flexible(
+            child: Text(
+              'Assigned to $label',
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                color: AppColors.textSecondary,
+                fontSize: 11,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class _AssetListTile extends StatelessWidget {
   final Asset asset;
+  final Profile? assignedProfile;
+  final bool showAssignedClient;
   final VoidCallback onTap;
 
-  const _AssetListTile({required this.asset, required this.onTap});
+  const _AssetListTile({
+    required this.asset,
+    required this.assignedProfile,
+    required this.showAssignedClient,
+    required this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -132,6 +185,8 @@ class _AssetListTile extends StatelessWidget {
         subtitle: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            if (showAssignedClient)
+              _AssignedClientLine(profile: assignedProfile),
             if (asset.model != null || asset.make != null)
               Text(
                 [asset.make, asset.model].whereType<String>().join(' · '),
@@ -156,7 +211,7 @@ class _AssetListTile extends StatelessWidget {
         trailing:
             const Icon(Icons.chevron_right, color: AppColors.textSecondary),
         onTap: onTap,
-        isThreeLine: asset.location != null,
+        isThreeLine: showAssignedClient || asset.location != null,
       ),
     );
   }

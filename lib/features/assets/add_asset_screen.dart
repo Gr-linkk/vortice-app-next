@@ -55,6 +55,16 @@ class _AddAssetScreenState extends ConsumerState<AddAssetScreen> {
 
     final profile = ref.read(profileProvider).valueOrNull;
 
+    if (profile?.role == UserRole.owner && _selectedClientId == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please select the client this asset belongs to.'),
+          backgroundColor: AppColors.error,
+        ),
+      );
+      return;
+    }
+
     final data = <String, dynamic>{
       'name': _nameCtrl.text.trim(),
       'client_id': _selectedClientId ?? profile?.id,
@@ -358,11 +368,12 @@ class _ClientDropdown extends ConsumerWidget {
       data: (clients) => DropdownButtonFormField<String>(
         initialValue: selectedClientId,
         decoration: const InputDecoration(
-          labelText: 'Client (optional)',
+          labelText: 'Client',
           prefixIcon: Icon(Icons.person_outline),
         ),
         dropdownColor: AppColors.surfaceVariant,
-        hint: const Text('Select Client (optional)'),
+        hint: const Text('Select Client'),
+        validator: (value) => value == null ? 'Please select a client' : null,
         items: clients
             .map((c) => DropdownMenuItem(
                   value: c.id,

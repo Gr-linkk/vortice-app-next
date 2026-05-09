@@ -71,6 +71,7 @@ class ChecklistRepository {
 
       final items = (remote as List)
           .map((e) => ChecklistItem.fromJson(e as Map<String, dynamic>))
+          .where(_isAllowedChecklistItem)
           .toList();
 
       for (final item in items) {
@@ -79,7 +80,8 @@ class ChecklistRepository {
 
       return items;
     } catch (_) {
-      if (cached.isNotEmpty) return cached;
+      final allowedCached = cached.where(_isAllowedChecklistItem).toList();
+      if (allowedCached.isNotEmpty) return allowedCached;
       rethrow;
     }
   }
@@ -91,6 +93,16 @@ class ChecklistRepository {
     await _db.checklistsDao.upsertItems(
       snapshot.items.map(_itemToCompanion).toList(),
     );
+  }
+
+  bool _isAllowedChecklistItem(ChecklistItem item) {
+    final text = item.descriptionEn.toLowerCase();
+    if (text.contains('client sign')) return false;
+    if (text.contains('customer sign')) return false;
+    if (text.contains('sign-off')) return false;
+    if (text.contains('sign off')) return false;
+    if (text.contains('signature')) return false;
+    return true;
   }
 
   Future<List<ChecklistResponse>> listResponsesForWorkOrder(

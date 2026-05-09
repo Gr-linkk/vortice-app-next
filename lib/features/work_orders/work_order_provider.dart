@@ -5,14 +5,37 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:vortice_app/core/constants.dart';
 import 'package:vortice_app/core/supabase_client.dart';
 import 'package:vortice_app/db/database.dart';
+import 'package:vortice_app/features/auth/auth_provider.dart';
 import 'package:vortice_app/features/checklists/work_order_checklist_snapshot_repository.dart';
 import 'package:vortice_app/features/work_orders/work_order_repository.dart';
 import 'package:vortice_app/models/asset.dart';
+import 'package:vortice_app/models/profile.dart';
 import 'package:vortice_app/models/work_order.dart';
 import 'package:vortice_app/models/work_order_assignment.dart';
 
 final workOrdersProvider = FutureProvider<List<WorkOrder>>((ref) async {
-  return ref.watch(workOrderRepositoryProvider).listWorkOrders();
+  final profile = await ref.watch(profileProvider.future);
+  final orders = await ref.watch(workOrderRepositoryProvider).listWorkOrders();
+  if (profile == null ||
+      profile.role == UserRole.owner ||
+      profile.role == UserRole.employee) {
+    return orders;
+  }
+
+  try {
+    final assignments = await supabase
+        .from(AppConstants.tWorkOrderAssignments)
+        .select('work_order_id')
+        .eq('profile_id', profile.id);
+    final assignedIds = {
+      for (final row in assignments as List)
+        if ((row as Map<String, dynamic>)['work_order_id'] is String)
+          row['work_order_id'] as String,
+    };
+    return orders.where((order) => assignedIds.contains(order.id)).toList();
+  } catch (_) {
+    return orders.where((order) => order.assignedTo == profile.id).toList();
+  }
 });
 
 final workOrderByIdProvider =
@@ -230,14 +253,48 @@ final workOrderControllerProvider =
   return WorkOrderController(ref);
 });
 
-// Load employees for tech assignment
-final employeesProvider =
-    FutureProvider<List<Map<String, dynamic>>>((ref) async {
-  final data = await supabase
-      .from('profiles')
-      .select('id, full_name')
-      .eq('role', 'employee');
-  return (data as List).cast<Map<String, dynamic>>();
+// Load Vórtice techs plus client mechanics for the selected client fleet.
+final assignableWorkOrderProfilesProvider =
+    FutureProvider.family<List<Map<String, dynamic>>, String?>((
+  ref,
+  clientId,
+) async {
+  final employees = await supabase
+      .from(AppConstants.tProfiles)
+      .select('id, full_name, role')
+      .eq('role', 'employee')
+      .order('full_name');
+
+  final assignable = <Map<String, dynamic>>[
+    ...(employees as List).cast<Map<String, dynamic>>(),
+  ];
+
+  if (clientId == null || clientId.isEmpty) return assignable;
+
+  final orgRows = await supabase
+      .from(AppConstants.tClientOrgs)
+      .select('id')
+      .eq('owner_profile_id', clientId);
+  final orgIds = (orgRows as List)
+      .map((row) => (row as Map<String, dynamic>)['id'])
+      .whereType<String>()
+      .toList();
+  if (orgIds.isEmpty) return assignable;
+
+  final clientMechanics = await supabase
+      .from(AppConstants.tProfiles)
+      .select('id, full_name, role')
+      .eq('role', 'client_mechanic')
+      .inFilter('org_id', orgIds)
+      .order('full_name');
+
+  assignable.addAll((clientMechanics as List).cast<Map<String, dynamic>>());
+  return assignable;
+});
+
+// Backward-compatible alias for older call sites.
+final employeesProvider = FutureProvider<List<Map<String, dynamic>>>((ref) {
+  return ref.watch(assignableWorkOrderProfilesProvider(null).future);
 });
 
 // Load engines for a specific asset
@@ -432,6 +489,30 @@ final workOrderAssignmentsProvider =
   return (data as List)
       .map((row) => WorkOrderAssignment.fromJson(row as Map<String, dynamic>))
       .toList();
+});
+
+final currentUserAssignedToWorkOrderProvider =
+    FutureProvider.family<bool, String>((ref, workOrderId) async {
+  final profile = await ref.watch(profileProvider.future);
+  if (profile == null) return false;
+
+  try {
+    final assignments =
+        await ref.watch(workOrderAssignmentsProvider(workOrderId).future);
+    if (assignments.any((assignment) => assignment.profileId == profile.id)) {
+      return true;
+    }
+  } catch (_) {
+    // Fall back to the legacy single-assignee column below.
+  }
+
+  try {
+    final workOrder =
+        await ref.watch(workOrderByIdProvider(workOrderId).future);
+    return workOrder?.assignedTo == profile.id;
+  } catch (_) {
+    return false;
+  }
 });
 
 final workOrderAssignmentNamesProvider =

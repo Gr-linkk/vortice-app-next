@@ -9,7 +9,6 @@ import 'package:vortice_app/features/dashboard/client_mechanic_dashboard.dart';
 import 'package:vortice_app/features/dashboard/client_operator_dashboard.dart';
 import 'package:vortice_app/features/invoices/invoice_provider.dart';
 import 'package:vortice_app/features/notifications/notification_provider.dart';
-import 'package:vortice_app/features/service_requests/service_request_provider.dart';
 import 'package:vortice_app/models/asset.dart';
 import 'package:vortice_app/models/invoice.dart';
 import 'package:vortice_app/models/profile.dart';
@@ -41,9 +40,8 @@ class ClientDashboardFree extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final profile = ref.watch(profileProvider).valueOrNull;
-    final assetsAsync = ref.watch(assetsProvider);
+    final assetsAsync = ref.watch(visibleAssetsProvider);
     final invoicesAsync = ref.watch(invoicesProvider);
-    final serviceRequestsAsync = ref.watch(clientServiceRequestsProvider);
 
     return Scaffold(
       appBar: AppBar(
@@ -59,9 +57,8 @@ class ClientDashboardFree extends ConsumerWidget {
       ),
       body: RefreshIndicator(
         onRefresh: () async {
-          ref.invalidate(assetsProvider);
+          ref.invalidate(visibleAssetsProvider);
           ref.invalidate(invoicesProvider);
-          ref.invalidate(clientServiceRequestsProvider);
         },
         child: ListView(
           padding: const EdgeInsets.only(bottom: 32),
@@ -130,8 +127,8 @@ class ClientDashboardFree extends ConsumerWidget {
               },
             ),
 
-            // ── Service Requests ─────────────────────────────────────────────
-            const _SectionHeader(title: 'Service Requests'),
+            // ── Service Request Intake ───────────────────────────────────────
+            const _SectionHeader(title: 'Need Service?'),
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
               child: ElevatedButton.icon(
@@ -142,37 +139,6 @@ class ClientDashboardFree extends ConsumerWidget {
                   padding: const EdgeInsets.symmetric(vertical: 16),
                 ),
               ),
-            ),
-            serviceRequestsAsync.when(
-              loading: () => const SizedBox.shrink(),
-              error: (_, __) => const SizedBox.shrink(),
-              data: (requests) => requests.isEmpty
-                  ? const _EmptyStateTile(
-                      icon: Icons.inbox_outlined,
-                      message: 'No service requests yet.',
-                    )
-                  : Column(
-                      children: requests.take(3).map((request) {
-                        return ListTile(
-                          leading: const CircleAvatar(
-                            backgroundColor: AppColors.surfaceVariant,
-                            child: Icon(Icons.support_agent_outlined,
-                                size: 18, color: AppColors.textSecondary),
-                          ),
-                          title: Text(
-                            request.title,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                          subtitle: Text(
-                            '${request.clientStatusLabel} • ${request.createdLabel}',
-                            style: const TextStyle(
-                                color: AppColors.textSecondary, fontSize: 12),
-                          ),
-                          onTap: () => context.push('/client/service-requests'),
-                        );
-                      }).toList(),
-                    ),
             ),
 
             // ── Schedule Consultation Button ─────────────────────────────────

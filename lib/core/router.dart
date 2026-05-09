@@ -294,7 +294,7 @@ final routerProvider = Provider<GoRouter>((ref) {
               builder: (_, __) => const MeetingRequestScreen()),
           GoRoute(
               path: '/client/service-requests',
-              builder: (_, __) => const ClientServiceRequestListScreen()),
+              redirect: (_, __) => '/client/service-requests/new'),
           GoRoute(
               path: '/client/service-requests/new',
               builder: (_, __) => const ServiceRequestFormScreen()),
@@ -329,6 +329,7 @@ final routerProvider = Provider<GoRouter>((ref) {
               assetName: state.uri.queryParameters['name'] ?? 'Asset',
               assetTypeId: state.uri.queryParameters['assetTypeId'],
               clientHistoryOnly: true,
+              preSelectedTemplateId: state.uri.queryParameters['templateId'],
             ),
           ),
           GoRoute(
@@ -338,6 +339,12 @@ final routerProvider = Provider<GoRouter>((ref) {
             path: '/client/work-orders/:id',
             builder: (_, state) =>
                 WorkOrderDetailScreen(workOrderId: state.pathParameters['id']!),
+          ),
+          GoRoute(
+            path: '/client/checklists/:workOrderId',
+            builder: (_, state) => ChecklistScreen(
+              workOrderId: state.pathParameters['workOrderId']!,
+            ),
           ),
           GoRoute(
               path: '/client/invoices',

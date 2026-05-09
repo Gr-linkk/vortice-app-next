@@ -8,8 +8,18 @@ List<ChecklistTemplate> templatesForAssetChecklist({
     return const [];
   }
 
-  return templates
+  final filtered = templates
       .where((template) => template.isActive)
       .where((template) => template.assetTypeId == assetTypeId)
-      .toList(growable: false);
+      .toList();
+  filtered.sort(_compareByServiceHoursThenName);
+  return filtered;
+}
+
+int _compareByServiceHoursThenName(ChecklistTemplate a, ChecklistTemplate b) {
+  final hoursCompare = (a.intervalHours ?? 1 << 30).compareTo(
+    b.intervalHours ?? 1 << 30,
+  );
+  if (hoursCompare != 0) return hoursCompare;
+  return a.name.compareTo(b.name);
 }

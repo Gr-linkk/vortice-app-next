@@ -56,9 +56,26 @@ class WorkOrderChecklistSnapshot {
           .whereType<Map>()
           .map((raw) => Map<String, dynamic>.from(raw))
           .map(ChecklistItem.fromJson)
+          .where(_isAllowedSnapshotItem)
           .toList(),
     );
   }
+}
+
+bool _isAllowedSnapshotItem(ChecklistItem item) =>
+    _isAllowedSnapshotText(item.descriptionEn);
+
+bool _isAllowedSnapshotItemJson(Map<String, dynamic> item) =>
+    _isAllowedSnapshotText(item['description_en'] as String? ?? '');
+
+bool _isAllowedSnapshotText(String value) {
+  final text = value.toLowerCase();
+  if (text.contains('client sign')) return false;
+  if (text.contains('customer sign')) return false;
+  if (text.contains('sign-off')) return false;
+  if (text.contains('sign off')) return false;
+  if (text.contains('signature')) return false;
+  return true;
 }
 
 class WorkOrderChecklistSnapshotRepository {
@@ -99,13 +116,18 @@ class WorkOrderChecklistSnapshotRepository {
         .maybeSingle();
     if (template == null) return null;
 
-    final items = await supabase
+    final itemRows = await supabase
         .from(AppConstants.tChecklistItems)
         .select(
           'id, template_id, description_en, description_es, category, requires_photo, sort_order, created_at',
         )
         .eq('template_id', templateId)
         .order('sort_order');
+    final items = (itemRows as List)
+        .whereType<Map>()
+        .map((row) => Map<String, dynamic>.from(row))
+        .where(_isAllowedSnapshotItemJson)
+        .toList();
 
     return {
       'work_order_id': workOrderId,

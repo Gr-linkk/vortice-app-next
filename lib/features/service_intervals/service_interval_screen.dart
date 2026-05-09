@@ -70,7 +70,7 @@ class _ServiceIntervalScreenState extends ConsumerState<ServiceIntervalScreen> {
   Widget build(BuildContext context) {
     final fixedAssetAsync =
         _isFixedAsset ? ref.watch(assetByIdProvider(widget.assetId!)) : null;
-    final assetsAsync = _isFixedAsset ? null : ref.watch(assetsProvider);
+    final assetsAsync = _isFixedAsset ? null : ref.watch(visibleAssetsProvider);
     ref.watch(checklistTemplatesProvider);
     final activeAsset =
         _isFixedAsset ? fixedAssetAsync?.valueOrNull : _selectedAsset;
@@ -145,6 +145,7 @@ class _ServiceIntervalScreenState extends ConsumerState<ServiceIntervalScreen> {
                   )
                 : _IntervalList(
                     assetId: activeAssetId,
+                    asset: activeAsset,
                     readOnly: widget.readOnly,
                     onEdit: widget.readOnly
                         ? null
@@ -266,11 +267,13 @@ class _AssetHeader extends StatelessWidget {
 
 class _IntervalList extends ConsumerWidget {
   final String assetId;
+  final Asset? asset;
   final bool readOnly;
   final void Function(ServiceIntervalSummary summary)? onEdit;
 
   const _IntervalList({
     required this.assetId,
+    required this.asset,
     required this.readOnly,
     this.onEdit,
   });
@@ -315,6 +318,7 @@ class _IntervalList extends ConsumerWidget {
           itemBuilder: (_, i) => _IntervalCard(
             summary: visible[i],
             assetId: assetId,
+            asset: asset,
             readOnly: readOnly,
             onEdit: onEdit,
           ),
@@ -327,12 +331,14 @@ class _IntervalList extends ConsumerWidget {
 class _IntervalCard extends ConsumerWidget {
   final ServiceIntervalSummary summary;
   final String assetId;
+  final Asset? asset;
   final bool readOnly;
   final void Function(ServiceIntervalSummary summary)? onEdit;
 
   const _IntervalCard({
     required this.summary,
     required this.assetId,
+    required this.asset,
     required this.readOnly,
     this.onEdit,
   });
@@ -421,7 +427,7 @@ class _IntervalCard extends ConsumerWidget {
                       _MetricChip(
                         icon: Icons.schedule_outlined,
                         label:
-                            'Next due ${summary.nextDueHours!.toStringAsFixed(0)}h',
+                            'Due ${summary.nextDueHours!.toStringAsFixed(0)}h',
                       ),
                     if (summary.hoursRemaining != null)
                       _MetricChip(
@@ -443,16 +449,18 @@ class _IntervalCard extends ConsumerWidget {
                 if (!readOnly) ...[
                   const SizedBox(height: 8),
                   OutlinedButton.icon(
-                    onPressed: () => _openWorkOrderFlow(context, ref),
-                    icon: Icon(
-                      summary.activeWorkOrderId == null
-                          ? Icons.add_task_outlined
-                          : Icons.edit_outlined,
-                      size: 18,
-                    ),
-                    label: Text(summary.activeWorkOrderId == null
-                        ? 'Create work order'
-                        : 'Edit work order'),
+                    onPressed: () => _generateWorkOrder(context, ref),
+                    icon: const Icon(Icons.add_task_outlined, size: 18),
+                    label: const Text('Generate work order'),
+                  ),
+                ] else if (interval.checklistTemplateId != null &&
+                    asset != null) ...[
+                  const SizedBox(height: 8),
+                  OutlinedButton.icon(
+                    onPressed: () => _startClientChecklist(context),
+                    icon:
+                        const Icon(Icons.playlist_add_check_outlined, size: 18),
+                    label: const Text('Start checklist'),
                   ),
                 ],
               ],
@@ -518,12 +526,7 @@ class _IntervalCard extends ConsumerWidget {
     );
   }
 
-  void _openWorkOrderFlow(BuildContext context, WidgetRef ref) {
-    if (summary.activeWorkOrderId != null) {
-      context.push('/owner/work-orders/${summary.activeWorkOrderId}');
-      return;
-    }
-
+  void _generateWorkOrder(BuildContext context, WidgetRef ref) {
     final interval = summary.interval;
     final templates = ref.read(checklistTemplatesProvider).valueOrNull;
     final templateName = interval.checklistTemplateId == null
@@ -544,6 +547,22 @@ class _IntervalCard extends ConsumerWidget {
     context.push(Uri(
       path: '/owner/work-orders/create',
       queryParameters: draft.toQueryParameters(),
+    ).toString());
+  }
+
+  void _startClientChecklist(BuildContext context) {
+    final targetAsset = asset;
+    final templateId = summary.interval.checklistTemplateId;
+    if (targetAsset == null || templateId == null) return;
+
+    context.push(Uri(
+      path: '/client/assets/$assetId/checklists/new',
+      queryParameters: {
+        'clientId': targetAsset.clientId,
+        'name': targetAsset.name,
+        'assetTypeId': targetAsset.assetTypeId,
+        'templateId': templateId,
+      },
     ).toString());
   }
 }
@@ -772,7 +791,7 @@ class _AddIntervalSheetState extends ConsumerState<_AddIntervalSheet> {
                   keyboardType:
                       const TextInputType.numberWithOptions(decimal: true),
                   decoration: const InputDecoration(
-                    labelText: 'Next Due Hours (optional)',
+                    labelText: 'Due Hours (optional)',
                     helperText:
                         'Set this when real-world service timing was reset.',
                     prefixIcon: Icon(Icons.flag_outlined),
@@ -966,7 +985,7 @@ class _EditIntervalSheetState extends ConsumerState<_EditIntervalSheet> {
                   keyboardType:
                       const TextInputType.numberWithOptions(decimal: true),
                   decoration: const InputDecoration(
-                    labelText: 'Next Due Hours',
+                    labelText: 'Due Hours',
                     helperText:
                         'Use this to re-anchor the schedule after real-world service.',
                     prefixIcon: Icon(Icons.flag_outlined),

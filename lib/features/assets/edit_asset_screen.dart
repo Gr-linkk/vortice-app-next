@@ -5,6 +5,7 @@ import 'package:vortice_app/l10n/app_localizations.dart';
 import 'package:vortice_app/core/theme.dart';
 import 'package:vortice_app/features/assets/asset_provider.dart';
 import 'package:vortice_app/features/assets/asset_type_provider.dart';
+import 'package:vortice_app/features/clients/client_provider.dart';
 import 'package:vortice_app/features/engines/engine_screen.dart';
 import 'package:vortice_app/models/asset.dart';
 
@@ -26,6 +27,7 @@ class _EditAssetScreenState extends ConsumerState<EditAssetScreen> {
   late final TextEditingController _locationCtrl;
   late final TextEditingController _notesCtrl;
   late String? _selectedAssetTypeId;
+  late String? _selectedClientId;
 
   @override
   void initState() {
@@ -39,6 +41,7 @@ class _EditAssetScreenState extends ConsumerState<EditAssetScreen> {
     _locationCtrl = TextEditingController(text: a.location ?? '');
     _notesCtrl = TextEditingController(text: a.notes ?? '');
     _selectedAssetTypeId = a.assetTypeId;
+    _selectedClientId = a.clientId;
   }
 
   @override
@@ -56,8 +59,19 @@ class _EditAssetScreenState extends ConsumerState<EditAssetScreen> {
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
 
+    if (_selectedClientId == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please select the client this asset belongs to.'),
+          backgroundColor: AppColors.error,
+        ),
+      );
+      return;
+    }
+
     final data = <String, dynamic>{
       'name': _nameCtrl.text.trim(),
+      'client_id': _selectedClientId,
       'asset_type_id': _selectedAssetTypeId,
       'serial_number':
           _serialCtrl.text.trim().isNotEmpty ? _serialCtrl.text.trim() : null,
@@ -97,6 +111,7 @@ class _EditAssetScreenState extends ConsumerState<EditAssetScreen> {
     final l10n = AppLocalizations.of(context);
     final isLoading = ref.watch(assetControllerProvider).isLoading;
     final assetTypesAsync = ref.watch(assetTypesProvider);
+    final clientsAsync = ref.watch(clientsProvider);
 
     return Scaffold(
       appBar: AppBar(title: Text(l10n.editAsset)),
@@ -107,6 +122,33 @@ class _EditAssetScreenState extends ConsumerState<EditAssetScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
+              clientsAsync.when(
+                loading: () => const LinearProgressIndicator(),
+                error: (err, _) => Text(
+                  err.toString(),
+                  style: const TextStyle(color: AppColors.error),
+                ),
+                data: (clients) => DropdownButtonFormField<String>(
+                  initialValue: _selectedClientId,
+                  decoration: const InputDecoration(
+                    labelText: 'Assigned Client',
+                    prefixIcon: Icon(Icons.business_outlined),
+                  ),
+                  dropdownColor: AppColors.surfaceVariant,
+                  items: clients
+                      .map((c) => DropdownMenuItem(
+                            value: c.id,
+                            child: Text(
+                              c.fullName.isNotEmpty ? c.fullName : c.email,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ))
+                      .toList(),
+                  onChanged: (v) => setState(() => _selectedClientId = v),
+                  validator: (v) => v == null ? 'Please select a client' : null,
+                ),
+              ),
+              const SizedBox(height: 16),
               // ── Asset Type dropdown ──────────────────────────────
               assetTypesAsync.when(
                 loading: () => const LinearProgressIndicator(),
