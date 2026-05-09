@@ -68,7 +68,7 @@ class ServiceReportController extends StateNotifier<AsyncValue<void>> {
             'signed_at': techSignatureUrl != null
                 ? DateTime.now().toIso8601String()
                 : null,
-          })
+          }, onConflict: 'work_order_id')
           .select('id')
           .single()
           .timeout(const Duration(seconds: 4));

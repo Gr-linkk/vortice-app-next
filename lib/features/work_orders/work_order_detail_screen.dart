@@ -471,7 +471,9 @@ class _WorkOrderBody extends ConsumerWidget {
                   ),
                   const SizedBox(height: 8),
                   OutlinedButton.icon(
-                    onPressed: () => context.push('$prefix/service-reports'),
+                    onPressed: () => context.push(
+                      '$prefix/service-reports/new?workOrderId=${Uri.encodeComponent(workOrder.id)}',
+                    ),
                     icon: const Icon(Icons.description_outlined),
                     label: Text(l10n.serviceReport),
                   ),

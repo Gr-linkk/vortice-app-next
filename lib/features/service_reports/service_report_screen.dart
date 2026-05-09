@@ -17,7 +17,9 @@ import 'package:vortice_app/l10n/app_localizations.dart';
 import 'package:vortice_app/models/work_order.dart';
 
 class ServiceReportScreen extends ConsumerStatefulWidget {
-  const ServiceReportScreen({super.key});
+  final String? initialWorkOrderId;
+
+  const ServiceReportScreen({super.key, this.initialWorkOrderId});
 
   @override
   ConsumerState<ServiceReportScreen> createState() =>
@@ -42,12 +44,15 @@ class _ServiceReportScreenState extends ConsumerState<ServiceReportScreen> {
   final List<Uint8List> _photos = [];
   final ImagePicker _picker = ImagePicker();
 
-  String get _draftKey => 'service_report_draft';
+  String get _draftKey => widget.initialWorkOrderId?.isNotEmpty == true
+      ? 'service_report_draft_${widget.initialWorkOrderId}'
+      : 'service_report_draft';
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) async {
+      _selectedWorkOrderId = widget.initialWorkOrderId;
       await _loadDraft();
       _complaintCtrl.addListener(_saveDraft);
       _causeCtrl.addListener(_saveDraft);
@@ -261,25 +266,14 @@ class _ServiceReportScreenState extends ConsumerState<ServiceReportScreen> {
 
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
-    // WO is optional when opened standalone — warn but don't block
     if (_selectedWorkOrderId == null) {
-      final proceed = await showDialog<bool>(
-        context: context,
-        builder: (_) => AlertDialog(
-          title: const Text('No Work Order Selected'),
-          content: const Text(
-              'Submit without linking to a work order? You can add it later from the report detail.'),
-          actions: [
-            TextButton(
-                onPressed: () => Navigator.pop(context, false),
-                child: const Text('Cancel')),
-            TextButton(
-                onPressed: () => Navigator.pop(context, true),
-                child: const Text('Submit Anyway')),
-          ],
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Select a work order before submitting the report.'),
+          backgroundColor: AppColors.warning,
         ),
       );
-      if (proceed != true) return;
+      return;
     }
 
     await _saveDraft();
