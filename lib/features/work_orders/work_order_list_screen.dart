@@ -52,9 +52,11 @@ class _WorkOrderListScreenState extends ConsumerState<WorkOrderListScreen>
       _ => '/owner',
     };
 
+    final title = canCreate ? l10n.workOrdersTitle : 'Assigned Work';
+
     return Scaffold(
       appBar: AppBar(
-        title: Text(l10n.workOrdersTitle),
+        title: Text(title),
         bottom: TabBar(
           controller: _tabCtrl,
           tabs: [

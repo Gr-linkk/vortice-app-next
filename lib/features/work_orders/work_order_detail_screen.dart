@@ -29,10 +29,11 @@ class WorkOrderDetailScreen extends ConsumerWidget {
     final isOwner = profile?.role == UserRole.owner;
     final canManage =
         profile?.role == UserRole.owner || profile?.role == UserRole.employee;
+    final title = canManage ? l10n.workOrderDetail : 'Assigned Work';
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(l10n.workOrderDetail),
+        title: Text(title),
         actions: [
           if (isOwner)
             woAsync.whenOrNull(
@@ -116,6 +117,8 @@ class _WorkOrderBody extends ConsumerWidget {
     final isLoading = ref.watch(workOrderControllerProvider).isLoading;
     final isOwner = profile?.role == UserRole.owner;
     final isOwnerOrEmployee = isOwner || profile?.role == UserRole.employee;
+    final assignmentLabel =
+        isOwnerOrEmployee ? 'Assigned Techs' : 'Assigned Team';
 
     // Fetch related names
     final assetNameAsync = ref.watch(assetNameProvider(workOrder.assetId));
@@ -224,15 +227,13 @@ class _WorkOrderBody extends ConsumerWidget {
 
         // Assigned tech(s)
         assignmentNamesAsync.when(
-          loading: () => const _InfoRow(
-              icon: Icons.people_outline,
-              label: 'Assigned Techs',
-              value: '...'),
+          loading: () => _InfoRow(
+              icon: Icons.people_outline, label: assignmentLabel, value: '...'),
           error: (_, __) {
             if (techNameAsync == null) {
-              return const _InfoRow(
+              return _InfoRow(
                 icon: Icons.people_outline,
-                label: 'Assigned Techs',
+                label: assignmentLabel,
                 value: '—',
               );
             }
@@ -276,7 +277,7 @@ class _WorkOrderBody extends ConsumerWidget {
 
             return _InfoRow(
               icon: Icons.people_outline,
-              label: 'Assigned Techs',
+              label: assignmentLabel,
               value: names.join(', '),
             );
           },

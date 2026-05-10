@@ -5,9 +5,14 @@ import 'package:intl/intl.dart';
 import 'package:vortice_app/core/constants.dart';
 import 'package:vortice_app/core/supabase_client.dart';
 import 'package:vortice_app/core/theme.dart';
+import 'package:vortice_app/features/assets/client_team_asset_access.dart';
 import 'package:vortice_app/features/auth/auth_provider.dart';
+import 'package:vortice_app/features/checklists/asset_checklist_template_filter.dart';
+import 'package:vortice_app/features/checklists/checklist_provider.dart';
 import 'package:vortice_app/features/clients/client_capability_gate.dart';
 import 'package:vortice_app/features/work_orders/work_order_provider.dart';
+import 'package:vortice_app/models/asset.dart';
+import 'package:vortice_app/models/checklist_template.dart';
 import 'package:vortice_app/models/client_capability.dart';
 import 'package:vortice_app/models/work_order.dart';
 
@@ -15,56 +20,50 @@ import 'package:vortice_app/models/work_order.dart';
 
 final mechanicAssignedWorkOrdersProvider =
     FutureProvider<List<WorkOrder>>((ref) async {
-  final userId = supabase.auth.currentUser?.id;
-  if (userId == null) return [];
-
-  // Fetch work orders where this user is the assigned tech
-  final data = await supabase
-      .from(AppConstants.tWorkOrders)
-      .select()
-      .eq('assigned_to', userId)
-      .order('created_at', ascending: false);
-
-  return (data as List)
-      .map((e) => WorkOrder.fromJson(e as Map<String, dynamic>))
-      .toList();
+  // Work-order sharing now lives in work_order_assignments. Reuse the shared
+  // provider so client mechanics see assigned/shared work without relying only
+  // on the legacy single assigned_to column.
+  return ref.watch(workOrdersProvider.future);
 });
 
-// ── Provider: active checklists for assigned WOs ─────────────────────────────
+// ── Provider: mechanic checklist autonomy for visible fleet ─────────────────
 
-final mechanicActiveChecklistsProvider =
-    FutureProvider<List<Map<String, dynamic>>>((ref) async {
-  final userId = supabase.auth.currentUser?.id;
-  if (userId == null) return [];
+class _MechanicChecklistOption {
+  final Asset asset;
+  final ChecklistTemplate template;
 
-  // Get WO IDs that have templates and are in progress
-  final data = await supabase
-      .from(AppConstants.tWorkOrders)
-      .select('id, title, checklist_template_id')
-      .eq('assigned_to', userId)
-      .eq('status', 'in_progress')
-      .not('checklist_template_id', 'is', null);
+  const _MechanicChecklistOption({required this.asset, required this.template});
+}
 
-  return List<Map<String, dynamic>>.from(data as List);
+final mechanicAvailableChecklistsProvider =
+    FutureProvider<List<_MechanicChecklistOption>>((ref) async {
+  final assets = await ref.watch(currentClientFleetAssetsProvider.future);
+  final templates = await ref.watch(checklistTemplatesProvider.future);
+  final pmTemplates = templates
+      .where((template) => template.checklistType == 'pm')
+      .toList(growable: false);
+
+  final options = <_MechanicChecklistOption>[];
+  for (final asset in assets) {
+    final assetTemplates = templatesForAssetChecklist(
+      templates: pmTemplates,
+      assetTypeId: asset.assetTypeId,
+    );
+    for (final template in assetTemplates) {
+      options.add(_MechanicChecklistOption(asset: asset, template: template));
+    }
+  }
+  return options;
 });
 
 // ── Provider: parts for mechanic's org assets ────────────────────────────────
 
 final mechanicPartsProvider =
     FutureProvider<List<Map<String, dynamic>>>((ref) async {
-  final userId = supabase.auth.currentUser?.id;
-  if (userId == null) return [];
-
-  // Fetch parts from the catalog scoped to assets the mechanic is assigned to
-  final assignments = await supabase
-      .from(AppConstants.tWorkOrders)
-      .select('asset_id')
-      .eq('assigned_to', userId);
-
-  final assetIds = (assignments as List)
-      .map((e) => e['asset_id'] as String)
-      .toSet()
-      .toList();
+  final assignedWork =
+      await ref.watch(mechanicAssignedWorkOrdersProvider.future);
+  final assetIds =
+      assignedWork.map((workOrder) => workOrder.assetId).toSet().toList();
 
   if (assetIds.isEmpty) return [];
 
@@ -94,8 +93,9 @@ class ClientMechanicDashboard extends ConsumerWidget {
       clientId: null,
       capability: ClientCapability.pmPartsLists,
     )));
-    final showPmChecklists = pmChecklistsAllowedAsync.valueOrNull ?? false;
     final showPmPartsLists = pmPartsListsAllowedAsync.valueOrNull ?? false;
+    final availableChecklistsAsync =
+        ref.watch(mechanicAvailableChecklistsProvider);
     final partsAsync =
         showPmPartsLists ? ref.watch(mechanicPartsProvider) : null;
 
@@ -117,6 +117,7 @@ class ClientMechanicDashboard extends ConsumerWidget {
       body: RefreshIndicator(
         onRefresh: () async {
           ref.invalidate(mechanicAssignedWorkOrdersProvider);
+          ref.invalidate(mechanicAvailableChecklistsProvider);
           ref.invalidate(mechanicPartsProvider);
           ref.invalidate(clientCapabilityGateProvider((
             clientId: null,
@@ -153,18 +154,56 @@ class ClientMechanicDashboard extends ConsumerWidget {
               },
             ),
 
-            // ── 2. PM Checklist Note ─────────────────────────────────
-            if (showPmChecklists) ...[
-              const _SectionHeader(
-                title: 'PM Checklists',
-                icon: Icons.checklist_outlined,
-              ),
-              const _EmptyState(
-                icon: Icons.build_outlined,
-                message:
-                    'PM checklists start from assigned work orders. Ask the client/admin to assign a work order for the vessel.',
-              ),
-            ],
+            // ── 2. Fleet Checklist Autonomy ───────────────────────────
+            const _SectionHeader(
+              title: 'Fleet Checklists',
+              icon: Icons.checklist_outlined,
+            ),
+            pmChecklistsAllowedAsync.when(
+              loading: () => const _LoadingTile(),
+              error: (err, _) => _ErrorTile(message: err.toString()),
+              data: (allowed) {
+                if (!allowed) {
+                  return const Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    child: ClientCapabilityDisabledPanel(
+                      capability: ClientCapability.pmChecklists,
+                      message:
+                          'PM / mechanic checklists are not enabled for this client.',
+                    ),
+                  );
+                }
+
+                return Column(
+                  children: [
+                    const _HelperTile(
+                      icon: Icons.info_outline,
+                      message:
+                          'Assignments show priority work. You can also start any mechanic checklist for the fleet and it will save to asset history for Vórtice review.',
+                    ),
+                    availableChecklistsAsync.when(
+                      loading: () => const _LoadingTile(),
+                      error: (err, _) => _ErrorTile(message: err.toString()),
+                      data: (options) {
+                        if (options.isEmpty) {
+                          return const _EmptyState(
+                            icon: Icons.checklist_outlined,
+                            message:
+                                'No mechanic checklists are configured for this fleet yet.',
+                          );
+                        }
+                        return Column(
+                          children: options
+                              .map((option) =>
+                                  _AvailableChecklistCard(option: option))
+                              .toList(),
+                        );
+                      },
+                    ),
+                  ],
+                );
+              },
+            ),
 
             // ── 3. Parts Lists ────────────────────────────────────────
             if (showPmPartsLists) ...[
@@ -319,6 +358,87 @@ class _AssignedWorkCard extends ConsumerWidget {
   }
 }
 
+// ── Available Checklist Card ─────────────────────────────────────────────────
+
+class _AvailableChecklistCard extends StatelessWidget {
+  final _MechanicChecklistOption option;
+  const _AvailableChecklistCard({required this.option});
+
+  @override
+  Widget build(BuildContext context) {
+    final asset = option.asset;
+    final template = option.template;
+    final query = Uri(
+      path: '/client/assets/${asset.id}/checklists/new',
+      queryParameters: {
+        'clientId': asset.clientId,
+        'name': asset.name,
+        'assetTypeId': asset.assetTypeId,
+        'templateId': template.id,
+      },
+    ).toString();
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+      child: Container(
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: AppColors.surface,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: AppColors.cardBorder),
+        ),
+        child: Row(
+          children: [
+            const Icon(Icons.fact_check_outlined,
+                color: AppColors.primary, size: 22),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    template.name,
+                    style: const TextStyle(
+                      color: AppColors.textPrimary,
+                      fontWeight: FontWeight.w600,
+                      fontSize: 13,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  Text(
+                    [
+                      asset.name,
+                      if (template.intervalHours != null)
+                        '${template.intervalHours} hr',
+                    ].join(' • '),
+                    style: const TextStyle(
+                        color: AppColors.textSecondary, fontSize: 12),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ],
+              ),
+            ),
+            ElevatedButton(
+              onPressed: () => context.push(query),
+              style: ElevatedButton.styleFrom(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                backgroundColor: AppColors.primary,
+                foregroundColor: Colors.white,
+                textStyle:
+                    const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+              ),
+              child: const Text('Start'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 // ── Parts Tile ────────────────────────────────────────────────────────────────
 
 class _PartsTile extends StatelessWidget {
@@ -422,6 +542,42 @@ class _ErrorTile extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       child: Text(message,
           style: const TextStyle(color: AppColors.error, fontSize: 13)),
+    );
+  }
+}
+
+class _HelperTile extends StatelessWidget {
+  final IconData icon;
+  final String message;
+  const _HelperTile({required this.icon, required this.message});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      child: Container(
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: AppColors.primary.withValues(alpha: 0.08),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: AppColors.primary.withValues(alpha: 0.18)),
+        ),
+        child: Row(
+          children: [
+            Icon(icon, color: AppColors.primary, size: 20),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                message,
+                style: const TextStyle(
+                  color: AppColors.textPrimary,
+                  fontSize: 13,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
