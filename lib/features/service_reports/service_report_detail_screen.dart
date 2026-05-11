@@ -197,6 +197,8 @@ class _ReportBody extends StatelessWidget {
             ],
           ],
 
+          _ServiceReportPhotosSection(reportId: report.id),
+
           const SizedBox(height: 32),
         ],
       ),
@@ -210,6 +212,68 @@ class _ReportBody extends StatelessWidget {
             color: AppColors.primary,
             letterSpacing: 1.2,
           ),
+    );
+  }
+}
+
+class _ServiceReportPhotosSection extends ConsumerWidget {
+  final String reportId;
+
+  const _ServiceReportPhotosSection({required this.reportId});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final photosAsync = ref.watch(serviceReportPhotosProvider(reportId));
+
+    return photosAsync.when(
+      loading: () => const SizedBox.shrink(),
+      error: (_, __) => const SizedBox.shrink(),
+      data: (photos) {
+        if (photos.isEmpty) return const SizedBox.shrink();
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const SizedBox(height: 16),
+            Text(
+              'PHOTOS',
+              style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                    color: AppColors.primary,
+                    letterSpacing: 1.2,
+                  ),
+            ),
+            const SizedBox(height: 8),
+            SizedBox(
+              height: 112,
+              child: ListView.separated(
+                scrollDirection: Axis.horizontal,
+                itemCount: photos.length,
+                separatorBuilder: (_, __) => const SizedBox(width: 8),
+                itemBuilder: (_, index) {
+                  final photo = photos[index];
+                  return ClipRRect(
+                    borderRadius: BorderRadius.circular(10),
+                    child: Image.network(
+                      photo.photoUrl,
+                      width: 112,
+                      height: 112,
+                      fit: BoxFit.cover,
+                      errorBuilder: (_, __, ___) => Container(
+                        width: 112,
+                        height: 112,
+                        color: AppColors.surfaceVariant,
+                        child: const Icon(
+                          Icons.broken_image_outlined,
+                          color: AppColors.textSecondary,
+                        ),
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ),
+          ],
+        );
+      },
     );
   }
 }

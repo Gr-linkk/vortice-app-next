@@ -37,6 +37,18 @@ final serviceReportByWorkOrderProvider =
   return ServiceReport.fromJson(data);
 });
 
+final serviceReportsForAssetProvider =
+    FutureProvider.family<List<ServiceReport>, String>((ref, assetId) async {
+  final data = await supabase
+      .from(AppConstants.tServiceReports)
+      .select('*, work_orders!inner(asset_id)')
+      .eq('work_orders.asset_id', assetId)
+      .order('created_at', ascending: false);
+  return (data as List)
+      .map((e) => ServiceReport.fromJson(e as Map<String, dynamic>))
+      .toList();
+});
+
 class ServiceReportController extends StateNotifier<AsyncValue<void>> {
   final Ref _ref;
   ServiceReportController(this._ref) : super(const AsyncData(null));
