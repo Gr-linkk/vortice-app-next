@@ -16,6 +16,8 @@ import 'package:vortice_app/features/clients/client_capability_gate.dart';
 import 'package:vortice_app/features/checklists/saved_checklists_provider.dart';
 import 'package:vortice_app/features/parts/pm_parts_provider.dart';
 import 'package:vortice_app/features/parts/pm_kits_screen.dart';
+import 'package:vortice_app/features/service_reports/service_report_provider.dart';
+import 'package:vortice_app/features/service_reports/service_report_workflow.dart';
 
 class WorkOrderDetailScreen extends ConsumerWidget {
   final String workOrderId;
@@ -361,6 +363,12 @@ class _WorkOrderBody extends ConsumerWidget {
           _PmKitSection(templateId: workOrder.checklistTemplateId!),
 
         const SizedBox(height: 24),
+        _WorkOrderServiceReportCard(
+          workOrder: workOrder,
+          routePrefix: prefix,
+          role: profile?.role,
+        ),
+        const SizedBox(height: 24),
 
         // ── Actions ────────────────────────────────────────────────
         Consumer(
@@ -469,14 +477,6 @@ class _WorkOrderBody extends ConsumerWidget {
                     style: ElevatedButton.styleFrom(
                       backgroundColor: AppColors.success,
                     ),
-                  ),
-                  const SizedBox(height: 8),
-                  OutlinedButton.icon(
-                    onPressed: () => context.push(
-                      '$prefix/service-reports/new?workOrderId=${Uri.encodeComponent(workOrder.id)}',
-                    ),
-                    icon: const Icon(Icons.description_outlined),
-                    label: Text(l10n.serviceReport),
                   ),
                   if (profile?.role == UserRole.employee) ...[
                     const SizedBox(height: 8),
@@ -1371,6 +1371,95 @@ class _LogHoursSheetState extends ConsumerState<_LogHoursSheet> {
 }
 
 // ── Shared info row widget ───────────────────────────────────────────────────
+
+class _WorkOrderServiceReportCard extends ConsumerWidget {
+  final WorkOrder workOrder;
+  final String routePrefix;
+  final UserRole? role;
+
+  const _WorkOrderServiceReportCard({
+    required this.workOrder,
+    required this.routePrefix,
+    required this.role,
+  });
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context);
+    final canView = ServiceReportWorkflow.canViewReport(role);
+    final canAttach = ServiceReportWorkflow.canCreateOrUpdateReport(role) &&
+        ServiceReportWorkflow.canAttachReportToWorkOrder(workOrder.status);
+    if (!canView && !canAttach) return const SizedBox.shrink();
+
+    final reportAsync =
+        ref.watch(serviceReportByWorkOrderProvider(workOrder.id));
+
+    return reportAsync.when(
+      loading: () => const SizedBox.shrink(),
+      error: (_, __) => const SizedBox.shrink(),
+      data: (report) {
+        if (report == null && !canAttach) return const SizedBox.shrink();
+
+        final hasReport = report != null;
+        final route = hasReport
+            ? '$routePrefix/service-reports/${report.id}'
+            : '$routePrefix/service-reports/new?workOrderId=${Uri.encodeComponent(workOrder.id)}';
+        final subtitle = hasReport
+            ? 'Attached to this work order and vessel record'
+            : workOrder.status == WorkOrderStatus.closed
+                ? 'This work order is closed. Add a report without reopening it.'
+                : 'Attach a client-visible report to this work order.';
+
+        return InkWell(
+          borderRadius: BorderRadius.circular(12),
+          onTap: () => context.push(route),
+          child: Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: AppColors.surface,
+              borderRadius: BorderRadius.circular(12),
+              border: const Border.fromBorderSide(
+                BorderSide(color: AppColors.cardBorder),
+              ),
+            ),
+            child: Row(
+              children: [
+                Icon(
+                  hasReport
+                      ? Icons.description_outlined
+                      : Icons.note_add_outlined,
+                  color: hasReport ? AppColors.success : AppColors.primary,
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        hasReport
+                            ? 'View ${l10n.serviceReport}'
+                            : 'Add ${l10n.serviceReport}',
+                        style: Theme.of(context).textTheme.titleSmall,
+                      ),
+                      Text(
+                        subtitle,
+                        style: const TextStyle(
+                          color: AppColors.textSecondary,
+                          fontSize: 12,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const Icon(Icons.chevron_right, color: AppColors.textSecondary),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
 
 class _InfoRow extends StatelessWidget {
   final IconData icon;

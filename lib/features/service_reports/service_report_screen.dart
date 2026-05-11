@@ -11,6 +11,7 @@ import 'package:vortice_app/core/constants.dart';
 import 'package:vortice_app/core/supabase_client.dart';
 import 'package:vortice_app/core/theme.dart';
 import 'package:vortice_app/features/service_reports/service_report_provider.dart';
+import 'package:vortice_app/features/service_reports/service_report_workflow.dart';
 import 'package:vortice_app/features/service_reports/signature_pad_widget.dart';
 import 'package:vortice_app/features/work_orders/work_order_provider.dart';
 import 'package:vortice_app/l10n/app_localizations.dart';
@@ -429,9 +430,8 @@ class _ServiceReportScreenState extends ConsumerState<ServiceReportScreen> {
                 data: (orders) {
                   final active = orders
                       .where((w) =>
-                          w.status == WorkOrderStatus.inProgress ||
-                          w.status == WorkOrderStatus.draft ||
-                          w.status == WorkOrderStatus.assigned)
+                          ServiceReportWorkflow.canAttachReportToWorkOrder(
+                              w.status))
                       .toList();
                   final hasSelectedWorkOrder = active.any(
                     (w) => w.id == _selectedWorkOrderId,
@@ -447,8 +447,12 @@ class _ServiceReportScreenState extends ConsumerState<ServiceReportScreen> {
                     items: active
                         .map((w) => DropdownMenuItem(
                               value: w.id,
-                              child: Text(w.title,
-                                  overflow: TextOverflow.ellipsis),
+                              child: Text(
+                                w.status == WorkOrderStatus.closed
+                                    ? '${w.title} • closed'
+                                    : w.title,
+                                overflow: TextOverflow.ellipsis,
+                              ),
                             ))
                         .toList(),
                     onChanged: (v) {

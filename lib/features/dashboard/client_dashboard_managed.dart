@@ -101,6 +101,8 @@ class ClientDashboardManaged extends ConsumerWidget {
                         ? DateTime.tryParse(r['created_at'] as String)
                         : null;
                     return ListTile(
+                      onTap: () =>
+                          context.push('/client/service-reports/${r['id']}'),
                       leading: const CircleAvatar(
                         backgroundColor: AppColors.surfaceVariant,
                         child: Icon(Icons.build_outlined,
@@ -274,6 +276,8 @@ class ClientDashboardManaged extends ConsumerWidget {
                         ? DateTime.tryParse(r['created_at'] as String)
                         : null;
                     return ListTile(
+                      onTap: () =>
+                          context.push('/client/service-reports/${r['id']}'),
                       leading: const CircleAvatar(
                         backgroundColor: AppColors.surfaceVariant,
                         child: Icon(Icons.assignment_outlined,
