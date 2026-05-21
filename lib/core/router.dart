@@ -79,7 +79,10 @@ String _dashboardFor(UserRole? role) => switch (role) {
       null => '/login',
     };
 
-// ── Shell navigator key — required for Android back button to pop within shell ──
+// ── Navigator keys ─────────────────────────────────────────────────────────
+final _rootNavigatorKey = GlobalKey<NavigatorState>(debugLabel: 'root');
+
+// Shell navigator key — required for Android back button to pop within shell.
 final _shellNavigatorKey = GlobalKey<NavigatorState>(debugLabel: 'shell');
 
 // ── Router provider ─────────────────────────────────────────────────────────
@@ -88,6 +91,7 @@ final routerProvider = Provider<GoRouter>((ref) {
   final notifier = ref.watch(_routerNotifierProvider);
 
   return GoRouter(
+    navigatorKey: _rootNavigatorKey,
     initialLocation: '/login',
     refreshListenable: notifier,
     redirect: (context, state) {
@@ -112,6 +116,28 @@ final routerProvider = Provider<GoRouter>((ref) {
       // ── Unauthenticated ────────────────────────────────────────────────
       GoRoute(path: '/login', builder: (_, __) => const LoginScreen()),
       GoRoute(path: '/register', builder: (_, __) => const RegisterScreen()),
+
+      // Service report authoring is full-screen. Keeping it outside the tab
+      // shell prevents the shell bottom navigation from competing with the
+      // report footer and keyboard on phone-sized layouts.
+      GoRoute(
+        path: '/owner/service-reports/new',
+        builder: (_, state) => ServiceReportScreen(
+          initialWorkOrderId: state.uri.queryParameters['workOrderId'],
+        ),
+      ),
+      GoRoute(
+        path: '/employee/service-reports/new',
+        builder: (_, state) => ServiceReportScreen(
+          initialWorkOrderId: state.uri.queryParameters['workOrderId'],
+        ),
+      ),
+      GoRoute(
+        path: '/client/service-reports/new',
+        builder: (_, state) => ServiceReportScreen(
+          initialWorkOrderId: state.uri.queryParameters['workOrderId'],
+        ),
+      ),
 
       // ── Authenticated shell ────────────────────────────────────────────
       ShellRoute(
@@ -156,12 +182,10 @@ final routerProvider = Provider<GoRouter>((ref) {
                 WorkOrderDetailScreen(workOrderId: state.pathParameters['id']!),
           ),
           GoRoute(
-              path: '/owner/service-reports',
-              builder: (_, __) => const ServiceReportListScreen()),
-          GoRoute(
-            path: '/owner/service-reports/new',
-            builder: (_, state) => ServiceReportScreen(
+            path: '/owner/service-reports',
+            builder: (_, state) => ServiceReportListScreen(
               initialWorkOrderId: state.uri.queryParameters['workOrderId'],
+              initialAssetId: state.uri.queryParameters['assetId'],
             ),
           ),
           GoRoute(
@@ -274,12 +298,10 @@ final routerProvider = Provider<GoRouter>((ref) {
             ),
           ),
           GoRoute(
-              path: '/employee/service-reports',
-              builder: (_, __) => const ServiceReportListScreen()),
-          GoRoute(
-            path: '/employee/service-reports/new',
-            builder: (_, state) => ServiceReportScreen(
+            path: '/employee/service-reports',
+            builder: (_, state) => ServiceReportListScreen(
               initialWorkOrderId: state.uri.queryParameters['workOrderId'],
+              initialAssetId: state.uri.queryParameters['assetId'],
             ),
           ),
           GoRoute(
@@ -411,6 +433,13 @@ final routerProvider = Provider<GoRouter>((ref) {
           GoRoute(
               path: '/client/notifications',
               builder: (_, __) => const NotificationsScreen()),
+          GoRoute(
+            path: '/client/service-reports',
+            builder: (_, state) => ServiceReportListScreen(
+              initialWorkOrderId: state.uri.queryParameters['workOrderId'],
+              initialAssetId: state.uri.queryParameters['assetId'],
+            ),
+          ),
           GoRoute(
             path: '/client/service-reports/:id',
             builder: (_, state) => ServiceReportDetailScreen(

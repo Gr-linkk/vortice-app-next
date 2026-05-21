@@ -5,7 +5,7 @@ import 'package:vortice_app/models/work_order.dart';
 
 void main() {
   group('ServiceReportWorkflow', () {
-    test('staff can create reports, clients get read-only visibility', () {
+    test('only staff can create reports', () {
       expect(ServiceReportWorkflow.canCreateOrUpdateReport(UserRole.owner),
           isTrue);
       expect(ServiceReportWorkflow.canCreateOrUpdateReport(UserRole.employee),
@@ -16,14 +16,26 @@ void main() {
           ServiceReportWorkflow.canCreateOrUpdateReport(
               UserRole.clientMechanic),
           isFalse);
-
-      expect(ServiceReportWorkflow.canViewReport(UserRole.client), isTrue);
-      expect(
-          ServiceReportWorkflow.canViewReport(UserRole.clientMechanic), isTrue);
-      expect(ServiceReportWorkflow.canViewReport(UserRole.operator), isTrue);
+      expect(ServiceReportWorkflow.canCreateOrUpdateReport(UserRole.operator),
+          isFalse);
     });
 
-    test('reports can attach to closed work orders but not invoiced ones', () {
+    test('clients can view reports but operators cannot', () {
+      expect(ServiceReportWorkflow.canViewReport(UserRole.owner), isTrue);
+      expect(ServiceReportWorkflow.canViewReport(UserRole.employee), isTrue);
+      expect(ServiceReportWorkflow.canViewReport(UserRole.client), isTrue);
+      expect(
+          ServiceReportWorkflow.canViewReport(UserRole.clientAdmin), isTrue);
+      expect(
+          ServiceReportWorkflow.canViewReport(UserRole.clientMechanic),
+          isTrue);
+      expect(ServiceReportWorkflow.canViewReport(UserRole.operator), isFalse);
+      expect(
+          ServiceReportWorkflow.canViewReport(UserRole.clientOperator),
+          isFalse);
+    });
+
+    test('reports can attach to invoiced and closed work orders', () {
       expect(
         ServiceReportWorkflow.canAttachReportToWorkOrder(WorkOrderStatus.draft),
         isTrue,
@@ -41,7 +53,7 @@ void main() {
       expect(
         ServiceReportWorkflow.canAttachReportToWorkOrder(
             WorkOrderStatus.invoiced),
-        isFalse,
+        isTrue,
       );
     });
   });

@@ -3,6 +3,25 @@ import 'package:vortice_app/core/app_shell.dart';
 import 'package:vortice_app/models/profile.dart';
 
 void main() {
+  group('appShellShouldHideBottomNavigation', () {
+    test('hides shell tabs on service report authoring routes', () {
+      expect(
+        appShellShouldHideBottomNavigation('/owner/service-reports/new'),
+        isTrue,
+      );
+      expect(
+        appShellShouldHideBottomNavigation(
+          '/employee/service-reports/new?workOrderId=wo-1',
+        ),
+        isTrue,
+      );
+      expect(
+        appShellShouldHideBottomNavigation('/owner/service-reports'),
+        isFalse,
+      );
+    });
+  });
+
   group('appShellBackFallbackRoute', () {
     test('owner top-level leaf falls back to owner dashboard', () {
       expect(

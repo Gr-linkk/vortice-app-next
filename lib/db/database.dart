@@ -189,6 +189,10 @@ class ServiceReportsTable extends Table {
   DateTimeColumn get signedAt => dateTime().nullable()();
   DateTimeColumn get createdAt => dateTime().nullable()();
   DateTimeColumn get updatedAt => dateTime().nullable()();
+  TextColumn get syncStatus =>
+      text().withDefault(const Constant(SyncStatusValues.synced))();
+  DateTimeColumn get lastSyncedAt => dateTime().nullable()();
+  TextColumn get lastError => text().nullable()();
 
   @override
   Set<Column> get primaryKey => {id};
@@ -327,7 +331,7 @@ class AppDatabase extends _$AppDatabase {
       : super(executor ?? driftDatabase(name: 'vortice_db'));
 
   @override
-  int get schemaVersion => 5;
+  int get schemaVersion => 6;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -356,6 +360,20 @@ class AppDatabase extends _$AppDatabase {
             await m.addColumn(
               checklistResponsesTable,
               checklistResponsesTable.lastError,
+            );
+          }
+          if (from < 6) {
+            await m.addColumn(
+              serviceReportsTable,
+              serviceReportsTable.syncStatus,
+            );
+            await m.addColumn(
+              serviceReportsTable,
+              serviceReportsTable.lastSyncedAt,
+            );
+            await m.addColumn(
+              serviceReportsTable,
+              serviceReportsTable.lastError,
             );
           }
         },
