@@ -37,6 +37,7 @@ import 'package:vortice_app/features/clients/pre_trip_results_screen.dart';
 import 'package:vortice_app/features/clients/maintenance_flags_screen.dart';
 import 'package:vortice_app/features/clients/asset_checklist_history_screen.dart';
 import 'package:vortice_app/features/notifications/notifications_screen.dart';
+import 'package:vortice_app/features/service_reports/service_report_authoring_screen_v2.dart';
 import 'package:vortice_app/features/service_reports/service_report_list_screen.dart';
 import 'package:vortice_app/features/service_reports/service_report_detail_screen.dart';
 import 'package:vortice_app/features/service_requests/service_request_form_screen.dart';
@@ -127,9 +128,21 @@ final routerProvider = Provider<GoRouter>((ref) {
         ),
       ),
       GoRoute(
+        path: '/owner/service-reports/new-v2',
+        builder: (_, state) => ServiceReportAuthoringScreenV2(
+          workOrderId: state.uri.queryParameters['workOrderId'],
+        ),
+      ),
+      GoRoute(
         path: '/employee/service-reports/new',
         builder: (_, state) => ServiceReportScreen(
           initialWorkOrderId: state.uri.queryParameters['workOrderId'],
+        ),
+      ),
+      GoRoute(
+        path: '/employee/service-reports/new-v2',
+        builder: (_, state) => ServiceReportAuthoringScreenV2(
+          workOrderId: state.uri.queryParameters['workOrderId'],
         ),
       ),
       GoRoute(

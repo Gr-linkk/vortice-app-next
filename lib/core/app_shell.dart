@@ -223,7 +223,9 @@ List<_NavItem> _navItemsFor(
 @visibleForTesting
 bool appShellShouldHideBottomNavigation(String location) {
   return location.endsWith('/service-reports/new') ||
-      location.contains('/service-reports/new?');
+      location.contains('/service-reports/new?') ||
+      location.endsWith('/service-reports/new-v2') ||
+      location.contains('/service-reports/new-v2?');
 }
 
 @visibleForTesting
