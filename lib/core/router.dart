@@ -23,7 +23,6 @@ import 'package:vortice_app/features/operator/operator_checklist_screen.dart';
 import 'package:vortice_app/features/parts/parts_log_screen.dart';
 import 'package:vortice_app/features/parts/pm_kits_screen.dart';
 import 'package:vortice_app/features/parts/pm_parts_setup_screen.dart';
-import 'package:vortice_app/features/service_reports/service_report_screen.dart';
 import 'package:vortice_app/features/work_orders/create_work_order_screen.dart';
 import 'package:vortice_app/features/work_orders/work_order_detail_screen.dart';
 import 'package:vortice_app/features/work_orders/work_order_list_screen.dart';
@@ -123,8 +122,9 @@ final routerProvider = Provider<GoRouter>((ref) {
       // report footer and keyboard on phone-sized layouts.
       GoRoute(
         path: '/owner/service-reports/new',
-        builder: (_, state) => ServiceReportScreen(
-          initialWorkOrderId: state.uri.queryParameters['workOrderId'],
+        redirect: (_, state) => _legacyServiceReportAuthoringRedirect(
+          prefix: '/owner',
+          workOrderId: state.uri.queryParameters['workOrderId'],
         ),
       ),
       GoRoute(
@@ -135,8 +135,9 @@ final routerProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(
         path: '/employee/service-reports/new',
-        builder: (_, state) => ServiceReportScreen(
-          initialWorkOrderId: state.uri.queryParameters['workOrderId'],
+        redirect: (_, state) => _legacyServiceReportAuthoringRedirect(
+          prefix: '/employee',
+          workOrderId: state.uri.queryParameters['workOrderId'],
         ),
       ),
       GoRoute(
@@ -147,9 +148,7 @@ final routerProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(
         path: '/client/service-reports/new',
-        builder: (_, state) => ServiceReportScreen(
-          initialWorkOrderId: state.uri.queryParameters['workOrderId'],
-        ),
+        redirect: (_, __) => '/client/service-reports',
       ),
 
       // ── Authenticated shell ────────────────────────────────────────────
@@ -521,6 +520,18 @@ final routerProvider = Provider<GoRouter>((ref) {
     ],
   );
 });
+
+String _legacyServiceReportAuthoringRedirect({
+  required String prefix,
+  required String? workOrderId,
+}) {
+  if (workOrderId == null || workOrderId.isEmpty) {
+    return '$prefix/service-reports';
+  }
+
+  final encodedWorkOrderId = Uri.encodeComponent(workOrderId);
+  return '$prefix/service-reports/new-v2?workOrderId=$encodedWorkOrderId';
+}
 
 class _OperatorChecklistCapabilityGate extends ConsumerWidget {
   const _OperatorChecklistCapabilityGate({
