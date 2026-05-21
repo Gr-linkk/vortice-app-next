@@ -19,15 +19,15 @@ class _SignaturePadWidgetState extends State<SignaturePadWidget> {
   final GlobalKey<SfSignaturePadState> _signaturePadKey =
       GlobalKey<SfSignaturePadState>();
   bool _saving = false;
-
-  bool get _isEmpty => _signaturePadKey.currentState == null;
+  bool _hasDrawn = false;
 
   void _clear() {
     _signaturePadKey.currentState?.clear();
+    setState(() => _hasDrawn = false);
   }
 
   Future<void> _save() async {
-    if (_isEmpty) return;
+    if (!_hasDrawn || _signaturePadKey.currentState == null) return;
     setState(() => _saving = true);
     try {
       final image = await _signaturePadKey.currentState!.toImage();
@@ -62,6 +62,10 @@ class _SignaturePadWidgetState extends State<SignaturePadWidget> {
               strokeColor: AppColors.textPrimary,
               minimumStrokeWidth: 1.5,
               maximumStrokeWidth: 4.0,
+              onDrawStart: () {
+                if (!_hasDrawn) setState(() => _hasDrawn = true);
+                return false;
+              },
             ),
           ),
         ),
@@ -69,13 +73,13 @@ class _SignaturePadWidgetState extends State<SignaturePadWidget> {
         Row(
           children: [
             TextButton.icon(
-              onPressed: _isEmpty ? null : _clear,
+              onPressed: _hasDrawn ? _clear : null,
               icon: const Icon(Icons.clear, size: 16),
               label: Text(l10n.clearSignature),
             ),
             const Spacer(),
             ElevatedButton.icon(
-              onPressed: (_isEmpty || _saving) ? null : _save,
+              onPressed: (!_hasDrawn || _saving) ? null : _save,
               icon: _saving
                   ? const SizedBox(
                       width: 14,

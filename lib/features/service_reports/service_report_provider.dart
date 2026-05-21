@@ -1,17 +1,12 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:vortice_app/core/constants.dart';
 import 'package:vortice_app/core/supabase_client.dart';
+import 'package:vortice_app/features/service_reports/service_report_repository.dart';
 import 'package:vortice_app/models/service_report.dart';
 import 'package:vortice_app/models/service_report_photo.dart';
 
-final serviceReportsProvider = FutureProvider<List<ServiceReport>>((ref) async {
-  final data = await supabase
-      .from(AppConstants.tServiceReports)
-      .select()
-      .order('created_at', ascending: false);
-  return (data as List)
-      .map((e) => ServiceReport.fromJson(e as Map<String, dynamic>))
-      .toList();
+final serviceReportsProvider = FutureProvider<List<ServiceReport>>((ref) {
+  return ref.watch(serviceReportRepositoryProvider).listAll();
 });
 
 /// Service reports with asset name — used by client dashboards
@@ -26,36 +21,31 @@ final clientServiceReportsProvider =
   return List<Map<String, dynamic>>.from(data as List);
 });
 
-final serviceReportByWorkOrderProvider =
-    FutureProvider.family<ServiceReport?, String>((ref, workOrderId) async {
-  final data = await supabase
-      .from(AppConstants.tServiceReports)
-      .select()
-      .eq('work_order_id', workOrderId)
-      .maybeSingle();
-  if (data == null) return null;
-  return ServiceReport.fromJson(data);
+final serviceReportByIdProvider =
+    FutureProvider.family<ServiceReport?, String>((ref, reportId) {
+  return ref.watch(serviceReportRepositoryProvider).getById(reportId);
+});
+
+final serviceReportsByWorkOrderProvider =
+    FutureProvider.family<List<ServiceReport>, String>((ref, workOrderId) {
+  return ref
+      .watch(serviceReportRepositoryProvider)
+      .listByWorkOrder(workOrderId);
 });
 
 final serviceReportsForAssetProvider =
-    FutureProvider.family<List<ServiceReport>, String>((ref, assetId) async {
-  final data = await supabase
-      .from(AppConstants.tServiceReports)
-      .select('*, work_orders!inner(asset_id)')
-      .eq('work_orders.asset_id', assetId)
-      .order('created_at', ascending: false);
-  return (data as List)
-      .map((e) => ServiceReport.fromJson(e as Map<String, dynamic>))
-      .toList();
+    FutureProvider.family<List<ServiceReport>, String>((ref, assetId) {
+  return ref.watch(serviceReportRepositoryProvider).listForAsset(assetId);
 });
 
 class ServiceReportController extends StateNotifier<AsyncValue<void>> {
   final Ref _ref;
   ServiceReportController(this._ref) : super(const AsyncData(null));
 
-  /// Creates/upserts a service report. Returns the report ID on success, null on failure.
-  Future<String?> createReport({
-    String? workOrderId,
+  /// Creates a new service report locally first, then attempts remote sync.
+  Future<ServiceReportSubmitResult?> createReport({
+    String? reportId,
+    required String workOrderId,
     String? complaint,
     String? cause,
     String? correction,
@@ -64,33 +54,24 @@ class ServiceReportController extends StateNotifier<AsyncValue<void>> {
     String? techSignatureUrl,
   }) async {
     state = const AsyncLoading();
-    String? reportId;
+    ServiceReportSubmitResult? result;
     state = await AsyncValue.guard(() async {
-      final result = await supabase
-          .from(AppConstants.tServiceReports)
-          .upsert({
-            'work_order_id':
-                workOrderId?.isNotEmpty == true ? workOrderId : null,
-            'complaint': complaint,
-            'cause': cause,
-            'correction': correction,
-            'collateral': collateral,
-            'comments': comments,
-            'tech_signature_url': techSignatureUrl,
-            'signed_at': techSignatureUrl != null
-                ? DateTime.now().toIso8601String()
-                : null,
-          }, onConflict: 'work_order_id')
-          .select('id')
-          .single()
-          .timeout(const Duration(seconds: 4));
-      reportId = result['id'] as String;
+      result =
+          await _ref.read(serviceReportRepositoryProvider).createLocalFirst(
+                reportId: reportId,
+                workOrderId: workOrderId,
+                complaint: complaint,
+                cause: cause,
+                correction: correction,
+                collateral: collateral,
+                comments: comments,
+                techSignatureUrl: techSignatureUrl,
+              );
       _ref.invalidate(serviceReportsProvider);
-      if (workOrderId != null) {
-        _ref.invalidate(serviceReportByWorkOrderProvider(workOrderId));
-      }
+      _ref.invalidate(clientServiceReportsProvider);
+      _ref.invalidate(serviceReportsByWorkOrderProvider(workOrderId));
     });
-    return reportId;
+    return result;
   }
 }
 

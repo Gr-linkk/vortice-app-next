@@ -5,32 +5,78 @@ import 'package:intl/intl.dart';
 import 'package:vortice_app/core/theme.dart';
 import 'package:vortice_app/features/auth/auth_provider.dart';
 import 'package:vortice_app/features/service_reports/service_report_provider.dart';
+import 'package:vortice_app/features/service_reports/service_report_workflow.dart';
 import 'package:vortice_app/l10n/app_localizations.dart';
 import 'package:vortice_app/models/profile.dart';
 import 'package:vortice_app/models/service_report.dart';
+import 'package:vortice_app/sync/sync_status.dart';
 
 class ServiceReportListScreen extends ConsumerWidget {
-  const ServiceReportListScreen({super.key});
+  final String? initialWorkOrderId;
+  final String? initialAssetId;
+
+  const ServiceReportListScreen({
+    super.key,
+    this.initialWorkOrderId,
+    this.initialAssetId,
+  });
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context);
-    final reportsAsync = ref.watch(serviceReportsProvider);
     final profile = ref.watch(profileProvider).valueOrNull;
-    final isOwner = profile?.role == UserRole.owner;
+    final role = profile?.role;
+    final canView = ServiceReportWorkflow.canViewReport(role);
+    final canCreate = ServiceReportWorkflow.canCreateOrUpdateReport(role);
 
-    // Route prefix for navigation
-    final prefix = isOwner ? '/owner' : '/employee';
+    if (!canView) {
+      return const Scaffold(
+        body: Center(
+          child: Text(
+            'Service reports are not available for this role.',
+            style: TextStyle(color: AppColors.textSecondary),
+          ),
+        ),
+      );
+    }
+    final prefix = switch (role) {
+      UserRole.owner => '/owner',
+      UserRole.employee => '/employee',
+      UserRole.client ||
+      UserRole.clientAdmin ||
+      UserRole.clientMechanic =>
+        '/client',
+      _ => '/owner',
+    };
+
+    final reportsAsync = initialWorkOrderId != null
+        ? ref.watch(serviceReportsByWorkOrderProvider(initialWorkOrderId!))
+        : initialAssetId != null
+            ? ref.watch(serviceReportsForAssetProvider(initialAssetId!))
+            : ref.watch(serviceReportsProvider);
+
+    final title = initialWorkOrderId != null
+        ? 'Work Order Service Reports'
+        : initialAssetId != null
+            ? 'Asset Service Reports'
+            : l10n.serviceReportListTitle;
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(l10n.serviceReportListTitle),
+        title: Text(title),
       ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => context.push('$prefix/service-reports/new'),
-        icon: const Icon(Icons.add),
-        label: Text(l10n.newReport),
-      ),
+      floatingActionButton: canCreate
+          ? FloatingActionButton.extended(
+              onPressed: () {
+                final query = initialWorkOrderId == null
+                    ? ''
+                    : '?workOrderId=${Uri.encodeComponent(initialWorkOrderId!)}';
+                context.push('$prefix/service-reports/new$query');
+              },
+              icon: const Icon(Icons.add),
+              label: Text(l10n.newReport),
+            )
+          : null,
       body: reportsAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (err, _) => Center(
@@ -51,20 +97,37 @@ class ServiceReportListScreen extends ConsumerWidget {
                     l10n.noServiceReports,
                     style: const TextStyle(color: AppColors.textSecondary),
                   ),
-                  const SizedBox(height: 16),
-                  OutlinedButton.icon(
-                    onPressed: () =>
-                        context.push('$prefix/service-reports/new'),
-                    icon: const Icon(Icons.add),
-                    label: Text(l10n.newReport),
-                  ),
+                  if (canCreate) ...[
+                    const SizedBox(height: 16),
+                    OutlinedButton.icon(
+                      onPressed: () {
+                        final query = initialWorkOrderId == null
+                            ? ''
+                            : '?workOrderId=${Uri.encodeComponent(initialWorkOrderId!)}';
+                        context.push('$prefix/service-reports/new$query');
+                      },
+                      icon: const Icon(Icons.add),
+                      label: Text(l10n.newReport),
+                    ),
+                  ],
                 ],
               ),
             );
           }
 
           return RefreshIndicator(
-            onRefresh: () async => ref.invalidate(serviceReportsProvider),
+            onRefresh: () async {
+              if (initialWorkOrderId != null) {
+                ref.invalidate(
+                    serviceReportsByWorkOrderProvider(initialWorkOrderId!));
+                return;
+              }
+              if (initialAssetId != null) {
+                ref.invalidate(serviceReportsForAssetProvider(initialAssetId!));
+                return;
+              }
+              ref.invalidate(serviceReportsProvider);
+            },
             child: ListView.separated(
               padding: const EdgeInsets.fromLTRB(16, 12, 16, 100),
               itemCount: reports.length,
@@ -84,8 +147,6 @@ class ServiceReportListScreen extends ConsumerWidget {
     );
   }
 }
-
-// ── Report card ───────────────────────────────────────────────────────────────
 
 class _ReportCard extends StatelessWidget {
   final ServiceReport report;
@@ -112,7 +173,6 @@ class _ReportCard extends StatelessWidget {
         ),
         child: Row(
           children: [
-            // Icon
             Container(
               width: 42,
               height: 42,
@@ -124,8 +184,6 @@ class _ReportCard extends StatelessWidget {
                   color: AppColors.primary, size: 20),
             ),
             const SizedBox(width: 12),
-
-            // Content
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -142,6 +200,10 @@ class _ReportCard extends StatelessWidget {
                           ),
                         ),
                       ),
+                      if (report.syncStatus != SyncStatusValues.synced) ...[
+                        _ReportSyncChip(syncStatus: report.syncStatus),
+                        const SizedBox(width: 6),
+                      ],
                       if (hasSig)
                         Container(
                           padding: const EdgeInsets.symmetric(
@@ -202,6 +264,35 @@ class _ReportCard extends StatelessWidget {
             const Icon(Icons.chevron_right,
                 color: AppColors.textSecondary, size: 20),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+class _ReportSyncChip extends StatelessWidget {
+  final String syncStatus;
+
+  const _ReportSyncChip({required this.syncStatus});
+
+  @override
+  Widget build(BuildContext context) {
+    final isFailed = syncStatus == SyncStatusValues.failed ||
+        syncStatus == SyncStatusValues.conflict;
+    final color = isFailed ? AppColors.error : AppColors.warning;
+    final label = isFailed ? 'Sync failed' : 'Pending sync';
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Text(
+        label,
+        style: TextStyle(
+          color: color,
+          fontSize: 10,
+          fontWeight: FontWeight.w600,
         ),
       ),
     );

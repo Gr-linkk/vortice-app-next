@@ -221,6 +221,12 @@ List<_NavItem> _navItemsFor(
 }
 
 @visibleForTesting
+bool appShellShouldHideBottomNavigation(String location) {
+  return location.endsWith('/service-reports/new') ||
+      location.contains('/service-reports/new?');
+}
+
+@visibleForTesting
 String? appShellBackFallbackRoute(UserRole role, String location) {
   final dashboardRoute = switch (role) {
     UserRole.owner => '/owner/dashboard',
@@ -272,6 +278,7 @@ class AppShell extends ConsumerWidget {
       }
       return 0;
     }();
+    final hideBottomNavigation = appShellShouldHideBottomNavigation(location);
 
     return BackButtonListener(
       onBackButtonPressed: () async {
@@ -295,26 +302,28 @@ class AppShell extends ConsumerWidget {
       },
       child: Scaffold(
         body: child,
-        bottomNavigationBar: Container(
-          decoration: const BoxDecoration(
-            border: Border(
-              top: BorderSide(color: AppColors.divider, width: 1),
-            ),
-          ),
-          child: BottomNavigationBar(
-            currentIndex: currentIndex,
-            onTap: (index) => context.go(items[index].route),
-            items: items
-                .map(
-                  (item) => BottomNavigationBarItem(
-                    icon: Icon(item.icon),
-                    activeIcon: Icon(item.activeIcon),
-                    label: item.label,
+        bottomNavigationBar: hideBottomNavigation
+            ? null
+            : Container(
+                decoration: const BoxDecoration(
+                  border: Border(
+                    top: BorderSide(color: AppColors.divider, width: 1),
                   ),
-                )
-                .toList(),
-          ),
-        ),
+                ),
+                child: BottomNavigationBar(
+                  currentIndex: currentIndex,
+                  onTap: (index) => context.go(items[index].route),
+                  items: items
+                      .map(
+                        (item) => BottomNavigationBarItem(
+                          icon: Icon(item.icon),
+                          activeIcon: Icon(item.activeIcon),
+                          label: item.label,
+                        ),
+                      )
+                      .toList(),
+                ),
+              ),
       ),
     );
   }

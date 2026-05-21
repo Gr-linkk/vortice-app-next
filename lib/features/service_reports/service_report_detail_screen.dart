@@ -2,7 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:vortice_app/core/theme.dart';
+import 'package:vortice_app/features/auth/auth_provider.dart';
 import 'package:vortice_app/features/service_reports/service_report_provider.dart';
+import 'package:vortice_app/features/service_reports/service_report_screen.dart';
+import 'package:vortice_app/features/service_reports/service_report_workflow.dart';
 import 'package:vortice_app/l10n/app_localizations.dart';
 import 'package:vortice_app/models/service_report.dart';
 
@@ -12,19 +15,37 @@ class ServiceReportDetailScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    if (reportId == 'new') {
+      return const ServiceReportScreen();
+    }
+
     final l10n = AppLocalizations.of(context);
-    final reportsAsync = ref.watch(serviceReportsProvider);
+    final profileAsync = ref.watch(profileProvider);
+    final role = profileAsync.valueOrNull?.role;
+    if (profileAsync.isLoading) {
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    }
+    if (!ServiceReportWorkflow.canViewReport(role)) {
+      return const Scaffold(
+        body: Center(
+          child: Text(
+            'Service reports are not available for this role.',
+            style: TextStyle(color: AppColors.textSecondary),
+          ),
+        ),
+      );
+    }
+    final reportAsync = ref.watch(serviceReportByIdProvider(reportId));
 
     return Scaffold(
-      appBar: AppBar(title: Text(l10n.serviceReportTitle)),
-      body: reportsAsync.when(
+      appBar: AppBar(title: const Text('Service Report Detail')),
+      body: reportAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (err, _) => Center(
           child: Text(err.toString(),
               style: const TextStyle(color: AppColors.error)),
         ),
-        data: (reports) {
-          final report = reports.where((r) => r.id == reportId).firstOrNull;
+        data: (report) {
           if (report == null) {
             return Center(child: Text(l10n.notFound));
           }
@@ -52,7 +73,6 @@ class _ReportBody extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          // ── Header card ──────────────────────────────────────
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
@@ -125,10 +145,7 @@ class _ReportBody extends StatelessWidget {
               ],
             ),
           ),
-
           const SizedBox(height: 20),
-
-          // ── 5-C sections ─────────────────────────────────────
           if (report.complaint != null)
             _Section(
               number: '1',
@@ -164,8 +181,6 @@ class _ReportBody extends StatelessWidget {
               content: report.comments!,
               color: AppColors.textSecondary,
             ),
-
-          // ── Signature ─────────────────────────────────────────
           if (report.techSignatureUrl != null) ...[
             const SizedBox(height: 8),
             _sectionHeader(context, l10n.technicianSignature),
@@ -196,9 +211,7 @@ class _ReportBody extends StatelessWidget {
               ),
             ],
           ],
-
           _ServiceReportPhotosSection(reportId: report.id),
-
           const SizedBox(height: 32),
         ],
       ),
@@ -278,8 +291,6 @@ class _ServiceReportPhotosSection extends ConsumerWidget {
   }
 }
 
-// ── 5-C section block ─────────────────────────────────────────────────────────
-
 class _Section extends StatelessWidget {
   final String number;
   final String label;
@@ -306,7 +317,6 @@ class _Section extends StatelessWidget {
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Numbered left strip
             Container(
               width: 36,
               padding: const EdgeInsets.symmetric(vertical: 14),
@@ -328,7 +338,6 @@ class _Section extends StatelessWidget {
                 ),
               ),
             ),
-            // Content
             Expanded(
               child: Padding(
                 padding: const EdgeInsets.all(12),

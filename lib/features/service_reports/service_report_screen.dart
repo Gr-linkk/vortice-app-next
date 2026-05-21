@@ -10,12 +10,71 @@ import 'package:supabase_flutter/supabase_flutter.dart' show FileOptions;
 import 'package:vortice_app/core/constants.dart';
 import 'package:vortice_app/core/supabase_client.dart';
 import 'package:vortice_app/core/theme.dart';
+import 'package:vortice_app/features/auth/auth_provider.dart';
 import 'package:vortice_app/features/service_reports/service_report_provider.dart';
+import 'package:vortice_app/features/service_reports/service_report_repository.dart';
 import 'package:vortice_app/features/service_reports/service_report_workflow.dart';
 import 'package:vortice_app/features/service_reports/signature_pad_widget.dart';
 import 'package:vortice_app/features/work_orders/work_order_provider.dart';
 import 'package:vortice_app/l10n/app_localizations.dart';
 import 'package:vortice_app/models/work_order.dart';
+
+class ServiceReportDraftCodec {
+  const ServiceReportDraftCodec._();
+
+  static bool hasTextDraft({
+    required String? workOrderId,
+    required String? pendingReportId,
+    required String complaint,
+    required String cause,
+    required String correction,
+    required String collateral,
+    required String comments,
+  }) {
+    return workOrderId != null ||
+        pendingReportId != null ||
+        complaint.trim().isNotEmpty ||
+        cause.trim().isNotEmpty ||
+        correction.trim().isNotEmpty ||
+        collateral.trim().isNotEmpty ||
+        comments.trim().isNotEmpty;
+  }
+
+  static Map<String, dynamic> textPayload({
+    required String? workOrderId,
+    required String? pendingReportId,
+    required String complaint,
+    required String cause,
+    required String correction,
+    required String collateral,
+    required String comments,
+  }) {
+    return {
+      'workOrderId': workOrderId,
+      'pendingReportId': pendingReportId,
+      'complaint': complaint,
+      'cause': cause,
+      'correction': correction,
+      'collateral': collateral,
+      'comments': comments,
+    };
+  }
+
+  static bool hasMediaDraft(Uint8List? signatureBytes, List<Uint8List> photos) {
+    return signatureBytes != null || photos.isNotEmpty;
+  }
+
+  static Map<String, dynamic> mediaPayload(
+    Uint8List? signatureBytes,
+    List<Uint8List> photos,
+  ) {
+    return {
+      'signatureBytes':
+          signatureBytes == null ? null : base64Encode(signatureBytes),
+      'photos': photos.map(base64Encode).toList(),
+    };
+  }
+}
 
 class ServiceReportScreen extends ConsumerStatefulWidget {
   final String? initialWorkOrderId;
@@ -44,10 +103,12 @@ class _ServiceReportScreenState extends ConsumerState<ServiceReportScreen> {
   bool _restoringDraft = false;
   final List<Uint8List> _photos = [];
   final ImagePicker _picker = ImagePicker();
+  Timer? _draftSaveDebounce;
 
   String get _draftKey => widget.initialWorkOrderId?.isNotEmpty == true
       ? 'service_report_draft_${widget.initialWorkOrderId}'
       : 'service_report_draft';
+  String get _draftMediaKey => '${_draftKey}_media';
 
   @override
   void initState() {
@@ -55,21 +116,22 @@ class _ServiceReportScreenState extends ConsumerState<ServiceReportScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       _selectedWorkOrderId = widget.initialWorkOrderId;
       await _loadDraft();
-      _complaintCtrl.addListener(_saveDraft);
-      _causeCtrl.addListener(_saveDraft);
-      _correctionCtrl.addListener(_saveDraft);
-      _collateralCtrl.addListener(_saveDraft);
-      _commentsCtrl.addListener(_saveDraft);
+      _complaintCtrl.addListener(_scheduleDraftTextSave);
+      _causeCtrl.addListener(_scheduleDraftTextSave);
+      _correctionCtrl.addListener(_scheduleDraftTextSave);
+      _collateralCtrl.addListener(_scheduleDraftTextSave);
+      _commentsCtrl.addListener(_scheduleDraftTextSave);
     });
   }
 
   @override
   void dispose() {
-    _complaintCtrl.removeListener(_saveDraft);
-    _causeCtrl.removeListener(_saveDraft);
-    _correctionCtrl.removeListener(_saveDraft);
-    _collateralCtrl.removeListener(_saveDraft);
-    _commentsCtrl.removeListener(_saveDraft);
+    _draftSaveDebounce?.cancel();
+    _complaintCtrl.removeListener(_scheduleDraftTextSave);
+    _causeCtrl.removeListener(_scheduleDraftTextSave);
+    _correctionCtrl.removeListener(_scheduleDraftTextSave);
+    _collateralCtrl.removeListener(_scheduleDraftTextSave);
+    _commentsCtrl.removeListener(_scheduleDraftTextSave);
     _complaintCtrl.dispose();
     _causeCtrl.dispose();
     _correctionCtrl.dispose();
@@ -88,11 +150,17 @@ class _ServiceReportScreenState extends ConsumerState<ServiceReportScreen> {
   Future<void> _loadDraft() async {
     final prefs = await SharedPreferences.getInstance();
     final raw = prefs.getString(_draftKey);
-    if (raw == null) return;
+    final mediaRaw = prefs.getString(_draftMediaKey);
+    if (raw == null && mediaRaw == null) return;
 
     _restoringDraft = true;
     try {
-      final data = (jsonDecode(raw) as Map).cast<String, dynamic>();
+      final data = raw == null
+          ? <String, dynamic>{}
+          : (jsonDecode(raw) as Map).cast<String, dynamic>();
+      final mediaData = mediaRaw == null
+          ? data
+          : (jsonDecode(mediaRaw) as Map).cast<String, dynamic>();
       _selectedWorkOrderId = data['workOrderId'] as String?;
       _pendingReportId = data['pendingReportId'] as String?;
       _complaintCtrl.text = data['complaint'] as String? ?? '';
@@ -101,14 +169,14 @@ class _ServiceReportScreenState extends ConsumerState<ServiceReportScreen> {
       _collateralCtrl.text = data['collateral'] as String? ?? '';
       _commentsCtrl.text = data['comments'] as String? ?? '';
 
-      final signature = data['signatureBytes'];
+      final signature = mediaData['signatureBytes'];
       if (signature is String && signature.isNotEmpty) {
         _signatureBytes = base64Decode(signature);
         _signatureSaved = true;
       }
 
       _photos.clear();
-      final photos = data['photos'];
+      final photos = mediaData['photos'];
       if (photos is List) {
         for (final value in photos) {
           if (value is String && value.isNotEmpty) {
@@ -119,23 +187,38 @@ class _ServiceReportScreenState extends ConsumerState<ServiceReportScreen> {
       if (mounted) setState(() {});
     } catch (_) {
       await prefs.remove(_draftKey);
+      await prefs.remove(_draftMediaKey);
     } finally {
       _restoringDraft = false;
     }
   }
 
+  void _scheduleDraftTextSave() {
+    if (_restoringDraft) return;
+    _draftSaveDebounce?.cancel();
+    _draftSaveDebounce = Timer(const Duration(milliseconds: 350), () {
+      unawaited(_saveDraftText());
+    });
+  }
+
   Future<void> _saveDraft() async {
+    _draftSaveDebounce?.cancel();
+    await _saveDraftText();
+    await _saveDraftMedia();
+  }
+
+  Future<void> _saveDraftText() async {
     if (_restoringDraft) return;
     final prefs = await SharedPreferences.getInstance();
-    final hasDraft = _selectedWorkOrderId != null ||
-        _pendingReportId != null ||
-        _complaintCtrl.text.trim().isNotEmpty ||
-        _causeCtrl.text.trim().isNotEmpty ||
-        _correctionCtrl.text.trim().isNotEmpty ||
-        _collateralCtrl.text.trim().isNotEmpty ||
-        _commentsCtrl.text.trim().isNotEmpty ||
-        _signatureBytes != null ||
-        _photos.isNotEmpty;
+    final hasDraft = ServiceReportDraftCodec.hasTextDraft(
+      workOrderId: _selectedWorkOrderId,
+      pendingReportId: _pendingReportId,
+      complaint: _complaintCtrl.text,
+      cause: _causeCtrl.text,
+      correction: _correctionCtrl.text,
+      collateral: _collateralCtrl.text,
+      comments: _commentsCtrl.text,
+    );
 
     if (!hasDraft) {
       await prefs.remove(_draftKey);
@@ -144,24 +227,41 @@ class _ServiceReportScreenState extends ConsumerState<ServiceReportScreen> {
 
     await prefs.setString(
       _draftKey,
-      jsonEncode({
-        'workOrderId': _selectedWorkOrderId,
-        'pendingReportId': _pendingReportId,
-        'complaint': _complaintCtrl.text,
-        'cause': _causeCtrl.text,
-        'correction': _correctionCtrl.text,
-        'collateral': _collateralCtrl.text,
-        'comments': _commentsCtrl.text,
-        'signatureBytes':
-            _signatureBytes == null ? null : base64Encode(_signatureBytes!),
-        'photos': _photos.map(base64Encode).toList(),
-      }),
+      jsonEncode(
+        ServiceReportDraftCodec.textPayload(
+          workOrderId: _selectedWorkOrderId,
+          pendingReportId: _pendingReportId,
+          complaint: _complaintCtrl.text,
+          cause: _causeCtrl.text,
+          correction: _correctionCtrl.text,
+          collateral: _collateralCtrl.text,
+          comments: _commentsCtrl.text,
+        ),
+      ),
+    );
+  }
+
+  Future<void> _saveDraftMedia() async {
+    if (_restoringDraft) return;
+    final prefs = await SharedPreferences.getInstance();
+    if (!ServiceReportDraftCodec.hasMediaDraft(_signatureBytes, _photos)) {
+      await prefs.remove(_draftMediaKey);
+      return;
+    }
+
+    await prefs.setString(
+      _draftMediaKey,
+      jsonEncode(ServiceReportDraftCodec.mediaPayload(
+        _signatureBytes,
+        _photos,
+      )),
     );
   }
 
   Future<void> _clearDraft() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove(_draftKey);
+    await prefs.remove(_draftMediaKey);
   }
 
   Future<String?> _uploadSignature() async {
@@ -316,9 +416,22 @@ class _ServiceReportScreenState extends ConsumerState<ServiceReportScreen> {
       }
     }
 
-    final reportId = _pendingReportId ??
-        await ref.read(serviceReportControllerProvider.notifier).createReport(
-              workOrderId: _selectedWorkOrderId,
+    final selectedWorkOrderId = _selectedWorkOrderId;
+    if (selectedWorkOrderId == null) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(AppLocalizations.of(context).selectWorkOrder),
+            backgroundColor: AppColors.error,
+          ),
+        );
+      }
+      return;
+    }
+
+    final submitResult = _pendingReportId == null
+        ? await ref.read(serviceReportControllerProvider.notifier).createReport(
+              workOrderId: selectedWorkOrderId,
               complaint: _complaintCtrl.text.trim().isNotEmpty
                   ? _complaintCtrl.text.trim()
                   : null,
@@ -335,7 +448,9 @@ class _ServiceReportScreenState extends ConsumerState<ServiceReportScreen> {
                   ? _commentsCtrl.text.trim()
                   : null,
               techSignatureUrl: signatureUrl,
-            );
+            )
+        : ServiceReportSubmitResult(reportId: _pendingReportId!, synced: true);
+    final reportId = submitResult?.reportId;
 
     if (reportId != null) {
       _pendingReportId = reportId;
@@ -383,7 +498,7 @@ class _ServiceReportScreenState extends ConsumerState<ServiceReportScreen> {
   Widget _sectionHeader(BuildContext context, String title,
       {String? subtitle}) {
     return Padding(
-      padding: const EdgeInsets.only(top: 24, bottom: 8),
+      padding: const EdgeInsets.only(top: 18, bottom: 6),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -392,7 +507,7 @@ class _ServiceReportScreenState extends ConsumerState<ServiceReportScreen> {
             style: Theme.of(context)
                 .textTheme
                 .labelSmall
-                ?.copyWith(color: AppColors.primary, letterSpacing: 1.2),
+                ?.copyWith(color: AppColors.primary, letterSpacing: 0.8),
           ),
           if (subtitle != null) ...[
             const SizedBox(height: 2),
@@ -407,218 +522,66 @@ class _ServiceReportScreenState extends ConsumerState<ServiceReportScreen> {
     );
   }
 
-  @override
-  Widget build(BuildContext context) {
+  Widget _reportTextField({
+    required TextEditingController controller,
+    required String hintText,
+    bool requiredField = false,
+    int minLines = 2,
+    int maxLines = 3,
+  }) {
     final l10n = AppLocalizations.of(context);
-    final isLoading = ref.watch(serviceReportControllerProvider).isLoading;
-    final workOrdersAsync = ref.watch(workOrdersProvider);
+    return TextFormField(
+      controller: controller,
+      minLines: minLines,
+      maxLines: maxLines,
+      scrollPadding: const EdgeInsets.fromLTRB(16, 16, 16, 160),
+      textCapitalization: TextCapitalization.sentences,
+      decoration: InputDecoration(
+        hintText: hintText,
+        alignLabelWithHint: true,
+        contentPadding:
+            const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      ),
+      validator: requiredField
+          ? (v) => (v == null || v.trim().isEmpty) ? l10n.fieldRequired : null
+          : null,
+    );
+  }
 
-    return Scaffold(
-      appBar: AppBar(title: Text(l10n.serviceReportTitle)),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
-        child: Form(
-          key: _formKey,
+  Future<void> _openSignatureSheet() async {
+    await showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: AppColors.surface,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(18)),
+      ),
+      builder: (sheetContext) => SafeArea(
+        child: Padding(
+          padding: EdgeInsets.fromLTRB(
+            16,
+            16,
+            16,
+            16 + MediaQuery.of(sheetContext).viewInsets.bottom,
+          ),
           child: Column(
+            mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              // ── Work order selector ─────────────────────────────────
-              _sectionHeader(context, l10n.linkedWorkOrder),
-              workOrdersAsync.when(
-                loading: () => const CircularProgressIndicator(),
-                error: (_, __) => const SizedBox.shrink(),
-                data: (orders) {
-                  final active = orders
-                      .where((w) =>
-                          ServiceReportWorkflow.canAttachReportToWorkOrder(
-                              w.status))
-                      .toList();
-                  final hasSelectedWorkOrder = active.any(
-                    (w) => w.id == _selectedWorkOrderId,
-                  );
-                  return DropdownButtonFormField<String>(
-                    initialValue:
-                        hasSelectedWorkOrder ? _selectedWorkOrderId : null,
-                    decoration: InputDecoration(
-                      labelText: l10n.linkedWorkOrder,
-                      prefixIcon: const Icon(Icons.build_outlined),
-                    ),
-                    dropdownColor: AppColors.surfaceVariant,
-                    items: active
-                        .map((w) => DropdownMenuItem(
-                              value: w.id,
-                              child: Text(
-                                w.status == WorkOrderStatus.closed
-                                    ? '${w.title} • closed'
-                                    : w.title,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            ))
-                        .toList(),
-                    onChanged: (v) {
-                      setState(() => _selectedWorkOrderId = v);
-                      _saveDraft();
-                    },
-                  );
-                },
-              ),
-
-              // ── 5-C Fields ──────────────────────────────────────────
-
-              _sectionHeader(
-                context,
-                l10n.srComplaint,
-                subtitle: l10n.srComplaintSub,
-              ),
-              TextFormField(
-                controller: _complaintCtrl,
-                maxLines: 3,
-                textCapitalization: TextCapitalization.sentences,
-                decoration: InputDecoration(
-                  hintText: l10n.srComplaintHint,
-                  alignLabelWithHint: true,
-                ),
-                validator: (v) =>
-                    (v == null || v.trim().isEmpty) ? l10n.fieldRequired : null,
-              ),
-
-              _sectionHeader(
-                context,
-                l10n.srCause,
-                subtitle: l10n.srCauseSub,
-              ),
-              TextFormField(
-                controller: _causeCtrl,
-                maxLines: 3,
-                textCapitalization: TextCapitalization.sentences,
-                decoration: InputDecoration(
-                  hintText: l10n.srCauseHint,
-                  alignLabelWithHint: true,
-                ),
-                validator: (v) =>
-                    (v == null || v.trim().isEmpty) ? l10n.fieldRequired : null,
-              ),
-
-              _sectionHeader(
-                context,
-                l10n.srCorrection,
-                subtitle: l10n.srCorrectionSub,
-              ),
-              TextFormField(
-                controller: _correctionCtrl,
-                maxLines: 4,
-                textCapitalization: TextCapitalization.sentences,
-                decoration: InputDecoration(
-                  hintText: l10n.srCorrectionHint,
-                  alignLabelWithHint: true,
-                ),
-                validator: (v) =>
-                    (v == null || v.trim().isEmpty) ? l10n.fieldRequired : null,
-              ),
-
-              _sectionHeader(
-                context,
-                l10n.srSecondaryDamage,
-                subtitle: l10n.srSecondaryDamageSub,
-              ),
-              TextFormField(
-                controller: _collateralCtrl,
-                maxLines: 3,
-                textCapitalization: TextCapitalization.sentences,
-                decoration: InputDecoration(
-                  hintText: l10n.srSecondaryDamageHint,
-                  alignLabelWithHint: true,
-                ),
-              ),
-
-              _sectionHeader(
-                context,
-                l10n.srComments,
-                subtitle: l10n.srCommentsSub,
-              ),
-              TextFormField(
-                controller: _commentsCtrl,
-                maxLines: 3,
-                textCapitalization: TextCapitalization.sentences,
-                decoration: InputDecoration(
-                  hintText: l10n.srCommentsHint,
-                  alignLabelWithHint: true,
-                ),
-              ),
-
-              // ── Photos ─────────────────────────────────────────────
-              _sectionHeader(
-                context,
-                l10n.serviceReportPhotos,
-                subtitle: l10n.serviceReportPhotosHint,
-              ),
-              // Add photo buttons — always visible
               Row(
                 children: [
-                  OutlinedButton.icon(
-                    onPressed: _pickPhoto,
-                    icon: const Icon(Icons.photo_library, size: 18),
-                    label: const Text('Gallery'),
+                  Text(
+                    AppLocalizations.of(sheetContext).technicianSignature,
+                    style: Theme.of(sheetContext).textTheme.titleMedium,
                   ),
-                  const SizedBox(width: 8),
-                  OutlinedButton.icon(
-                    onPressed: _takePhoto,
-                    icon: const Icon(Icons.camera_alt, size: 18),
-                    label: const Text('Camera'),
+                  const Spacer(),
+                  IconButton(
+                    onPressed: () => Navigator.of(sheetContext).pop(),
+                    icon: const Icon(Icons.close),
                   ),
                 ],
               ),
               const SizedBox(height: 8),
-              if (_photos.isNotEmpty) ...[
-                SizedBox(
-                  height: 100,
-                  child: ListView.builder(
-                    scrollDirection: Axis.horizontal,
-                    itemCount: _photos.length,
-                    itemBuilder: (_, i) => Padding(
-                      padding: const EdgeInsets.only(right: 8),
-                      child: Stack(
-                        children: [
-                          ClipRRect(
-                            borderRadius: BorderRadius.circular(8),
-                            child: Image.memory(
-                              _photos[i],
-                              width: 100,
-                              height: 100,
-                              fit: BoxFit.cover,
-                            ),
-                          ),
-                          Positioned(
-                            top: 4,
-                            right: 4,
-                            child: GestureDetector(
-                              onTap: () {
-                                setState(() => _photos.removeAt(i));
-                                _saveDraft();
-                              },
-                              child: Container(
-                                padding: const EdgeInsets.all(4),
-                                decoration: const BoxDecoration(
-                                  color: AppColors.error,
-                                  shape: BoxShape.circle,
-                                ),
-                                child: const Icon(
-                                  Icons.close,
-                                  size: 14,
-                                  color: Colors.white,
-                                ),
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 8),
-              ],
-              // ── Signature ───────────────────────────────────────────
-              _sectionHeader(context, l10n.technicianSignature),
               SignaturePadWidget(
                 onSave: (bytes) async {
                   setState(() {
@@ -626,45 +589,314 @@ class _ServiceReportScreenState extends ConsumerState<ServiceReportScreen> {
                     _signatureSaved = true;
                   });
                   await _saveDraft();
-                  if (context.mounted) {
+                  if (sheetContext.mounted) {
+                    Navigator.of(sheetContext).pop();
+                  }
+                  if (mounted) {
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
-                        content: Text(l10n.signatureSaved),
+                        content:
+                            Text(AppLocalizations.of(context).signatureSaved),
                         backgroundColor: AppColors.success,
                       ),
                     );
                   }
                 },
               ),
-              if (_signatureSaved) ...[
-                const SizedBox(height: 8),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final isLoading = ref.watch(serviceReportControllerProvider).isLoading;
+    final profile = ref.watch(profileProvider).valueOrNull;
+    final canSubmit =
+        ServiceReportWorkflow.canCreateOrUpdateReport(profile?.role);
+    final workOrdersAsync = ref.watch(workOrdersProvider);
+
+    return Scaffold(
+      resizeToAvoidBottomInset: true,
+      appBar: AppBar(
+        title: Text(l10n.serviceReportTitle),
+        actions: [
+          Tooltip(
+            message: _signatureSaved
+                ? l10n.signatureCaptured
+                : l10n.technicianSignature,
+            child: IconButton(
+              onPressed: _openSignatureSheet,
+              icon: Icon(
+                _signatureSaved ? Icons.check_circle : Icons.draw_outlined,
+                color: _signatureSaved ? AppColors.success : null,
+              ),
+            ),
+          ),
+          Tooltip(
+            message: l10n.submitReport,
+            child: IconButton(
+              onPressed: isLoading || !canSubmit
+                  ? null
+                  : () {
+                      FocusScope.of(context).unfocus();
+                      _submit();
+                    },
+              icon: isLoading
+                  ? const SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Icon(Icons.send),
+            ),
+          ),
+        ],
+      ),
+      body: SafeArea(
+        top: false,
+        child: ScrollConfiguration(
+          behavior: ScrollConfiguration.of(context).copyWith(
+            scrollbars: false,
+          ),
+          child: Form(
+            key: _formKey,
+            child: ListView(
+              keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+              physics: const ClampingScrollPhysics(),
+              padding: const EdgeInsets.fromLTRB(12, 12, 12, 104),
+              children: [
+                if (!canSubmit) ...[
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: AppColors.warning.withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(
+                        color: AppColors.warning.withValues(alpha: 0.35),
+                      ),
+                    ),
+                    child: const Text(
+                      'Only owner and employee accounts can submit service reports.',
+                      style: TextStyle(color: AppColors.warning),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                ],
+                if (widget.initialWorkOrderId != null) ...[
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: AppColors.primary.withValues(alpha: 0.10),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: const Text(
+                      'Linked to this work order. Fill the 5C fields below.',
+                      style: TextStyle(color: AppColors.textSecondary),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                ],
+                _sectionHeader(context, l10n.linkedWorkOrder),
+                workOrdersAsync.when(
+                  loading: () => const LinearProgressIndicator(),
+                  error: (error, __) => Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: AppColors.error.withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Text(
+                      'Could not load work orders: $error',
+                      style: const TextStyle(color: AppColors.error),
+                    ),
+                  ),
+                  data: (orders) {
+                    final active = orders
+                        .where((w) =>
+                            ServiceReportWorkflow.canAttachReportToWorkOrder(
+                                w.status))
+                        .toList();
+                    final hasSelectedWorkOrder = active.any(
+                      (w) => w.id == _selectedWorkOrderId,
+                    );
+                    if (active.isEmpty) {
+                      return Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: AppColors.warning.withValues(alpha: 0.12),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: const Text(
+                          'No cached work orders are available. Reopen from a work order or reconnect and try again.',
+                          style: TextStyle(color: AppColors.warning),
+                        ),
+                      );
+                    }
+                    Widget workOrderLabel(WorkOrder w) => Text(
+                          w.status == WorkOrderStatus.closed
+                              ? '${w.title} • closed'
+                              : w.title,
+                          overflow: TextOverflow.ellipsis,
+                          maxLines: 1,
+                        );
+
+                    return DropdownButtonFormField<String>(
+                      initialValue:
+                          hasSelectedWorkOrder ? _selectedWorkOrderId : null,
+                      isExpanded: true,
+                      selectedItemBuilder: (context) => active
+                          .map(
+                            (w) => Align(
+                              alignment: Alignment.centerLeft,
+                              child: workOrderLabel(w),
+                            ),
+                          )
+                          .toList(),
+                      decoration: InputDecoration(
+                        labelText: l10n.linkedWorkOrder,
+                        prefixIcon: const Icon(Icons.build_outlined),
+                      ),
+                      dropdownColor: AppColors.surfaceVariant,
+                      items: active
+                          .map(
+                            (w) => DropdownMenuItem(
+                              value: w.id,
+                              child: workOrderLabel(w),
+                            ),
+                          )
+                          .toList(),
+                      onChanged: (v) {
+                        setState(() => _selectedWorkOrderId = v);
+                        _saveDraftText();
+                      },
+                    );
+                  },
+                ),
+                _sectionHeader(
+                  context,
+                  l10n.srComplaint,
+                  subtitle: l10n.srComplaintSub,
+                ),
+                _reportTextField(
+                  controller: _complaintCtrl,
+                  hintText: l10n.srComplaintHint,
+                  requiredField: true,
+                ),
+                _sectionHeader(
+                  context,
+                  l10n.srCause,
+                  subtitle: l10n.srCauseSub,
+                ),
+                _reportTextField(
+                  controller: _causeCtrl,
+                  hintText: l10n.srCauseHint,
+                  requiredField: true,
+                ),
+                _sectionHeader(
+                  context,
+                  l10n.srCorrection,
+                  subtitle: l10n.srCorrectionSub,
+                ),
+                _reportTextField(
+                  controller: _correctionCtrl,
+                  hintText: l10n.srCorrectionHint,
+                  requiredField: true,
+                  maxLines: 4,
+                ),
+                _sectionHeader(
+                  context,
+                  l10n.srSecondaryDamage,
+                  subtitle: l10n.srSecondaryDamageSub,
+                ),
+                _reportTextField(
+                  controller: _collateralCtrl,
+                  hintText: l10n.srSecondaryDamageHint,
+                ),
+                _sectionHeader(
+                  context,
+                  l10n.srComments,
+                  subtitle: l10n.srCommentsSub,
+                ),
+                _reportTextField(
+                  controller: _commentsCtrl,
+                  hintText: l10n.srCommentsHint,
+                ),
+                _sectionHeader(
+                  context,
+                  l10n.serviceReportPhotos,
+                  subtitle: l10n.serviceReportPhotosHint,
+                ),
                 Row(
                   children: [
-                    const Icon(Icons.check_circle,
-                        color: AppColors.success, size: 16),
-                    const SizedBox(width: 6),
-                    Text(l10n.signatureCaptured,
-                        style: const TextStyle(
-                            color: AppColors.success, fontSize: 13)),
+                    OutlinedButton.icon(
+                      onPressed: _pickPhoto,
+                      icon: const Icon(Icons.photo_library, size: 18),
+                      label: const Text('Gallery'),
+                    ),
+                    const SizedBox(width: 8),
+                    OutlinedButton.icon(
+                      onPressed: _takePhoto,
+                      icon: const Icon(Icons.camera_alt, size: 18),
+                      label: const Text('Camera'),
+                    ),
                   ],
                 ),
+                const SizedBox(height: 8),
+                if (_photos.isNotEmpty) ...[
+                  SizedBox(
+                    height: 100,
+                    child: ListView.builder(
+                      scrollDirection: Axis.horizontal,
+                      itemCount: _photos.length,
+                      itemBuilder: (_, i) => Padding(
+                        padding: const EdgeInsets.only(right: 8),
+                        child: Stack(
+                          children: [
+                            ClipRRect(
+                              borderRadius: BorderRadius.circular(8),
+                              child: Image.memory(
+                                _photos[i],
+                                width: 100,
+                                height: 100,
+                                fit: BoxFit.cover,
+                              ),
+                            ),
+                            Positioned(
+                              top: 4,
+                              right: 4,
+                              child: GestureDetector(
+                                onTap: () {
+                                  setState(() => _photos.removeAt(i));
+                                  _saveDraft();
+                                },
+                                child: Container(
+                                  padding: const EdgeInsets.all(4),
+                                  decoration: const BoxDecoration(
+                                    color: AppColors.error,
+                                    shape: BoxShape.circle,
+                                  ),
+                                  child: const Icon(
+                                    Icons.close,
+                                    size: 14,
+                                    color: Colors.white,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                ],
+                const SizedBox(height: 16),
               ],
-
-              const SizedBox(height: 32),
-              ElevatedButton.icon(
-                onPressed: isLoading ? null : _submit,
-                icon: isLoading
-                    ? const SizedBox(
-                        width: 16,
-                        height: 16,
-                        child: CircularProgressIndicator(
-                            strokeWidth: 2, color: Colors.white),
-                      )
-                    : const Icon(Icons.send),
-                label: Text(l10n.submitReport),
-              ),
-              const SizedBox(height: 32),
-            ],
+            ),
           ),
         ),
       ),

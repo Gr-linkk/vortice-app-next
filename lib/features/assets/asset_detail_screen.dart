@@ -537,12 +537,9 @@ class _ServiceReportsCard extends ConsumerWidget {
     return InkWell(
       borderRadius: BorderRadius.circular(12),
       onTap: () {
-        final reports = reportsAsync.valueOrNull ?? const [];
-        if (reports.isNotEmpty) {
-          context.push('$routePrefix/service-reports/${reports.first.id}');
-        } else if (routePrefix != '/client') {
-          context.push('$routePrefix/service-reports');
-        }
+        context.push(
+          '$routePrefix/service-reports?assetId=${Uri.encodeComponent(asset.id)}',
+        );
       },
       child: Container(
         padding: const EdgeInsets.all(16),

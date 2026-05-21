@@ -135,9 +135,7 @@ class _WorkOrderBody extends ConsumerWidget {
       UserRole.employee => '/employee',
       UserRole.client ||
       UserRole.clientAdmin ||
-      UserRole.clientMechanic ||
-      UserRole.clientOperator ||
-      UserRole.operator =>
+      UserRole.clientMechanic =>
         '/client',
       _ => '/owner',
     };
@@ -1391,28 +1389,38 @@ class _WorkOrderServiceReportCard extends ConsumerWidget {
         ServiceReportWorkflow.canAttachReportToWorkOrder(workOrder.status);
     if (!canView && !canAttach) return const SizedBox.shrink();
 
-    final reportAsync =
-        ref.watch(serviceReportByWorkOrderProvider(workOrder.id));
+    final reportsAsync =
+        ref.watch(serviceReportsByWorkOrderProvider(workOrder.id));
 
-    return reportAsync.when(
+    return reportsAsync.when(
       loading: () => const SizedBox.shrink(),
       error: (_, __) => const SizedBox.shrink(),
-      data: (report) {
-        if (report == null && !canAttach) return const SizedBox.shrink();
+      data: (reports) {
+        if (reports.isEmpty && !canAttach) return const SizedBox.shrink();
 
-        final hasReport = report != null;
-        final route = hasReport
-            ? '$routePrefix/service-reports/${report.id}'
-            : '$routePrefix/service-reports/new?workOrderId=${Uri.encodeComponent(workOrder.id)}';
-        final subtitle = hasReport
-            ? 'Attached to this work order and vessel record'
-            : workOrder.status == WorkOrderStatus.closed
-                ? 'This work order is closed. Add a report without reopening it.'
-                : 'Attach a client-visible report to this work order.';
+        final hasReports = reports.isNotEmpty;
+        final latest = hasReports ? reports.first : null;
+        final latestDate = latest?.createdAt == null
+            ? null
+            : DateFormat('MMM d, yyyy').format(latest!.createdAt!.toLocal());
+        final encodedWorkOrderId = Uri.encodeComponent(workOrder.id);
+        final listRoute =
+            '$routePrefix/service-reports?workOrderId=$encodedWorkOrderId';
+        final newRoute =
+            '$routePrefix/service-reports/new?workOrderId=$encodedWorkOrderId';
+        final subtitle = hasReports
+            ? '${reports.length} report${reports.length == 1 ? '' : 's'} attached${latestDate == null ? '' : ' • latest $latestDate'}'
+            : workOrder.status == WorkOrderStatus.invoiced
+                ? 'This work order is invoiced. Add an additional report anyway.'
+                : workOrder.status == WorkOrderStatus.closed
+                    ? 'This work order is closed. Add a report without reopening it.'
+                    : 'Attach a client-visible report to this work order.';
 
         return InkWell(
           borderRadius: BorderRadius.circular(12),
-          onTap: () => context.push(route),
+          onTap: hasReports
+              ? (canView ? () => context.push(listRoute) : null)
+              : (canAttach ? () => context.push(newRoute) : null),
           child: Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
@@ -1425,10 +1433,10 @@ class _WorkOrderServiceReportCard extends ConsumerWidget {
             child: Row(
               children: [
                 Icon(
-                  hasReport
+                  hasReports
                       ? Icons.description_outlined
                       : Icons.note_add_outlined,
-                  color: hasReport ? AppColors.success : AppColors.primary,
+                  color: hasReports ? AppColors.success : AppColors.primary,
                 ),
                 const SizedBox(width: 12),
                 Expanded(
@@ -1436,8 +1444,8 @@ class _WorkOrderServiceReportCard extends ConsumerWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        hasReport
-                            ? 'View ${l10n.serviceReport}'
+                        hasReports
+                            ? 'View ${l10n.serviceReportListTitle}'
                             : 'Add ${l10n.serviceReport}',
                         style: Theme.of(context).textTheme.titleSmall,
                       ),
@@ -1451,7 +1459,11 @@ class _WorkOrderServiceReportCard extends ConsumerWidget {
                     ],
                   ),
                 ),
-                const Icon(Icons.chevron_right, color: AppColors.textSecondary),
+                if ((hasReports && canView) || (!hasReports && canAttach))
+                  const Icon(
+                    Icons.chevron_right,
+                    color: AppColors.textSecondary,
+                  ),
               ],
             ),
           ),

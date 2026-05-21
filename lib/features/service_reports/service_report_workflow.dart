@@ -12,13 +12,10 @@ class ServiceReportWorkflow {
         UserRole.employee ||
         UserRole.client ||
         UserRole.clientAdmin ||
-        UserRole.clientMechanic ||
-        UserRole.clientOperator ||
-        UserRole.operator =>
+        UserRole.clientMechanic =>
           true,
         _ => false,
       };
 
-  static bool canAttachReportToWorkOrder(WorkOrderStatus status) =>
-      status != WorkOrderStatus.invoiced;
+  static bool canAttachReportToWorkOrder(WorkOrderStatus status) => true;
 }

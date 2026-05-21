@@ -8,7 +8,12 @@ void main() {
       _template(id: 'generic', name: 'Generic Marine'),
       _template(
           id: 'dredge-preop', name: 'Dredge Pre-Op', assetTypeId: 'dredge'),
-      _template(id: 'dredge-250', name: 'Dredge 250HR', assetTypeId: 'dredge'),
+      _template(
+        id: 'dredge-250',
+        name: 'Dredge 250HR',
+        assetTypeId: 'dredge',
+        intervalHours: 250,
+      ),
       _template(id: 'tug-preop', name: 'Tug Pre-Op', assetTypeId: 'tug'),
       _template(
         id: 'inactive-dredge',
@@ -24,8 +29,8 @@ void main() {
     );
 
     expect(filtered.map((template) => template.id), [
-      'dredge-preop',
       'dredge-250',
+      'dredge-preop',
     ]);
   });
 
@@ -44,11 +49,13 @@ ChecklistTemplate _template({
   required String id,
   required String name,
   String? assetTypeId,
+  int? intervalHours,
   bool isActive = true,
 }) =>
     ChecklistTemplate(
       id: id,
       assetTypeId: assetTypeId,
       name: name,
+      intervalHours: intervalHours,
       isActive: isActive,
     );
