@@ -16,14 +16,14 @@ import 'package:vortice_app/models/checklist_template.dart';
 import 'package:vortice_app/models/client_capability.dart';
 import 'package:vortice_app/models/work_order.dart';
 
-// ── Provider: checklist-backed assignments for the current mechanic ─────────
+// ── Provider: WOs assigned to the current mechanic ──────────────────────────
 
-final mechanicAssignedChecklistWorkProvider =
+final mechanicAssignedWorkOrdersProvider =
     FutureProvider<List<WorkOrder>>((ref) async {
-  final assignedWorkOrders = await ref.watch(workOrdersProvider.future);
-  return assignedWorkOrders
-      .where((workOrder) => workOrder.checklistTemplateId != null)
-      .toList(growable: false);
+  // Work-order sharing now lives in work_order_assignments. Reuse the shared
+  // provider so client mechanics see assigned/shared work without relying only
+  // on the legacy single assigned_to column.
+  return ref.watch(workOrdersProvider.future);
 });
 
 // ── Provider: mechanic checklist autonomy for visible fleet ─────────────────
@@ -61,7 +61,7 @@ final mechanicAvailableChecklistsProvider =
 final mechanicPartsProvider =
     FutureProvider<List<Map<String, dynamic>>>((ref) async {
   final assignedWork =
-      await ref.watch(mechanicAssignedChecklistWorkProvider.future);
+      await ref.watch(mechanicAssignedWorkOrdersProvider.future);
   final assetIds =
       assignedWork.map((workOrder) => workOrder.assetId).toSet().toList();
 
@@ -84,7 +84,7 @@ class ClientMechanicDashboard extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final profile = ref.watch(profileProvider).valueOrNull;
-    final assignedAsync = ref.watch(mechanicAssignedChecklistWorkProvider);
+    final assignedAsync = ref.watch(mechanicAssignedWorkOrdersProvider);
     final pmChecklistsAllowedAsync = ref.watch(clientCapabilityGateProvider((
       clientId: null,
       capability: ClientCapability.pmChecklists,
@@ -116,7 +116,7 @@ class ClientMechanicDashboard extends ConsumerWidget {
       ),
       body: RefreshIndicator(
         onRefresh: () async {
-          ref.invalidate(mechanicAssignedChecklistWorkProvider);
+          ref.invalidate(mechanicAssignedWorkOrdersProvider);
           ref.invalidate(mechanicAvailableChecklistsProvider);
           ref.invalidate(mechanicPartsProvider);
           ref.invalidate(clientCapabilityGateProvider((
@@ -131,9 +131,9 @@ class ClientMechanicDashboard extends ConsumerWidget {
         child: ListView(
           padding: const EdgeInsets.only(bottom: 32),
           children: [
-            // ── 1. Assigned Checklists ─────────────────────────────────
+            // ── 1. Assigned Work ──────────────────────────────────────
             const _SectionHeader(
-              title: 'My Assigned Checklists',
+              title: 'My Assigned Work',
               icon: Icons.build_outlined,
             ),
             assignedAsync.when(
@@ -143,12 +143,12 @@ class ClientMechanicDashboard extends ConsumerWidget {
                 if (orders.isEmpty) {
                   return const _EmptyState(
                     icon: Icons.check_circle_outline,
-                    message: 'No checklists assigned yet.',
+                    message: 'No work assigned yet.',
                   );
                 }
                 return Column(
                   children: orders
-                      .map((wo) => _AssignedChecklistCard(workOrder: wo))
+                      .map((wo) => _AssignedWorkCard(workOrder: wo))
                       .toList(),
                 );
               },
@@ -234,15 +234,25 @@ class ClientMechanicDashboard extends ConsumerWidget {
   }
 }
 
-// ── Assigned Checklist Card ──────────────────────────────────────────────────
+// ── Assigned Work Card ────────────────────────────────────────────────────────
 
-class _AssignedChecklistCard extends ConsumerWidget {
+class _AssignedWorkCard extends ConsumerWidget {
   final WorkOrder workOrder;
-  const _AssignedChecklistCard({required this.workOrder});
+  const _AssignedWorkCard({required this.workOrder});
+
+  Color _statusColor() => switch (workOrder.status) {
+        WorkOrderStatus.draft => AppColors.textSecondary,
+        WorkOrderStatus.assigned => AppColors.primary,
+        WorkOrderStatus.inProgress => AppColors.warning,
+        WorkOrderStatus.onHold => AppColors.error,
+        WorkOrderStatus.pendingReview => AppColors.primary,
+        WorkOrderStatus.invoiced => AppColors.success,
+        WorkOrderStatus.closed => AppColors.success,
+      };
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    const color = AppColors.primary;
+    final color = _statusColor();
     final assetNameAsync = ref.watch(assetNameProvider(workOrder.assetId));
     final scheduledStr = workOrder.scheduledDate != null
         ? DateFormat('MMM d').format(workOrder.scheduledDate!)
@@ -251,7 +261,7 @@ class _AssignedChecklistCard extends ConsumerWidget {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
       child: InkWell(
-        onTap: () => context.push('/client/checklists/${workOrder.id}'),
+        onTap: () => context.push('/client/work-orders/${workOrder.id}'),
         borderRadius: BorderRadius.circular(12),
         child: Container(
           padding: const EdgeInsets.all(14),
@@ -328,8 +338,8 @@ class _AssignedChecklistCard extends ConsumerWidget {
                   color: color.withValues(alpha: 0.12),
                   borderRadius: BorderRadius.circular(20),
                 ),
-                child: const Text(
-                  'Open checklist',
+                child: Text(
+                  workOrder.status.name,
                   style: TextStyle(
                     color: color,
                     fontSize: 10,

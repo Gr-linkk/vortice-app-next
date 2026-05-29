@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:vortice_app/core/app_shell.dart';
-import 'package:vortice_app/core/route_access_policy.dart';
 import 'package:vortice_app/core/theme.dart';
 import 'package:vortice_app/features/assets/add_asset_screen.dart';
 import 'package:vortice_app/features/assets/asset_detail_screen.dart';
@@ -110,12 +109,6 @@ final routerProvider = Provider<GoRouter>((ref) {
 
       // Authenticated — bounce off auth screens to the correct dashboard
       if (onAuthRoute) return _dashboardFor(authStatus.profile?.role);
-
-      final policyRedirect = RouteAccessPolicy.redirectFor(
-        authStatus.profile?.role,
-        location,
-      );
-      if (policyRedirect != null) return policyRedirect;
 
       return null;
     },
