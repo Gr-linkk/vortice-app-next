@@ -60,19 +60,18 @@ class ServiceReportListScreen extends ConsumerWidget {
         : initialAssetId != null
             ? 'Asset Service Reports'
             : l10n.serviceReportListTitle;
-    final authoringRoute = serviceReportAuthoringRoute(
-      prefix: prefix,
-      workOrderId: initialWorkOrderId,
-    );
 
     return Scaffold(
       appBar: AppBar(
         title: Text(title),
       ),
-      floatingActionButton: canCreate && authoringRoute != null
+      floatingActionButton: canCreate
           ? FloatingActionButton.extended(
               onPressed: () {
-                context.push(authoringRoute);
+                final query = initialWorkOrderId == null
+                    ? ''
+                    : '?workOrderId=${Uri.encodeComponent(initialWorkOrderId!)}';
+                context.push('$prefix/service-reports/new$query');
               },
               icon: const Icon(Icons.add),
               label: Text(l10n.newReport),
@@ -98,11 +97,14 @@ class ServiceReportListScreen extends ConsumerWidget {
                     l10n.noServiceReports,
                     style: const TextStyle(color: AppColors.textSecondary),
                   ),
-                  if (canCreate && authoringRoute != null) ...[
+                  if (canCreate) ...[
                     const SizedBox(height: 16),
                     OutlinedButton.icon(
                       onPressed: () {
-                        context.push(authoringRoute);
+                        final query = initialWorkOrderId == null
+                            ? ''
+                            : '?workOrderId=${Uri.encodeComponent(initialWorkOrderId!)}';
+                        context.push('$prefix/service-reports/new$query');
                       },
                       icon: const Icon(Icons.add),
                       label: Text(l10n.newReport),
@@ -144,15 +146,6 @@ class ServiceReportListScreen extends ConsumerWidget {
       ),
     );
   }
-}
-
-String? serviceReportAuthoringRoute({
-  required String prefix,
-  required String? workOrderId,
-}) {
-  if (workOrderId == null || workOrderId.isEmpty) return null;
-  final encodedWorkOrderId = Uri.encodeComponent(workOrderId);
-  return '$prefix/service-reports/new-v2?workOrderId=$encodedWorkOrderId';
 }
 
 class _ReportCard extends StatelessWidget {
