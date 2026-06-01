@@ -81,11 +81,6 @@ Minimum slice:
 - no signature pad
 - no PDF/export work
 
-Accepted direction:
-- This slice is intentionally only the 5C form plus local draft persistence.
-- Signature, photos, PDF/export, and full offline queue UX are explicitly out of scope until the 5C flow is proven stable on Garrett's phone.
-- Work Order Detail should route staff directly to v2 authoring. The report list remains history, not the authoring entry point.
-
 Definition of done for slice one:
 - opens reliably from a real in-progress work order on Garrett's phone
 - no red screen
