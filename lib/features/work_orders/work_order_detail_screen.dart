@@ -1407,7 +1407,7 @@ class _WorkOrderServiceReportCard extends ConsumerWidget {
         final listRoute =
             '$routePrefix/service-reports?workOrderId=$encodedWorkOrderId';
         final newRoute =
-            '$routePrefix/service-reports/new-v2?workOrderId=$encodedWorkOrderId';
+            '$routePrefix/service-reports/new?workOrderId=$encodedWorkOrderId';
         final subtitle = hasReports
             ? '${reports.length} report${reports.length == 1 ? '' : 's'} attached${latestDate == null ? '' : ' • latest $latestDate'}'
             : workOrder.status == WorkOrderStatus.invoiced
@@ -1416,71 +1416,56 @@ class _WorkOrderServiceReportCard extends ConsumerWidget {
                     ? 'This work order is closed. Add a report without reopening it.'
                     : 'Attach a client-visible report to this work order.';
 
-        return Container(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: AppColors.surface,
-            borderRadius: BorderRadius.circular(12),
-            border: const Border.fromBorderSide(
-              BorderSide(color: AppColors.cardBorder),
-            ),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              InkWell(
-                borderRadius: BorderRadius.circular(8),
-                onTap: hasReports && canView
-                    ? () => context.push(listRoute)
-                    : canAttach
-                        ? () => context.push(newRoute)
-                        : null,
-                child: Row(
-                  children: [
-                    Icon(
-                      hasReports
-                          ? Icons.description_outlined
-                          : Icons.note_add_outlined,
-                      color: hasReports ? AppColors.success : AppColors.primary,
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            hasReports
-                                ? 'View ${l10n.serviceReportListTitle}'
-                                : 'Add ${l10n.serviceReport}',
-                            style: Theme.of(context).textTheme.titleSmall,
-                          ),
-                          Text(
-                            subtitle,
-                            style: const TextStyle(
-                              color: AppColors.textSecondary,
-                              fontSize: 12,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    if ((hasReports && canView) || canAttach)
-                      const Icon(
-                        Icons.chevron_right,
-                        color: AppColors.textSecondary,
-                      ),
-                  ],
-                ),
+        return InkWell(
+          borderRadius: BorderRadius.circular(12),
+          onTap: hasReports
+              ? (canView ? () => context.push(listRoute) : null)
+              : (canAttach ? () => context.push(newRoute) : null),
+          child: Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: AppColors.surface,
+              borderRadius: BorderRadius.circular(12),
+              border: const Border.fromBorderSide(
+                BorderSide(color: AppColors.cardBorder),
               ),
-              if (canAttach && hasReports) ...[
-                const SizedBox(height: 12),
-                OutlinedButton.icon(
-                  onPressed: () => context.push(newRoute),
-                  icon: const Icon(Icons.add),
-                  label: const Text('Add another report'),
+            ),
+            child: Row(
+              children: [
+                Icon(
+                  hasReports
+                      ? Icons.description_outlined
+                      : Icons.note_add_outlined,
+                  color: hasReports ? AppColors.success : AppColors.primary,
                 ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        hasReports
+                            ? 'View ${l10n.serviceReportListTitle}'
+                            : 'Add ${l10n.serviceReport}',
+                        style: Theme.of(context).textTheme.titleSmall,
+                      ),
+                      Text(
+                        subtitle,
+                        style: const TextStyle(
+                          color: AppColors.textSecondary,
+                          fontSize: 12,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                if ((hasReports && canView) || (!hasReports && canAttach))
+                  const Icon(
+                    Icons.chevron_right,
+                    color: AppColors.textSecondary,
+                  ),
               ],
-            ],
+            ),
           ),
         );
       },

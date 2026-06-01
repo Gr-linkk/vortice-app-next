@@ -16,12 +16,6 @@ void main() {
         isTrue,
       );
       expect(
-        appShellShouldHideBottomNavigation(
-          '/employee/service-reports/new-v2?workOrderId=wo-1',
-        ),
-        isTrue,
-      );
-      expect(
         appShellShouldHideBottomNavigation('/owner/service-reports'),
         isFalse,
       );
