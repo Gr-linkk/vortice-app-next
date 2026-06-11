@@ -255,9 +255,16 @@ class AppShell extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final authStatus = ref.watch(authStatusProvider);
+    if (!authStatus.isAuthenticated || authStatus.profile == null) {
+      // Auth is clearing (e.g. sign-out) — skip role-specific chrome so the
+      // shell can unmount cleanly before the router lands on /login.
+      return Scaffold(body: child);
+    }
+
     final l10n = AppLocalizations.of(context);
-    final profile = ref.watch(profileProvider).valueOrNull;
-    final role = profile?.role ?? UserRole.employee;
+    final profile = authStatus.profile!;
+    final role = profile.role;
     final operationalChecklistsEnabled = ref
             .watch(clientCapabilityGateProvider((
               clientId: null,
