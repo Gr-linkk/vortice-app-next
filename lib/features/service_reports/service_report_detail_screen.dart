@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:vortice_app/core/theme.dart';
 import 'package:vortice_app/features/auth/auth_provider.dart';
@@ -16,7 +17,10 @@ class ServiceReportDetailScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     if (reportId == 'new') {
-      return const ServiceReportScreen();
+      return ServiceReportScreen(
+        initialWorkOrderId:
+            GoRouterState.of(context).uri.queryParameters['workOrderId'],
+      );
     }
 
     final l10n = AppLocalizations.of(context);

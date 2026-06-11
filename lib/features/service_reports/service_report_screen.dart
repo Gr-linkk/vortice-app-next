@@ -113,8 +113,8 @@ class _ServiceReportScreenState extends ConsumerState<ServiceReportScreen> {
   @override
   void initState() {
     super.initState();
+    _selectedWorkOrderId = widget.initialWorkOrderId;
     WidgetsBinding.instance.addPostFrameCallback((_) async {
-      _selectedWorkOrderId = widget.initialWorkOrderId;
       await _loadDraft();
       _complaintCtrl.addListener(_scheduleDraftTextSave);
       _causeCtrl.addListener(_scheduleDraftTextSave);
@@ -744,9 +744,14 @@ class _ServiceReportScreenState extends ConsumerState<ServiceReportScreen> {
                           maxLines: 1,
                         );
 
+                    final selectedWorkOrderId =
+                        hasSelectedWorkOrder ? _selectedWorkOrderId : null;
+
                     return DropdownButtonFormField<String>(
-                      initialValue:
-                          hasSelectedWorkOrder ? _selectedWorkOrderId : null,
+                      key: ValueKey(
+                        'service-report-work-order-$selectedWorkOrderId-${active.length}',
+                      ),
+                      initialValue: selectedWorkOrderId,
                       isExpanded: true,
                       selectedItemBuilder: (context) => active
                           .map(
@@ -830,14 +835,15 @@ class _ServiceReportScreenState extends ConsumerState<ServiceReportScreen> {
                   l10n.serviceReportPhotos,
                   subtitle: l10n.serviceReportPhotosHint,
                 ),
-                Row(
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
                   children: [
                     OutlinedButton.icon(
                       onPressed: _pickPhoto,
                       icon: const Icon(Icons.photo_library, size: 18),
                       label: const Text('Gallery'),
                     ),
-                    const SizedBox(width: 8),
                     OutlinedButton.icon(
                       onPressed: _takePhoto,
                       icon: const Icon(Icons.camera_alt, size: 18),
