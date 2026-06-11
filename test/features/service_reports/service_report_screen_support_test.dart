@@ -37,5 +37,30 @@ void main() {
       expect(payload['work_order_id'], isNull);
       expect(payload.containsKey('tech_signature_url'), isFalse);
     });
+
+    test('trims whitespace from populated text fields', () {
+      final payload = buildServiceReportPayload(
+        selectedWorkOrderId: 'wo-2',
+        complaint: '  noise  ',
+        cause: 'wear',
+        correction: '  replaced bearing ',
+        collateral: ' none ',
+        comments: 'done',
+      );
+
+      expect(payload['complaint'], 'noise');
+      expect(payload['correction'], 'replaced bearing');
+      expect(payload['collateral'], 'none');
+    });
+  });
+
+  group('service report user-facing messages', () {
+    test('exposes non-empty reconnect guidance for submit failures', () {
+      expect(serviceReportSubmitFailedMessage, isNotEmpty);
+      expect(serviceReportSignatureFailedMessage, isNotEmpty);
+      expect(serviceReportPhotosPendingMessage, isNotEmpty);
+      expect(serviceReportSubmitFailedMessage, contains('submitted'));
+      expect(serviceReportPhotosPendingMessage, contains('photos'));
+    });
   });
 }

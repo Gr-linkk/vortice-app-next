@@ -19,11 +19,16 @@ void main() {
   });
 
   group('workOrderStatusColor', () {
-    test('maps active work to warning and closed work to success', () {
+    test('maps each work order status to the expected theme color', () {
+      expect(workOrderStatusColor(WorkOrderStatus.draft), AppColors.textSecondary);
+      expect(workOrderStatusColor(WorkOrderStatus.assigned), AppColors.primary);
+      expect(workOrderStatusColor(WorkOrderStatus.inProgress), AppColors.warning);
+      expect(workOrderStatusColor(WorkOrderStatus.onHold), AppColors.warning);
       expect(
-        workOrderStatusColor(WorkOrderStatus.inProgress),
-        AppColors.warning,
+        workOrderStatusColor(WorkOrderStatus.pendingReview),
+        AppColors.primary,
       );
+      expect(workOrderStatusColor(WorkOrderStatus.invoiced), AppColors.success);
       expect(workOrderStatusColor(WorkOrderStatus.closed), AppColors.success);
     });
   });
@@ -125,7 +130,14 @@ void main() {
       );
     });
 
-    test('shows start and invoice actions only for allowed states', () {
+    test('canStartWorkOrder allows draft and assigned states for managers', () {
+      expect(
+        WorkOrderDetailActionsPolicy.canStartWorkOrder(
+          canManageStatus: true,
+          status: WorkOrderStatus.draft,
+        ),
+        isTrue,
+      );
       expect(
         WorkOrderDetailActionsPolicy.canStartWorkOrder(
           canManageStatus: true,
@@ -134,11 +146,116 @@ void main() {
         isTrue,
       );
       expect(
+        WorkOrderDetailActionsPolicy.canStartWorkOrder(
+          canManageStatus: true,
+          status: WorkOrderStatus.inProgress,
+        ),
+        isFalse,
+      );
+      expect(
+        WorkOrderDetailActionsPolicy.canStartWorkOrder(
+          canManageStatus: false,
+          status: WorkOrderStatus.assigned,
+        ),
+        isFalse,
+      );
+    });
+
+    test('canCompleteWorkOrder only allows in-progress work for managers', () {
+      expect(
+        WorkOrderDetailActionsPolicy.canCompleteWorkOrder(
+          canManageStatus: true,
+          status: WorkOrderStatus.inProgress,
+        ),
+        isTrue,
+      );
+      expect(
+        WorkOrderDetailActionsPolicy.canCompleteWorkOrder(
+          canManageStatus: true,
+          status: WorkOrderStatus.assigned,
+        ),
+        isFalse,
+      );
+      expect(
+        WorkOrderDetailActionsPolicy.canCompleteWorkOrder(
+          canManageStatus: false,
+          status: WorkOrderStatus.inProgress,
+        ),
+        isFalse,
+      );
+    });
+
+    test('canReopenWorkOrder only allows closed work for managers', () {
+      expect(
+        WorkOrderDetailActionsPolicy.canReopenWorkOrder(
+          canManageStatus: true,
+          status: WorkOrderStatus.closed,
+        ),
+        isTrue,
+      );
+      expect(
+        WorkOrderDetailActionsPolicy.canReopenWorkOrder(
+          canManageStatus: true,
+          status: WorkOrderStatus.inProgress,
+        ),
+        isFalse,
+      );
+      expect(
+        WorkOrderDetailActionsPolicy.canReopenWorkOrder(
+          canManageStatus: false,
+          status: WorkOrderStatus.closed,
+        ),
+        isFalse,
+      );
+    });
+
+    test('canOpenChecklist requires a template id and open work order', () {
+      expect(
+        WorkOrderDetailActionsPolicy.canOpenChecklist(
+          canUseChecklist: true,
+          checklistTemplateId: null,
+          status: WorkOrderStatus.assigned,
+        ),
+        isFalse,
+      );
+      expect(
+        WorkOrderDetailActionsPolicy.canOpenChecklist(
+          canUseChecklist: false,
+          checklistTemplateId: 'tpl-1',
+          status: WorkOrderStatus.assigned,
+        ),
+        isFalse,
+      );
+    });
+
+    test('canGenerateInvoice allows owner on reviewable and billable states', () {
+      expect(
         WorkOrderDetailActionsPolicy.canGenerateInvoice(
           isOwner: true,
           status: WorkOrderStatus.pendingReview,
         ),
         isTrue,
+      );
+      expect(
+        WorkOrderDetailActionsPolicy.canGenerateInvoice(
+          isOwner: true,
+          status: WorkOrderStatus.inProgress,
+        ),
+        isTrue,
+      );
+      expect(
+        WorkOrderDetailActionsPolicy.canGenerateInvoice(
+          isOwner: true,
+          status: WorkOrderStatus.closed,
+        ),
+        isTrue,
+      );
+      expect(
+        WorkOrderDetailActionsPolicy.canGenerateInvoice(
+          isOwner: true,
+          status: WorkOrderStatus.assigned,
+        ),
+        isFalse,
       );
       expect(
         WorkOrderDetailActionsPolicy.canGenerateInvoice(
