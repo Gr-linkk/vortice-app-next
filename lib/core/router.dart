@@ -53,12 +53,18 @@ import 'package:vortice_app/models/profile.dart';
 // ── Router notifier — bridges Riverpod auth state into GoRouter.refreshListenable ──
 
 class _RouterNotifier extends ChangeNotifier {
-  final Ref _ref;
-
   _RouterNotifier(this._ref) {
-    _ref.listen<AppAuthStatus>(
-        authStatusProvider, (_, __) => notifyListeners());
+    _authStatus = _ref.read(authStatusProvider);
+    _ref.listen<AppAuthStatus>(authStatusProvider, (_, next) {
+      _authStatus = next;
+      notifyListeners();
+    });
   }
+
+  final Ref _ref;
+  late AppAuthStatus _authStatus;
+
+  AppAuthStatus get authStatus => _authStatus;
 }
 
 final _routerNotifierProvider = ChangeNotifierProvider<_RouterNotifier>((ref) {
@@ -95,7 +101,7 @@ final routerProvider = Provider<GoRouter>((ref) {
     initialLocation: '/login',
     refreshListenable: notifier,
     redirect: (context, state) {
-      final authStatus = ref.read(authStatusProvider);
+      final authStatus = notifier.authStatus;
       final location = state.matchedLocation;
 
       // Still loading auth — hold on the current route
