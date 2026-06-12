@@ -13,21 +13,16 @@ import 'package:vortice_app/features/checklists/checklist_support.dart';
 import 'package:vortice_app/features/operator/operator_checklist_run_form.dart';
 import 'package:vortice_app/features/operator/operator_checklist_screen.dart';
 import 'package:vortice_app/features/operator/operator_checklist_selection_step.dart';
+import 'package:vortice_app/features/operator/operator_checklist_support.dart';
 import 'package:vortice_app/features/operator/operator_runs_provider.dart';
 import 'package:vortice_app/l10n/app_localizations.dart';
 import 'package:vortice_app/models/checklist_template.dart';
 
 class OperatorChecklistScreenState
     extends ConsumerState<OperatorChecklistScreen> {
-  static const _offlineSubmitMessage =
-      'Checklist could not be submitted right now. Reconnect and try again.';
-  static const _photoNotSubmittedMessage =
-      'Checklist saved, but attached photos stay on this device for now and were not submitted.';
-  static const _draftKey = 'operator_checklist_draft';
-
   Map<String, dynamic>? _selectedAsset;
   ChecklistTemplate? _selectedTemplate;
-  final String _runType = 'pre_departure';
+  final String _runType = operatorDefaultRunType;
   final Map<String, String?> _responses = {};
   final Map<String, String> _notes = {};
   final Map<String, Uint8List?> _photos = {};
@@ -53,7 +48,7 @@ class OperatorChecklistScreenState
     }
 
     final prefs = await SharedPreferences.getInstance();
-    final raw = prefs.getString(_draftKey);
+    final raw = prefs.getString(operatorChecklistDraftKey);
 
     Map<String, dynamic>? assetToSet = _selectedAsset;
     ChecklistTemplate? templateToSet = _selectedTemplate;
@@ -61,30 +56,17 @@ class OperatorChecklistScreenState
     if (raw != null) {
       try {
         final data = jsonDecode(raw) as Map<String, dynamic>;
-        final assetId = data['assetId'] as String?;
-        final templateId = data['templateId'] as String?;
-        final responses =
-            (data['responses'] as Map?)?.cast<String, dynamic>() ?? {};
-        final notes = (data['notes'] as Map?)?.cast<String, dynamic>() ?? {};
-        final photos =
-            (data['photos'] as Map?)?.cast<String, dynamic>() ?? {};
-        final completedAtRaw = data['completedAt'] as String?;
-        if (completedAtRaw != null) {
-          _completedAt = DateTime.tryParse(completedAtRaw) ?? _completedAt;
-        }
-        _currentHours = (data['currentHours'] as num?)?.toDouble();
-        _generalNotes = data['generalNotes'] as String?;
-
-        final savedAsset = data['asset'];
-        assetToSet = assetId == null
-            ? null
-            : assets?.where((r) => r['id'] == assetId).firstOrNull;
-        if (assetToSet == null && savedAsset is Map) {
-          assetToSet = savedAsset.cast<String, dynamic>();
-        }
-        templateToSet = templateId == null
-            ? null
-            : templates.where((t) => t.id == templateId).firstOrNull;
+        final restored = decodeOperatorChecklistDraft(
+          data,
+          fallbackCompletedAt: _completedAt,
+          assets: assets,
+          templates: templates,
+        );
+        assetToSet = restored.asset;
+        templateToSet = restored.template;
+        _completedAt = restored.completedAt;
+        _currentHours = restored.currentHours;
+        _generalNotes = restored.generalNotes;
 
         if (mounted) {
           setState(() {
@@ -92,45 +74,30 @@ class OperatorChecklistScreenState
             _selectedTemplate = templateToSet;
             _responses
               ..clear()
-              ..addAll(
-                responses.map(
-                  (key, value) => MapEntry(key, value as String?),
-                ),
-              );
+              ..addAll(restored.responses);
             _notes
               ..clear()
-              ..addAll(
-                notes.map(
-                  (key, value) => MapEntry(key, value as String),
-                ),
-              );
+              ..addAll(restored.notes);
             _photos
               ..clear()
-              ..addAll(
-                photos.map(
-                  (key, value) => MapEntry(
-                    key,
-                    value is String && value.isNotEmpty
-                        ? base64Decode(value)
-                        : null,
-                  ),
-                ),
-              );
+              ..addAll(restored.photos);
           });
         }
       } catch (_) {
-        await prefs.remove(_draftKey);
+        await prefs.remove(operatorChecklistDraftKey);
       }
     }
 
-    if (assetToSet == null && widget.initialAssetId != null) {
-      assetToSet =
-          assets?.where((r) => r['id'] == widget.initialAssetId).firstOrNull;
-    }
-    if (templateToSet == null && widget.initialTemplateId != null) {
-      templateToSet =
-          templates.where((t) => t.id == widget.initialTemplateId).firstOrNull;
-    }
+    assetToSet = resolveOperatorInitialAsset(
+      currentAsset: assetToSet,
+      initialAssetId: widget.initialAssetId,
+      assets: assets,
+    );
+    templateToSet = resolveOperatorInitialTemplate(
+      currentTemplate: templateToSet,
+      initialTemplateId: widget.initialTemplateId,
+      templates: templates,
+    );
     if (mounted) {
       setState(() {
         _selectedAsset = assetToSet;
@@ -144,29 +111,25 @@ class OperatorChecklistScreenState
   Future<void> _saveDraft() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(
-      _draftKey,
-      jsonEncode({
-        'assetId': _selectedAsset?['id'] as String?,
-        'asset': _selectedAsset,
-        'templateId': _selectedTemplate?.id,
-        'responses': _responses,
-        'notes': _notes,
-        'completedAt': _completedAt.toIso8601String(),
-        'currentHours': _currentHours,
-        'generalNotes': _generalNotes,
-        'photos': _photos.map(
-          (key, value) => MapEntry(
-            key,
-            value == null ? null : base64Encode(value),
-          ),
+      operatorChecklistDraftKey,
+      jsonEncode(
+        encodeOperatorChecklistDraft(
+          asset: _selectedAsset,
+          template: _selectedTemplate,
+          responses: _responses,
+          notes: _notes,
+          completedAt: _completedAt,
+          currentHours: _currentHours,
+          generalNotes: _generalNotes,
+          photos: _photos,
         ),
-      }),
+      ),
     );
   }
 
   Future<void> _clearDraft() async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.remove(_draftKey);
+    await prefs.remove(operatorChecklistDraftKey);
   }
 
   void _resetChecklist() {
@@ -293,14 +256,14 @@ class OperatorChecklistScreenState
             generalNotes: _generalNotes,
           );
 
-      final hasPhotos = _photos.values.any((photo) => photo != null);
+      final hasPhotos = operatorSubmissionHasPhotos(_photos);
       await _clearDraft();
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
               hasPhotos
-                  ? _photoNotSubmittedMessage
+                  ? operatorPhotoNotSubmittedMessage
                   : AppLocalizations.of(context).checklistSubmitted,
             ),
             backgroundColor: hasPhotos ? AppColors.warning : AppColors.success,
@@ -321,7 +284,7 @@ class OperatorChecklistScreenState
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text(_offlineSubmitMessage),
+            content: Text(operatorOfflineSubmitMessage),
             backgroundColor: AppColors.error,
           ),
         );
@@ -330,7 +293,7 @@ class OperatorChecklistScreenState
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text(_offlineSubmitMessage),
+            content: Text(operatorOfflineSubmitMessage),
             backgroundColor: AppColors.error,
           ),
         );
