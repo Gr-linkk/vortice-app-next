@@ -3,11 +3,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:vortice_app/l10n/app_localizations.dart';
 import 'package:vortice_app/core/theme.dart';
 import 'package:vortice_app/features/clients/client_capability_gate.dart';
-import 'package:vortice_app/features/telemetry/telemetry_provider.dart';
 import 'package:vortice_app/features/engines/engine_provider.dart';
+import 'package:vortice_app/features/telemetry/telemetry_history_alerts_tab.dart';
+import 'package:vortice_app/features/telemetry/telemetry_history_readings_tab.dart';
+import 'package:vortice_app/features/telemetry/telemetry_screen_support.dart';
 import 'package:vortice_app/models/client_capability.dart';
-import 'package:vortice_app/models/telemetry_reading.dart';
-import 'package:vortice_app/models/telemetry_alert.dart';
 
 /// Shows telemetry history for an asset-first telemetry stream, or a legacy engine.
 class TelemetryHistoryScreen extends ConsumerStatefulWidget {
@@ -125,7 +125,6 @@ class _TelemetryHistoryScreenState extends ConsumerState<TelemetryHistoryScreen>
       ),
       body: Column(
         children: [
-          // Date range indicator
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             color: AppColors.surfaceVariant,
@@ -135,7 +134,7 @@ class _TelemetryHistoryScreenState extends ConsumerState<TelemetryHistoryScreen>
                     size: 14, color: AppColors.textSecondary),
                 const SizedBox(width: 8),
                 Text(
-                  '${_formatDate(_dateRange.start)} - ${_formatDate(_dateRange.end)}',
+                  '${formatTelemetryDate(_dateRange.start)} - ${formatTelemetryDate(_dateRange.end)}',
                   style: const TextStyle(
                     color: AppColors.textSecondary,
                     fontSize: 13,
@@ -149,359 +148,24 @@ class _TelemetryHistoryScreenState extends ConsumerState<TelemetryHistoryScreen>
               ],
             ),
           ),
-
-          // Tab content
           Expanded(
             child: TabBarView(
               controller: _tabController,
               children: [
-                _ReadingsTab(
+                TelemetryHistoryReadingsTab(
                   assetId: widget.assetId,
                   engineId: widget.engineId,
                   dateRange: _dateRange,
                 ),
-                _AlertsTab(assetId: widget.assetId, engineId: widget.engineId),
+                TelemetryHistoryAlertsTab(
+                  assetId: widget.assetId,
+                  engineId: widget.engineId,
+                ),
               ],
             ),
           ),
         ],
       ),
     );
-  }
-
-  String _formatDate(DateTime date) {
-    return '${date.day}/${date.month}/${date.year}';
-  }
-}
-
-class _ReadingsTab extends ConsumerWidget {
-  final String? assetId;
-  final String? engineId;
-  final DateTimeRange dateRange;
-
-  const _ReadingsTab({
-    required this.assetId,
-    required this.engineId,
-    required this.dateRange,
-  });
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final l10n = AppLocalizations.of(context);
-    final readingsAsync = assetId != null
-        ? ref.watch(
-            telemetryHistoryForAssetProvider((
-              assetId: assetId!,
-              from: dateRange.start,
-              to: dateRange.end,
-            )),
-          )
-        : ref.watch(
-            telemetryHistoryProvider((
-              engineId: engineId!,
-              from: dateRange.start,
-              to: dateRange.end,
-            )),
-          );
-
-    return readingsAsync.when(
-      loading: () => const Center(child: CircularProgressIndicator()),
-      error: (err, _) => Center(
-        child: Text(err.toString(),
-            style: const TextStyle(color: AppColors.error)),
-      ),
-      data: (readings) {
-        if (readings.isEmpty) {
-          return Center(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Icon(Icons.sensors_off,
-                    size: 48, color: AppColors.textSecondary),
-                const SizedBox(height: 12),
-                Text(
-                  l10n.noTelemetryData,
-                  style: const TextStyle(color: AppColors.textSecondary),
-                ),
-              ],
-            ),
-          );
-        }
-
-        return RefreshIndicator(
-          onRefresh: () async {
-            if (assetId != null) {
-              ref.invalidate(telemetryHistoryForAssetProvider((
-                assetId: assetId!,
-                from: dateRange.start,
-                to: dateRange.end,
-              )));
-            } else {
-              ref.invalidate(telemetryHistoryProvider((
-                engineId: engineId!,
-                from: dateRange.start,
-                to: dateRange.end,
-              )));
-            }
-          },
-          child: ListView.builder(
-            padding: const EdgeInsets.all(16),
-            itemCount: readings.length,
-            itemBuilder: (_, i) => _ReadingCard(reading: readings[i]),
-          ),
-        );
-      },
-    );
-  }
-}
-
-class _ReadingCard extends StatelessWidget {
-  final TelemetryReading reading;
-
-  const _ReadingCard({required this.reading});
-
-  @override
-  Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context);
-
-    return Card(
-      margin: const EdgeInsets.only(bottom: 8),
-      child: ExpansionTile(
-        leading: const CircleAvatar(
-          backgroundColor: AppColors.surfaceVariant,
-          child: Icon(Icons.sensors, color: AppColors.primary, size: 18),
-        ),
-        title: Text(
-          _formatDateTime(reading.ts),
-          style: Theme.of(context).textTheme.titleSmall,
-        ),
-        subtitle: reading.rpm != null
-            ? Text(
-                '${reading.rpm!.toStringAsFixed(0)} RPM',
-                style: const TextStyle(
-                    color: AppColors.textSecondary, fontSize: 12),
-              )
-            : null,
-        children: [
-          Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              children: [
-                _DetailRow(
-                    label: 'RPM', value: reading.rpm?.toStringAsFixed(0)),
-                _DetailRow(
-                    label: l10n.coolantTemp,
-                    value: reading.coolantTemp != null
-                        ? '${reading.coolantTemp!.toStringAsFixed(1)}°C'
-                        : null),
-                _DetailRow(
-                    label: l10n.oilPressure,
-                    value: reading.oilPressure != null
-                        ? '${reading.oilPressure!.toStringAsFixed(1)} PSI'
-                        : null),
-                _DetailRow(
-                    label: l10n.battery,
-                    value: reading.batteryV != null
-                        ? '${reading.batteryV!.toStringAsFixed(2)}V'
-                        : null),
-                _DetailRow(
-                    label: l10n.boostPressure,
-                    value: reading.boostPsi != null
-                        ? '${reading.boostPsi!.toStringAsFixed(1)} PSI'
-                        : null),
-                _DetailRow(
-                    label: l10n.throttle,
-                    value: reading.throttlePct != null
-                        ? '${reading.throttlePct!.toStringAsFixed(0)}%'
-                        : null),
-                _DetailRow(
-                    label: l10n.fuelRate,
-                    value: reading.fuelRate != null
-                        ? '${reading.fuelRate!.toStringAsFixed(2)} L/hr'
-                        : null),
-                _DetailRow(
-                    label: l10n.torque,
-                    value: reading.torquePct != null
-                        ? '${reading.torquePct!.toStringAsFixed(0)}%'
-                        : null),
-                _DetailRow(
-                    label: l10n.engineHours,
-                    value: reading.engineHours?.toStringAsFixed(1)),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  String _formatDateTime(DateTime dt) {
-    return '${dt.day}/${dt.month} ${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}';
-  }
-}
-
-class _DetailRow extends StatelessWidget {
-  final String label;
-  final String? value;
-
-  const _DetailRow({required this.label, this.value});
-
-  @override
-  Widget build(BuildContext context) {
-    if (value == null) return const SizedBox.shrink();
-
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Text(label,
-              style: const TextStyle(
-                  color: AppColors.textSecondary, fontSize: 13)),
-          Text(value!,
-              style: const TextStyle(
-                  color: AppColors.textPrimary,
-                  fontSize: 13,
-                  fontWeight: FontWeight.w500)),
-        ],
-      ),
-    );
-  }
-}
-
-class _AlertsTab extends ConsumerWidget {
-  final String? assetId;
-  final String? engineId;
-
-  const _AlertsTab({required this.assetId, required this.engineId});
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final l10n = AppLocalizations.of(context);
-    final alertsAsync = assetId != null
-        ? ref.watch(allAlertsForAssetProvider(assetId!))
-        : ref.watch(alertsForEngineProvider(engineId!));
-
-    return alertsAsync.when(
-      loading: () => const Center(child: CircularProgressIndicator()),
-      error: (err, _) => Center(
-        child: Text(err.toString(),
-            style: const TextStyle(color: AppColors.error)),
-      ),
-      data: (alerts) {
-        if (alerts.isEmpty) {
-          return Center(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Icon(Icons.check_circle,
-                    size: 48, color: AppColors.success),
-                const SizedBox(height: 12),
-                Text(
-                  l10n.noAlerts,
-                  style: const TextStyle(color: AppColors.textSecondary),
-                ),
-              ],
-            ),
-          );
-        }
-
-        return RefreshIndicator(
-          onRefresh: () async {
-            if (assetId != null) {
-              ref.invalidate(allAlertsForAssetProvider(assetId!));
-            } else {
-              ref.invalidate(alertsForEngineProvider(engineId!));
-            }
-          },
-          child: ListView.builder(
-            padding: const EdgeInsets.all(16),
-            itemCount: alerts.length,
-            itemBuilder: (_, i) => _AlertCard(alert: alerts[i]),
-          ),
-        );
-      },
-    );
-  }
-}
-
-class _AlertCard extends StatelessWidget {
-  final TelemetryAlert alert;
-
-  const _AlertCard({required this.alert});
-
-  @override
-  Widget build(BuildContext context) {
-    final severityColor = switch (alert.severity) {
-      AlertSeverity.critical => AppColors.error,
-      AlertSeverity.warning => AppColors.warning,
-      AlertSeverity.info => AppColors.primary,
-    };
-
-    final icon = switch (alert.alertType) {
-      TelemetryAlertType.dtc => Icons.error_outline,
-      TelemetryAlertType.threshold => Icons.speed,
-      TelemetryAlertType.warning => Icons.warning_amber,
-      TelemetryAlertType.critical => Icons.dangerous,
-      TelemetryAlertType.info => Icons.info_outline,
-    };
-
-    return Card(
-      margin: const EdgeInsets.only(bottom: 8),
-      child: ListTile(
-        leading: CircleAvatar(
-          backgroundColor: severityColor.withValues(alpha: 0.15),
-          child: Icon(icon, color: severityColor, size: 20),
-        ),
-        title: Row(
-          children: [
-            if (alert.spn != null)
-              Text('SPN ${alert.spn}',
-                  style: Theme.of(context).textTheme.titleSmall)
-            else if (alert.parameter != null)
-              Text(alert.parameter!,
-                  style: Theme.of(context).textTheme.titleSmall)
-            else
-              Text(alert.alertType.name.toUpperCase(),
-                  style: Theme.of(context).textTheme.titleSmall),
-            const Spacer(),
-            if (!alert.acknowledged)
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                decoration: BoxDecoration(
-                  color: AppColors.error.withValues(alpha: 0.15),
-                  borderRadius: BorderRadius.circular(4),
-                ),
-                child: const Text(
-                  'NEW',
-                  style: TextStyle(
-                    color: AppColors.error,
-                    fontSize: 10,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ),
-          ],
-        ),
-        subtitle: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            if (alert.message != null)
-              Text(alert.message!, style: const TextStyle(fontSize: 12)),
-            const SizedBox(height: 4),
-            Text(
-              _formatDateTime(alert.createdAt ?? DateTime.now()),
-              style:
-                  const TextStyle(color: AppColors.textSecondary, fontSize: 11),
-            ),
-          ],
-        ),
-        isThreeLine: alert.message != null,
-      ),
-    );
-  }
-
-  String _formatDateTime(DateTime dt) {
-    return '${dt.day}/${dt.month}/${dt.year} ${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}';
   }
 }
