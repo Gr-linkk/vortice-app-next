@@ -6,8 +6,14 @@ import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:vortice_app/core/theme.dart';
 import 'package:vortice_app/features/assets/asset_provider.dart';
+import 'package:vortice_app/features/service_requests/service_request_form_asset_field.dart';
+import 'package:vortice_app/features/service_requests/service_request_form_card.dart';
+import 'package:vortice_app/features/service_requests/service_request_form_intro_card.dart';
+import 'package:vortice_app/features/service_requests/service_request_form_photo_field.dart';
+import 'package:vortice_app/features/service_requests/service_request_form_request_type_field.dart';
+import 'package:vortice_app/features/service_requests/service_request_form_submit_bar.dart';
+import 'package:vortice_app/features/service_requests/service_request_form_support.dart';
 import 'package:vortice_app/features/service_requests/service_request_provider.dart';
-import 'package:vortice_app/models/asset.dart';
 import 'package:vortice_app/models/service_request.dart';
 
 class ServiceRequestFormScreen extends ConsumerStatefulWidget {
@@ -20,8 +26,6 @@ class ServiceRequestFormScreen extends ConsumerStatefulWidget {
 
 class _ServiceRequestFormScreenState
     extends ConsumerState<ServiceRequestFormScreen> {
-  static const otherAssetValue = '__other_asset__';
-
   final _formKey = GlobalKey<FormState>();
   final _descriptionCtrl = TextEditingController();
   final _otherAssetCtrl = TextEditingController();
@@ -42,7 +46,7 @@ class _ServiceRequestFormScreenState
     super.dispose();
   }
 
-  bool get _isOtherAsset => _assetSelection == otherAssetValue;
+  bool get _isOtherAsset => isOtherAssetSelection(_assetSelection);
 
   Future<void> _pickPhotos() async {
     final files = await _picker.pickMultiImage(
@@ -74,20 +78,18 @@ class _ServiceRequestFormScreenState
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
 
-    final engineHoursText = _engineHoursCtrl.text.trim();
-    final engineHours = engineHoursText.isEmpty
-        ? null
-        : double.tryParse(engineHoursText.replaceAll(',', ''));
-
     final result = await ref
         .read(serviceRequestControllerProvider.notifier)
         .submitRequest(
           requestTypeLabel: _kind.label,
           description: _descriptionCtrl.text,
           contactPhoneOrWhatsapp: _contactCtrl.text,
-          assetId: _isOtherAsset ? null : _assetSelection,
-          otherAssetName: _isOtherAsset ? _otherAssetCtrl.text.trim() : null,
-          engineHours: engineHours,
+          assetId: resolveServiceRequestAssetId(_assetSelection),
+          otherAssetName: resolveServiceRequestOtherAssetName(
+            _assetSelection,
+            _otherAssetCtrl.text,
+          ),
+          engineHours: parseServiceRequestEngineHours(_engineHoursCtrl.text),
           photos: _photos,
         );
 
@@ -129,15 +131,15 @@ class _ServiceRequestFormScreenState
                 child: ListView(
                   padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
                   children: [
-                    const _IntroCard(),
+                    const ServiceRequestFormIntroCard(),
                     const SizedBox(height: 16),
                     assetsAsync.when(
                       loading: () => const LinearProgressIndicator(),
                       error: (_, __) => const SizedBox.shrink(),
-                      data: (assets) => _FormCard(
+                      data: (assets) => ServiceRequestFormCard(
                         title: 'Machine',
                         subtitle: 'Pick the asset this request is for.',
-                        child: _AssetField(
+                        child: ServiceRequestFormAssetField(
                           assets: assets,
                           value: _assetSelection,
                           onChanged: (value) =>
@@ -147,7 +149,7 @@ class _ServiceRequestFormScreenState
                     ),
                     if (_isOtherAsset) ...[
                       const SizedBox(height: 12),
-                      _FormCard(
+                      ServiceRequestFormCard(
                         title: 'Other asset',
                         child: TextFormField(
                           controller: _otherAssetCtrl,
@@ -157,27 +159,25 @@ class _ServiceRequestFormScreenState
                                 'Machine name, unit number, or description',
                             prefixIcon: Icon(Icons.directions_boat_outlined),
                           ),
-                          validator: (value) {
-                            if (_isOtherAsset &&
-                                (value == null || value.trim().isEmpty)) {
-                              return 'Please describe the asset';
-                            }
-                            return null;
-                          },
+                          validator: (value) =>
+                              validateServiceRequestOtherAssetName(
+                            value,
+                            isOtherAsset: _isOtherAsset,
+                          ),
                         ),
                       ),
                     ],
                     const SizedBox(height: 12),
-                    _FormCard(
+                    ServiceRequestFormCard(
                       title: 'Request type',
                       subtitle: 'Choose the closest match.',
-                      child: _RequestTypeField(
+                      child: ServiceRequestFormRequestTypeField(
                         value: _kind,
                         onChanged: (value) => setState(() => _kind = value),
                       ),
                     ),
                     const SizedBox(height: 12),
-                    _FormCard(
+                    ServiceRequestFormCard(
                       title: 'Engine hours',
                       subtitle:
                           'Optional, but this will prefill the work order if you know it.',
@@ -191,20 +191,11 @@ class _ServiceRequestFormScreenState
                           hintText: 'e.g. 1250.5',
                           prefixIcon: Icon(Icons.timer_outlined),
                         ),
-                        validator: (value) {
-                          final text = value?.trim() ?? '';
-                          if (text.isEmpty) return null;
-                          final parsed =
-                              double.tryParse(text.replaceAll(',', ''));
-                          if (parsed == null || parsed < 0) {
-                            return 'Enter valid engine hours';
-                          }
-                          return null;
-                        },
+                        validator: validateServiceRequestEngineHours,
                       ),
                     ),
                     const SizedBox(height: 12),
-                    _FormCard(
+                    ServiceRequestFormCard(
                       title: 'Details',
                       subtitle:
                           'Add symptoms, warning signs, leaks or damage, unusual noises, when it started, and anything else that helps the technician prepare.',
@@ -217,16 +208,11 @@ class _ServiceRequestFormScreenState
                           hintText: 'Describe the issue or service needed...',
                           alignLabelWithHint: true,
                         ),
-                        validator: (value) {
-                          if (value == null || value.trim().isEmpty) {
-                            return 'Please describe the issue';
-                          }
-                          return null;
-                        },
+                        validator: validateServiceRequestDescription,
                       ),
                     ),
                     const SizedBox(height: 12),
-                    _FormCard(
+                    ServiceRequestFormCard(
                       title: 'Contact',
                       subtitle: 'Best number for a call or WhatsApp message.',
                       child: TextFormField(
@@ -237,20 +223,15 @@ class _ServiceRequestFormScreenState
                           hintText: 'Phone number or WhatsApp',
                           prefixIcon: Icon(Icons.phone_outlined),
                         ),
-                        validator: (value) {
-                          if (value == null || value.trim().isEmpty) {
-                            return 'Please provide a phone number or WhatsApp';
-                          }
-                          return null;
-                        },
+                        validator: validateServiceRequestContact,
                       ),
                     ),
                     const SizedBox(height: 12),
-                    _FormCard(
+                    ServiceRequestFormCard(
                       title: 'Photos',
                       subtitle:
                           'Optional, but helpful for leaks, damage, alarms, or access.',
-                      child: _PhotoField(
+                      child: ServiceRequestFormPhotoField(
                         photos: _photos,
                         onAddPhotos: _pickPhotos,
                         onTakePhoto: _takePhoto,
@@ -261,7 +242,7 @@ class _ServiceRequestFormScreenState
                   ],
                 ),
               ),
-              _SubmitBar(
+              ServiceRequestFormSubmitBar(
                 isLoading: isLoading,
                 onSubmit: _submit,
               ),
@@ -271,298 +252,4 @@ class _ServiceRequestFormScreenState
       ),
     );
   }
-}
-
-class _IntroCard extends StatelessWidget {
-  const _IntroCard();
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: AppColors.primary.withValues(alpha: 0.12),
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: AppColors.primary.withValues(alpha: 0.35)),
-      ),
-      child: const Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Icon(Icons.support_agent_outlined, color: AppColors.primary),
-          SizedBox(width: 12),
-          Expanded(
-            child: Text(
-              'Send Vórtice the key details so we can prepare faster and build the work order from clean information.',
-              style: TextStyle(color: AppColors.textPrimary, height: 1.35),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _FormCard extends StatelessWidget {
-  const _FormCard({
-    required this.title,
-    required this.child,
-    this.subtitle,
-  });
-
-  final String title;
-  final String? subtitle;
-  final Widget child;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: AppColors.cardBorder),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            title,
-            style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                  fontWeight: FontWeight.w700,
-                ),
-          ),
-          if (subtitle != null) ...[
-            const SizedBox(height: 4),
-            Text(
-              subtitle!,
-              style: const TextStyle(
-                color: AppColors.textSecondary,
-                fontSize: 12,
-                height: 1.3,
-              ),
-            ),
-          ],
-          const SizedBox(height: 12),
-          child,
-        ],
-      ),
-    );
-  }
-}
-
-class _AssetField extends StatelessWidget {
-  const _AssetField({
-    required this.assets,
-    required this.value,
-    required this.onChanged,
-  });
-
-  final List<Asset> assets;
-  final String? value;
-  final ValueChanged<String?> onChanged;
-
-  @override
-  Widget build(BuildContext context) {
-    return DropdownButtonFormField<String>(
-      initialValue: value,
-      decoration: const InputDecoration(
-        hintText: 'Select asset',
-        prefixIcon: Icon(Icons.directions_boat_outlined),
-      ),
-      dropdownColor: AppColors.surfaceVariant,
-      items: [
-        ...assets.map(
-          (asset) => DropdownMenuItem<String>(
-            value: asset.id,
-            child: Text(asset.name),
-          ),
-        ),
-        const DropdownMenuItem<String>(
-          value: _ServiceRequestFormScreenState.otherAssetValue,
-          child: Text('Other'),
-        ),
-      ],
-      onChanged: onChanged,
-      validator: (value) {
-        if (value == null || value.isEmpty) {
-          return 'Please choose an asset or select Other';
-        }
-        return null;
-      },
-    );
-  }
-}
-
-class _RequestTypeField extends StatelessWidget {
-  const _RequestTypeField({
-    required this.value,
-    required this.onChanged,
-  });
-
-  final ServiceRequestKind value;
-  final ValueChanged<ServiceRequestKind> onChanged;
-
-  @override
-  Widget build(BuildContext context) {
-    return Wrap(
-      spacing: 8,
-      runSpacing: 8,
-      children: ServiceRequestKind.values
-          .map(
-            (kind) => ChoiceChip(
-              label: Text(kind.label),
-              selected: kind == value,
-              showCheckmark: false,
-              avatar: Icon(
-                kind.icon,
-                size: 18,
-                color: kind == value ? Colors.white : AppColors.textSecondary,
-              ),
-              onSelected: (_) => onChanged(kind),
-              selectedColor: AppColors.primary,
-              backgroundColor: AppColors.surfaceVariant,
-              labelStyle: TextStyle(
-                color: kind == value ? Colors.white : AppColors.textPrimary,
-                fontWeight: kind == value ? FontWeight.w700 : FontWeight.w500,
-              ),
-              side: BorderSide(
-                color: kind == value ? AppColors.primary : AppColors.cardBorder,
-              ),
-            ),
-          )
-          .toList(),
-    );
-  }
-}
-
-class _PhotoField extends StatelessWidget {
-  const _PhotoField({
-    required this.photos,
-    required this.onAddPhotos,
-    required this.onTakePhoto,
-    required this.onRemovePhoto,
-  });
-
-  final List<Uint8List> photos;
-  final Future<void> Function() onAddPhotos;
-  final Future<void> Function() onTakePhoto;
-  final ValueChanged<int> onRemovePhoto;
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            Expanded(
-              child: OutlinedButton.icon(
-                onPressed: onAddPhotos,
-                icon: const Icon(Icons.photo_library_outlined),
-                label: const Text('Gallery'),
-              ),
-            ),
-            const SizedBox(width: 10),
-            Expanded(
-              child: OutlinedButton.icon(
-                onPressed: onTakePhoto,
-                icon: const Icon(Icons.photo_camera_outlined),
-                label: const Text('Camera'),
-              ),
-            ),
-          ],
-        ),
-        if (photos.isNotEmpty) ...[
-          const SizedBox(height: 12),
-          SizedBox(
-            height: 88,
-            child: ListView.separated(
-              scrollDirection: Axis.horizontal,
-              itemCount: photos.length,
-              separatorBuilder: (_, __) => const SizedBox(width: 8),
-              itemBuilder: (context, index) => Stack(
-                children: [
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(10),
-                    child: Image.memory(
-                      photos[index],
-                      width: 88,
-                      height: 88,
-                      fit: BoxFit.cover,
-                    ),
-                  ),
-                  Positioned(
-                    top: 4,
-                    right: 4,
-                    child: InkWell(
-                      onTap: () => onRemovePhoto(index),
-                      child: Container(
-                        decoration: const BoxDecoration(
-                          color: Colors.black54,
-                          shape: BoxShape.circle,
-                        ),
-                        padding: const EdgeInsets.all(4),
-                        child: const Icon(
-                          Icons.close,
-                          color: Colors.white,
-                          size: 14,
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ],
-      ],
-    );
-  }
-}
-
-class _SubmitBar extends StatelessWidget {
-  const _SubmitBar({
-    required this.isLoading,
-    required this.onSubmit,
-  });
-
-  final bool isLoading;
-  final VoidCallback onSubmit;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.fromLTRB(16, 10, 16, 12),
-      decoration: const BoxDecoration(
-        color: AppColors.background,
-        border: Border(top: BorderSide(color: AppColors.divider)),
-      ),
-      child: ElevatedButton.icon(
-        onPressed: isLoading ? null : onSubmit,
-        icon: isLoading
-            ? const SizedBox(
-                width: 18,
-                height: 18,
-                child: CircularProgressIndicator(
-                  strokeWidth: 2,
-                  color: Colors.white,
-                ),
-              )
-            : const Icon(Icons.send_outlined),
-        label: const Text('Send Request'),
-        style: ElevatedButton.styleFrom(
-          padding: const EdgeInsets.symmetric(vertical: 16),
-        ),
-      ),
-    );
-  }
-}
-
-extension on ServiceRequestKind {
-  IconData get icon => switch (this) {
-        ServiceRequestKind.breakdown => Icons.warning_amber_outlined,
-        ServiceRequestKind.serviceMaintenance => Icons.build_outlined,
-        ServiceRequestKind.safetyConcern => Icons.health_and_safety_outlined,
-        ServiceRequestKind.otherIssue => Icons.more_horiz,
-      };
 }
