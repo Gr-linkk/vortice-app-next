@@ -6,6 +6,13 @@ import 'package:vortice_app/models/checklist_template.dart';
 import 'package:vortice_app/sync/sync_status.dart';
 
 void main() {
+  group('checklist draft keys', () {
+    test('builds stable draft and photo cache keys from run key', () {
+      expect(checklistDraftKey('wo-1'), 'checklist_draft_wo-1');
+      expect(checklistPhotoCacheKey('wo-1'), 'checklist_photo_cache_wo-1');
+    });
+  });
+
   group('checklistRunKey', () {
     test('uses work order id when present', () {
       expect(
@@ -125,10 +132,14 @@ void main() {
 
   group('syncStatusChipLabel', () {
     test('maps pending and failed statuses to labels', () {
+      expect(syncStatusChipLabel(SyncStatusValues.pendingCreate), 'Pending sync');
       expect(syncStatusChipLabel(SyncStatusValues.pendingUpdate), 'Pending sync');
+      expect(syncStatusChipLabel(SyncStatusValues.pendingDelete), 'Pending sync');
+      expect(syncStatusChipLabel(SyncStatusValues.syncing), 'Pending sync');
       expect(syncStatusChipLabel(SyncStatusValues.failed), 'Sync failed');
       expect(syncStatusChipLabel(SyncStatusValues.conflict), 'Conflict');
       expect(syncStatusChipLabel(SyncStatusValues.synced), isNull);
+      expect(syncStatusChipLabel(null), isNull);
     });
   });
 
