@@ -2,7 +2,7 @@ import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:vortice_app/features/service_reports/service_report_screen.dart';
+import 'package:vortice_app/features/service_reports/service_report_draft_codec.dart';
 
 void main() {
   group('ServiceReportDraftCodec', () {

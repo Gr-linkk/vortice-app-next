@@ -57,7 +57,12 @@ class _RouterNotifier extends ChangeNotifier {
     _authStatus = _ref.read(authStatusProvider);
     _ref.listen<AppAuthStatus>(authStatusProvider, (_, next) {
       _authStatus = next;
-      notifyListeners();
+      // Defer refresh so GoRouter does not redirect while the shell tree is
+      // still rebuilding/unmounting — synchronous refresh causes InheritedWidget
+      // descendant assertions on logout.
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (hasListeners) notifyListeners();
+      });
     });
   }
 
@@ -94,9 +99,9 @@ final _shellNavigatorKey = GlobalKey<NavigatorState>(debugLabel: 'shell');
 // ── Router provider ─────────────────────────────────────────────────────────
 
 final routerProvider = Provider<GoRouter>((ref) {
-  final notifier = ref.watch(_routerNotifierProvider);
+  final notifier = ref.read(_routerNotifierProvider);
 
-  return GoRouter(
+  final router = GoRouter(
     navigatorKey: _rootNavigatorKey,
     initialLocation: '/login',
     refreshListenable: notifier,
@@ -513,6 +518,8 @@ final routerProvider = Provider<GoRouter>((ref) {
       ),
     ],
   );
+  ref.onDispose(router.dispose);
+  return router;
 });
 
 class _OperatorChecklistCapabilityGate extends ConsumerWidget {
