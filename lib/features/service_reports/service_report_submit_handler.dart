@@ -7,6 +7,7 @@ import 'package:vortice_app/core/theme.dart';
 import 'package:vortice_app/features/service_reports/service_report_provider.dart';
 import 'package:vortice_app/features/service_reports/service_report_repository.dart';
 import 'package:vortice_app/features/service_reports/service_report_screen_support.dart';
+import 'package:vortice_app/features/service_reports/service_report_submit_support.dart';
 import 'package:vortice_app/l10n/app_localizations.dart';
 
 class ServiceReportSubmitInput {
@@ -58,10 +59,12 @@ class ServiceReportSubmitHandler {
     required Future<void> Function() onClearDraft,
   }) async {
     if (!formKey.currentState!.validate()) return null;
-    if (input.selectedWorkOrderId == null) {
+    final missingWorkOrderMessage =
+        validateServiceReportWorkOrderSelection(input.selectedWorkOrderId);
+    if (missingWorkOrderMessage != null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Select a work order before submitting the report.'),
+        SnackBar(
+          content: Text(missingWorkOrderMessage),
           backgroundColor: AppColors.warning,
         ),
       );
@@ -170,29 +173,31 @@ class ServiceReportSubmitHandler {
           photosUploaded = false;
         }
       }
-      if (!context.mounted) return null;
+      final outcome = resolveServiceReportSubmitOutcome(
+        reportId: reportId,
+        photosUploaded: photosUploaded,
+        hadPhotos: input.photos.isNotEmpty,
+      );
+      if (outcome == null || !context.mounted) return null;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(photosUploaded
-              ? AppLocalizations.of(context).reportSubmitted
-              : serviceReportPhotosPendingMessage),
-          backgroundColor:
-              photosUploaded ? AppColors.success : AppColors.warning,
+          content: Text(outcome.showPhotosPendingWarning
+              ? serviceReportPhotosPendingMessage
+              : AppLocalizations.of(context).reportSubmitted),
+          backgroundColor: outcome.showPhotosPendingWarning
+              ? AppColors.warning
+              : AppColors.success,
         ),
       );
-      if (photosUploaded) {
+      if (outcome.shouldResetForm) {
         formKey.currentState!.reset();
         await onClearDraft();
         if (context.mounted) context.pop();
-        return const ServiceReportSubmitResultState(
-          shouldResetForm: true,
-          shouldPop: true,
-        );
       }
       return ServiceReportSubmitResultState(
-        pendingReportId: reportId,
-        shouldResetForm: false,
-        shouldPop: false,
+        pendingReportId: outcome.pendingReportId,
+        shouldResetForm: outcome.shouldResetForm,
+        shouldPop: outcome.shouldPop,
       );
     }
 
