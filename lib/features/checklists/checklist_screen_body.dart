@@ -15,6 +15,7 @@ import 'package:vortice_app/features/checklists/asset_checklist_template_filter.
 import 'package:vortice_app/features/checklists/checklist_form.dart';
 import 'package:vortice_app/features/checklists/checklist_provider.dart';
 import 'package:vortice_app/features/checklists/checklist_repository.dart';
+import 'package:vortice_app/features/checklists/checklist_screen_support.dart';
 import 'package:vortice_app/features/checklists/checklist_submission_orchestrator.dart';
 import 'package:vortice_app/features/checklists/checklist_support.dart';
 import 'package:vortice_app/features/checklists/checklist_template_selector.dart';
@@ -22,7 +23,6 @@ import 'package:vortice_app/features/work_orders/work_order_provider.dart';
 import 'package:vortice_app/l10n/app_localizations.dart';
 import 'package:vortice_app/models/checklist_item.dart';
 import 'package:vortice_app/models/checklist_template.dart';
-import 'package:vortice_app/sync/sync_status.dart';
 
 class ChecklistScreenBody extends ConsumerStatefulWidget {
   final String? workOrderId;
@@ -84,28 +84,17 @@ class _ChecklistScreenBodyState extends ConsumerState<ChecklistScreenBody> {
   Future<void> _loadCachedPhotos(SharedPreferences prefs) async {
     final raw = prefs.getString(_photoCacheKey);
     if (raw == null) return;
-    try {
-      final data = (jsonDecode(raw) as Map).cast<String, dynamic>();
-      for (final entry in data.entries) {
-        final value = entry.value;
-        if (value is String && value.isNotEmpty) {
-          _photos[entry.key] = base64Decode(value);
-        }
-      }
-    } catch (_) {
+    final decoded = decodePhotoCacheJson(raw);
+    if (decoded.isEmpty && raw.isNotEmpty) {
       await prefs.remove(_photoCacheKey);
+      return;
     }
+    _photos.addAll(decoded);
   }
 
   Future<void> _savePhotoCache() async {
     final prefs = await SharedPreferences.getInstance();
-    final encoded = <String, String>{};
-    for (final entry in _photos.entries) {
-      final bytes = entry.value;
-      if (bytes != null) {
-        encoded[entry.key] = base64Encode(bytes);
-      }
-    }
+    final encoded = encodePhotoCache(_photos);
 
     if (encoded.isEmpty) {
       await prefs.remove(_photoCacheKey);
@@ -122,23 +111,10 @@ class _ChecklistScreenBodyState extends ConsumerState<ChecklistScreenBody> {
         final savedResponses = await ref
             .read(checklistRepositoryProvider)
             .listResponsesForWorkOrder(workOrderId);
-        for (final response in savedResponses) {
-          final itemId = response.checklistItemId;
-          _responses[itemId] = response.responseStatus ??
-              (response.completed ? 'pass' : 'monitor');
-          final note = response.notes;
-          if (note?.isNotEmpty == true) {
-            _notes[itemId] = note!;
-          }
-          final photoUrl = response.photoUrl;
-          final hasLocalPendingPhoto =
-              response.syncStatus != SyncStatusValues.synced &&
-                  response.lastError != null &&
-                  response.lastError!.isNotEmpty;
-          if (photoUrl?.isNotEmpty == true && !hasLocalPendingPhoto) {
-            _photoUrls[itemId] = photoUrl;
-          }
-        }
+        final saved = savedResponsesFromWorkOrder(savedResponses);
+        _responses.addAll(saved.responses);
+        _notes.addAll(saved.notes);
+        _photoUrls.addAll(saved.photoUrls);
       }
     } catch (_) {
       // Local draft restore below is the important no-data-loss path.
@@ -151,38 +127,19 @@ class _ChecklistScreenBodyState extends ConsumerState<ChecklistScreenBody> {
     if (raw != null) {
       try {
         final data = jsonDecode(raw) as Map<String, dynamic>;
-        final responses =
-            (data['responses'] as Map?)?.cast<String, dynamic>() ?? {};
-        final notes = (data['notes'] as Map?)?.cast<String, dynamic>() ?? {};
-        final photos = (data['photos'] as Map?)?.cast<String, dynamic>() ?? {};
-        final photoUrls =
-            (data['photoUrls'] as Map?)?.cast<String, dynamic>() ?? {};
-        _draftTemplateId = data['templateId'] as String?;
-        final completedAtRaw = data['completedAt'] as String?;
-        if (completedAtRaw != null) {
-          _completedAt = DateTime.tryParse(completedAtRaw) ?? _completedAt;
-        }
-        _currentHours = (data['currentHours'] as num?)?.toDouble();
-        _generalNotes = data['generalNotes'] as String?;
-        for (final e in responses.entries) {
-          _responses[e.key] = e.value as String?;
-        }
-        for (final e in notes.entries) {
-          _notes[e.key] = e.value as String;
-        }
-        for (final e in photoUrls.entries) {
-          final hasLocalPhoto =
-              photos[e.key] is String && (photos[e.key] as String).isNotEmpty;
-          if (!hasLocalPhoto) {
-            _photoUrls[e.key] = e.value as String?;
-          }
-        }
-        for (final e in photos.entries) {
-          if (e.value is String && (e.value as String).isNotEmpty) {
-            _photos[e.key] = base64Decode(e.value as String);
-            restoredDraftPhotos = true;
-          }
-        }
+        final restored = decodeChecklistDraftJson(
+          data,
+          fallbackCompletedAt: _completedAt,
+        );
+        _draftTemplateId = restored.templateId;
+        _completedAt = restored.completedAt;
+        _currentHours = restored.currentHours;
+        _generalNotes = restored.generalNotes;
+        _responses.addAll(restored.responses);
+        _notes.addAll(restored.notes);
+        _photoUrls.addAll(restored.photoUrls);
+        _photos.addAll(restored.photos);
+        restoredDraftPhotos = restored.restoredDraftPhotos;
       } catch (_) {
         await prefs.remove(_draftKey);
       }
@@ -198,34 +155,26 @@ class _ChecklistScreenBodyState extends ConsumerState<ChecklistScreenBody> {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(
       _draftKey,
-      jsonEncode(
-        encodeChecklistDraft(
-          templateId: _selectedTemplate?.id ?? _draftTemplateId,
-          responses: _responses,
-          notes: _notes,
-          photoUrls: _photoUrls,
-          completedAt: _completedAt,
-          currentHours: _currentHours,
-          generalNotes: _generalNotes,
-          photos: _photos,
-        ),
+      checklistDraftJson(
+        templateId: _selectedTemplate?.id ?? _draftTemplateId,
+        responses: _responses,
+        notes: _notes,
+        photoUrls: _photoUrls,
+        completedAt: _completedAt,
+        currentHours: _currentHours,
+        generalNotes: _generalNotes,
+        photos: _photos,
       ),
     );
   }
 
   Future<Map<String, String?>> _uploadChecklistPhotos() async {
-    _photoUploadDeferredReason = null;
-    final urls = Map<String, String?>.from(_photoUrls);
-    for (final entry in _photos.entries) {
-      final bytes = entry.value;
-      if (bytes == null) {
-        urls[entry.key] = null;
-        continue;
-      }
-      final existingUrl = urls[entry.key];
-      final ts = DateTime.now().millisecondsSinceEpoch;
-      final path = 'checklists/$_checklistRunKey/${entry.key}_$ts.jpg';
-      try {
+    final result = await uploadPendingChecklistPhotos(
+      photos: _photos,
+      existingUrls: _photoUrls,
+      upload: (itemId, bytes) async {
+        final ts = DateTime.now().millisecondsSinceEpoch;
+        final path = 'checklists/$_checklistRunKey/${itemId}_$ts.jpg';
         await supabase.storage
             .from(AppConstants.bucketReportPhotos)
             .uploadBinary(
@@ -234,18 +183,13 @@ class _ChecklistScreenBodyState extends ConsumerState<ChecklistScreenBody> {
               fileOptions: const FileOptions(contentType: 'image/jpeg'),
             )
             .timeout(const Duration(seconds: 4));
-        urls[entry.key] = supabase.storage
+        return supabase.storage
             .from(AppConstants.bucketReportPhotos)
             .getPublicUrl(path);
-      } on TimeoutException catch (error) {
-        _photoUploadDeferredReason ??= error.toString();
-        urls[entry.key] = existingUrl;
-      } catch (error) {
-        _photoUploadDeferredReason ??= error.toString();
-        urls[entry.key] = existingUrl;
-      }
-    }
-    return urls;
+      },
+    );
+    _photoUploadDeferredReason = result.deferredReason;
+    return result.urls;
   }
 
   Future<void> _loadPreSelectedTemplate() async {
@@ -314,31 +258,24 @@ class _ChecklistScreenBodyState extends ConsumerState<ChecklistScreenBody> {
                   assetTypeId: widget.assetTypeId,
                 )
               : allTemplates;
-          final snapshotTemplate = snapshot?.asTemplate();
 
-          if (snapshotTemplate != null &&
-              (boundTemplateId == null ||
-                  snapshot?.templateId == boundTemplateId)) {
-            _selectedTemplate = snapshotTemplate;
-            _draftTemplateId = snapshot?.templateId ?? _draftTemplateId;
-            _showPicker = false;
-          } else if (_selectedTemplate == null && boundTemplateId != null) {
-            final matches = templates.where((t) => t.id == boundTemplateId);
-            if (matches.isNotEmpty) {
-              _selectedTemplate = matches.first;
-              _draftTemplateId = matches.first.id;
-              _showPicker = false;
-            }
-          } else if (_selectedTemplate == null && _draftTemplateId != null) {
-            final matches = templates.where((t) => t.id == _draftTemplateId);
-            if (matches.isNotEmpty) {
-              _selectedTemplate = matches.first;
-              _showPicker = false;
-            }
-          }
+          final selection = resolveChecklistTemplateSelection(
+            currentSelected: _selectedTemplate,
+            currentDraftTemplateId: _draftTemplateId,
+            currentShowPicker: _showPicker,
+            snapshot: snapshot,
+            boundTemplateId: boundTemplateId,
+            templates: templates,
+          );
+          _selectedTemplate = selection.selected;
+          _draftTemplateId = selection.draftTemplateId;
+          _showPicker = selection.showPicker;
 
-          if (!templateSelectionLocked &&
-              (_showPicker || _selectedTemplate == null)) {
+          if (shouldShowChecklistTemplatePicker(
+            templateSelectionLocked: templateSelectionLocked,
+            showPicker: _showPicker,
+            selectedTemplate: _selectedTemplate,
+          )) {
             return ChecklistTemplateSelector(
               templates: templates,
               emptyMessage: widget.clientHistoryOnly
@@ -365,32 +302,20 @@ class _ChecklistScreenBodyState extends ConsumerState<ChecklistScreenBody> {
             );
           }
 
-          final snapshotItems = snapshot != null &&
-                  snapshot.items.isNotEmpty &&
-                  (snapshot.templateId == _selectedTemplate!.id ||
-                      snapshotTemplate?.id == _selectedTemplate!.id)
-              ? snapshot.items
-              : null;
-          final metaBits = <String>[];
-          if (snapshot?.intervalLabel?.trim().isNotEmpty == true) {
-            metaBits.add(snapshot!.intervalLabel!.trim());
-          }
-          if ((snapshot?.intervalHours ?? 0) > 0) {
-            metaBits.add('${snapshot!.intervalHours}h');
-          }
-          if ((snapshot?.templateVersion ?? 0) > 0) {
-            metaBits.add('v${snapshot!.templateVersion}');
-          }
-          if (snapshotItems != null) {
-            metaBits.add('${snapshotItems.length} items');
-          }
+          final snapshotItems = snapshotItemsForTemplate(
+            snapshot: snapshot,
+            selectedTemplate: _selectedTemplate!,
+          );
 
           return ChecklistForm(
             template: _selectedTemplate!,
             workOrderId: _checklistRunKey,
             showSyncStatus: widget.workOrderId != null,
             snapshotItems: snapshotItems,
-            metadataCaption: metaBits.isEmpty ? null : metaBits.join(' • '),
+            metadataCaption: buildChecklistMetadataCaption(
+              snapshot: snapshot,
+              snapshotItems: snapshotItems,
+            ),
             responses: _responses,
             notes: _notes,
             photos: _photos,
@@ -433,95 +358,101 @@ class _ChecklistScreenBodyState extends ConsumerState<ChecklistScreenBody> {
               _savePhotoCache();
               _saveDraft();
             },
-            onSubmit: () async {
-              if (requiresAttentionDetail(
-                  _responses, _notes, _photos, _photoUrls)) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content:
-                        Text('Monitor and Action items need a note or photo.'),
-                    backgroundColor: AppColors.error,
-                  ),
-                );
-                return;
-              }
-              await _savePhotoCache();
-              final photoUrls = await _uploadChecklistPhotos();
-              _photoUrls
-                ..clear()
-                ..addAll(photoUrls);
-              await _savePhotoCache();
-              await _saveDraft();
-              final List<ChecklistItem> items = snapshotItems ??
-                  await ref.read(
-                      checklistItemsProvider(_selectedTemplate!.id).future);
-              if (widget.clientHistoryOnly) {
-                await ref.read(clientChecklistSubmissionProvider).submit(
-                      assetId: widget.assetId!,
-                      clientId: widget.assetClientId!,
-                      submittedBy: profile?.id ?? '',
-                      submittedByRole: profile?.role.name,
-                      template: _selectedTemplate!,
-                      items: items,
-                      responses: _responses,
-                      notes: _notes,
-                      photoUrls: photoUrls,
-                      submittedAt: _completedAt,
-                      currentHours: _currentHours,
-                      generalNotes: _generalNotes,
-                    );
-              } else {
-                await ref.read(maintenanceChecklistSubmissionProvider).submit(
-                      workOrderId: widget.workOrderId!,
-                      assetId: workOrder?.assetId,
-                      clientId: workOrder?.clientId,
-                      template: _selectedTemplate!,
-                      loadItems: () async => items,
-                      completedBy: profile?.id ?? '',
-                      submittedByRole: profile?.role.name,
-                      submittedAt: _completedAt,
-                      responses: _responses,
-                      notes: _notes,
-                      photoUrls: photoUrls,
-                      currentHours: _currentHours,
-                      generalNotes: _generalNotes,
-                      holdForSyncReason: _photoUploadDeferredReason,
-                    );
-                final submitState = ref.read(checklistControllerProvider);
-                if (submitState.hasError) {
-                  final error = submitState.error;
-                  if (context.mounted) {
-                    final savedLocally =
-                        error is LocalChecklistPendingException;
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text(savedLocally
-                            ? error.message
-                            : 'Checklist save failed: $error'),
-                        backgroundColor:
-                            savedLocally ? AppColors.warning : AppColors.error,
-                      ),
-                    );
-                  }
-                  return;
-                }
-              }
-              final prefs = await SharedPreferences.getInstance();
-              await prefs.remove(_draftKey);
-              await prefs.remove(_photoCacheKey);
-              if (context.mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text(l10n.checklistSubmitted),
-                    backgroundColor: AppColors.success,
-                  ),
-                );
-              }
-              if (context.mounted) context.pop();
-            },
+            onSubmit: () => _submitChecklist(context, l10n, snapshotItems),
           );
         },
       ),
     );
+  }
+
+  Future<void> _submitChecklist(
+    BuildContext context,
+    AppLocalizations l10n,
+    List<ChecklistItem>? snapshotItems,
+  ) async {
+    if (requiresAttentionDetail(_responses, _notes, _photos, _photoUrls)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Monitor and Action items need a note or photo.'),
+          backgroundColor: AppColors.error,
+        ),
+      );
+      return;
+    }
+    await _savePhotoCache();
+    final photoUrls = await _uploadChecklistPhotos();
+    _photoUrls
+      ..clear()
+      ..addAll(photoUrls);
+    await _savePhotoCache();
+    await _saveDraft();
+    final profile = ref.read(profileProvider).valueOrNull;
+    final workOrder = widget.workOrderId == null
+        ? null
+        : ref.read(workOrderByIdProvider(widget.workOrderId!)).valueOrNull;
+    final List<ChecklistItem> items = snapshotItems ??
+        await ref.read(checklistItemsProvider(_selectedTemplate!.id).future);
+    if (widget.clientHistoryOnly) {
+      await ref.read(clientChecklistSubmissionProvider).submit(
+            assetId: widget.assetId!,
+            clientId: widget.assetClientId!,
+            submittedBy: profile?.id ?? '',
+            submittedByRole: profile?.role.name,
+            template: _selectedTemplate!,
+            items: items,
+            responses: _responses,
+            notes: _notes,
+            photoUrls: photoUrls,
+            submittedAt: _completedAt,
+            currentHours: _currentHours,
+            generalNotes: _generalNotes,
+          );
+    } else {
+      await ref.read(maintenanceChecklistSubmissionProvider).submit(
+            workOrderId: widget.workOrderId!,
+            assetId: workOrder?.assetId,
+            clientId: workOrder?.clientId,
+            template: _selectedTemplate!,
+            loadItems: () async => items,
+            completedBy: profile?.id ?? '',
+            submittedByRole: profile?.role.name,
+            submittedAt: _completedAt,
+            responses: _responses,
+            notes: _notes,
+            photoUrls: photoUrls,
+            currentHours: _currentHours,
+            generalNotes: _generalNotes,
+            holdForSyncReason: _photoUploadDeferredReason,
+          );
+      final submitState = ref.read(checklistControllerProvider);
+      if (submitState.hasError) {
+        final error = submitState.error;
+        if (context.mounted) {
+          final savedLocally = error is LocalChecklistPendingException;
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(savedLocally
+                  ? error.message
+                  : 'Checklist save failed: $error'),
+              backgroundColor:
+                  savedLocally ? AppColors.warning : AppColors.error,
+            ),
+          );
+        }
+        return;
+      }
+    }
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove(_draftKey);
+    await prefs.remove(_photoCacheKey);
+    if (context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(l10n.checklistSubmitted),
+          backgroundColor: AppColors.success,
+        ),
+      );
+    }
+    if (context.mounted) context.pop();
   }
 }
