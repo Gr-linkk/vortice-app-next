@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:vortice_app/core/app_shell.dart';
+import 'package:vortice_app/core/router_redirect.dart';
 import 'package:vortice_app/core/theme.dart';
 import 'package:vortice_app/features/assets/add_asset_screen.dart';
 import 'package:vortice_app/features/assets/asset_detail_screen.dart';
@@ -76,20 +77,6 @@ final _routerNotifierProvider = ChangeNotifierProvider<_RouterNotifier>((ref) {
   return _RouterNotifier(ref);
 });
 
-// ── Route helper ────────────────────────────────────────────────────────────
-
-String _dashboardFor(UserRole? role) => switch (role) {
-      UserRole.owner => '/owner/dashboard',
-      UserRole.employee => '/employee/dashboard',
-      UserRole.client => '/client/dashboard',
-      UserRole.operator => '/client/dashboard', // org-scoped operator dashboard
-      UserRole.clientAdmin => '/client/dashboard',
-      UserRole.clientMechanic => '/client/dashboard',
-      UserRole.clientOperator =>
-        '/client/dashboard', // legacy — same as operator
-      null => '/login',
-    };
-
 // ── Navigator keys ─────────────────────────────────────────────────────────
 final _rootNavigatorKey = GlobalKey<NavigatorState>(debugLabel: 'root');
 
@@ -105,24 +92,10 @@ final routerProvider = Provider<GoRouter>((ref) {
     navigatorKey: _rootNavigatorKey,
     initialLocation: '/login',
     refreshListenable: notifier,
-    redirect: (context, state) {
-      final authStatus = notifier.authStatus;
-      final location = state.matchedLocation;
-
-      // Still loading auth — hold on the current route
-      if (authStatus.isLoading) return null;
-
-      final onAuthRoute = location == '/login' || location == '/register';
-
-      if (!authStatus.isAuthenticated) {
-        return onAuthRoute ? null : '/login';
-      }
-
-      // Authenticated — bounce off auth screens to the correct dashboard
-      if (onAuthRoute) return _dashboardFor(authStatus.profile?.role);
-
-      return null;
-    },
+    redirect: (context, state) => resolveAuthRedirect(
+      authStatus: notifier.authStatus,
+      location: state.matchedLocation,
+    ),
     routes: [
       // ── Unauthenticated ────────────────────────────────────────────────
       GoRoute(path: '/login', builder: (_, __) => const LoginScreen()),
