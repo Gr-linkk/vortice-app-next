@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:vortice_app/core/constants.dart';
 import 'package:vortice_app/core/supabase_client.dart';
 import 'package:vortice_app/db/database.dart';
+import 'package:vortice_app/features/checklists/checklist_repository_support.dart';
 import 'package:vortice_app/features/checklists/work_order_checklist_snapshot_repository.dart';
 import 'package:vortice_app/models/checklist_item.dart';
 import 'package:vortice_app/models/checklist_response.dart';
@@ -71,7 +72,7 @@ class ChecklistRepository {
 
       final items = (remote as List)
           .map((e) => ChecklistItem.fromJson(e as Map<String, dynamic>))
-          .where(_isAllowedChecklistItem)
+          .where(isAllowedChecklistItem)
           .toList();
 
       for (final item in items) {
@@ -80,7 +81,7 @@ class ChecklistRepository {
 
       return items;
     } catch (_) {
-      final allowedCached = cached.where(_isAllowedChecklistItem).toList();
+      final allowedCached = cached.where(isAllowedChecklistItem).toList();
       if (allowedCached.isNotEmpty) return allowedCached;
       rethrow;
     }
@@ -93,16 +94,6 @@ class ChecklistRepository {
     await _db.checklistsDao.upsertItems(
       snapshot.items.map(_itemToCompanion).toList(),
     );
-  }
-
-  bool _isAllowedChecklistItem(ChecklistItem item) {
-    final text = item.descriptionEn.toLowerCase();
-    if (text.contains('client sign')) return false;
-    if (text.contains('customer sign')) return false;
-    if (text.contains('sign-off')) return false;
-    if (text.contains('sign off')) return false;
-    if (text.contains('signature')) return false;
-    return true;
   }
 
   Future<List<ChecklistResponse>> listResponsesForWorkOrder(
@@ -130,11 +121,10 @@ class ChecklistRepository {
       };
 
       await _db.checklistsDao.upsertResponses(
-        responses
-            .where(
-              (response) =>
-                  !localUnsyncedByItem.containsKey(response.checklistItemId),
-            )
+        remoteChecklistResponsesSafeToUpsert(
+          remoteResponses: responses,
+          localUnsyncedByItem: localUnsyncedByItem,
+        )
             .map(
               (response) => _responseToCompanion(
                 response,
@@ -146,7 +136,7 @@ class ChecklistRepository {
             .toList(),
       );
 
-      return _mergeResponsesPreferUnsynced(
+      return mergeResponsesPreferUnsynced(
         remoteResponses: responses,
         localResponses: cached,
       );
@@ -196,7 +186,7 @@ class ChecklistRepository {
         entry.key,
       );
       existingByItem[entry.key] = existing;
-      final response = _buildChecklistResponse(
+      final response = buildChecklistResponse(
         id: existing?.id ?? _uuidV4(),
         workOrderId: workOrderId,
         checklistItemId: entry.key,
@@ -210,7 +200,7 @@ class ChecklistRepository {
         syncStatus: SyncStatusValues.synced,
         lastSyncedAt: now,
       );
-      rows.add(_responseToRemoteRow(response));
+      rows.add(checklistResponseToRemoteRow(response));
       localResponses.add(response);
       localEntries.add(
         _responseToCompanion(
@@ -228,9 +218,7 @@ class ChecklistRepository {
       final entry = answered[i];
       final existing = existingByItem[entry.key];
       final response = localResponses[i].copyWith(
-        syncStatus: existing == null
-            ? SyncStatusValues.pendingCreate
-            : SyncStatusValues.pendingUpdate,
+        syncStatus: pendingChecklistSyncStatus(hasExisting: existing != null),
         lastSyncedAt: existing?.lastSyncedAt,
       );
       pendingEntries.add(
@@ -367,23 +355,6 @@ ChecklistResponse _responseFromRow(ChecklistResponsesTableData row) =>
       lastError: row.lastError,
     );
 
-List<ChecklistResponse> _mergeResponsesPreferUnsynced({
-  required List<ChecklistResponse> remoteResponses,
-  required List<ChecklistResponse> localResponses,
-}) {
-  final byItem = <String, ChecklistResponse>{
-    for (final response in remoteResponses) response.checklistItemId: response,
-  };
-
-  for (final response in localResponses) {
-    if (response.syncStatus != SyncStatusValues.synced) {
-      byItem[response.checklistItemId] = response;
-    }
-  }
-
-  return byItem.values.toList();
-}
-
 ChecklistResponsesTableCompanion _responseToCompanion(
   ChecklistResponse response, {
   required String syncStatus,
@@ -407,50 +378,6 @@ ChecklistResponsesTableCompanion _responseToCompanion(
       lastSyncedAt: Value(lastSyncedAt ?? response.lastSyncedAt),
       lastError: Value(lastError),
     );
-
-ChecklistResponse _buildChecklistResponse({
-  required String id,
-  required String workOrderId,
-  required String checklistItemId,
-  required String completedBy,
-  required String status,
-  required DateTime completedAt,
-  DateTime? createdAt,
-  DateTime? updatedAt,
-  String? notes,
-  String? photoUrl,
-  String syncStatus = SyncStatusValues.synced,
-  DateTime? lastSyncedAt,
-  String? lastError,
-}) =>
-    ChecklistResponse(
-      id: id,
-      workOrderId: workOrderId,
-      checklistItemId: checklistItemId,
-      completed: status == 'pass',
-      notes: notes?.isNotEmpty == true ? notes : null,
-      photoUrl: photoUrl,
-      responseStatus: status,
-      completedBy: completedBy,
-      completedAt: completedAt,
-      createdAt: createdAt,
-      syncStatus: syncStatus,
-      updatedAt: updatedAt,
-      lastSyncedAt: lastSyncedAt,
-      lastError: lastError,
-    );
-
-Map<String, dynamic> _responseToRemoteRow(ChecklistResponse response) => {
-      'id': response.id,
-      'work_order_id': response.workOrderId,
-      'checklist_item_id': response.checklistItemId,
-      'completed': response.completed,
-      'response_status': response.responseStatus,
-      'completed_by': response.completedBy,
-      'completed_at': response.completedAt?.toIso8601String(),
-      if (response.notes?.isNotEmpty == true) 'notes': response.notes,
-      if (response.photoUrl != null) 'photo_url': response.photoUrl,
-    };
 
 String _uuidV4() {
   final random = Random.secure();
