@@ -61,7 +61,15 @@ final authStatusProvider = Provider<AppAuthStatus>((ref) {
   final authAsync = ref.watch(_supabaseAuthStreamProvider);
 
   return authAsync.when(
-    loading: () => AppAuthStatus.loading,
+    loading: () {
+      // During sign-out the stream can briefly reload while the session is
+      // already cleared — treat that as logged out so the router can leave
+      // the authenticated shell immediately.
+      if (supabase.auth.currentSession == null) {
+        return AppAuthStatus.unauthenticated;
+      }
+      return AppAuthStatus.loading;
+    },
     error: (_, __) => AppAuthStatus.unauthenticated,
     data: (auth) {
       if (auth.session == null) return AppAuthStatus.unauthenticated;
