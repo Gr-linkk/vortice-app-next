@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:vortice_app/core/constants.dart';
+import 'package:vortice_app/features/auth/auth_status_logic.dart';
 import 'package:vortice_app/core/supabase_client.dart';
 import 'package:vortice_app/models/profile.dart';
 
@@ -61,15 +62,8 @@ final authStatusProvider = Provider<AppAuthStatus>((ref) {
   final authAsync = ref.watch(_supabaseAuthStreamProvider);
 
   return authAsync.when(
-    loading: () {
-      // During sign-out the stream can briefly reload while the session is
-      // already cleared — treat that as logged out so the router can leave
-      // the authenticated shell immediately.
-      if (supabase.auth.currentSession == null) {
-        return AppAuthStatus.unauthenticated;
-      }
-      return AppAuthStatus.loading;
-    },
+    loading: () =>
+        authStatusWhileStreamLoading(supabase.auth.currentSession),
     error: (_, __) => AppAuthStatus.unauthenticated,
     data: (auth) {
       if (auth.session == null) return AppAuthStatus.unauthenticated;
