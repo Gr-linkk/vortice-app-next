@@ -2,6 +2,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:vortice_app/core/theme.dart';
 import 'package:vortice_app/features/invoices/invoice_detail_support.dart';
 import 'package:vortice_app/models/invoice.dart';
+import 'package:vortice_app/models/profile.dart';
 
 void main() {
   group('invoiceStatusColor', () {
@@ -22,6 +23,62 @@ void main() {
     test('allows draft and voided invoices', () {
       expect(isInvoiceEditingLocked(InvoiceStatus.draft), isFalse);
       expect(isInvoiceEditingLocked(InvoiceStatus.voided), isFalse);
+    });
+  });
+
+  group('canMarkInvoicePaidFromList', () {
+    test('allows owners to mark draft or sent invoices paid', () {
+      expect(
+        canMarkInvoicePaidFromList(
+          role: UserRole.owner,
+          status: InvoiceStatus.draft,
+        ),
+        isTrue,
+      );
+      expect(
+        canMarkInvoicePaidFromList(
+          role: UserRole.owner,
+          status: InvoiceStatus.sent,
+        ),
+        isTrue,
+      );
+    });
+
+    test('hides paid action for non-owner roles', () {
+      for (final role in [
+        UserRole.employee,
+        UserRole.client,
+        UserRole.clientAdmin,
+        UserRole.clientMechanic,
+        UserRole.clientOperator,
+        UserRole.operator,
+      ]) {
+        expect(
+          canMarkInvoicePaidFromList(
+            role: role,
+            status: InvoiceStatus.sent,
+          ),
+          isFalse,
+          reason: '$role should not see owner invoice payment actions',
+        );
+      }
+    });
+
+    test('hides paid action for already-final statuses', () {
+      expect(
+        canMarkInvoicePaidFromList(
+          role: UserRole.owner,
+          status: InvoiceStatus.paid,
+        ),
+        isFalse,
+      );
+      expect(
+        canMarkInvoicePaidFromList(
+          role: UserRole.owner,
+          status: InvoiceStatus.voided,
+        ),
+        isFalse,
+      );
     });
   });
 
