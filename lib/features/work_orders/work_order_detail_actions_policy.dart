@@ -51,6 +51,5 @@ class WorkOrderDetailActionsPolicy {
   }) =>
       isOwner &&
       (status == WorkOrderStatus.pendingReview ||
-          status == WorkOrderStatus.inProgress ||
           status == WorkOrderStatus.closed);
 }

@@ -35,6 +35,7 @@ class WorkOrderDetailActionsSection extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context);
     final isLoading = ref.watch(workOrderControllerProvider).isLoading;
+    final invoiceState = ref.watch(invoiceControllerProvider);
     final assignedAsync =
         ref.watch(currentUserAssignedToWorkOrderProvider(workOrder.id));
     final pmChecklistsAllowedAsync = ref.watch(clientCapabilityGateProvider((
@@ -224,23 +225,46 @@ class WorkOrderDetailActionsSection extends ConsumerWidget {
         )) ...[
           const SizedBox(height: 8),
           ElevatedButton.icon(
-            onPressed: isLoading
+            onPressed: isLoading || invoiceState.isLoading
                 ? null
                 : () async {
                     final newId = await ref
                         .read(invoiceControllerProvider.notifier)
                         .generateFromWorkOrder(workOrder.id);
-                    if (newId != null && context.mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text(l10n.invoiceGenerated),
-                          backgroundColor: AppColors.success,
-                        ),
-                      );
+                    if (!context.mounted) return;
+                    if (newId != null) {
+                      ScaffoldMessenger.of(context)
+                        ..hideCurrentSnackBar()
+                        ..showSnackBar(
+                          SnackBar(
+                            content: Text(l10n.invoiceGenerated),
+                            backgroundColor: AppColors.success,
+                          ),
+                        );
                       context.push('$routePrefix/invoices/$newId');
+                    } else {
+                      final error = ref.read(invoiceControllerProvider).error;
+                      ScaffoldMessenger.of(context)
+                        ..hideCurrentSnackBar()
+                        ..showSnackBar(
+                          SnackBar(
+                            content: Text(
+                              error == null
+                                  ? 'Invoice generation failed.'
+                                  : 'Invoice generation failed: $error',
+                            ),
+                            backgroundColor: AppColors.error,
+                          ),
+                        );
                     }
                   },
-            icon: const Icon(Icons.receipt_long),
+            icon: invoiceState.isLoading
+                ? const SizedBox(
+                    width: 18,
+                    height: 18,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : const Icon(Icons.receipt_long),
             label: Text(l10n.generateInvoice),
             style: ElevatedButton.styleFrom(
               backgroundColor: const Color(0xFF1E40AF),

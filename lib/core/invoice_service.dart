@@ -12,9 +12,10 @@ class InvoiceService {
 
   static const double _consumablesPct = 0.05; // 5% of labour
   static const double _ivaPct = 0.16; // 16% IVA
+  static const double fallbackExchangeRate = 17.50;
 
   /// Fetches the current USD to MXN exchange rate from exchangerate-api.com
-  static Future<double> fetchExchangeRate() async {
+  static Future<ExchangeRateResult> fetchExchangeRateResult() async {
     try {
       final response = await http.get(
         Uri.parse('https://api.exchangerate-api.com/v4/latest/USD'),
@@ -22,24 +23,32 @@ class InvoiceService {
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body) as Map<String, dynamic>;
         final rates = data['rates'] as Map<String, dynamic>;
-        return (rates['MXN'] as num).toDouble();
+        return ExchangeRateResult.live((rates['MXN'] as num).toDouble());
       }
     } catch (_) {
       // Fallback to a reasonable default if API fails
     }
-    return 17.50; // Fallback rate
+    return const ExchangeRateResult.fallback(fallbackExchangeRate);
   }
 
-  /// Generates an invoice number based on current year and count
-  static Future<String> generateInvoiceNumber() async {
-    final year = DateTime.now().year;
-    final countData = await supabase
-        .from(AppConstants.tInvoices)
-        .select('id')
-        .gte('created_at', '$year-01-01')
-        .count();
-    final count = countData.count + 1;
-    return 'INV-$year-${count.toString().padLeft(4, '0')}';
+  static Future<double> fetchExchangeRate() async =>
+      (await fetchExchangeRateResult()).rate;
+
+  /// Generates a locally unique invoice number without relying on a count query.
+  static Future<String> generateInvoiceNumber({DateTime? now}) async =>
+      formatInvoiceNumber(now ?? DateTime.now());
+
+  static String formatInvoiceNumber(DateTime now) {
+    String two(int value) => value.toString().padLeft(2, '0');
+    String three(int value) => value.toString().padLeft(3, '0');
+
+    return 'INV-${now.year}'
+        '${two(now.month)}'
+        '${two(now.day)}-'
+        '${two(now.hour)}'
+        '${two(now.minute)}'
+        '${two(now.second)}-'
+        '${three(now.millisecond)}';
   }
 
   /// Calculates all invoice amounts from a work order
@@ -228,8 +237,9 @@ class InvoiceService {
   }
 
   /// Refreshes exchange rate for an invoice
-  static Future<void> refreshExchangeRate(String invoiceId) async {
-    final exchangeRate = await fetchExchangeRate();
+  static Future<ExchangeRateResult> refreshExchangeRate(
+      String invoiceId) async {
+    final exchangeRate = await fetchExchangeRateResult();
     final invoiceData = await supabase
         .from(AppConstants.tInvoices)
         .select('total_usd')
@@ -237,14 +247,32 @@ class InvoiceService {
         .single();
 
     final totalUsd = invoiceData['total_usd'] as double? ?? 0;
-    final totalMxn = totalUsd * exchangeRate;
+    final totalMxn = totalUsd * exchangeRate.rate;
 
     await supabase.from(AppConstants.tInvoices).update({
-      'exchange_rate': exchangeRate,
+      'exchange_rate': exchangeRate.rate,
       'total_mxn': totalMxn,
       'updated_at': DateTime.now().toIso8601String(),
     }).eq('id', invoiceId);
+
+    return exchangeRate;
   }
+}
+
+class ExchangeRateResult {
+  final double rate;
+  final bool isFallback;
+
+  const ExchangeRateResult._({
+    required this.rate,
+    required this.isFallback,
+  });
+
+  const ExchangeRateResult.live(double rate)
+      : this._(rate: rate, isFallback: false);
+
+  const ExchangeRateResult.fallback(double rate)
+      : this._(rate: rate, isFallback: true);
 }
 
 /// Holds all calculated invoice values
