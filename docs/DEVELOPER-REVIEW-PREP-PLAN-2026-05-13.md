@@ -29,7 +29,8 @@ Review path:
 - [ ] Create/generate invoice.
 - [ ] Confirm labor, parts, service report linkage, taxes, totals, and customer identity.
 - [ ] Preview invoice.
-- [ ] Send/mark sent.
+- [ ] Share invoice PDF and Excel files through the device share sheet.
+- [ ] Download invoice PDF and Excel files to the device. Vórtice does not send invoices in-app in this workflow.
 - [ ] Mark paid/closed.
 - [ ] Confirm work-order status transitions still make sense.
 - [ ] Confirm closed/invoiced work orders can still accept follow-up service reports when needed.

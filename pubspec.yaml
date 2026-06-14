@@ -60,6 +60,7 @@ dependencies:
 
   # File handling
   open_file: ^3.5.7
+  share_plus: ^13.1.0
 
 dev_dependencies:
   flutter_test:

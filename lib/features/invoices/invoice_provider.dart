@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:vortice_app/core/constants.dart';
 import 'package:vortice_app/core/supabase_client.dart';
 import 'package:vortice_app/core/invoice_service.dart';
+import 'package:vortice_app/features/work_orders/work_order_read_providers.dart';
 import 'package:vortice_app/models/invoice.dart';
 
 final invoicesProvider = FutureProvider<List<Invoice>>((ref) async {
@@ -76,6 +77,8 @@ class InvoiceController extends StateNotifier<AsyncValue<void>> {
     state = await AsyncValue.guard(() async {
       invoiceId = await InvoiceService.createFromWorkOrder(workOrderId);
       _ref.invalidate(invoicesProvider);
+      _ref.invalidate(workOrdersProvider);
+      _ref.invalidate(workOrderByIdProvider(workOrderId));
     });
     return invoiceId;
   }
@@ -110,16 +113,15 @@ class InvoiceController extends StateNotifier<AsyncValue<void>> {
   }
 
   /// Refresh exchange rate for an invoice
-  Future<bool> refreshExchangeRate(String invoiceId) async {
+  Future<ExchangeRateResult?> refreshExchangeRate(String invoiceId) async {
     state = const AsyncLoading();
-    bool success = false;
+    ExchangeRateResult? result;
     state = await AsyncValue.guard(() async {
-      await InvoiceService.refreshExchangeRate(invoiceId);
+      result = await InvoiceService.refreshExchangeRate(invoiceId);
       _ref.invalidate(invoicesProvider);
       _ref.invalidate(invoiceByIdProvider(invoiceId));
-      success = true;
     });
-    return success;
+    return result;
   }
 }
 

@@ -731,19 +731,25 @@ class AppLocalizationsEn extends AppLocalizations {
   String get invoiceSaved => 'Invoice updated.';
 
   @override
-  String get invoiceSent => 'Invoice sent.';
+  String get invoiceSent => 'Invoice marked sent.';
 
   @override
-  String get sendInvoice => 'Send Invoice';
+  String get sendInvoice => 'Share Invoice';
 
   @override
   String get invoiceMarkedPaid => 'Invoice marked as paid.';
 
   @override
-  String get exportPdf => 'Export PDF';
+  String get exportPdf => 'Share PDF';
 
   @override
-  String get exportExcel => 'Export Excel';
+  String get exportExcel => 'Share Excel';
+
+  @override
+  String get downloadPdf => 'Download PDF';
+
+  @override
+  String get downloadExcel => 'Download Excel';
 
   @override
   String get noCompletedWorkOrders => 'No completed work orders to invoice.';

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:vortice_app/core/theme.dart';
 import 'package:vortice_app/models/invoice.dart';
+import 'package:vortice_app/models/profile.dart';
 
 Color invoiceStatusColor(InvoiceStatus status) => switch (status) {
       InvoiceStatus.paid => AppColors.success,
@@ -11,6 +12,14 @@ Color invoiceStatusColor(InvoiceStatus status) => switch (status) {
 
 bool isInvoiceEditingLocked(InvoiceStatus status) =>
     status == InvoiceStatus.sent || status == InvoiceStatus.paid;
+
+bool canMarkInvoicePaidFromList({
+  required UserRole? role,
+  required InvoiceStatus status,
+}) =>
+    role == UserRole.owner &&
+    status != InvoiceStatus.paid &&
+    status != InvoiceStatus.voided;
 
 String formatInvoiceCurrency(double? value, {bool mxn = false}) {
   if (value == null) return mxn ? '\$0.00 MXN' : '\$0.00 USD';
@@ -31,7 +40,8 @@ double convertInvoiceAmount(
 double computeLabourTotal(double? hours, double? rate) =>
     (hours ?? 0) * (rate ?? 0);
 
-double computeConsumablesTotal(double hours, double rate) => hours * rate * 0.05;
+double computeConsumablesTotal(double hours, double rate) =>
+    hours * rate * 0.05;
 
 String formatConsumablesTotal(double hours, double rate) =>
     computeConsumablesTotal(hours, rate).toStringAsFixed(2);
