@@ -1529,13 +1529,13 @@ abstract class AppLocalizations {
   /// No description provided for @invoiceSent.
   ///
   /// In en, this message translates to:
-  /// **'Invoice sent.'**
+  /// **'Invoice marked sent.'**
   String get invoiceSent;
 
   /// No description provided for @sendInvoice.
   ///
   /// In en, this message translates to:
-  /// **'Send Invoice'**
+  /// **'Share Invoice'**
   String get sendInvoice;
 
   /// No description provided for @invoiceMarkedPaid.
@@ -1547,14 +1547,26 @@ abstract class AppLocalizations {
   /// No description provided for @exportPdf.
   ///
   /// In en, this message translates to:
-  /// **'Export PDF'**
+  /// **'Share PDF'**
   String get exportPdf;
 
   /// No description provided for @exportExcel.
   ///
   /// In en, this message translates to:
-  /// **'Export Excel'**
+  /// **'Share Excel'**
   String get exportExcel;
+
+  /// No description provided for @downloadPdf.
+  ///
+  /// In en, this message translates to:
+  /// **'Download PDF'**
+  String get downloadPdf;
+
+  /// No description provided for @downloadExcel.
+  ///
+  /// In en, this message translates to:
+  /// **'Download Excel'**
+  String get downloadExcel;
 
   /// No description provided for @noCompletedWorkOrders.
   ///
