@@ -27,6 +27,7 @@ class InvoiceDetailScreen extends ConsumerStatefulWidget {
 class _InvoiceDetailScreenState extends ConsumerState<InvoiceDetailScreen> {
   bool _showMxn = false;
   bool _isEditing = false;
+  bool _isFileActionRunning = false;
 
   final _labourHoursCtrl = TextEditingController();
   final _billableRateCtrl = TextEditingController();
@@ -104,6 +105,39 @@ class _InvoiceDetailScreenState extends ConsumerState<InvoiceDetailScreen> {
     }
   }
 
+  Future<void> _runFileAction(Future<String?> Function() action) async {
+    if (_isFileActionRunning) return;
+    setState(() => _isFileActionRunning = true);
+    try {
+      final message = await action();
+      if (!mounted) return;
+      if (message != null) {
+        ScaffoldMessenger.of(context)
+          ..hideCurrentSnackBar()
+          ..showSnackBar(
+            SnackBar(
+              content: Text(message),
+              backgroundColor: AppColors.success,
+            ),
+          );
+      }
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(
+          const SnackBar(
+            content: Text('Could not create invoice file.'),
+            backgroundColor: AppColors.error,
+          ),
+        );
+    } finally {
+      if (mounted) {
+        setState(() => _isFileActionRunning = false);
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
@@ -116,26 +150,6 @@ class _InvoiceDetailScreenState extends ConsumerState<InvoiceDetailScreen> {
       appBar: AppBar(
         title: Text(l10n.invoiceDetail),
         actions: [
-          if (isOwner) ...[
-            IconButton(
-              icon: const Icon(Icons.picture_as_pdf_outlined),
-              tooltip: l10n.exportPdf,
-              onPressed: () async {
-                final inv = invoiceAsync.valueOrNull;
-                if (inv != null) await InvoicePdfService.generateAndShare(inv);
-              },
-            ),
-            IconButton(
-              icon: const Icon(Icons.table_chart_outlined),
-              tooltip: l10n.exportExcel,
-              onPressed: () async {
-                final inv = invoiceAsync.valueOrNull;
-                if (inv != null) {
-                  await InvoiceExcelService.generateAndShare(inv);
-                }
-              },
-            ),
-          ],
           if (isOwner && !_isEditing)
             Builder(
               builder: (_) {
@@ -161,9 +175,28 @@ class _InvoiceDetailScreenState extends ConsumerState<InvoiceDetailScreen> {
               icon: const Icon(Icons.more_vert),
               onSelected: (value) async {
                 if (value == 'refresh_rate') {
-                  await ref
+                  final result = await ref
                       .read(invoiceControllerProvider.notifier)
                       .refreshExchangeRate(widget.invoiceId);
+                  if (!context.mounted) return;
+                  ScaffoldMessenger.of(context)
+                    ..hideCurrentSnackBar()
+                    ..showSnackBar(
+                      SnackBar(
+                        content: Text(
+                          result == null
+                              ? 'Exchange rate refresh failed.'
+                              : result.isFallback
+                                  ? 'Live exchange rate unavailable. Using fallback: 1 USD = ${result.rate.toStringAsFixed(4)} MXN.'
+                                  : 'Exchange rate refreshed: 1 USD = ${result.rate.toStringAsFixed(4)} MXN.',
+                        ),
+                        backgroundColor: result == null
+                            ? AppColors.error
+                            : result.isFallback
+                                ? AppColors.warning
+                                : AppColors.success,
+                      ),
+                    );
                 }
               },
               itemBuilder: (_) => [
@@ -248,42 +281,94 @@ class _InvoiceDetailScreenState extends ConsumerState<InvoiceDetailScreen> {
                     ],
                   ),
                 ] else if (isOwner) ...[
-                  if (invoice.status == InvoiceStatus.draft) ...[
-                    ElevatedButton.icon(
-                      onPressed: () async {
-                        await InvoicePdfService.generateAndShare(invoice);
-                        await ref
-                            .read(invoiceControllerProvider.notifier)
-                            .updateStatus(widget.invoiceId, InvoiceStatus.sent);
-                        if (context.mounted) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text(l10n.invoiceSent),
-                              backgroundColor: AppColors.success,
-                            ),
-                          );
-                        }
-                      },
-                      icon: const Icon(Icons.send),
-                      label: Text(l10n.sendInvoice),
-                    ),
-                    const SizedBox(height: 8),
-                  ],
+                  Row(
+                    children: [
+                      Expanded(
+                        child: ElevatedButton.icon(
+                          onPressed: _isFileActionRunning
+                              ? null
+                              : () => _runFileAction(() async {
+                                    await InvoicePdfService.generateAndShare(
+                                        invoice);
+                                    return null;
+                                  }),
+                          icon: const Icon(Icons.picture_as_pdf_outlined),
+                          label: Text(l10n.exportPdf),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: OutlinedButton.icon(
+                          onPressed: _isFileActionRunning
+                              ? null
+                              : () => _runFileAction(() async {
+                                    await InvoiceExcelService.generateAndShare(
+                                        invoice);
+                                    return null;
+                                  }),
+                          icon: const Icon(Icons.table_chart_outlined),
+                          label: Text(l10n.exportExcel),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton.icon(
+                          onPressed: _isFileActionRunning
+                              ? null
+                              : () => _runFileAction(() async {
+                                    final file =
+                                        await InvoicePdfService.downloadAndOpen(
+                                            invoice);
+                                    return 'Downloaded PDF: ${file.path}';
+                                  }),
+                          icon: const Icon(Icons.download_outlined),
+                          label: Text(l10n.downloadPdf),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: OutlinedButton.icon(
+                          onPressed: _isFileActionRunning
+                              ? null
+                              : () => _runFileAction(() async {
+                                    final file = await InvoiceExcelService
+                                        .downloadAndOpen(invoice);
+                                    if (file == null) {
+                                      throw StateError(
+                                          'Excel generation returned no data');
+                                    }
+                                    return 'Downloaded Excel: ${file.path}';
+                                  }),
+                          icon: const Icon(Icons.download_outlined),
+                          label: Text(l10n.downloadExcel),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
                   if (invoice.status != InvoiceStatus.paid &&
                       invoice.status != InvoiceStatus.voided)
                     ElevatedButton.icon(
                       onPressed: () async {
-                        await ref
+                        final success = await ref
                             .read(invoiceControllerProvider.notifier)
                             .markAsPaid(widget.invoiceId);
-                        if (context.mounted) {
-                          ScaffoldMessenger.of(context).showSnackBar(
+                        if (!context.mounted) return;
+                        ScaffoldMessenger.of(context)
+                          ..hideCurrentSnackBar()
+                          ..showSnackBar(
                             SnackBar(
-                              content: Text(l10n.invoiceMarkedPaid),
-                              backgroundColor: AppColors.success,
+                              content: Text(success
+                                  ? l10n.invoiceMarkedPaid
+                                  : 'Could not mark invoice paid.'),
+                              backgroundColor:
+                                  success ? AppColors.success : AppColors.error,
                             ),
                           );
-                        }
                       },
                       icon: const Icon(Icons.check_circle),
                       label: Text(l10n.markPaid),

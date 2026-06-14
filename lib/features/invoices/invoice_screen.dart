@@ -4,11 +4,13 @@ import 'package:go_router/go_router.dart';
 import 'package:vortice_app/core/constants.dart';
 import 'package:vortice_app/core/supabase_client.dart';
 import 'package:vortice_app/core/theme.dart';
+import 'package:vortice_app/features/invoices/invoice_detail_support.dart';
 import 'package:vortice_app/features/auth/auth_provider.dart';
 import 'package:vortice_app/features/invoices/invoice_provider.dart';
 import 'package:vortice_app/l10n/app_localizations.dart';
 import 'package:vortice_app/models/invoice.dart';
 import 'package:vortice_app/models/profile.dart';
+import 'package:vortice_app/models/work_order.dart';
 
 class InvoiceScreen extends ConsumerWidget {
   const InvoiceScreen({super.key});
@@ -19,11 +21,14 @@ class InvoiceScreen extends ConsumerWidget {
         ref.read(profileProvider).valueOrNull?.role == UserRole.owner;
     if (!isOwner) return;
 
-    // Fetch completed/pending-review WOs that don't yet have an invoice
+    // Fetch review-ready WOs that can be invoiced.
     final woData = await supabase
         .from(AppConstants.tWorkOrders)
         .select('id, title, status')
-        .inFilter('status', ['pending_review', 'completed']);
+        .inFilter('status', [
+      WorkOrderStatus.pendingReview.dbValue,
+      WorkOrderStatus.closed.dbValue,
+    ]);
 
     if (!context.mounted) return;
 
@@ -70,19 +75,37 @@ class InvoiceScreen extends ConsumerWidget {
                         final newId = await ref
                             .read(invoiceControllerProvider.notifier)
                             .generateFromWorkOrder(selectedWoId!);
-                        if (newId != null && context.mounted) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text(l10n.invoiceGenerated),
-                              backgroundColor: AppColors.success,
-                            ),
-                          );
+                        if (!context.mounted) return;
+                        if (newId != null) {
+                          ScaffoldMessenger.of(context)
+                            ..hideCurrentSnackBar()
+                            ..showSnackBar(
+                              SnackBar(
+                                content: Text(l10n.invoiceGenerated),
+                                backgroundColor: AppColors.success,
+                              ),
+                            );
                           final basePath =
                               ref.read(profileProvider).valueOrNull?.role ==
                                       UserRole.owner
                                   ? '/owner'
                                   : '/client';
                           context.push('$basePath/invoices/$newId');
+                        } else {
+                          final error =
+                              ref.read(invoiceControllerProvider).error;
+                          ScaffoldMessenger.of(context)
+                            ..hideCurrentSnackBar()
+                            ..showSnackBar(
+                              SnackBar(
+                                content: Text(
+                                  error == null
+                                      ? 'Invoice generation failed.'
+                                      : 'Invoice generation failed: $error',
+                                ),
+                                backgroundColor: AppColors.error,
+                              ),
+                            );
                         }
                       },
                 icon: const Icon(Icons.receipt_long),
@@ -211,6 +234,16 @@ class _InvoiceTile extends ConsumerWidget {
     final total = invoice.totalUsd ?? 0;
     final profile = ref.watch(profileProvider).valueOrNull;
     final basePath = profile?.role == UserRole.owner ? '/owner' : '/client';
+    final canMarkPaid = canMarkInvoicePaidFromList(
+      role: profile?.role,
+      status: invoice.status,
+    );
+    final statusLabel = switch (invoice.status) {
+      InvoiceStatus.paid => l10n.paid,
+      InvoiceStatus.sent => 'SENT',
+      InvoiceStatus.draft => 'DRAFT',
+      InvoiceStatus.voided => 'VOID',
+    };
 
     return Card(
       child: ListTile(
@@ -250,12 +283,25 @@ class _InvoiceTile extends ConsumerWidget {
               ),
           ],
         ),
-        trailing: invoice.status != InvoiceStatus.paid &&
-                invoice.status != InvoiceStatus.voided
+        trailing: canMarkPaid
             ? TextButton(
-                onPressed: () => ref
-                    .read(invoiceControllerProvider.notifier)
-                    .markAsPaid(invoice.id),
+                onPressed: () async {
+                  final success = await ref
+                      .read(invoiceControllerProvider.notifier)
+                      .markAsPaid(invoice.id);
+                  if (!context.mounted) return;
+                  ScaffoldMessenger.of(context)
+                    ..hideCurrentSnackBar()
+                    ..showSnackBar(
+                      SnackBar(
+                        content: Text(success
+                            ? l10n.invoiceMarkedPaid
+                            : 'Could not mark invoice paid.'),
+                        backgroundColor:
+                            success ? AppColors.success : AppColors.error,
+                      ),
+                    );
+                },
                 child: Text(l10n.markPaid),
               )
             : Container(
@@ -265,7 +311,7 @@ class _InvoiceTile extends ConsumerWidget {
                   borderRadius: BorderRadius.circular(4),
                 ),
                 child: Text(
-                  invoice.status == InvoiceStatus.paid ? l10n.paid : 'VOID',
+                  statusLabel,
                   style: TextStyle(
                       color: _statusColor(),
                       fontSize: 11,

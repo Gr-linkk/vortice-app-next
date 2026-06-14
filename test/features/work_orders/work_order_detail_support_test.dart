@@ -1,4 +1,3 @@
-import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:vortice_app/core/theme.dart';
 import 'package:vortice_app/features/work_orders/work_order_detail_actions_policy.dart';
@@ -20,9 +19,11 @@ void main() {
 
   group('workOrderStatusColor', () {
     test('maps each work order status to the expected theme color', () {
-      expect(workOrderStatusColor(WorkOrderStatus.draft), AppColors.textSecondary);
+      expect(
+          workOrderStatusColor(WorkOrderStatus.draft), AppColors.textSecondary);
       expect(workOrderStatusColor(WorkOrderStatus.assigned), AppColors.primary);
-      expect(workOrderStatusColor(WorkOrderStatus.inProgress), AppColors.warning);
+      expect(
+          workOrderStatusColor(WorkOrderStatus.inProgress), AppColors.warning);
       expect(workOrderStatusColor(WorkOrderStatus.onHold), AppColors.warning);
       expect(
         workOrderStatusColor(WorkOrderStatus.pendingReview),
@@ -106,7 +107,8 @@ void main() {
       );
     });
 
-    test('shows actions section when status or checklist actions are available', () {
+    test('shows actions section when status or checklist actions are available',
+        () {
       expect(
         WorkOrderDetailActionsPolicy.showsActionsSection(
           canManageStatus: true,
@@ -228,7 +230,7 @@ void main() {
       );
     });
 
-    test('canGenerateInvoice allows owner on reviewable and billable states', () {
+    test('canGenerateInvoice allows owner on review-ready states only', () {
       expect(
         WorkOrderDetailActionsPolicy.canGenerateInvoice(
           isOwner: true,
@@ -241,7 +243,7 @@ void main() {
           isOwner: true,
           status: WorkOrderStatus.inProgress,
         ),
-        isTrue,
+        isFalse,
       );
       expect(
         WorkOrderDetailActionsPolicy.canGenerateInvoice(
