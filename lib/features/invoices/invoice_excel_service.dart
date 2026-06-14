@@ -2,19 +2,76 @@ import 'dart:io';
 import 'package:excel/excel.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:open_file/open_file.dart';
+import 'package:share_plus/share_plus.dart';
+import 'package:vortice_app/features/invoices/invoice_export_context.dart';
 import 'package:vortice_app/models/invoice.dart';
 
 /// Generates Excel (.xlsx) exports of invoices for accounting
 class InvoiceExcelService {
   InvoiceExcelService._();
 
-  /// Generate and share/open invoice Excel file
   static Future<void> generateAndShare(Invoice invoice) async {
+    final context = await InvoiceExportContextService.load(invoice);
+    final bytes = generateBytes(invoice, context: context);
+    if (bytes == null) return;
+
+    final dir = await getTemporaryDirectory();
+    final file = File('${dir.path}/${invoice.invoiceNumber}.xlsx');
+    await file.writeAsBytes(bytes, flush: true);
+    await SharePlus.instance.share(
+      ShareParams(
+        files: [
+          XFile(
+            file.path,
+            mimeType:
+                'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+          ),
+        ],
+        subject: invoice.invoiceNumber,
+        text: invoice.invoiceNumber,
+        fileNameOverrides: ['${invoice.invoiceNumber}.xlsx'],
+      ),
+    );
+  }
+
+  static Future<File?> downloadAndOpen(Invoice invoice) async {
+    final context = await InvoiceExportContextService.load(invoice);
+    final bytes = generateBytes(invoice, context: context);
+    if (bytes == null) return null;
+
+    final file = await _writeDownloadFile(
+      invoice,
+      extension: 'xlsx',
+      bytes: bytes,
+    );
+    await OpenFile.open(file.path);
+    return file;
+  }
+
+  static Future<File> _writeDownloadFile(
+    Invoice invoice, {
+    required String extension,
+    required List<int> bytes,
+  }) async {
+    final dir = await getDownloadsDirectory() ??
+        await getApplicationDocumentsDirectory();
+    final invoiceDir = Directory('${dir.path}/Vortice Invoices');
+    await invoiceDir.create(recursive: true);
+    final file = File('${invoiceDir.path}/${invoice.invoiceNumber}.$extension');
+    return file.writeAsBytes(bytes, flush: true);
+  }
+
+  static List<int>? generateBytes(
+    Invoice invoice, {
+    InvoiceExportContext? context,
+  }) {
     final excel = Excel.createExcel();
 
-    // Remove default sheet and create invoice sheet
-    excel.delete('Sheet1');
+    // Create Invoice before deleting Sheet1. The excel package will not delete
+    // the only sheet in a workbook, which leaves a blank first tab otherwise.
     final sheet = excel['Invoice'];
+    excel.setDefaultSheet('Invoice');
+    excel.delete('Sheet1');
 
     // Styles
     // Section header rows ("LINE ITEMS", "SUMMARY", main title)
@@ -82,10 +139,18 @@ class InvoiceExcelService {
     int row = 3;
 
     void addLabelValue(String label, String value) {
-      sheet.cell(CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: row)).value = TextCellValue(label);
-      sheet.cell(CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: row)).cellStyle = labelStyle;
-      sheet.cell(CellIndex.indexByColumnRow(columnIndex: 1, rowIndex: row)).value = TextCellValue(value);
-      sheet.cell(CellIndex.indexByColumnRow(columnIndex: 1, rowIndex: row)).cellStyle = valueStyle;
+      sheet
+          .cell(CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: row))
+          .value = TextCellValue(label);
+      sheet
+          .cell(CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: row))
+          .cellStyle = labelStyle;
+      sheet
+          .cell(CellIndex.indexByColumnRow(columnIndex: 1, rowIndex: row))
+          .value = TextCellValue(value);
+      sheet
+          .cell(CellIndex.indexByColumnRow(columnIndex: 1, rowIndex: row))
+          .cellStyle = valueStyle;
       row++;
     }
 
@@ -95,38 +160,73 @@ class InvoiceExcelService {
     if (invoice.paidAt != null) {
       addLabelValue('Paid:', _formatDate(invoice.paidAt));
     }
+    if (context != null) {
+      addLabelValue('Bill To:', context.billingLabel);
+      if (context.clientEmail != null) {
+        addLabelValue('Client Email:', context.clientEmail!);
+      }
+      if (context.clientPhone != null) {
+        addLabelValue('Client Phone:', context.clientPhone!);
+      }
+      addLabelValue('Work Order:', context.workOrderLabel);
+      addLabelValue('Asset:', context.assetLabel);
+    }
 
     row += 2;
 
     // Line items header
     sheet.merge(CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: row),
         CellIndex.indexByColumnRow(columnIndex: 3, rowIndex: row));
-    final itemsHeader = sheet.cell(CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: row));
+    final itemsHeader =
+        sheet.cell(CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: row));
     itemsHeader.value = TextCellValue('LINE ITEMS');
     itemsHeader.cellStyle = headerStyle;
     row++;
 
     // Column headers
-    final colHeaders = ['Description', 'Detail', 'Amount (USD)', 'Amount (MXN)'];
+    final colHeaders = [
+      'Description',
+      'Detail',
+      'Amount (USD)',
+      'Amount (MXN)'
+    ];
     for (var i = 0; i < colHeaders.length; i++) {
-      final cell = sheet.cell(CellIndex.indexByColumnRow(columnIndex: i, rowIndex: row));
+      final cell =
+          sheet.cell(CellIndex.indexByColumnRow(columnIndex: i, rowIndex: row));
       cell.value = TextCellValue(colHeaders[i]);
       cell.cellStyle = colHeaderStyle;
     }
     row++;
 
-    final labourTotal = (invoice.labourHours ?? 0) * (invoice.billableRateUsd ?? 0);
+    final labourTotal =
+        (invoice.labourHours ?? 0) * (invoice.billableRateUsd ?? 0);
     final rate = invoice.exchangeRate ?? 1;
 
     void addLineItem(String desc, String? detail, double usd) {
-      sheet.cell(CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: row)).value = TextCellValue(desc);
-      sheet.cell(CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: row)).cellStyle = valueStyle;
-      sheet.cell(CellIndex.indexByColumnRow(columnIndex: 1, rowIndex: row)).cellStyle = valueStyle;
-      sheet.cell(CellIndex.indexByColumnRow(columnIndex: 1, rowIndex: row)).value = TextCellValue(detail ?? '');
-      sheet.cell(CellIndex.indexByColumnRow(columnIndex: 2, rowIndex: row)).value = DoubleCellValue(usd);
-      sheet.cell(CellIndex.indexByColumnRow(columnIndex: 2, rowIndex: row)).cellStyle = currencyStyle;
-      sheet.cell(CellIndex.indexByColumnRow(columnIndex: 3, rowIndex: row)).value = DoubleCellValue(usd * rate);
-      sheet.cell(CellIndex.indexByColumnRow(columnIndex: 3, rowIndex: row)).cellStyle = currencyStyle;
+      sheet
+          .cell(CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: row))
+          .value = TextCellValue(desc);
+      sheet
+          .cell(CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: row))
+          .cellStyle = valueStyle;
+      sheet
+          .cell(CellIndex.indexByColumnRow(columnIndex: 1, rowIndex: row))
+          .cellStyle = valueStyle;
+      sheet
+          .cell(CellIndex.indexByColumnRow(columnIndex: 1, rowIndex: row))
+          .value = TextCellValue(detail ?? '');
+      sheet
+          .cell(CellIndex.indexByColumnRow(columnIndex: 2, rowIndex: row))
+          .value = DoubleCellValue(usd);
+      sheet
+          .cell(CellIndex.indexByColumnRow(columnIndex: 2, rowIndex: row))
+          .cellStyle = currencyStyle;
+      sheet
+          .cell(CellIndex.indexByColumnRow(columnIndex: 3, rowIndex: row))
+          .value = DoubleCellValue(usd * rate);
+      sheet
+          .cell(CellIndex.indexByColumnRow(columnIndex: 3, rowIndex: row))
+          .cellStyle = currencyStyle;
       row++;
     }
 
@@ -143,41 +243,72 @@ class InvoiceExcelService {
     // Summary
     sheet.merge(CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: row),
         CellIndex.indexByColumnRow(columnIndex: 3, rowIndex: row));
-    final summaryHeader = sheet.cell(CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: row));
+    final summaryHeader =
+        sheet.cell(CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: row));
     summaryHeader.value = TextCellValue('SUMMARY');
     summaryHeader.cellStyle = headerStyle;
     row++;
 
     void addSummaryRow(String label, double usd, {bool isTotal = false}) {
-      sheet.cell(CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: row)).value = TextCellValue(label);
-      sheet.cell(CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: row)).cellStyle = isTotal ? totalStyle : labelStyle;
-      sheet.cell(CellIndex.indexByColumnRow(columnIndex: 2, rowIndex: row)).value = DoubleCellValue(usd);
-      sheet.cell(CellIndex.indexByColumnRow(columnIndex: 2, rowIndex: row)).cellStyle = isTotal ? totalStyle : currencyStyle;
-      sheet.cell(CellIndex.indexByColumnRow(columnIndex: 3, rowIndex: row)).value = DoubleCellValue(usd * rate);
-      sheet.cell(CellIndex.indexByColumnRow(columnIndex: 3, rowIndex: row)).cellStyle = isTotal ? totalStyle : currencyStyle;
+      sheet
+          .cell(CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: row))
+          .value = TextCellValue(label);
+      sheet
+          .cell(CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: row))
+          .cellStyle = isTotal ? totalStyle : labelStyle;
+      sheet
+          .cell(CellIndex.indexByColumnRow(columnIndex: 2, rowIndex: row))
+          .value = DoubleCellValue(usd);
+      sheet
+          .cell(CellIndex.indexByColumnRow(columnIndex: 2, rowIndex: row))
+          .cellStyle = isTotal ? totalStyle : currencyStyle;
+      sheet
+          .cell(CellIndex.indexByColumnRow(columnIndex: 3, rowIndex: row))
+          .value = DoubleCellValue(usd * rate);
+      sheet
+          .cell(CellIndex.indexByColumnRow(columnIndex: 3, rowIndex: row))
+          .cellStyle = isTotal ? totalStyle : currencyStyle;
       row++;
     }
 
     addSummaryRow('Subtotal', invoice.subtotalUsd ?? 0);
-    addSummaryRow('IVA (${invoice.ivaPct.toStringAsFixed(0)}%)', invoice.ivaTotalUsd ?? 0);
+    addSummaryRow('IVA (${invoice.ivaPct.toStringAsFixed(0)}%)',
+        invoice.ivaTotalUsd ?? 0);
 
     // Total row — full-width highlight
     sheet.merge(CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: row),
         CellIndex.indexByColumnRow(columnIndex: 1, rowIndex: row));
-    sheet.cell(CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: row)).value = TextCellValue('TOTAL DUE');
-    sheet.cell(CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: row)).cellStyle = totalLabelStyle;
-    sheet.cell(CellIndex.indexByColumnRow(columnIndex: 2, rowIndex: row)).value = DoubleCellValue(invoice.totalUsd ?? 0);
-    sheet.cell(CellIndex.indexByColumnRow(columnIndex: 2, rowIndex: row)).cellStyle = totalStyle;
-    sheet.cell(CellIndex.indexByColumnRow(columnIndex: 3, rowIndex: row)).value = DoubleCellValue((invoice.totalUsd ?? 0) * rate);
-    sheet.cell(CellIndex.indexByColumnRow(columnIndex: 3, rowIndex: row)).cellStyle = totalStyle;
+    sheet
+        .cell(CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: row))
+        .value = TextCellValue('TOTAL DUE');
+    sheet
+        .cell(CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: row))
+        .cellStyle = totalLabelStyle;
+    sheet
+        .cell(CellIndex.indexByColumnRow(columnIndex: 2, rowIndex: row))
+        .value = DoubleCellValue(invoice.totalUsd ?? 0);
+    sheet
+        .cell(CellIndex.indexByColumnRow(columnIndex: 2, rowIndex: row))
+        .cellStyle = totalStyle;
+    sheet
+        .cell(CellIndex.indexByColumnRow(columnIndex: 3, rowIndex: row))
+        .value = DoubleCellValue((invoice.totalUsd ?? 0) * rate);
+    sheet
+        .cell(CellIndex.indexByColumnRow(columnIndex: 3, rowIndex: row))
+        .cellStyle = totalStyle;
     row++;
 
     row += 2;
 
     // Exchange rate
-    sheet.cell(CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: row)).value =
-        TextCellValue('Exchange Rate: 1 USD = ${invoice.exchangeRate?.toStringAsFixed(4) ?? '-'} MXN');
-    sheet.cell(CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: row)).cellStyle = exchangeRateStyle;
+    sheet
+            .cell(CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: row))
+            .value =
+        TextCellValue(
+            'Exchange Rate: 1 USD = ${invoice.exchangeRate?.toStringAsFixed(4) ?? '-'} MXN');
+    sheet
+        .cell(CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: row))
+        .cellStyle = exchangeRateStyle;
 
     // Set column widths
     sheet.setColumnWidth(0, 25);
@@ -185,14 +316,7 @@ class InvoiceExcelService {
     sheet.setColumnWidth(2, 18);
     sheet.setColumnWidth(3, 18);
 
-    // Save and share
-    final bytes = excel.save();
-    if (bytes != null) {
-      final dir = await getTemporaryDirectory();
-      final file = File('${dir.path}/${invoice.invoiceNumber}.xlsx');
-      await file.writeAsBytes(bytes);
-      await OpenFile.open(file.path);
-    }
+    return excel.save();
   }
 
   static String _formatDate(DateTime? date) {

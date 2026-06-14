@@ -738,19 +738,25 @@ class AppLocalizationsEs extends AppLocalizations {
   String get invoiceSaved => 'Factura actualizada.';
 
   @override
-  String get invoiceSent => 'Factura enviada.';
+  String get invoiceSent => 'Factura marcada como enviada.';
 
   @override
-  String get sendInvoice => 'Enviar factura';
+  String get sendInvoice => 'Compartir factura';
 
   @override
   String get invoiceMarkedPaid => 'Factura marcada como pagada.';
 
   @override
-  String get exportPdf => 'Exportar PDF';
+  String get exportPdf => 'Compartir PDF';
 
   @override
-  String get exportExcel => 'Exportar Excel';
+  String get exportExcel => 'Compartir Excel';
+
+  @override
+  String get downloadPdf => 'Descargar PDF';
+
+  @override
+  String get downloadExcel => 'Descargar Excel';
 
   @override
   String get noCompletedWorkOrders =>

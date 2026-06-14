@@ -1,6 +1,12 @@
+import 'dart:io';
+import 'dart:typed_data';
+
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
+import 'package:open_file/open_file.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:printing/printing.dart';
+import 'package:vortice_app/features/invoices/invoice_export_context.dart';
 import 'package:vortice_app/models/invoice.dart';
 
 /// Generates professional print-ready PDF invoices (white background, business layout)
@@ -16,23 +22,61 @@ class InvoicePdfService {
   static const _borderGrey = PdfColor.fromInt(0xFFD1D5DB);
 
   static Future<void> generateAndShare(Invoice invoice) async {
+    final exportContext = await InvoiceExportContextService.load(invoice);
+    final bytes = await generateBytes(invoice, exportContext: exportContext);
+
+    await Printing.sharePdf(
+      bytes: bytes,
+      filename: '${invoice.invoiceNumber}.pdf',
+    );
+  }
+
+  static Future<File> downloadAndOpen(Invoice invoice) async {
+    final exportContext = await InvoiceExportContextService.load(invoice);
+    final bytes = await generateBytes(invoice, exportContext: exportContext);
+    final file = await _writeDownloadFile(
+      invoice,
+      extension: 'pdf',
+      bytes: bytes,
+    );
+    await OpenFile.open(file.path);
+    return file;
+  }
+
+  static Future<Uint8List> generateBytes(
+    Invoice invoice, {
+    InvoiceExportContext? exportContext,
+  }) async {
     final pdf = pw.Document();
 
     pdf.addPage(
       pw.Page(
         pageFormat: PdfPageFormat.letter,
         margin: const pw.EdgeInsets.symmetric(horizontal: 48, vertical: 40),
-        build: (context) => _buildPage(invoice),
+        build: (context) => _buildPage(invoice, exportContext: exportContext),
       ),
     );
 
-    await Printing.sharePdf(
-      bytes: await pdf.save(),
-      filename: '${invoice.invoiceNumber}.pdf',
-    );
+    return pdf.save();
   }
 
-  static pw.Widget _buildPage(Invoice invoice) {
+  static Future<File> _writeDownloadFile(
+    Invoice invoice, {
+    required String extension,
+    required List<int> bytes,
+  }) async {
+    final dir = await getDownloadsDirectory() ??
+        await getApplicationDocumentsDirectory();
+    final invoiceDir = Directory('${dir.path}/Vortice Invoices');
+    await invoiceDir.create(recursive: true);
+    final file = File('${invoiceDir.path}/${invoice.invoiceNumber}.$extension');
+    return file.writeAsBytes(bytes, flush: true);
+  }
+
+  static pw.Widget _buildPage(
+    Invoice invoice, {
+    InvoiceExportContext? exportContext,
+  }) {
     final labourTotal =
         (invoice.labourHours ?? 0) * (invoice.billableRateUsd ?? 0);
     final subtotal = invoice.subtotalUsd ?? 0;
@@ -110,6 +154,37 @@ class InvoicePdfService {
         pw.SizedBox(height: 6),
         pw.Divider(color: _navy, thickness: 2),
         pw.SizedBox(height: 20),
+
+        if (exportContext != null) ...[
+          pw.Row(
+            crossAxisAlignment: pw.CrossAxisAlignment.start,
+            children: [
+              pw.Expanded(
+                child: _contextBlock(
+                  'BILL TO',
+                  [
+                    exportContext.billingLabel,
+                    if (exportContext.clientEmail != null)
+                      exportContext.clientEmail!,
+                    if (exportContext.clientPhone != null)
+                      exportContext.clientPhone!,
+                  ],
+                ),
+              ),
+              pw.SizedBox(width: 24),
+              pw.Expanded(
+                child: _contextBlock(
+                  'WORK',
+                  [
+                    exportContext.workOrderLabel,
+                    exportContext.assetLabel,
+                  ],
+                ),
+              ),
+            ],
+          ),
+          pw.SizedBox(height: 20),
+        ],
 
         // ── Line items table ────────────────────────────────────────
         _sectionLabel('LINE ITEMS'),
@@ -273,6 +348,25 @@ class InvoicePdfService {
         fontWeight: pw.FontWeight.bold,
         letterSpacing: 1.2,
       ),
+    );
+  }
+
+  static pw.Widget _contextBlock(String title, List<String> lines) {
+    return pw.Column(
+      crossAxisAlignment: pw.CrossAxisAlignment.start,
+      children: [
+        _sectionLabel(title),
+        pw.SizedBox(height: 5),
+        ...lines.map(
+          (line) => pw.Padding(
+            padding: const pw.EdgeInsets.only(bottom: 2),
+            child: pw.Text(
+              line,
+              style: const pw.TextStyle(color: _darkGrey, fontSize: 10),
+            ),
+          ),
+        ),
+      ],
     );
   }
 
