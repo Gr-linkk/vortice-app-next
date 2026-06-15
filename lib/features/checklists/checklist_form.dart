@@ -10,6 +10,7 @@ import 'package:vortice_app/features/checklists/checklist_support.dart';
 import 'package:vortice_app/features/checklists/checklist_sync_banner.dart';
 import 'package:vortice_app/l10n/app_localizations.dart';
 import 'package:vortice_app/models/checklist_item.dart';
+import 'package:vortice_app/models/checklist_response.dart';
 import 'package:vortice_app/models/checklist_template.dart';
 import 'package:vortice_app/sync/sync_status.dart';
 
@@ -101,6 +102,30 @@ class _ChecklistFormState extends ConsumerState<ChecklistForm> {
         DateTime(date.year, date.month, date.day, time.hour, time.minute));
   }
 
+  Future<void> _retrySync() async {
+    await ref
+        .read(checklistControllerProvider.notifier)
+        .retryPendingResponses(widget.workOrderId);
+    final state = ref.read(checklistControllerProvider);
+    if (!mounted) return;
+    if (state.hasError) {
+      final error = state.error;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Checklist sync still pending: $error'),
+          backgroundColor: AppColors.warning,
+        ),
+      );
+      return;
+    }
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Checklist sync retried.'),
+        backgroundColor: AppColors.success,
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
@@ -108,19 +133,26 @@ class _ChecklistFormState extends ConsumerState<ChecklistForm> {
         ? AsyncValue.data(widget.snapshotItems!)
         : ref.watch(checklistItemsProvider(widget.template.id));
     final isLoading = ref.watch(checklistControllerProvider).isLoading;
-    final syncStatusByItem = widget.showSyncStatus
+    final List<ChecklistResponse> checklistResponses = widget.showSyncStatus
         ? ref
-                .watch(checklistResponseSyncStatusByItemProvider(
-                    widget.workOrderId))
+                .watch(checklistResponsesProvider(widget.workOrderId))
                 .valueOrNull ??
-            const <String, String>{}
-        : const <String, String>{};
+            const <ChecklistResponse>[]
+        : const <ChecklistResponse>[];
+    final syncStatusByItem = {
+      for (final response in checklistResponses)
+        response.checklistItemId: response.syncStatus,
+    };
     final visibleSyncStatuses = syncStatusByItem.values
         .where(isVisibleChecklistSyncStatus)
         .toList(growable: false);
     final hasSyncConflict = visibleSyncStatuses.contains(
       SyncStatusValues.conflict,
     );
+    final syncLastError = checklistResponses
+        .where((response) => response.lastError?.trim().isNotEmpty == true)
+        .map((response) => response.lastError!)
+        .firstOrNull;
 
     final headerWidgets = [
       ChecklistRunHeader(
@@ -167,7 +199,15 @@ class _ChecklistFormState extends ConsumerState<ChecklistForm> {
         ),
       ),
       if (visibleSyncStatuses.isNotEmpty)
-        ChecklistSyncStatusBanner(hasConflict: hasSyncConflict),
+        ChecklistSyncStatusBanner(
+          hasConflict: hasSyncConflict,
+          message: checklistSyncBannerMessage(
+            hasConflict: hasSyncConflict,
+            lastError: syncLastError,
+          ),
+          onRetry: _retrySync,
+          isRetrying: isLoading,
+        ),
     ];
 
     return Column(
