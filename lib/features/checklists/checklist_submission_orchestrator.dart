@@ -108,7 +108,10 @@ class MaintenanceChecklistSubmission {
       generalNotes: generalNotes,
     );
     await _preventativeMaintenanceCompletion
-        .satisfyIntervalFromCompletedWorkOrder(workOrderId);
+        .satisfyIntervalFromCompletedWorkOrder(
+      workOrderId,
+      completionHours: currentHours,
+    );
   }
 }
 

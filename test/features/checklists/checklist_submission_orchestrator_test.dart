@@ -57,6 +57,60 @@ void main() {
       expect(repository.calls.single, containsPair('workOrderId', 'wo-1'));
     });
 
+    test('uses checklist current hours for staff PM completion', () async {
+      final events = <String>[];
+      final repository = _RecordingSavedChecklistsRepository(events);
+      final pmStore = _RecordingPmCompletionStore(
+        events,
+        workOrder: {
+          'id': 'wo-1',
+          'asset_id': 'asset-1',
+          'engine_id': 'engine-1',
+          'checklist_template_id': 'template-1',
+          'hours_at_end': 999,
+          'hours_at_start': 888,
+        },
+        interval: {'id': 'interval-1', 'interval_hours': 250},
+      );
+      final submission = MaintenanceChecklistSubmission(
+        submitResponses: ({
+          required workOrderId,
+          required completedBy,
+          required responses,
+          notes,
+          photoUrls,
+          holdForSyncReason,
+        }) async {
+          events.add('responses');
+        },
+        hasChecklistSubmitError: () => false,
+        historyWriter: SavedChecklistHistoryWriter(repository),
+        preventativeMaintenanceCompletion:
+            PreventativeMaintenanceCompletion(store: pmStore),
+      );
+
+      await submission.submit(
+        workOrderId: 'wo-1',
+        assetId: 'asset-1',
+        clientId: 'client-1',
+        template: _template(),
+        loadItems: () async => [_item()],
+        completedBy: 'staff-1',
+        submittedByRole: 'technician',
+        submittedAt: DateTime.utc(2026, 5, 8, 12),
+        responses: {'item-1': 'pass'},
+        notes: const {},
+        photoUrls: const {},
+        currentHours: 123,
+        generalNotes: null,
+        holdForSyncReason: null,
+      );
+
+      expect(pmStore.insertedReminderValues, containsPair('due_at_hours', 373));
+      expect(events, isNot(contains('telemetry:engine-1')));
+      expect(events, isNot(contains('engine:engine-1')));
+    });
+
     test(
         'does not write history or satisfy interval when response submit fails',
         () async {
@@ -263,42 +317,68 @@ class _RecordingSavedChecklistsRepository extends SavedChecklistsRepository {
 
 class _RecordingPmCompletionStore
     implements PreventativeMaintenanceCompletionStore {
-  _RecordingPmCompletionStore(this.events);
+  _RecordingPmCompletionStore(
+    this.events, {
+    this.workOrder,
+    this.interval,
+  });
 
   final List<String> events;
+  final Map<String, dynamic>? workOrder;
+  final Map<String, dynamic>? interval;
+  Map<String, dynamic>? updatedReminderValues;
+  Map<String, dynamic>? insertedReminderValues;
 
   @override
   Future<Map<String, dynamic>?> workOrderById(String workOrderId) async {
     events.add('pm-completion:$workOrderId');
-    return null;
+    return workOrder;
   }
 
   @override
   Future<Map<String, dynamic>?> matchingInterval({
     required String assetId,
     required String checklistTemplateId,
-  }) async =>
-      null;
+  }) async {
+    events.add('interval:$assetId:$checklistTemplateId');
+    return interval;
+  }
 
   @override
-  Future<double?> latestTelemetryHours(String engineId) async => null;
+  Future<double?> latestTelemetryHours(String engineId) async {
+    events.add('telemetry:$engineId');
+    return null;
+  }
 
   @override
-  Future<double?> engineCurrentHours(String engineId) async => null;
+  Future<double?> engineCurrentHours(String engineId) async {
+    events.add('engine:$engineId');
+    return null;
+  }
 
   @override
-  Future<List<Map<String, dynamic>>> remindersForAsset(String assetId) async =>
-      const [];
+  Future<List<Map<String, dynamic>>> remindersForAsset(String assetId) async {
+    events.add('reminders:$assetId');
+    return const [];
+  }
 
   @override
   Future<void> updateReminder({
     required String reminderId,
     required Map<String, dynamic> values,
-  }) async {}
+  }) async {
+    events.add('updateReminder:$reminderId');
+    updatedReminderValues = values;
+  }
 
   @override
-  Future<void> insertReminder(Map<String, dynamic> values) async {}
+  Future<void> insertReminder(Map<String, dynamic> values) async {
+    events.add('insertReminder');
+    insertedReminderValues = values;
+  }
 
   @override
-  Future<void> closeWorkOrder(String workOrderId) async {}
+  Future<void> closeWorkOrder(String workOrderId) async {
+    events.add('closeWorkOrder:$workOrderId');
+  }
 }

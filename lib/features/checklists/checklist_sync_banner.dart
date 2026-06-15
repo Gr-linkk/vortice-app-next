@@ -5,8 +5,17 @@ import 'package:vortice_app/sync/sync_status.dart';
 
 class ChecklistSyncStatusBanner extends StatelessWidget {
   final bool hasConflict;
+  final String message;
+  final VoidCallback? onRetry;
+  final bool isRetrying;
 
-  const ChecklistSyncStatusBanner({super.key, required this.hasConflict});
+  const ChecklistSyncStatusBanner({
+    super.key,
+    required this.hasConflict,
+    required this.message,
+    this.onRetry,
+    this.isRetrying = false,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -30,15 +39,34 @@ class ChecklistSyncStatusBanner extends StatelessWidget {
           const SizedBox(width: 8),
           Expanded(
             child: Text(
-              hasConflict
-                  ? 'Checklist has sync conflicts.'
-                  : 'Saved locally. Sync pending.',
+              message,
               style: Theme.of(context).textTheme.bodySmall?.copyWith(
                     color: color,
                     fontWeight: FontWeight.w600,
                   ),
             ),
           ),
+          if (onRetry != null) ...[
+            const SizedBox(width: 8),
+            TextButton.icon(
+              onPressed: isRetrying ? null : onRetry,
+              icon: isRetrying
+                  ? SizedBox(
+                      width: 14,
+                      height: 14,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: color,
+                      ),
+                    )
+                  : Icon(Icons.sync, size: 16, color: color),
+              label: const Text('Retry'),
+              style: TextButton.styleFrom(
+                foregroundColor: color,
+                visualDensity: VisualDensity.compact,
+              ),
+            ),
+          ],
         ],
       ),
     );

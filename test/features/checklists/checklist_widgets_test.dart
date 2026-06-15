@@ -79,7 +79,10 @@ void main() {
       await tester.pumpWidget(
         const MaterialApp(
           home: Scaffold(
-            body: ChecklistSyncStatusBanner(hasConflict: true),
+            body: ChecklistSyncStatusBanner(
+              hasConflict: true,
+              message: 'Checklist has sync conflicts.',
+            ),
           ),
         ),
       );
@@ -93,13 +96,36 @@ void main() {
       await tester.pumpWidget(
         const MaterialApp(
           home: Scaffold(
-            body: ChecklistSyncStatusBanner(hasConflict: false),
+            body: ChecklistSyncStatusBanner(
+              hasConflict: false,
+              message: 'Saved locally. Sync pending.',
+            ),
           ),
         ),
       );
 
       expect(find.text('Saved locally. Sync pending.'), findsOneWidget);
       expect(find.byIcon(Icons.cloud_off), findsOneWidget);
+    });
+
+    testWidgets('shows retry action when provided', (tester) async {
+      var tapped = false;
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: ChecklistSyncStatusBanner(
+              hasConflict: false,
+              message:
+                  'Sync blocked by server permissions. Retry after access is fixed.',
+              onRetry: () => tapped = true,
+            ),
+          ),
+        ),
+      );
+
+      expect(find.text('Retry'), findsOneWidget);
+      await tester.tap(find.text('Retry'));
+      expect(tapped, isTrue);
     });
   });
 

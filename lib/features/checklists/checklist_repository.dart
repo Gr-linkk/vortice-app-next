@@ -262,6 +262,55 @@ class ChecklistRepository {
     }
   }
 
+  Future<int> syncPendingResponsesForWorkOrder(String workOrderId) async {
+    final cached = (await _db.checklistsDao.getResponsesForWorkOrder(
+      workOrderId,
+    ))
+        .map(_responseFromRow)
+        .where((response) => response.syncStatus != SyncStatusValues.synced)
+        .toList();
+    if (cached.isEmpty) return 0;
+
+    final rows = cached.map(checklistResponseToRemoteRow).toList();
+    final now = DateTime.now();
+
+    try {
+      await supabase
+          .from(AppConstants.tChecklistResponses)
+          .upsert(rows, onConflict: 'id')
+          .timeout(const Duration(seconds: 4));
+      await _db.checklistsDao.upsertResponses(
+        cached
+            .map(
+              (response) => _responseToCompanion(
+                response,
+                syncStatus: SyncStatusValues.synced,
+                updatedAt: now,
+                lastSyncedAt: now,
+                lastError: null,
+              ),
+            )
+            .toList(),
+      );
+      return cached.length;
+    } catch (error) {
+      await _db.checklistsDao.upsertResponses(
+        cached
+            .map(
+              (response) => _responseToCompanion(
+                response,
+                syncStatus: response.syncStatus,
+                updatedAt: now,
+                lastSyncedAt: response.lastSyncedAt,
+                lastError: error.toString(),
+              ),
+            )
+            .toList(),
+      );
+      throw LocalChecklistPendingException(error.toString());
+    }
+  }
+
   Future<void> _markPendingResponsesWithError(
     List<ChecklistResponsesTableCompanion> entries,
     Object error,
