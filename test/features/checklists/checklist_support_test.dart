@@ -44,7 +44,9 @@ void main() {
         requiresAttentionDetail(
           {'item-1': 'action'},
           {},
-          {'item-1': Uint8List.fromList([1, 2, 3])},
+          {
+            'item-1': Uint8List.fromList([1, 2, 3])
+          },
           {},
         ),
         isFalse,
@@ -123,8 +125,7 @@ void main() {
         category: 'general',
       );
 
-      final sorted = [high, noHours, low]
-        ..sort(compareTemplatesByServiceHours);
+      final sorted = [high, noHours, low]..sort(compareTemplatesByServiceHours);
 
       expect(sorted.map((t) => t.id), ['a', 'b', 'c']);
     });
@@ -132,9 +133,12 @@ void main() {
 
   group('syncStatusChipLabel', () {
     test('maps pending and failed statuses to labels', () {
-      expect(syncStatusChipLabel(SyncStatusValues.pendingCreate), 'Pending sync');
-      expect(syncStatusChipLabel(SyncStatusValues.pendingUpdate), 'Pending sync');
-      expect(syncStatusChipLabel(SyncStatusValues.pendingDelete), 'Pending sync');
+      expect(
+          syncStatusChipLabel(SyncStatusValues.pendingCreate), 'Pending sync');
+      expect(
+          syncStatusChipLabel(SyncStatusValues.pendingUpdate), 'Pending sync');
+      expect(
+          syncStatusChipLabel(SyncStatusValues.pendingDelete), 'Pending sync');
       expect(syncStatusChipLabel(SyncStatusValues.syncing), 'Pending sync');
       expect(syncStatusChipLabel(SyncStatusValues.failed), 'Sync failed');
       expect(syncStatusChipLabel(SyncStatusValues.conflict), 'Conflict');
@@ -150,6 +154,36 @@ void main() {
     });
   });
 
+  group('checklist sync banner messages', () {
+    test('summarizes row-level security errors', () {
+      expect(
+        checklistSyncBannerMessage(
+          hasConflict: false,
+          lastError:
+              'PostgrestException(message: new row violates row-level security policy for table "checklist_responses", code: 42501)',
+        ),
+        'Sync blocked by server permissions. Retry after access is fixed.',
+      );
+    });
+
+    test('keeps conflict message ahead of stored error', () {
+      expect(
+        checklistSyncBannerMessage(
+          hasConflict: true,
+          lastError: 'TimeoutException after 0:00:04.000000',
+        ),
+        'Checklist has sync conflicts.',
+      );
+    });
+
+    test('uses pending message when no error exists', () {
+      expect(
+        checklistSyncBannerMessage(hasConflict: false, lastError: null),
+        'Saved locally. Sync pending.',
+      );
+    });
+  });
+
   group('encodeChecklistDraft', () {
     test('serializes draft fields including base64 photos', () {
       final draft = encodeChecklistDraft(
@@ -160,7 +194,9 @@ void main() {
         completedAt: DateTime.utc(2026, 6, 11, 12, 0),
         currentHours: 42.5,
         generalNotes: 'all good',
-        photos: {'item-1': Uint8List.fromList([10, 20])},
+        photos: {
+          'item-1': Uint8List.fromList([10, 20])
+        },
       );
 
       expect(draft['templateId'], 'tpl-1');

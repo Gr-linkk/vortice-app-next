@@ -63,6 +63,36 @@ String? syncStatusChipLabel(String? status) {
   }
 }
 
+String compactChecklistSyncError(String error) {
+  final normalized = error.replaceAll(RegExp(r'\s+'), ' ').trim();
+  if (normalized.isEmpty) return 'Sync failed. Reconnect and retry.';
+
+  if (normalized.contains('row-level security') ||
+      normalized.contains('42501') ||
+      normalized.contains('Forbidden')) {
+    return 'Sync blocked by server permissions. Retry after access is fixed.';
+  }
+
+  if (normalized.contains('TimeoutException') ||
+      normalized.toLowerCase().contains('timeout')) {
+    return 'Sync timed out. Check connection and retry.';
+  }
+
+  if (normalized.length <= 120) return normalized;
+  return '${normalized.substring(0, 117)}...';
+}
+
+String checklistSyncBannerMessage({
+  required bool hasConflict,
+  required String? lastError,
+}) {
+  if (hasConflict) return 'Checklist has sync conflicts.';
+  if (lastError?.trim().isNotEmpty == true) {
+    return compactChecklistSyncError(lastError!);
+  }
+  return 'Saved locally. Sync pending.';
+}
+
 Map<String, dynamic> encodeChecklistDraft({
   required String? templateId,
   required Map<String, String?> responses,
