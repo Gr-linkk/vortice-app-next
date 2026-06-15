@@ -142,9 +142,15 @@ class PreventativeMaintenanceCompletion {
   final PreventativeMaintenanceCompletionStore _store;
   final void Function(String assetId)? _invalidateServiceIntervalsForAsset;
 
-  Future<void> satisfyIntervalFromCompletedWorkOrder(String workOrderId) async {
+  Future<void> satisfyIntervalFromCompletedWorkOrder(
+    String workOrderId, {
+    double? completionHours,
+  }) async {
     try {
-      await _satisfyIntervalFromCompletedWorkOrder(workOrderId);
+      await _satisfyIntervalFromCompletedWorkOrder(
+        workOrderId,
+        completionHours: completionHours,
+      );
     } catch (_) {
       // Preserve the old ServiceIntervalController AsyncValue.guard behavior:
       // PM completion failures are captured by the workflow and do not throw
@@ -153,7 +159,9 @@ class PreventativeMaintenanceCompletion {
   }
 
   Future<void> _satisfyIntervalFromCompletedWorkOrder(
-      String workOrderId) async {
+    String workOrderId, {
+    double? completionHours,
+  }) async {
     final workOrder = await _store.workOrderById(workOrderId);
     if (workOrder == null) return;
 
@@ -171,7 +179,7 @@ class PreventativeMaintenanceCompletion {
         ((interval['interval_hours'] as num?)?.toDouble() ?? 0).toInt();
     final engineId = workOrder['engine_id'] as String?;
 
-    double? completionHours = (workOrder['hours_at_end'] as num?)?.toDouble();
+    completionHours ??= (workOrder['hours_at_end'] as num?)?.toDouble();
     completionHours ??= (workOrder['hours_at_start'] as num?)?.toDouble();
 
     if (engineId != null) {

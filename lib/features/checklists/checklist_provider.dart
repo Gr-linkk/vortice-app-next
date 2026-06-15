@@ -109,6 +109,20 @@ class ChecklistController extends StateNotifier<AsyncValue<void>> {
       }
     });
   }
+
+  Future<void> retryPendingResponses(String workOrderId) async {
+    state = const AsyncLoading();
+    state = await AsyncValue.guard(() async {
+      try {
+        await _ref
+            .read(checklistRepositoryProvider)
+            .syncPendingResponsesForWorkOrder(workOrderId);
+      } finally {
+        _ref.invalidate(checklistResponsesProvider(workOrderId));
+        _ref.invalidate(checklistHasResponsesProvider(workOrderId));
+      }
+    });
+  }
 }
 
 final checklistControllerProvider =
