@@ -266,7 +266,7 @@ class _FlagCard extends StatelessWidget {
 
   String _statusLabel(String status) => switch (status) {
         'acknowledged' => 'Acknowledged',
-        'converted' => 'Converted to Work Order',
+        'converted' => 'In Service Review',
         'dismissed' => 'Dismissed',
         _ => status,
       };

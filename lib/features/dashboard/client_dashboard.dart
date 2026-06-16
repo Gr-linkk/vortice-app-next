@@ -10,11 +10,9 @@ import 'package:vortice_app/features/auth/auth_provider.dart';
 import 'package:vortice_app/features/clients/client_capability_gate.dart';
 import 'package:vortice_app/features/notifications/notification_provider.dart';
 import 'package:vortice_app/features/operator/operator_runs_provider.dart';
-import 'package:vortice_app/features/work_orders/work_order_provider.dart';
 import 'package:vortice_app/l10n/app_localizations.dart';
 import 'package:vortice_app/models/asset.dart';
 import 'package:vortice_app/models/client_capability.dart';
-import 'package:vortice_app/models/work_order.dart';
 
 // ── Providers for client-visible operator data ─────────────────────────────
 
@@ -45,7 +43,6 @@ class ClientDashboard extends ConsumerWidget {
     final l10n = AppLocalizations.of(context);
     final profile = ref.watch(profileProvider).valueOrNull;
     final assetsAsync = ref.watch(visibleAssetsProvider);
-    final workOrdersAsync = ref.watch(workOrdersProvider);
     final operationalChecklistsAllowedAsync =
         ref.watch(clientCapabilityGateProvider((
       clientId: null,
@@ -72,7 +69,6 @@ class ClientDashboard extends ConsumerWidget {
       body: RefreshIndicator(
         onRefresh: () async {
           ref.invalidate(visibleAssetsProvider);
-          ref.invalidate(workOrdersProvider);
           ref.invalidate(clientPreTripRunsProvider);
           ref.invalidate(clientFlaggedIssuesProvider);
         },
@@ -94,45 +90,18 @@ class ClientDashboard extends ConsumerWidget {
                     color: AppColors.textSecondary, fontSize: 13),
               ),
             ),
-            // KPI cards
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: _KpiCard(
-                      label: l10n.totalAssets,
-                      value: assetsAsync.when(
-                        data: (list) => list.length.toString(),
-                        loading: () => '—',
-                        error: (_, __) => '!',
-                      ),
-                      icon: Icons.directions_boat,
-                      color: AppColors.primary,
-                      onTap: () => context.go('/client/assets'),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: _KpiCard(
-                      label: l10n.activeServices,
-                      value: workOrdersAsync.when(
-                        data: (list) => list
-                            .where((w) =>
-                                w.status == WorkOrderStatus.draft ||
-                                w.status == WorkOrderStatus.assigned ||
-                                w.status == WorkOrderStatus.inProgress)
-                            .length
-                            .toString(),
-                        loading: () => '—',
-                        error: (_, __) => '!',
-                      ),
-                      icon: Icons.build_outlined,
-                      color: AppColors.warning,
-                      onTap: () => context.go('/client/work-orders'),
-                    ),
-                  ),
-                ],
+              child: _KpiCard(
+                label: l10n.totalAssets,
+                value: assetsAsync.when(
+                  data: (list) => list.length.toString(),
+                  loading: () => '—',
+                  error: (_, __) => '!',
+                ),
+                icon: Icons.directions_boat,
+                color: AppColors.primary,
+                onTap: () => context.go('/client/assets'),
               ),
             ),
             // My fleet
@@ -182,40 +151,6 @@ class ClientDashboard extends ConsumerWidget {
                 );
               },
             ),
-            // Active work orders
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 24, 16, 8),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(l10n.activeServices,
-                      style: Theme.of(context).textTheme.titleMedium),
-                  TextButton(
-                    onPressed: () => context.go('/client/work-orders'),
-                    child: Text(l10n.viewAll),
-                  ),
-                ],
-              ),
-            ),
-            workOrdersAsync.when(
-              loading: () => const SizedBox.shrink(),
-              error: (_, __) => const SizedBox.shrink(),
-              data: (orders) {
-                if (orders.isEmpty) {
-                  return Padding(
-                    padding: const EdgeInsets.all(24),
-                    child: Center(child: Text(l10n.noWorkOrders)),
-                  );
-                }
-                return Column(
-                  children: orders
-                      .take(3)
-                      .map((wo) => _WorkOrderCard(workOrder: wo))
-                      .toList(),
-                );
-              },
-            ),
-
             if (showOperationalChecklists) ...[
               // ── Pre-Trip Checks ──────────────────────────────────────
               Padding(
@@ -451,119 +386,6 @@ class _KpiCard extends StatelessWidget {
                     .bodySmall
                     ?.copyWith(color: AppColors.textSecondary)),
           ],
-        ),
-      ),
-    );
-  }
-}
-
-// ── Work order card ───────────────────────────────────────────────────────────
-
-class _WorkOrderCard extends StatelessWidget {
-  final WorkOrder workOrder;
-  const _WorkOrderCard({required this.workOrder});
-
-  Color _statusColor() => switch (workOrder.status) {
-        WorkOrderStatus.draft => AppColors.textSecondary,
-        WorkOrderStatus.assigned => AppColors.primary,
-        WorkOrderStatus.inProgress => AppColors.warning,
-        WorkOrderStatus.onHold => AppColors.error,
-        WorkOrderStatus.pendingReview => AppColors.primary,
-        WorkOrderStatus.invoiced => AppColors.success,
-        WorkOrderStatus.closed => AppColors.success,
-      };
-
-  String _statusLabel() => switch (workOrder.status) {
-        WorkOrderStatus.draft => 'Draft',
-        WorkOrderStatus.assigned => 'Assigned',
-        WorkOrderStatus.inProgress => 'In Progress',
-        WorkOrderStatus.onHold => 'On Hold',
-        WorkOrderStatus.pendingReview => 'Review',
-        WorkOrderStatus.invoiced => 'Invoiced',
-        WorkOrderStatus.closed => 'Closed',
-      };
-
-  @override
-  Widget build(BuildContext context) {
-    final color = _statusColor();
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-      child: InkWell(
-        onTap: () => context.push('/client/work-orders/${workOrder.id}'),
-        borderRadius: BorderRadius.circular(12),
-        child: Container(
-          padding: const EdgeInsets.all(14),
-          decoration: BoxDecoration(
-            color: AppColors.surface,
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: AppColors.cardBorder),
-          ),
-          child: Row(
-            children: [
-              Container(
-                width: 4,
-                height: 44,
-                decoration: BoxDecoration(
-                  color: color,
-                  borderRadius: BorderRadius.circular(2),
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Expanded(
-                          child: Text(
-                            workOrder.title,
-                            style: Theme.of(context)
-                                .textTheme
-                                .titleSmall
-                                ?.copyWith(fontWeight: FontWeight.w600),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 8, vertical: 3),
-                          decoration: BoxDecoration(
-                            color: color.withValues(alpha: 0.12),
-                            borderRadius: BorderRadius.circular(20),
-                          ),
-                          child: Text(
-                            _statusLabel(),
-                            style: TextStyle(
-                              color: color,
-                              fontSize: 10,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                    if (workOrder.description != null) ...[
-                      const SizedBox(height: 4),
-                      Text(
-                        workOrder.description!,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          color: AppColors.textSecondary,
-                          fontSize: 12,
-                        ),
-                      ),
-                    ],
-                  ],
-                ),
-              ),
-              const SizedBox(width: 8),
-              const Icon(Icons.chevron_right,
-                  color: AppColors.textSecondary, size: 20),
-            ],
-          ),
         ),
       ),
     );

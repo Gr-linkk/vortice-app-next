@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:vortice_app/core/theme.dart';
 import 'package:vortice_app/features/auth/auth_provider.dart';
+import 'package:vortice_app/features/service_reports/service_report_authoring_policy.dart';
 import 'package:vortice_app/features/service_reports/service_report_provider.dart';
 import 'package:vortice_app/features/service_reports/service_report_workflow.dart';
 import 'package:vortice_app/l10n/app_localizations.dart';
@@ -28,6 +29,10 @@ class ServiceReportListScreen extends ConsumerWidget {
     final role = profile?.role;
     final canView = ServiceReportWorkflow.canViewReport(role);
     final canCreate = ServiceReportWorkflow.canCreateOrUpdateReport(role);
+    final canCreateForWorkOrder = canOpenServiceReportAuthoring(
+      canCreate: canCreate,
+      workOrderId: initialWorkOrderId,
+    );
 
     if (!canView) {
       return const Scaffold(
@@ -65,12 +70,11 @@ class ServiceReportListScreen extends ConsumerWidget {
       appBar: AppBar(
         title: Text(title),
       ),
-      floatingActionButton: canCreate
+      floatingActionButton: canCreateForWorkOrder
           ? FloatingActionButton.extended(
               onPressed: () {
-                final query = initialWorkOrderId == null
-                    ? ''
-                    : '?workOrderId=${Uri.encodeComponent(initialWorkOrderId!)}';
+                final query =
+                    '?workOrderId=${Uri.encodeComponent(initialWorkOrderId!)}';
                 context.push('$prefix/service-reports/new$query');
               },
               icon: const Icon(Icons.add),
@@ -97,13 +101,12 @@ class ServiceReportListScreen extends ConsumerWidget {
                     l10n.noServiceReports,
                     style: const TextStyle(color: AppColors.textSecondary),
                   ),
-                  if (canCreate) ...[
+                  if (canCreateForWorkOrder) ...[
                     const SizedBox(height: 16),
                     OutlinedButton.icon(
                       onPressed: () {
-                        final query = initialWorkOrderId == null
-                            ? ''
-                            : '?workOrderId=${Uri.encodeComponent(initialWorkOrderId!)}';
+                        final query =
+                            '?workOrderId=${Uri.encodeComponent(initialWorkOrderId!)}';
                         context.push('$prefix/service-reports/new$query');
                       },
                       icon: const Icon(Icons.add),

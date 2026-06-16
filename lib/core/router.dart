@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -13,7 +14,6 @@ import 'package:vortice_app/features/auth/login_screen.dart';
 import 'package:vortice_app/features/auth/register_screen.dart';
 import 'package:vortice_app/features/checklists/checklist_screen.dart';
 import 'package:vortice_app/features/dashboard/client_dashboard_free.dart';
-import 'package:vortice_app/features/meeting/meeting_request_screen.dart';
 import 'package:vortice_app/features/dashboard/employee_dashboard.dart';
 import 'package:vortice_app/features/dashboard/operator_dashboard.dart';
 import 'package:vortice_app/features/dashboard/owner_dashboard.dart';
@@ -40,16 +40,17 @@ import 'package:vortice_app/features/clients/asset_checklist_history_screen.dart
 import 'package:vortice_app/features/notifications/notifications_screen.dart';
 import 'package:vortice_app/features/service_reports/service_report_list_screen.dart';
 import 'package:vortice_app/features/service_reports/service_report_detail_screen.dart';
+import 'package:vortice_app/features/service_reports/service_report_authoring_policy.dart';
 import 'package:vortice_app/features/service_requests/service_request_form_screen.dart';
 import 'package:vortice_app/features/service_requests/service_request_list_screen.dart';
 import 'package:vortice_app/features/orgs/org_admin_screen.dart';
 import 'package:vortice_app/features/service_intervals/maintenance_work_order_draft.dart';
 import 'package:vortice_app/features/service_intervals/service_interval_screen.dart';
 import 'package:vortice_app/features/dashboard/client_dashboard_telemetry.dart';
+import 'package:vortice_app/features/debug/route_qa_screen.dart';
 import 'package:vortice_app/features/telemetry/telemetry_history_screen.dart';
 import 'package:vortice_app/features/telemetry/vessel_telemetry_screen.dart';
 import 'package:vortice_app/models/client_capability.dart';
-import 'package:vortice_app/models/profile.dart';
 
 // ── Router notifier — bridges Riverpod auth state into GoRouter.refreshListenable ──
 
@@ -77,6 +78,18 @@ final _routerNotifierProvider = ChangeNotifierProvider<_RouterNotifier>((ref) {
   return _RouterNotifier(ref);
 });
 
+@visibleForTesting
+List<RouteBase> buildDebugQaRoutes({required bool enabled}) {
+  if (!enabled) return const [];
+
+  return [
+    GoRoute(
+      path: '/debug/route-qa',
+      builder: (_, __) => const RouteQaScreen(),
+    ),
+  ];
+}
+
 // ── Navigator keys ─────────────────────────────────────────────────────────
 final _rootNavigatorKey = GlobalKey<NavigatorState>(debugLabel: 'root');
 
@@ -92,11 +105,18 @@ final routerProvider = Provider<GoRouter>((ref) {
     navigatorKey: _rootNavigatorKey,
     initialLocation: '/login',
     refreshListenable: notifier,
-    redirect: (context, state) => resolveAuthRedirect(
-      authStatus: notifier.authStatus,
-      location: state.matchedLocation,
-    ),
+    redirect: (context, state) {
+      if (kDebugMode && state.matchedLocation.startsWith('/debug/')) {
+        return null;
+      }
+
+      return resolveAuthRedirect(
+        authStatus: notifier.authStatus,
+        location: state.matchedLocation,
+      );
+    },
     routes: [
+      ...buildDebugQaRoutes(enabled: kDebugMode),
       // ── Unauthenticated ────────────────────────────────────────────────
       GoRoute(path: '/login', builder: (_, __) => const LoginScreen()),
       GoRoute(path: '/register', builder: (_, __) => const RegisterScreen()),
@@ -106,21 +126,27 @@ final routerProvider = Provider<GoRouter>((ref) {
       // report footer and keyboard on phone-sized layouts.
       GoRoute(
         path: '/owner/service-reports/new',
+        redirect: (_, state) => serviceReportAuthoringRedirect(
+          historyRoute: '/owner/service-reports',
+          workOrderId: state.uri.queryParameters['workOrderId'],
+        ),
         builder: (_, state) => ServiceReportScreen(
           initialWorkOrderId: state.uri.queryParameters['workOrderId'],
         ),
       ),
       GoRoute(
         path: '/employee/service-reports/new',
+        redirect: (_, state) => serviceReportAuthoringRedirect(
+          historyRoute: '/employee/service-reports',
+          workOrderId: state.uri.queryParameters['workOrderId'],
+        ),
         builder: (_, state) => ServiceReportScreen(
           initialWorkOrderId: state.uri.queryParameters['workOrderId'],
         ),
       ),
       GoRoute(
         path: '/client/service-reports/new',
-        builder: (_, state) => ServiceReportScreen(
-          initialWorkOrderId: state.uri.queryParameters['workOrderId'],
-        ),
+        redirect: (_, __) => '/client/service-reports',
       ),
 
       // ── Authenticated shell ────────────────────────────────────────────
@@ -303,7 +329,7 @@ final routerProvider = Provider<GoRouter>((ref) {
               builder: (_, __) => const ClientDashboardRouter()),
           GoRoute(
               path: '/meeting-request',
-              builder: (_, __) => const MeetingRequestScreen()),
+              redirect: (_, __) => '/client/dashboard'),
           GoRoute(
               path: '/client/service-requests',
               redirect: (_, __) => '/client/service-requests/new'),
@@ -363,34 +389,14 @@ final routerProvider = Provider<GoRouter>((ref) {
           ),
           GoRoute(
               path: '/client/work-orders',
-              builder: (_, __) => const WorkOrderListScreen()),
+              redirect: (_, __) => '/client/dashboard'),
           GoRoute(
             path: '/client/work-orders/:id',
-            builder: (_, state) =>
-                WorkOrderDetailScreen(workOrderId: state.pathParameters['id']!),
+            redirect: (_, __) => '/client/dashboard',
           ),
           GoRoute(
             path: '/client/checklists/:workOrderId',
-            builder: (_, state) => ClientCapabilityGate(
-              clientId: null,
-              capability: ClientCapability.pmChecklists,
-              allowedBuilder: (_) => ChecklistScreen(
-                workOrderId: state.pathParameters['workOrderId']!,
-              ),
-              blockedBuilder: (_) => Scaffold(
-                appBar: AppBar(title: const Text('Checklist')),
-                body: const Center(
-                  child: Padding(
-                    padding: EdgeInsets.all(24),
-                    child: ClientCapabilityDisabledPanel(
-                      capability: ClientCapability.pmChecklists,
-                      message:
-                          'PM / mechanic checklists are not enabled for this client.',
-                    ),
-                  ),
-                ),
-              ),
-            ),
+            redirect: (_, __) => '/client/dashboard',
           ),
           GoRoute(
               path: '/client/invoices',
