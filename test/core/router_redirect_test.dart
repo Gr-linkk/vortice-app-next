@@ -43,7 +43,7 @@ void main() {
     });
 
     test('redirects authenticated users off auth routes', () {
-      final owner = Profile(
+      const owner = Profile(
         id: 'p-1',
         email: 'owner@vortice.dev',
         role: UserRole.owner,
@@ -51,7 +51,7 @@ void main() {
       );
       expect(
         resolveAuthRedirect(
-          authStatus: AppAuthStatus(
+          authStatus: const AppAuthStatus(
             isLoading: false,
             isAuthenticated: true,
             profile: owner,
@@ -63,7 +63,7 @@ void main() {
     });
 
     test('leaves authenticated users on in-app routes', () {
-      final tech = Profile(
+      const tech = Profile(
         id: 'p-2',
         email: 'tech@vortice.dev',
         role: UserRole.employee,
@@ -71,7 +71,7 @@ void main() {
       );
       expect(
         resolveAuthRedirect(
-          authStatus: AppAuthStatus(
+          authStatus: const AppAuthStatus(
             isLoading: false,
             isAuthenticated: true,
             profile: tech,
@@ -79,6 +79,85 @@ void main() {
           location: '/employee/work-orders',
         ),
         isNull,
+      );
+    });
+
+    test('redirects client-side roles away from internal work-order routes',
+        () {
+      const mechanic = Profile(
+        id: 'p-3',
+        email: 'mechanic@vortice.dev',
+        role: UserRole.clientMechanic,
+        fullName: 'Client Mechanic',
+      );
+      const status = AppAuthStatus(
+        isLoading: false,
+        isAuthenticated: true,
+        profile: mechanic,
+      );
+
+      expect(
+        resolveAuthRedirect(
+          authStatus: status,
+          location: '/client/work-orders',
+        ),
+        '/client/dashboard',
+      );
+      expect(
+        resolveAuthRedirect(
+          authStatus: status,
+          location: '/client/work-orders/wo-1',
+        ),
+        '/client/dashboard',
+      );
+      expect(
+        resolveAuthRedirect(
+          authStatus: status,
+          location: '/client/checklists/wo-1',
+        ),
+        '/client/dashboard',
+      );
+    });
+
+    test('redirects stale meeting request route to the role dashboard', () {
+      const owner = Profile(
+        id: 'p-4',
+        email: 'owner@vortice.dev',
+        role: UserRole.owner,
+        fullName: 'Owner',
+      );
+
+      expect(
+        resolveAuthRedirect(
+          authStatus: const AppAuthStatus(
+            isLoading: false,
+            isAuthenticated: true,
+            profile: owner,
+          ),
+          location: '/meeting-request',
+        ),
+        '/owner/dashboard',
+      );
+    });
+
+    test('redirects client service-report authoring to report history', () {
+      const client = Profile(
+        id: 'p-5',
+        email: 'client@vortice.dev',
+        role: UserRole.clientAdmin,
+        fullName: 'Client Admin',
+      );
+
+      expect(
+        resolveAuthRedirect(
+          authStatus: const AppAuthStatus(
+            isLoading: false,
+            isAuthenticated: true,
+            profile: client,
+          ),
+          location: '/client/service-reports/new',
+        ),
+        '/client/service-reports',
       );
     });
   });
