@@ -1,4 +1,5 @@
 import 'package:vortice_app/features/auth/auth_provider.dart';
+import 'package:vortice_app/core/route_access_policy.dart';
 import 'package:vortice_app/models/profile.dart';
 
 String dashboardRouteForRole(UserRole? role) => switch (role) {
@@ -29,6 +30,13 @@ String? resolveAuthRedirect({
   }
 
   if (onAuthRoute) return dashboardRouteForRole(authStatus.profile?.role);
+
+  final routeAccessRedirect = resolveRouteAccessRedirect(
+    role: authStatus.profile?.role,
+    location: location,
+    dashboardRouteForRole: dashboardRouteForRole,
+  );
+  if (routeAccessRedirect != null) return routeAccessRedirect;
 
   return null;
 }

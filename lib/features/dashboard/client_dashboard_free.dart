@@ -140,19 +140,6 @@ class ClientDashboardFree extends ConsumerWidget {
                 ),
               ),
             ),
-
-            // ── Schedule Consultation Button ─────────────────────────────────
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 24, 16, 8),
-              child: OutlinedButton.icon(
-                onPressed: () => context.push('/meeting-request'),
-                icon: const Icon(Icons.message_outlined),
-                label: const Text('Contact Vórtice'),
-                style: OutlinedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                ),
-              ),
-            ),
           ],
         ),
       ),

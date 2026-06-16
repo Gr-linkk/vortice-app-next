@@ -1,30 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:intl/intl.dart';
-import 'package:vortice_app/core/constants.dart';
-import 'package:vortice_app/core/supabase_client.dart';
 import 'package:vortice_app/core/theme.dart';
 import 'package:vortice_app/features/assets/client_team_asset_access.dart';
 import 'package:vortice_app/features/auth/auth_provider.dart';
 import 'package:vortice_app/features/checklists/asset_checklist_template_filter.dart';
 import 'package:vortice_app/features/checklists/checklist_provider.dart';
 import 'package:vortice_app/features/clients/client_capability_gate.dart';
-import 'package:vortice_app/features/work_orders/work_order_provider.dart';
 import 'package:vortice_app/models/asset.dart';
 import 'package:vortice_app/models/checklist_template.dart';
 import 'package:vortice_app/models/client_capability.dart';
-import 'package:vortice_app/models/work_order.dart';
-
-// ── Provider: WOs assigned to the current mechanic ──────────────────────────
-
-final mechanicAssignedWorkOrdersProvider =
-    FutureProvider<List<WorkOrder>>((ref) async {
-  // Work-order sharing now lives in work_order_assignments. Reuse the shared
-  // provider so client mechanics see assigned/shared work without relying only
-  // on the legacy single assigned_to column.
-  return ref.watch(workOrdersProvider.future);
-});
 
 // ── Provider: mechanic checklist autonomy for visible fleet ─────────────────
 
@@ -60,20 +45,8 @@ final mechanicAvailableChecklistsProvider =
 
 final mechanicPartsProvider =
     FutureProvider<List<Map<String, dynamic>>>((ref) async {
-  final assignedWork =
-      await ref.watch(mechanicAssignedWorkOrdersProvider.future);
-  final assetIds =
-      assignedWork.map((workOrder) => workOrder.assetId).toSet().toList();
-
-  if (assetIds.isEmpty) return [];
-
-  final parts = await supabase
-      .from(AppConstants.tPartsCatalog)
-      .select('part_number, description, assets(name)')
-      .inFilter('asset_id', assetIds)
-      .limit(10);
-
-  return List<Map<String, dynamic>>.from(parts as List);
+  await ref.watch(currentClientFleetAssetsProvider.future);
+  return const [];
 });
 
 // ── Client Mechanic Dashboard ─────────────────────────────────────────────────
@@ -84,7 +57,6 @@ class ClientMechanicDashboard extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final profile = ref.watch(profileProvider).valueOrNull;
-    final assignedAsync = ref.watch(mechanicAssignedWorkOrdersProvider);
     final pmChecklistsAllowedAsync = ref.watch(clientCapabilityGateProvider((
       clientId: null,
       capability: ClientCapability.pmChecklists,
@@ -116,7 +88,6 @@ class ClientMechanicDashboard extends ConsumerWidget {
       ),
       body: RefreshIndicator(
         onRefresh: () async {
-          ref.invalidate(mechanicAssignedWorkOrdersProvider);
           ref.invalidate(mechanicAvailableChecklistsProvider);
           ref.invalidate(mechanicPartsProvider);
           ref.invalidate(clientCapabilityGateProvider((
@@ -131,30 +102,6 @@ class ClientMechanicDashboard extends ConsumerWidget {
         child: ListView(
           padding: const EdgeInsets.only(bottom: 32),
           children: [
-            // ── 1. Assigned Work ──────────────────────────────────────
-            const _SectionHeader(
-              title: 'My Assigned Work',
-              icon: Icons.build_outlined,
-            ),
-            assignedAsync.when(
-              loading: () => const _LoadingTile(),
-              error: (err, _) => _ErrorTile(message: err.toString()),
-              data: (orders) {
-                if (orders.isEmpty) {
-                  return const _EmptyState(
-                    icon: Icons.check_circle_outline,
-                    message: 'No work assigned yet.',
-                  );
-                }
-                return Column(
-                  children: orders
-                      .map((wo) => _AssignedWorkCard(workOrder: wo))
-                      .toList(),
-                );
-              },
-            ),
-
-            // ── 2. Fleet Checklist Autonomy ───────────────────────────
             const _SectionHeader(
               title: 'Fleet Checklists',
               icon: Icons.checklist_outlined,
@@ -179,7 +126,7 @@ class ClientMechanicDashboard extends ConsumerWidget {
                     const _HelperTile(
                       icon: Icons.info_outline,
                       message:
-                          'Assignments show priority work. You can also start any mechanic checklist for the fleet and it will save to asset history for Vórtice review.',
+                          'Start enabled mechanic checklists for your fleet. Submitted runs save to asset history for your Vórtice team to review.',
                     ),
                     availableChecklistsAsync.when(
                       loading: () => const _LoadingTile(),
@@ -204,8 +151,6 @@ class ClientMechanicDashboard extends ConsumerWidget {
                 );
               },
             ),
-
-            // ── 3. Parts Lists ────────────────────────────────────────
             if (showPmPartsLists) ...[
               const _SectionHeader(
                 title: 'Parts Lists',
@@ -228,130 +173,6 @@ class ClientMechanicDashboard extends ConsumerWidget {
               ),
             ],
           ],
-        ),
-      ),
-    );
-  }
-}
-
-// ── Assigned Work Card ────────────────────────────────────────────────────────
-
-class _AssignedWorkCard extends ConsumerWidget {
-  final WorkOrder workOrder;
-  const _AssignedWorkCard({required this.workOrder});
-
-  Color _statusColor() => switch (workOrder.status) {
-        WorkOrderStatus.draft => AppColors.textSecondary,
-        WorkOrderStatus.assigned => AppColors.primary,
-        WorkOrderStatus.inProgress => AppColors.warning,
-        WorkOrderStatus.onHold => AppColors.error,
-        WorkOrderStatus.pendingReview => AppColors.primary,
-        WorkOrderStatus.invoiced => AppColors.success,
-        WorkOrderStatus.closed => AppColors.success,
-      };
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final color = _statusColor();
-    final assetNameAsync = ref.watch(assetNameProvider(workOrder.assetId));
-    final scheduledStr = workOrder.scheduledDate != null
-        ? DateFormat('MMM d').format(workOrder.scheduledDate!)
-        : null;
-
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-      child: InkWell(
-        onTap: () => context.push('/client/work-orders/${workOrder.id}'),
-        borderRadius: BorderRadius.circular(12),
-        child: Container(
-          padding: const EdgeInsets.all(14),
-          decoration: BoxDecoration(
-            color: AppColors.surface,
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: AppColors.cardBorder),
-          ),
-          child: Row(
-            children: [
-              Container(
-                width: 4,
-                height: 50,
-                decoration: BoxDecoration(
-                  color: color,
-                  borderRadius: BorderRadius.circular(2),
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      workOrder.title,
-                      style: const TextStyle(
-                        fontWeight: FontWeight.w600,
-                        color: AppColors.textPrimary,
-                        fontSize: 14,
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    const SizedBox(height: 4),
-                    Row(
-                      children: [
-                        const Icon(Icons.directions_boat,
-                            size: 12, color: AppColors.textSecondary),
-                        const SizedBox(width: 4),
-                        assetNameAsync.when(
-                          loading: () => const Text('...',
-                              style: TextStyle(
-                                  color: AppColors.textSecondary,
-                                  fontSize: 12)),
-                          error: (_, __) => const Text('—',
-                              style: TextStyle(
-                                  color: AppColors.textSecondary,
-                                  fontSize: 12)),
-                          data: (name) => Text(
-                            name ?? '—',
-                            style: const TextStyle(
-                                color: AppColors.textSecondary, fontSize: 12),
-                          ),
-                        ),
-                        if (scheduledStr != null) ...[
-                          const SizedBox(width: 10),
-                          const Icon(Icons.calendar_today,
-                              size: 12, color: AppColors.textSecondary),
-                          const SizedBox(width: 4),
-                          Text(
-                            scheduledStr,
-                            style: const TextStyle(
-                                color: AppColors.textSecondary, fontSize: 12),
-                          ),
-                        ],
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                decoration: BoxDecoration(
-                  color: color.withValues(alpha: 0.12),
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: Text(
-                  workOrder.status.name,
-                  style: TextStyle(
-                    color: color,
-                    fontSize: 10,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ),
-              const SizedBox(width: 4),
-              const Icon(Icons.chevron_right,
-                  color: AppColors.textSecondary, size: 20),
-            ],
-          ),
         ),
       ),
     );

@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:vortice_app/core/theme.dart';
 import 'package:vortice_app/features/auth/auth_provider.dart';
+import 'package:vortice_app/features/service_reports/service_report_action_bar.dart';
 import 'package:vortice_app/features/service_reports/service_report_app_bar.dart';
 import 'package:vortice_app/features/service_reports/service_report_draft_controller.dart';
 import 'package:vortice_app/features/service_reports/service_report_form_body.dart';
@@ -129,6 +130,13 @@ class ServiceReportScreenState extends ConsumerState<ServiceReportScreen> {
     return Scaffold(
       resizeToAvoidBottomInset: true,
       appBar: ServiceReportAppBar(
+        signatureSaved: _draft.signatureSaved,
+        isLoading: isLoading,
+        canSubmit: canSubmit,
+        onOpenSignature: _openSignatureSheet,
+        onSubmit: _submit,
+      ),
+      bottomNavigationBar: ServiceReportActionBar(
         signatureSaved: _draft.signatureSaved,
         isLoading: isLoading,
         canSubmit: canSubmit,
