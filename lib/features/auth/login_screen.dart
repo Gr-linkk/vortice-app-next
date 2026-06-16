@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:vortice_app/l10n/app_localizations.dart';
 import 'package:vortice_app/core/theme.dart';
 import 'package:vortice_app/features/auth/auth_provider.dart';
@@ -70,8 +71,8 @@ const _devAccounts = [
   _DevAccount(
     group: 'Client field team',
     label: 'Client Mechanic',
-    subtitle: 'Client-side mechanic view for work-order and PM checklist flow.',
-    workflows: ['Work orders', 'Mechanic checks', 'PM parts'],
+    subtitle: 'Client-side mechanic view for PM checklists and asset history.',
+    workflows: ['Mechanic checks', 'Asset history', 'PM parts'],
     email: 'client_mechanic@vortice.dev',
     password: '<REDACTED_TEST_PASSWORD>',
     color: 0xFF4527A0,
@@ -171,6 +172,17 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   textAlign: TextAlign.center,
                   style:
                       TextStyle(color: AppColors.textSecondary, fontSize: 12),
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+                child: OutlinedButton.icon(
+                  onPressed: () {
+                    Navigator.pop(ctx);
+                    context.go('/debug/route-qa');
+                  },
+                  icon: const Icon(Icons.rule),
+                  label: const Text('Open Route QA Matrix'),
                 ),
               ),
               const Divider(height: 1),
