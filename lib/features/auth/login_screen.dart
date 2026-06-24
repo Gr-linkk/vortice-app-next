@@ -179,7 +179,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 child: OutlinedButton.icon(
                   onPressed: () {
                     Navigator.pop(ctx);
-                    context.go('/debug/route-qa');
+                    context.push('/debug/route-qa');
                   },
                   icon: const Icon(Icons.rule),
                   label: const Text('Open Route QA Matrix'),

@@ -4,6 +4,8 @@ import 'package:go_router/go_router.dart';
 import 'package:vortice_app/core/theme.dart';
 import 'package:vortice_app/features/clients/client_capability_gate.dart';
 import 'package:vortice_app/features/invoices/invoice_provider.dart';
+import 'package:vortice_app/features/service_reports/service_report_provider.dart';
+import 'package:vortice_app/features/work_orders/work_order_completion_policy.dart';
 import 'package:vortice_app/features/work_orders/work_order_detail_actions_policy.dart';
 import 'package:vortice_app/features/work_orders/work_order_detail_support.dart';
 import 'package:vortice_app/features/work_orders/work_order_log_hours_sheet.dart';
@@ -51,6 +53,12 @@ class WorkOrderDetailActionsSection extends ConsumerWidget {
       pmChecklistsAllowed: pmChecklistsAllowed,
     );
     final canManageStatus = isOwnerOrEmployee;
+    final reportsAsync =
+        ref.watch(serviceReportsByWorkOrderProvider(workOrder.id));
+    final hasSubmittedServiceReport =
+        WorkOrderCompletionPolicy.workOrderHasSubmittedServiceReport(
+      reportsAsync.valueOrNull ?? const [],
+    );
     final canOpenChecklist = WorkOrderDetailActionsPolicy.canOpenChecklist(
       canUseChecklist: canUseChecklist,
       checklistTemplateId: workOrder.checklistTemplateId,
@@ -131,6 +139,32 @@ class WorkOrderDetailActionsSection extends ConsumerWidget {
             onPressed: isLoading
                 ? null
                 : () async {
+                    if (WorkOrderCompletionPolicy.shouldExplainMissingServiceReport(
+                      status: workOrder.status,
+                      hasSubmittedServiceReport: hasSubmittedServiceReport,
+                    )) {
+                      if (!context.mounted) return;
+                      ScaffoldMessenger.of(context)
+                        ..hideCurrentSnackBar()
+                        ..showSnackBar(
+                          const SnackBar(
+                            content: Text(
+                              'Submit a service report before marking this work order completed.',
+                            ),
+                            backgroundColor: AppColors.warning,
+                          ),
+                        );
+                      context.push(
+                        '$routePrefix/service-reports/new?workOrderId=${Uri.encodeComponent(workOrder.id)}',
+                      );
+                      return;
+                    }
+                    if (!WorkOrderCompletionPolicy.canMarkCompleted(
+                      status: workOrder.status,
+                      hasSubmittedServiceReport: hasSubmittedServiceReport,
+                    )) {
+                      return;
+                    }
                     final success = await ref
                         .read(workOrderControllerProvider.notifier)
                         .updateStatus(

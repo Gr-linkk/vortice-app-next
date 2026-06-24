@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:vortice_app/core/route_access_policy.dart';
 import 'package:vortice_app/core/router_redirect.dart';
 import 'package:vortice_app/core/theme.dart';
@@ -50,6 +51,17 @@ class RouteQaScreen extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Route QA'),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          tooltip: 'Back to login',
+          onPressed: () {
+            if (context.canPop()) {
+              context.pop();
+            } else {
+              context.go('/login');
+            }
+          },
+        ),
         actions: [
           Padding(
             padding: const EdgeInsets.only(right: 12),
