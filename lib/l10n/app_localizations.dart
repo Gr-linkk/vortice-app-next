@@ -593,13 +593,13 @@ abstract class AppLocalizations {
   /// No description provided for @srSecondaryDamage.
   ///
   /// In en, this message translates to:
-  /// **'4 — Secondary Damage'**
+  /// **'4 — Contingent Damage'**
   String get srSecondaryDamage;
 
   /// No description provided for @srSecondaryDamageSub.
   ///
   /// In en, this message translates to:
-  /// **'Additional findings discovered during this job'**
+  /// **'Contingent damage caused by or discovered during this job'**
   String get srSecondaryDamageSub;
 
   /// No description provided for @srComments.
@@ -635,7 +635,7 @@ abstract class AppLocalizations {
   /// No description provided for @srSecondaryDamageHint.
   ///
   /// In en, this message translates to:
-  /// **'Damage or issues found that fall outside the primary scope of work'**
+  /// **'Contingent damage caused by the primary work or findings outside the main scope'**
   String get srSecondaryDamageHint;
 
   /// No description provided for @srCommentsHint.

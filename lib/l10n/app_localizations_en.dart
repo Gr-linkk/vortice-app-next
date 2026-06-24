@@ -259,11 +259,11 @@ class AppLocalizationsEn extends AppLocalizations {
   String get srCorrectionSub => 'Work performed and parts replaced';
 
   @override
-  String get srSecondaryDamage => '4 — Secondary Damage';
+  String get srSecondaryDamage => '4 — Contingent Damage';
 
   @override
   String get srSecondaryDamageSub =>
-      'Additional findings discovered during this job';
+      'Contingent damage caused by or discovered during this job';
 
   @override
   String get srComments => '5 — Comments';
@@ -282,7 +282,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get srSecondaryDamageHint =>
-      'Damage or issues found that fall outside the primary scope of work';
+      'Contingent damage caused by the primary work or findings outside the main scope';
 
   @override
   String get srCommentsHint => 'Anything the client should know or watch for';
