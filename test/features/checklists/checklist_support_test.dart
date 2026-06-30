@@ -1,7 +1,6 @@
 import 'dart:typed_data';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:vortice_app/features/checklists/checklist_attachment_support.dart';
 import 'package:vortice_app/features/checklists/checklist_support.dart';
 import 'package:vortice_app/models/checklist_template.dart';
 import 'package:vortice_app/sync/sync_status.dart';
@@ -46,7 +45,9 @@ void main() {
           {'item-1': 'action'},
           {},
           {
-            'item-1': [Uint8List.fromList([1, 2, 3])]
+            'item-1': [
+              Uint8List.fromList([1, 2, 3])
+            ]
           },
           {},
         ),
@@ -110,19 +111,19 @@ void main() {
 
   group('compareTemplatesByServiceHours', () {
     test('sorts by interval hours then name', () {
-      final low = ChecklistTemplate(
+      const low = ChecklistTemplate(
         id: 'a',
         name: 'B Template',
         category: 'general',
         intervalHours: 100,
       );
-      final high = ChecklistTemplate(
+      const high = ChecklistTemplate(
         id: 'b',
         name: 'A Template',
         category: 'general',
         intervalHours: 250,
       );
-      final noHours = ChecklistTemplate(
+      const noHours = ChecklistTemplate(
         id: 'c',
         name: 'No Hours',
         category: 'general',
@@ -198,7 +199,9 @@ void main() {
         currentHours: 42.5,
         generalNotes: 'all good',
         photos: {
-          'item-1': [Uint8List.fromList([10, 20])]
+          'item-1': [
+            Uint8List.fromList([10, 20])
+          ]
         },
       );
 

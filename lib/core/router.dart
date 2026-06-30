@@ -1,4 +1,3 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -47,7 +46,6 @@ import 'package:vortice_app/features/orgs/org_admin_screen.dart';
 import 'package:vortice_app/features/service_intervals/maintenance_work_order_draft.dart';
 import 'package:vortice_app/features/service_intervals/service_interval_screen.dart';
 import 'package:vortice_app/features/dashboard/client_dashboard_telemetry.dart';
-import 'package:vortice_app/features/debug/route_qa_screen.dart';
 import 'package:vortice_app/features/telemetry/telemetry_history_screen.dart';
 import 'package:vortice_app/features/telemetry/vessel_telemetry_screen.dart';
 import 'package:vortice_app/models/client_capability.dart';
@@ -78,18 +76,6 @@ final _routerNotifierProvider = ChangeNotifierProvider<_RouterNotifier>((ref) {
   return _RouterNotifier(ref);
 });
 
-@visibleForTesting
-List<RouteBase> buildDebugQaRoutes({required bool enabled}) {
-  if (!enabled) return const [];
-
-  return [
-    GoRoute(
-      path: '/debug/route-qa',
-      builder: (_, __) => const RouteQaScreen(),
-    ),
-  ];
-}
-
 // ── Navigator keys ─────────────────────────────────────────────────────────
 final _rootNavigatorKey = GlobalKey<NavigatorState>(debugLabel: 'root');
 
@@ -106,17 +92,12 @@ final routerProvider = Provider<GoRouter>((ref) {
     initialLocation: '/login',
     refreshListenable: notifier,
     redirect: (context, state) {
-      if (kDebugMode && state.matchedLocation.startsWith('/debug/')) {
-        return null;
-      }
-
       return resolveAuthRedirect(
         authStatus: notifier.authStatus,
         location: state.matchedLocation,
       );
     },
     routes: [
-      ...buildDebugQaRoutes(enabled: kDebugMode),
       // ── Unauthenticated ────────────────────────────────────────────────
       GoRoute(path: '/login', builder: (_, __) => const LoginScreen()),
       GoRoute(path: '/register', builder: (_, __) => const RegisterScreen()),

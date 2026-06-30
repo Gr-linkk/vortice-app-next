@@ -20,11 +20,10 @@ void showEditWorkOrderSheet(BuildContext context, WorkOrder workOrder) {
 
 class EditWorkOrderSheet extends ConsumerStatefulWidget {
   final WorkOrder workOrder;
-  const EditWorkOrderSheet({required this.workOrder});
+  const EditWorkOrderSheet({super.key, required this.workOrder});
 
   @override
-  ConsumerState<EditWorkOrderSheet> createState() =>
-      _EditWorkOrderSheetState();
+  ConsumerState<EditWorkOrderSheet> createState() => _EditWorkOrderSheetState();
 }
 
 class _EditWorkOrderSheetState extends ConsumerState<EditWorkOrderSheet> {
