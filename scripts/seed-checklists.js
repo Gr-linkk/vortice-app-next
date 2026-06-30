@@ -6,12 +6,19 @@ const fs = require('fs');
 const path = require('path');
 const https = require('https');
 
-const SUPABASE_URL = 'https://REDACTED.supabase.co';
-const SERVICE_KEY = 'REDACTED_SUPABASE_SERVICE_KEY';
+const SUPABASE_URL = process.env.SUPABASE_URL;
+const SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const OWNER_ID = 'f33c1b15-f58e-409a-a90f-7c5c233c6bfb';
 const MOTOR_YACHT_TYPE_ID = '00000000-0000-0000-0000-000000000001';
 
 const CHECKLIST_DIR = path.join(__dirname, '..', '..', 'app-mockup', 'checklists');
+
+if (!SUPABASE_URL || !SERVICE_KEY) {
+  console.error(
+    'Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY environment variable.',
+  );
+  process.exit(1);
+}
 
 function supabaseRequest(method, tablePath, body) {
   return new Promise((resolve, reject) => {
