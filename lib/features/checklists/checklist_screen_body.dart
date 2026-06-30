@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'dart:convert';
-import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -170,7 +169,7 @@ class _ChecklistScreenBodyState extends ConsumerState<ChecklistScreenBody> {
     );
   }
 
-  Future<Map<String, String?>> _uploadChecklistPhotos() async {
+  Future<ChecklistPhotoUploadResult> _uploadChecklistPhotos() async {
     final result = await uploadPendingChecklistPhotos(
       photos: _photos,
       existingUrls: photoUrlListsFromLegacyMap(_photoUrls),
@@ -191,7 +190,7 @@ class _ChecklistScreenBodyState extends ConsumerState<ChecklistScreenBody> {
       },
     );
     _photoUploadDeferredReason = result.deferredReason;
-    return checklistPhotoUrlsForSubmission(result.urls);
+    return result;
   }
 
   Future<void> _loadPreSelectedTemplate() async {
@@ -399,12 +398,29 @@ class _ChecklistScreenBodyState extends ConsumerState<ChecklistScreenBody> {
       return;
     }
     await _savePhotoCache();
-    final photoUrls = await _uploadChecklistPhotos();
+    final photoUpload = await _uploadChecklistPhotos();
+    final photoUrls = checklistPhotoUrlsForSubmission(photoUpload.urls);
     _photoUrls
       ..clear()
       ..addAll(photoUrls);
+    _photos
+      ..clear()
+      ..addAll(photoUpload.remainingPhotos);
     await _savePhotoCache();
     await _saveDraft();
+    if (hasDeferredChecklistPhotoUpload(_photoUploadDeferredReason)) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              'Photo upload failed. Checklist kept as draft; retry when connection improves.',
+            ),
+            backgroundColor: AppColors.warning,
+          ),
+        );
+      }
+      return;
+    }
     final profile = ref.read(profileProvider).valueOrNull;
     final workOrder = widget.workOrderId == null
         ? null

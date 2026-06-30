@@ -27,7 +27,7 @@ ChecklistTemplate _template({
 void main() {
   group('checklistTemplatesForAsset', () {
     test('prefers asset-specific PM templates when available', () {
-      final asset = Asset(
+      const asset = Asset(
         id: 'asset-1',
         clientId: 'client-1',
         name: 'Dredge',
@@ -44,7 +44,7 @@ void main() {
     });
 
     test('falls back to generic PM templates', () {
-      final asset = Asset(
+      const asset = Asset(
         id: 'asset-1',
         clientId: 'client-1',
         name: 'Dredge',

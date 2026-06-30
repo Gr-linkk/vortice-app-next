@@ -1,4 +1,3 @@
-import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:flutter_test/flutter_test.dart';
@@ -22,7 +21,9 @@ void main() {
         completedAt: DateTime.utc(2026, 6, 3, 12),
         currentHours: 10,
         generalNotes: 'ready',
-        photos: {'item-1': Uint8List.fromList([7])},
+        photos: {
+          'item-1': Uint8List.fromList([7])
+        },
       );
 
       expect(draft['assetId'], 'asset-1');

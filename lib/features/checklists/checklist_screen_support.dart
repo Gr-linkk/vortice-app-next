@@ -47,10 +47,12 @@ class ChecklistTemplateSelection {
 
 class ChecklistPhotoUploadResult {
   final ChecklistItemPhotoUrlLists urls;
+  final ChecklistItemPhotoLists remainingPhotos;
   final String? deferredReason;
 
   const ChecklistPhotoUploadResult({
     required this.urls,
+    required this.remainingPhotos,
     required this.deferredReason,
   });
 }
@@ -90,7 +92,8 @@ SavedChecklistResponseState savedResponsesFromWorkOrder(
       notes[itemId] = note!;
     }
     final photoUrl = response.photoUrl;
-    if (photoUrl?.isNotEmpty == true && !hasPendingLocalChecklistPhoto(response)) {
+    if (photoUrl?.isNotEmpty == true &&
+        !hasPendingLocalChecklistPhoto(response)) {
       photoUrls[itemId] = serializeChecklistPhotoUrls(
         parseChecklistPhotoUrls(photoUrl),
       );
@@ -114,12 +117,10 @@ ChecklistDraftRestoreResult decodeChecklistDraftJson(
   Map<String, dynamic> data, {
   required DateTime fallbackCompletedAt,
 }) {
-  final responses =
-      (data['responses'] as Map?)?.cast<String, dynamic>() ?? {};
+  final responses = (data['responses'] as Map?)?.cast<String, dynamic>() ?? {};
   final notes = (data['notes'] as Map?)?.cast<String, dynamic>() ?? {};
   final photos = (data['photos'] as Map?)?.cast<String, dynamic>() ?? {};
-  final photoUrls =
-      (data['photoUrls'] as Map?)?.cast<String, dynamic>() ?? {};
+  final photoUrls = (data['photoUrls'] as Map?)?.cast<String, dynamic>() ?? {};
 
   var completedAt = fallbackCompletedAt;
   final completedAtRaw = data['completedAt'] as String?;
@@ -142,7 +143,7 @@ ChecklistDraftRestoreResult decodeChecklistDraftJson(
   for (final entry in photoUrls.entries) {
     final localValue = photos[entry.key];
     final hasLocalPhoto = (localValue is List && localValue.isNotEmpty) ||
-        (localValue is String && (localValue as String).isNotEmpty);
+        (localValue is String && localValue.isNotEmpty);
     if (!hasLocalPhoto) {
       restoredPhotoUrls[entry.key] = entry.value as String?;
     }
@@ -200,8 +201,7 @@ ChecklistTemplateSelection resolveChecklistTemplateSelection({
   final snapshotTemplate = snapshot?.asTemplate();
 
   if (snapshotTemplate != null &&
-      (boundTemplateId == null ||
-          snapshot?.templateId == boundTemplateId)) {
+      (boundTemplateId == null || snapshot?.templateId == boundTemplateId)) {
     selected = snapshotTemplate;
     draftTemplateId = snapshot?.templateId ?? draftTemplateId;
     showPicker = false;
@@ -272,8 +272,10 @@ Future<ChecklistPhotoUploadResult> uploadPendingChecklistPhotos({
   required Future<String> Function(String itemId, Uint8List bytes) upload,
 }) async {
   String? deferredReason;
+  final remainingPhotos = <String, List<Uint8List>>{};
   final urls = {
-    for (final entry in existingUrls.entries) entry.key: List<String>.from(entry.value),
+    for (final entry in existingUrls.entries)
+      entry.key: List<String>.from(entry.value),
   };
 
   for (final entry in photos.entries) {
@@ -283,6 +285,7 @@ Future<ChecklistPhotoUploadResult> uploadPendingChecklistPhotos({
         uploaded.add(await upload(entry.key, bytes));
       } catch (error) {
         deferredReason ??= error.toString();
+        remainingPhotos.putIfAbsent(entry.key, () => []).add(bytes);
       }
     }
     if (uploaded.isEmpty) {
@@ -292,8 +295,15 @@ Future<ChecklistPhotoUploadResult> uploadPendingChecklistPhotos({
     }
   }
 
-  return ChecklistPhotoUploadResult(urls: urls, deferredReason: deferredReason);
+  return ChecklistPhotoUploadResult(
+    urls: urls,
+    remainingPhotos: remainingPhotos,
+    deferredReason: deferredReason,
+  );
 }
+
+bool hasDeferredChecklistPhotoUpload(String? deferredReason) =>
+    deferredReason?.trim().isNotEmpty == true;
 
 Map<String, String?> checklistPhotoUrlsForSubmission(
   ChecklistItemPhotoUrlLists photoUrls,
