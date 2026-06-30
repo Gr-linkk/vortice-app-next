@@ -40,7 +40,7 @@ void main() {
     });
 
     test('ignores empty pending-create drafts', () {
-      final report = ServiceReport(
+      const report = ServiceReport(
         id: 'sr-1',
         workOrderId: 'wo-1',
         syncStatus: SyncStatusValues.pendingCreate,

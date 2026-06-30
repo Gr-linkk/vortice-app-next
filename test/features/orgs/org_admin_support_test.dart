@@ -1,4 +1,3 @@
-import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:vortice_app/core/theme.dart';
 import 'package:vortice_app/features/orgs/org_admin_support.dart';
@@ -28,8 +27,10 @@ ClientCapabilitySwitchboard _switchboard({
 void main() {
   group('orgAdminMemberRoleColor', () {
     test('maps org member roles to theme colors', () {
-      expect(orgAdminMemberRoleColor(UserRole.clientMechanic), AppColors.primary);
-      expect(orgAdminMemberRoleColor(UserRole.clientOperator), AppColors.warning);
+      expect(
+          orgAdminMemberRoleColor(UserRole.clientMechanic), AppColors.primary);
+      expect(
+          orgAdminMemberRoleColor(UserRole.clientOperator), AppColors.warning);
       expect(orgAdminMemberRoleColor(UserRole.clientAdmin), AppColors.success);
       expect(orgAdminMemberRoleColor(UserRole.owner), AppColors.textSecondary);
     });

@@ -1,4 +1,3 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -310,14 +309,6 @@ class AppShell extends ConsumerWidget {
       },
       child: Scaffold(
         body: child,
-        floatingActionButton: kDebugMode
-            ? FloatingActionButton.small(
-                heroTag: 'route-qa',
-                tooltip: 'Route QA',
-                onPressed: () => context.go('/debug/route-qa'),
-                child: const Icon(Icons.rule),
-              )
-            : null,
         bottomNavigationBar: hideBottomNavigation
             ? null
             : Container(

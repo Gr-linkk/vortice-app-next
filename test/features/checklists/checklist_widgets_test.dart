@@ -153,13 +153,13 @@ void main() {
     testWidgets('renders service hour templates and category groups',
         (tester) async {
       final templates = [
-        ChecklistTemplate(
+        const ChecklistTemplate(
           id: 'svc-250',
           name: '250HR Service',
           category: 'general',
           intervalHours: 250,
         ),
-        ChecklistTemplate(
+        const ChecklistTemplate(
           id: 'pre-op',
           name: 'Pre-Op',
           category: 'pre_ops',
@@ -186,7 +186,7 @@ void main() {
     });
 
     testWidgets('highlights selected template', (tester) async {
-      final template = ChecklistTemplate(
+      const template = ChecklistTemplate(
         id: 'pre-op',
         name: 'Pre-Op',
         category: 'pre_ops',
@@ -196,7 +196,7 @@ void main() {
         MaterialApp(
           home: Scaffold(
             body: ChecklistTemplateSelector(
-              templates: [template],
+              templates: const [template],
               preselected: template,
               emptyMessage: 'No checklist templates available.',
               onSelect: (_) {},

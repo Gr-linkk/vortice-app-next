@@ -11,7 +11,8 @@ import 'package:vortice_app/models/work_order.dart';
 class WorkOrderClientChecklistContextSection extends ConsumerWidget {
   final WorkOrder workOrder;
 
-  const WorkOrderClientChecklistContextSection({required this.workOrder});
+  const WorkOrderClientChecklistContextSection(
+      {super.key, required this.workOrder});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -79,6 +80,7 @@ class WorkOrderClientChecklistReferenceTile extends ConsumerWidget {
   final SavedChecklist row;
 
   const WorkOrderClientChecklistReferenceTile({
+    super.key,
     required this.workOrder,
     required this.row,
   });
@@ -203,7 +205,8 @@ class WorkOrderClientChecklistReferenceTile extends ConsumerWidget {
   }
 }
 
-void showWorkOrderSavedChecklistReference(BuildContext context, SavedChecklist row) {
+void showWorkOrderSavedChecklistReference(
+    BuildContext context, SavedChecklist row) {
   showModalBottomSheet(
     context: context,
     isScrollControlled: true,
@@ -218,7 +221,7 @@ void showWorkOrderSavedChecklistReference(BuildContext context, SavedChecklist r
 class WorkOrderSavedChecklistReferenceSheet extends StatelessWidget {
   final SavedChecklist row;
 
-  const WorkOrderSavedChecklistReferenceSheet({required this.row});
+  const WorkOrderSavedChecklistReferenceSheet({super.key, required this.row});
 
   @override
   Widget build(BuildContext context) {
@@ -290,7 +293,8 @@ class WorkOrderSavedChecklistHeaderLine extends StatelessWidget {
   final String label;
   final String value;
 
-  const WorkOrderSavedChecklistHeaderLine({required this.label, required this.value});
+  const WorkOrderSavedChecklistHeaderLine(
+      {super.key, required this.label, required this.value});
 
   @override
   Widget build(BuildContext context) {
