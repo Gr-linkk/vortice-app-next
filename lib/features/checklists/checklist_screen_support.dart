@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:typed_data';
 
+import 'package:vortice_app/features/checklists/checklist_attachment_support.dart';
 import 'package:vortice_app/features/checklists/checklist_support.dart';
 import 'package:vortice_app/features/checklists/work_order_checklist_snapshot_repository.dart';
 import 'package:vortice_app/models/checklist_item.dart';
@@ -16,7 +17,7 @@ class ChecklistDraftRestoreResult {
   final Map<String, String?> responses;
   final Map<String, String> notes;
   final Map<String, String?> photoUrls;
-  final Map<String, Uint8List?> photos;
+  final ChecklistItemPhotoLists photos;
   final bool restoredDraftPhotos;
 
   const ChecklistDraftRestoreResult({
@@ -45,7 +46,7 @@ class ChecklistTemplateSelection {
 }
 
 class ChecklistPhotoUploadResult {
-  final Map<String, String?> urls;
+  final ChecklistItemPhotoUrlLists urls;
   final String? deferredReason;
 
   const ChecklistPhotoUploadResult({
@@ -90,7 +91,9 @@ SavedChecklistResponseState savedResponsesFromWorkOrder(
     }
     final photoUrl = response.photoUrl;
     if (photoUrl?.isNotEmpty == true && !hasPendingLocalChecklistPhoto(response)) {
-      photoUrls[itemId] = photoUrl;
+      photoUrls[itemId] = serializeChecklistPhotoUrls(
+        parseChecklistPhotoUrls(photoUrl),
+      );
     }
   }
 
@@ -101,32 +104,11 @@ SavedChecklistResponseState savedResponsesFromWorkOrder(
   );
 }
 
-Map<String, Uint8List> decodePhotoCacheJson(String raw) {
-  try {
-    final data = (jsonDecode(raw) as Map).cast<String, dynamic>();
-    final decoded = <String, Uint8List>{};
-    for (final entry in data.entries) {
-      final value = entry.value;
-      if (value is String && value.isNotEmpty) {
-        decoded[entry.key] = base64Decode(value);
-      }
-    }
-    return decoded;
-  } catch (_) {
-    return const {};
-  }
-}
+ChecklistItemPhotoLists decodePhotoCacheJson(String raw) =>
+    decodePhotoListsCacheJson(raw);
 
-Map<String, String> encodePhotoCache(Map<String, Uint8List?> photos) {
-  final encoded = <String, String>{};
-  for (final entry in photos.entries) {
-    final bytes = entry.value;
-    if (bytes != null) {
-      encoded[entry.key] = base64Encode(bytes);
-    }
-  }
-  return encoded;
-}
+Map<String, dynamic> encodePhotoCache(ChecklistItemPhotoLists photos) =>
+    encodePhotoListsCache(photos);
 
 ChecklistDraftRestoreResult decodeChecklistDraftJson(
   Map<String, dynamic> data, {
@@ -148,7 +130,7 @@ ChecklistDraftRestoreResult decodeChecklistDraftJson(
   final restoredResponses = <String, String?>{};
   final restoredNotes = <String, String>{};
   final restoredPhotoUrls = <String, String?>{};
-  final restoredPhotos = <String, Uint8List?>{};
+  final restoredPhotos = <String, List<Uint8List>>{};
   var restoredDraftPhotos = false;
 
   for (final entry in responses.entries) {
@@ -158,16 +140,36 @@ ChecklistDraftRestoreResult decodeChecklistDraftJson(
     restoredNotes[entry.key] = entry.value as String;
   }
   for (final entry in photoUrls.entries) {
-    final hasLocalPhoto =
-        photos[entry.key] is String && (photos[entry.key] as String).isNotEmpty;
+    final localValue = photos[entry.key];
+    final hasLocalPhoto = (localValue is List && localValue.isNotEmpty) ||
+        (localValue is String && (localValue as String).isNotEmpty);
     if (!hasLocalPhoto) {
       restoredPhotoUrls[entry.key] = entry.value as String?;
     }
   }
-  for (final entry in photos.entries) {
-    if (entry.value is String && (entry.value as String).isNotEmpty) {
-      restoredPhotos[entry.key] = base64Decode(entry.value as String);
-      restoredDraftPhotos = true;
+  if (photos.isNotEmpty) {
+    for (final entry in photos.entries) {
+      if (entry.value is List) {
+        final encodedParts = (entry.value as List)
+            .whereType<String>()
+            .where((part) => part.isNotEmpty)
+            .map(base64Decode)
+            .toList(growable: false);
+        if (encodedParts.isNotEmpty) {
+          restoredPhotos[entry.key] = encodedParts;
+          restoredDraftPhotos = true;
+        }
+      } else if (entry.value is String && (entry.value as String).isNotEmpty) {
+        restoredPhotos[entry.key] = [base64Decode(entry.value as String)];
+        restoredDraftPhotos = true;
+      }
+    }
+  } else {
+    for (final entry in photos.entries) {
+      if (entry.value is String && (entry.value as String).isNotEmpty) {
+        restoredPhotos[entry.key] = [base64Decode(entry.value as String)];
+        restoredDraftPhotos = true;
+      }
     }
   }
 
@@ -265,31 +267,38 @@ String? buildChecklistMetadataCaption({
 }
 
 Future<ChecklistPhotoUploadResult> uploadPendingChecklistPhotos({
-  required Map<String, Uint8List?> photos,
-  required Map<String, String?> existingUrls,
+  required ChecklistItemPhotoLists photos,
+  required ChecklistItemPhotoUrlLists existingUrls,
   required Future<String> Function(String itemId, Uint8List bytes) upload,
 }) async {
   String? deferredReason;
-  final urls = Map<String, String?>.from(existingUrls);
+  final urls = {
+    for (final entry in existingUrls.entries) entry.key: List<String>.from(entry.value),
+  };
 
   for (final entry in photos.entries) {
-    final bytes = entry.value;
-    if (bytes == null) {
-      urls[entry.key] = null;
-      continue;
+    final uploaded = <String>[...checklistPhotoUrlsForItem(urls, entry.key)];
+    for (final bytes in entry.value) {
+      try {
+        uploaded.add(await upload(entry.key, bytes));
+      } catch (error) {
+        deferredReason ??= error.toString();
+      }
     }
-
-    final existingUrl = urls[entry.key];
-    try {
-      urls[entry.key] = await upload(entry.key, bytes);
-    } catch (error) {
-      deferredReason ??= error.toString();
-      urls[entry.key] = existingUrl;
+    if (uploaded.isEmpty) {
+      urls.remove(entry.key);
+    } else {
+      urls[entry.key] = uploaded;
     }
   }
 
   return ChecklistPhotoUploadResult(urls: urls, deferredReason: deferredReason);
 }
+
+Map<String, String?> checklistPhotoUrlsForSubmission(
+  ChecklistItemPhotoUrlLists photoUrls,
+) =>
+    legacyPhotoUrlMapFromLists(photoUrls);
 
 String checklistDraftJson({
   required String? templateId,
@@ -299,7 +308,7 @@ String checklistDraftJson({
   required DateTime completedAt,
   required double? currentHours,
   required String? generalNotes,
-  required Map<String, Uint8List?> photos,
+  required ChecklistItemPhotoLists photos,
 }) =>
     jsonEncode(
       encodeChecklistDraft(

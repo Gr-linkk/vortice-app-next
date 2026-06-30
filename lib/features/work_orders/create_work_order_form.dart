@@ -5,6 +5,7 @@ import 'package:vortice_app/features/assets/asset_provider.dart';
 import 'package:vortice_app/features/checklists/checklist_provider.dart';
 import 'package:vortice_app/features/engines/engine_kind_options.dart';
 import 'package:vortice_app/features/work_orders/create_work_order_pm_parts_preview.dart';
+import 'package:vortice_app/features/work_orders/create_work_order_pm_parts_support.dart';
 import 'package:vortice_app/features/work_orders/create_work_order_support.dart';
 import 'package:vortice_app/features/work_orders/work_order_provider.dart';
 import 'package:vortice_app/l10n/app_localizations.dart';
@@ -245,8 +246,10 @@ class CreateWorkOrderForm extends ConsumerWidget {
               ),
 
           // ── PM PARTS ────────────────────────────────────────────
-          if (jobType == WorkOrderJobType.preventative &&
-              selectedChecklistTemplateId != null)
+          if (shouldShowPmPartsKitPreview(
+            jobType: jobType,
+            checklistTemplateId: selectedChecklistTemplateId,
+          ))
             CreateWorkOrderPmPartsPreview(
               templateId: selectedChecklistTemplateId!,
             ),

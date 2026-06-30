@@ -1,6 +1,7 @@
 import 'package:vortice_app/core/constants.dart';
 import 'package:vortice_app/core/supabase_client.dart';
 import 'package:vortice_app/models/invoice.dart';
+import 'package:vortice_app/models/part.dart';
 
 class InvoiceExportContext {
   final String? clientName;
@@ -10,6 +11,7 @@ class InvoiceExportContext {
   final String? assetName;
   final String? assetMakeModel;
   final String? assetSerialNumber;
+  final List<Part> invoiceParts;
 
   const InvoiceExportContext({
     this.clientName,
@@ -19,6 +21,7 @@ class InvoiceExportContext {
     this.assetName,
     this.assetMakeModel,
     this.assetSerialNumber,
+    this.invoiceParts = const [],
   });
 
   String get billingLabel => _fallback(clientName, 'Client unavailable');
@@ -96,6 +99,20 @@ class InvoiceExportContextService {
       }
     }
 
+    var invoiceParts = const <Part>[];
+    try {
+      final partsData = await supabase
+          .from(AppConstants.tParts)
+          .select()
+          .eq('work_order_id', invoice.workOrderId)
+          .order('created_at');
+      invoiceParts = (partsData as List)
+          .map((e) => Part.fromJson(e as Map<String, dynamic>))
+          .toList();
+    } catch (_) {
+      // Export should still succeed if optional parts are unavailable.
+    }
+
     return InvoiceExportContext(
       clientName: clientName,
       clientEmail: clientEmail,
@@ -104,6 +121,7 @@ class InvoiceExportContextService {
       assetName: assetName,
       assetMakeModel: assetMakeModel,
       assetSerialNumber: assetSerialNumber,
+      invoiceParts: invoiceParts,
     );
   }
 }

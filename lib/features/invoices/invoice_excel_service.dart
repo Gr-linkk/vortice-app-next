@@ -4,6 +4,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:open_file/open_file.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:vortice_app/features/invoices/invoice_export_context.dart';
+import 'package:vortice_app/features/invoices/invoice_parts_line_items_support.dart';
 import 'package:vortice_app/models/invoice.dart';
 
 /// Generates Excel (.xlsx) exports of invoices for accounting
@@ -235,7 +236,23 @@ class InvoiceExcelService {
       '${invoice.labourHours?.toStringAsFixed(1) ?? 0} hrs @ \$${invoice.billableRateUsd?.toStringAsFixed(2) ?? '0.00'}/hr',
       labourTotal,
     );
-    addLineItem('Parts (with markup)', null, invoice.partsTotalUsd ?? 0);
+    final partLines = buildInvoicePartLineItems(context?.invoiceParts ?? const []);
+    if (partLines.isEmpty) {
+      addLineItem('Parts (with markup)', null, invoice.partsTotalUsd ?? 0);
+    } else {
+      for (final line in partLines) {
+        addLineItem(
+          formatInvoicePartLineLabel(line),
+          formatInvoicePartLineDetail(line),
+          line.lineTotalUsd,
+        );
+      }
+      addLineItem(
+        'Parts (with markup)',
+        'Total',
+        sumInvoicePartLineTotals(partLines),
+      );
+    }
     addLineItem('Consumables (5%)', null, invoice.consumablesTotalUsd ?? 0);
 
     row += 2;

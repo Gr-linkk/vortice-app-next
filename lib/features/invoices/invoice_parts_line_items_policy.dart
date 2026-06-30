@@ -2,8 +2,8 @@
 class InvoicePartsLineItemsPolicy {
   const InvoicePartsLineItemsPolicy._();
 
-  /// Intended: each logged part becomes its own invoice line on detail/export.
-  static bool detailShowsItemizedPartsLines() => false;
+  /// Each logged part becomes its own invoice line on detail/export.
+  static bool detailShowsItemizedPartsLines() => true;
 
-  static bool exportShowsItemizedPartsLines() => false;
+  static bool exportShowsItemizedPartsLines() => true;
 }

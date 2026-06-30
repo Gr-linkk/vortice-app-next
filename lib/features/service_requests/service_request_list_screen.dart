@@ -173,6 +173,27 @@ class _ServiceRequestCard extends ConsumerWidget {
                 ),
               ),
             ],
+            if (clientMode && request.handledLabel != null) ...[
+              const SizedBox(height: 10),
+              Text(
+                request.handledLabel!,
+                style: const TextStyle(
+                  color: AppColors.success,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
+            if (clientMode && request.workOrderLinkLabel != null) ...[
+              const SizedBox(height: 6),
+              Text(
+                request.workOrderLinkLabel!,
+                style: const TextStyle(
+                  color: AppColors.textSecondary,
+                  fontSize: 12,
+                ),
+              ),
+            ],
             if (request.contactPhoneOrWhatsapp?.trim().isNotEmpty == true) ...[
               const SizedBox(height: 10),
               Text(

@@ -9,6 +9,7 @@ import 'package:vortice_app/core/theme.dart';
 import 'package:vortice_app/features/auth/auth_provider.dart';
 import 'package:vortice_app/features/checklists/checklist_provider.dart';
 import 'package:vortice_app/features/checklists/checklist_submission_orchestrator.dart';
+import 'package:vortice_app/features/checklists/checklist_attachment_support.dart';
 import 'package:vortice_app/features/checklists/checklist_support.dart';
 import 'package:vortice_app/features/operator/operator_checklist_run_form.dart';
 import 'package:vortice_app/features/operator/operator_checklist_screen.dart';
@@ -228,7 +229,12 @@ class OperatorChecklistScreenState
     await _saveDraft();
     setState(() => _submitting = true);
     try {
-      if (requiresAttentionDetail(_responses, _notes, _photos, const {})) {
+      if (requiresAttentionDetail(
+        _responses,
+        _notes,
+        photoListsFromLegacySinglePhotos(_photos),
+        const {},
+      )) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(

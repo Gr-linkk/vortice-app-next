@@ -284,6 +284,7 @@ class _RecordingSavedChecklistsRepository extends SavedChecklistsRepository {
     required String sourceType,
     required String checklistType,
     required String completedBy,
+    String? completedByName,
     String? submittedByRole,
     DateTime? submittedAt,
     double? currentHours,

@@ -7,6 +7,7 @@ import 'package:open_file/open_file.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:printing/printing.dart';
 import 'package:vortice_app/features/invoices/invoice_export_context.dart';
+import 'package:vortice_app/features/invoices/invoice_parts_line_items_support.dart';
 import 'package:vortice_app/models/invoice.dart';
 
 /// Generates professional print-ready PDF invoices (white background, business layout)
@@ -83,6 +84,9 @@ class InvoicePdfService {
     final iva = invoice.ivaTotalUsd ?? 0;
     final totalUsd = invoice.totalUsd ?? 0;
     final totalMxn = invoice.totalMxn ?? 0;
+    final partLines = buildInvoicePartLineItems(
+      exportContext?.invoiceParts ?? const [],
+    );
 
     return pw.Column(
       crossAxisAlignment: pw.CrossAxisAlignment.stretch,
@@ -219,13 +223,7 @@ class InvoicePdfService {
               _tableCell('\$${labourTotal.toStringAsFixed(2)}',
                   align: pw.TextAlign.right),
             ]),
-            // Parts
-            pw.TableRow(children: [
-              _tableCell('Parts (with markup)'),
-              _tableCell('—', muted: true),
-              _tableCell('\$${(invoice.partsTotalUsd ?? 0).toStringAsFixed(2)}',
-                  align: pw.TextAlign.right),
-            ]),
+            ..._partsTableRows(invoice, partLines),
             // Consumables
             pw.TableRow(children: [
               _tableCell('Consumables (5%)'),
@@ -325,6 +323,47 @@ class InvoicePdfService {
   }
 
   // ── Helpers ──────────────────────────────────────────────────────────────
+
+  static List<pw.TableRow> _partsTableRows(
+    Invoice invoice,
+    List<InvoicePartLineItem> partLines,
+  ) {
+    if (partLines.isEmpty) {
+      return [
+        pw.TableRow(children: [
+          _tableCell('Parts (with markup)'),
+          _tableCell('—', muted: true),
+          _tableCell('\$${(invoice.partsTotalUsd ?? 0).toStringAsFixed(2)}',
+              align: pw.TextAlign.right),
+        ]),
+      ];
+    }
+
+    final rows = partLines
+        .map(
+          (line) => pw.TableRow(children: [
+            _tableCell(formatInvoicePartLineLabel(line)),
+            _tableCell(formatInvoicePartLineDetail(line), muted: true),
+            _tableCell('\$${line.lineTotalUsd.toStringAsFixed(2)}',
+                align: pw.TextAlign.right),
+          ]),
+        )
+        .toList();
+
+    rows.add(
+      pw.TableRow(children: [
+        _tableCell('Parts (with markup)', muted: true),
+        _tableCell('Total', muted: true),
+        _tableCell(
+          '\$${sumInvoicePartLineTotals(partLines).toStringAsFixed(2)}',
+          align: pw.TextAlign.right,
+          muted: true,
+        ),
+      ]),
+    );
+
+    return rows;
+  }
 
   static pw.Widget _metaRow(String label, String value) {
     return pw.Row(

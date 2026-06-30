@@ -12,11 +12,13 @@ import 'package:vortice_app/core/supabase_client.dart';
 import 'package:vortice_app/core/theme.dart';
 import 'package:vortice_app/features/auth/auth_provider.dart';
 import 'package:vortice_app/features/checklists/asset_checklist_template_filter.dart';
+import 'package:vortice_app/features/checklists/checklist_attachment_support.dart';
 import 'package:vortice_app/features/checklists/checklist_form.dart';
 import 'package:vortice_app/features/checklists/checklist_provider.dart';
 import 'package:vortice_app/features/checklists/checklist_repository.dart';
 import 'package:vortice_app/features/checklists/checklist_screen_support.dart';
 import 'package:vortice_app/features/checklists/checklist_submission_orchestrator.dart';
+import 'package:vortice_app/features/checklists/checklist_submission_support.dart';
 import 'package:vortice_app/features/checklists/checklist_support.dart';
 import 'package:vortice_app/features/checklists/checklist_template_selector.dart';
 import 'package:vortice_app/features/work_orders/work_order_provider.dart';
@@ -55,7 +57,7 @@ class _ChecklistScreenBodyState extends ConsumerState<ChecklistScreenBody> {
   bool _showPicker = false;
   final Map<String, String?> _responses = {};
   final Map<String, String> _notes = {};
-  final Map<String, Uint8List?> _photos = {};
+  final ChecklistItemPhotoLists _photos = {};
   final Map<String, String?> _photoUrls = {};
   String? _photoUploadDeferredReason;
   DateTime _completedAt = DateTime.now();
@@ -171,7 +173,7 @@ class _ChecklistScreenBodyState extends ConsumerState<ChecklistScreenBody> {
   Future<Map<String, String?>> _uploadChecklistPhotos() async {
     final result = await uploadPendingChecklistPhotos(
       photos: _photos,
-      existingUrls: _photoUrls,
+      existingUrls: photoUrlListsFromLegacyMap(_photoUrls),
       upload: (itemId, bytes) async {
         final ts = DateTime.now().millisecondsSinceEpoch;
         final path = 'checklists/$_checklistRunKey/${itemId}_$ts.jpg';
@@ -189,7 +191,7 @@ class _ChecklistScreenBodyState extends ConsumerState<ChecklistScreenBody> {
       },
     );
     _photoUploadDeferredReason = result.deferredReason;
-    return result.urls;
+    return checklistPhotoUrlsForSubmission(result.urls);
   }
 
   Future<void> _loadPreSelectedTemplate() async {
@@ -346,16 +348,28 @@ class _ChecklistScreenBodyState extends ConsumerState<ChecklistScreenBody> {
               setState(() => _notes[id] = v);
               _saveDraft();
             },
-            onPhotoChanged: (id, v) {
+            onPhotoAppended: (id, bytes) {
               setState(() {
-                if (v == null) {
-                  _photos.remove(id);
-                } else {
-                  _photos[id] = v;
-                }
-                _photoUrls[id] = null;
+                appendChecklistPhoto(_photos, id, bytes);
               });
               _savePhotoCache();
+              _saveDraft();
+            },
+            onLocalPhotoRemoved: (id, index) {
+              setState(() {
+                removeChecklistPhotoAt(_photos, id, index);
+              });
+              _savePhotoCache();
+              _saveDraft();
+            },
+            onUploadedPhotoRemoved: (id, index) {
+              setState(() {
+                final urls = photoUrlListsFromLegacyMap(_photoUrls);
+                removeChecklistPhotoUrlAt(urls, id, index);
+                _photoUrls
+                  ..remove(id)
+                  ..addAll(legacyPhotoUrlMapFromLists(urls));
+              });
               _saveDraft();
             },
             onSubmit: () => _submitChecklist(context, l10n, snapshotItems),
@@ -370,7 +384,12 @@ class _ChecklistScreenBodyState extends ConsumerState<ChecklistScreenBody> {
     AppLocalizations l10n,
     List<ChecklistItem>? snapshotItems,
   ) async {
-    if (requiresAttentionDetail(_responses, _notes, _photos, _photoUrls)) {
+    if (requiresAttentionDetail(
+      _responses,
+      _notes,
+      _photos,
+      photoUrlListsFromLegacyMap(_photoUrls),
+    )) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Monitor and Action items need a note or photo.'),
@@ -448,7 +467,11 @@ class _ChecklistScreenBodyState extends ConsumerState<ChecklistScreenBody> {
     if (context.mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(l10n.checklistSubmitted),
+          content: Text(
+            ChecklistSubmissionSupport.onlineSubmittedMessage(
+              deferredPhotoReason: _photoUploadDeferredReason,
+            ),
+          ),
           backgroundColor: AppColors.success,
         ),
       );
