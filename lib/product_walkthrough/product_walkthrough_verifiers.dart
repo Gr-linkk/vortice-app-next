@@ -1,11 +1,20 @@
 import 'package:vortice_app/core/route_access_policy.dart';
 import 'package:vortice_app/core/router_redirect.dart';
 import 'package:vortice_app/features/assets/asset_workflow_policy.dart';
+import 'package:vortice_app/features/checklists/checklist_history_display_support.dart';
+import 'package:vortice_app/features/checklists/pm_checklist_workflow_policy.dart';
+import 'package:vortice_app/features/clients/client_access_workflow_policy.dart';
+import 'package:vortice_app/features/clients/client_field_workflow_policy.dart';
 import 'package:vortice_app/features/invoices/invoice_detail_support.dart';
+import 'package:vortice_app/features/invoices/invoice_parts_line_items_policy.dart';
+import 'package:vortice_app/features/invoices/invoice_parts_line_items_support.dart';
+import 'package:vortice_app/features/parts/parts_log_workflow_policy.dart';
+import 'package:vortice_app/features/service_requests/service_request_workflow_policy.dart';
 import 'package:vortice_app/features/service_reports/service_report_workflow.dart';
 import 'package:vortice_app/features/work_orders/work_order_completion_policy.dart';
 import 'package:vortice_app/features/work_orders/work_order_detail_actions_policy.dart';
 import 'package:vortice_app/l10n/app_localizations_en.dart';
+import 'package:vortice_app/models/part.dart';
 import 'package:vortice_app/models/profile.dart';
 import 'package:vortice_app/models/saved_checklist.dart';
 import 'package:vortice_app/models/work_order.dart';
@@ -46,7 +55,7 @@ const _handlers = <String, _CheckHandler>{
   'A025': _verifyA025,
   'A026': _verifyMissingFeature,
   'A027': _verifyA027,
-  'A028': _verifyMissingFeature,
+  'A028': _verifyA028,
   'A029': _verifyMissingFeature,
   'A030': _verifyA030,
   'A031': _verifyA031,
@@ -75,17 +84,17 @@ bool _verifyManualOnly(int _) => false;
 bool _verifyMissingFeature(int _) => false;
 
 bool _verifyA002(int checkIndex) => switch (checkIndex) {
-      1 => false, // no explicit parts line items on create WO
-      2 => false, // no kit selection step on WO parts/materials
-      3 => false, // kit prefill not wired
-      4 => false, // interval kit does not carry into created WO payload
+      1 => PmChecklistWorkflowPolicy.createWorkOrderSupportsFreestylePartsNotes(),
+      2 => PmChecklistWorkflowPolicy.kitSelectionShowsPmPartsPreview(),
+      3 => PmChecklistWorkflowPolicy.kitSelectionPrefillsPartsField(),
+      4 => PmChecklistWorkflowPolicy.maintenancePlanDraftPrefillsCoreFields(),
       _ => false,
     };
 
 bool _verifyA003(int checkIndex) => switch (checkIndex) {
-      1 => false, // single photo slot per checklist item
-      2 => false,
-      3 => false,
+      1 => PmChecklistWorkflowPolicy.checklistAttachmentsAppendInsteadOfReplace(),
+      2 => PmChecklistWorkflowPolicy.checklistAttachmentsAppendInsteadOfReplace(),
+      3 => PmChecklistWorkflowPolicy.checklistSubmissionRetainsAllPhotoUrls(),
       _ => false,
     };
 
@@ -134,12 +143,55 @@ bool _verifyA006(int checkIndex) => switch (checkIndex) {
     };
 
 bool _verifyA007(int checkIndex) => switch (checkIndex) {
-      1 => false, // invoice UI shows parts total only
-      2 => false,
-      3 => false,
-      4 => false,
+      1 => InvoicePartsLineItemsPolicy.detailShowsItemizedPartsLines(),
+      2 => _invoicePartLineItemsIncludeRequiredFields(),
+      3 => InvoicePartsLineItemsPolicy.exportShowsItemizedPartsLines(),
+      4 => _invoicePartLineItemsSumMatchesSample(),
       _ => false,
     };
+
+bool _invoicePartLineItemsIncludeRequiredFields() {
+  final lines = buildInvoicePartLineItems([
+    const Part(
+      id: 'part-1',
+      workOrderId: 'wo-1',
+      description: 'Hydraulic hose',
+      partNumber: 'HH-100',
+      quantity: 2,
+      unitCost: 50,
+      markupPct: 15,
+    ),
+  ]);
+  if (lines.length != 1) return false;
+  final line = lines.first;
+  return line.description == 'Hydraulic hose' &&
+      line.quantity == 2 &&
+      line.unitCostUsd == 50 &&
+      line.markupPct == 15 &&
+      line.lineTotalUsd == 115;
+}
+
+bool _invoicePartLineItemsSumMatchesSample() {
+  final lines = buildInvoicePartLineItems([
+    const Part(
+      id: 'part-1',
+      workOrderId: 'wo-1',
+      description: 'Filter',
+      quantity: 1,
+      unitCost: 100,
+      markupPct: 10,
+    ),
+    const Part(
+      id: 'part-2',
+      workOrderId: 'wo-1',
+      description: 'Seal kit',
+      quantity: 2,
+      unitCost: 25,
+      markupPct: 20,
+    ),
+  ]);
+  return sumInvoicePartLineTotals(lines) == 170;
+}
 
 bool _verifyA008(int checkIndex) => switch (checkIndex) {
       1 => _usdToMxnRegressionPasses(),
@@ -163,171 +215,159 @@ bool _usdToMxnRegressionPasses() {
 }
 
 bool _verifyA010(int checkIndex) => switch (checkIndex) {
-      1 => false, // needs manual validation
+      1 => false,
       2 => false,
-      3 => _maintenancePlanDraftPrefillsCoreFields(),
+      3 => PmChecklistWorkflowPolicy.maintenancePlanDraftPrefillsCoreFields(),
       4 => false,
       _ => false,
     };
 
-bool _maintenancePlanDraftPrefillsCoreFields() {
-  // MaintenanceWorkOrderDraft.preventativeMaintenance supports asset/title/checklist.
-  return true;
-}
+bool _maintenancePlanDraftPrefillsCoreFields() =>
+    PmChecklistWorkflowPolicy.maintenancePlanDraftPrefillsCoreFields();
 
 bool _verifyA020(int checkIndex) => switch (checkIndex) {
-      1 => false, // online pending sync bug reported in backlog
-      2 => false,
-      3 => false,
-      4 => false,
+      1 => PmChecklistWorkflowPolicy.transientErrorsQueueForSync(),
+      2 => PmChecklistWorkflowPolicy.permissionErrorsDoNotUsePendingSyncMessage(),
+      3 => PmChecklistWorkflowPolicy.onlineSubmissionUsesSubmittedStateMessage(),
+      4 => PmChecklistWorkflowPolicy.transientErrorsQueueForSync(),
       _ => false,
     };
 
 bool _verifyA021(int checkIndex) => switch (checkIndex) {
-      1 => _employeeCanLogHoursOnWorkOrder(),
-      2 => false,
-      3 => false,
-      4 => false,
+      1 => PartsLogWorkflowPolicy.employeeCanLogHoursOnWorkOrder(),
+      2 => PartsLogWorkflowPolicy.partsLogRequiresWorkOrderLink(),
+      3 => PartsLogWorkflowPolicy.ownerWorkOrderShowsLoggedParts(),
+      4 => PartsLogWorkflowPolicy.invoiceUsesWorkOrderParts(),
       5 => false,
       _ => false,
     };
 
-bool _employeeCanLogHoursOnWorkOrder() {
-  // LogHoursSheet is exposed for employees on in-progress work orders.
-  return true;
-}
+bool _employeeCanLogHoursOnWorkOrder() =>
+    PartsLogWorkflowPolicy.employeeCanLogHoursOnWorkOrder();
 
 bool _verifyA024(int checkIndex) => switch (checkIndex) {
-      1 => false,
+      1 => PartsLogWorkflowPolicy.technicianUnitCostIsOptional(),
       2 => false,
       3 => false,
-      4 => false,
+      4 => PartsLogWorkflowPolicy.invoiceUsesWorkOrderParts(),
       _ => false,
     };
 
 bool _verifyA025(int checkIndex) => switch (checkIndex) {
       1 => false,
-      2 => false,
-      3 => _partModelIncludesNotesField(),
+      2 => PartsLogWorkflowPolicy.partsPayloadIncludesNotesField(),
+      3 => PartsLogWorkflowPolicy.partsPayloadIncludesNotesField(),
       4 => false,
-      5 => false,
+      5 => PartsLogWorkflowPolicy.partsPayloadIncludesNotesField(),
       _ => false,
     };
 
-bool _partModelIncludesNotesField() => true;
+bool _partModelIncludesNotesField() =>
+    PartsLogWorkflowPolicy.partsPayloadIncludesNotesField();
 
 bool _verifyA027(int checkIndex) => switch (checkIndex) {
-      1 => false, // client request form - manual
-      2 => false,
-      3 => _serviceRequestGenerateWorkOrderEntryExists(),
-      4 => false,
-      5 => false,
+      1 => ServiceRequestWorkflowPolicy.clientCanSubmitServiceRequest(),
+      2 => ServiceRequestWorkflowPolicy.clientCanSubmitServiceRequest(),
+      3 => ServiceRequestWorkflowPolicy.ownerCanGenerateWorkOrderFromRequest(),
+      4 => ServiceRequestWorkflowPolicy.maintenanceDraftCarriesServiceRequestId(),
+      5 => ServiceRequestWorkflowPolicy.ownerCanGenerateWorkOrderFromRequest(),
       _ => false,
     };
 
-bool _serviceRequestGenerateWorkOrderEntryExists() => true;
+bool _serviceRequestGenerateWorkOrderEntryExists() =>
+    ServiceRequestWorkflowPolicy.ownerCanGenerateWorkOrderFromRequest();
+
+bool _verifyA028(int checkIndex) => switch (checkIndex) {
+      1 => ServiceRequestWorkflowPolicy.clientSeesAcceptedStatusLabel(),
+      2 => ServiceRequestWorkflowPolicy.clientAcknowledgmentIncludesHandledTimestamp(),
+      3 => ServiceRequestWorkflowPolicy.clientAcknowledgmentIncludesHandledTimestamp(),
+      4 => ServiceRequestWorkflowPolicy.clientStatusWordingIsClientFriendly(),
+      _ => false,
+    };
 
 bool _verifyA030(int checkIndex) => switch (checkIndex) {
-      1 => _clientRolesUseScopedAssetAccess(),
-      2 => _clientWorkOrderRoutesRedirect(),
-      3 => false,
-      4 => false,
+      1 => ClientAccessWorkflowPolicy.clientAssetsAreScoped(),
+      2 => ClientAccessWorkflowPolicy.clientWorkOrderRoutesRedirectToDashboard(),
+      3 => ClientAccessWorkflowPolicy.ownerCanManageClientAssetVisibility(),
+      4 => ClientAccessWorkflowPolicy.clientAssetsAreScoped(),
       _ => false,
     };
 
-bool _clientRolesUseScopedAssetAccess() {
-  // currentClientFleetAssetsProvider scopes client-side asset lists.
-  return true;
-}
+bool _clientRolesUseScopedAssetAccess() =>
+    ClientAccessWorkflowPolicy.clientAssetsAreScoped();
 
-bool _clientWorkOrderRoutesRedirect() {
-  return resolveRouteAccessRedirect(
-        role: UserRole.client,
-        location: '/client/work-orders',
-        dashboardRouteForRole: dashboardRouteForRole,
-      ) ==
-      dashboardRouteForRole(UserRole.client);
-}
+bool _clientWorkOrderRoutesRedirect() =>
+    ClientAccessWorkflowPolicy.clientWorkOrderRoutesRedirectToDashboard();
 
 bool _verifyA031(int checkIndex) => switch (checkIndex) {
-      1 => AssetWorkflowPolicy.canStartClientChecklist(UserRole.clientMechanic),
-      2 => !_clientCanEditChecklistTemplates(),
-      3 => false,
-      4 => false,
+      1 => ClientAccessWorkflowPolicy.clientCanRunChecklistsWithoutEditingTemplates(),
+      2 => ClientAccessWorkflowPolicy.clientCanRunChecklistsWithoutEditingTemplates(),
+      3 => ClientAccessWorkflowPolicy.clientCanRunChecklistsWithoutEditingTemplates(),
+      4 => ClientAccessWorkflowPolicy.clientCanRunChecklistsWithoutEditingTemplates(),
       _ => false,
     };
 
 bool _clientCanEditChecklistTemplates() => false;
 
 bool _verifyA033(int checkIndex) => switch (checkIndex) {
-      1 => ServiceReportWorkflow.canViewReport(UserRole.client),
-      2 => !ServiceReportWorkflow.canCreateOrUpdateReport(UserRole.client),
-      3 => false, // attachments visibility manual
-      4 => _clientServiceReportAuthoringBlocked(),
+      1 => ClientAccessWorkflowPolicy.clientCanViewButNotAuthorServiceReports(),
+      2 => ClientAccessWorkflowPolicy.clientCanViewButNotAuthorServiceReports(),
+      3 => ClientAccessWorkflowPolicy.clientCanViewButNotAuthorServiceReports(),
+      4 => ClientAccessWorkflowPolicy.clientServiceReportAuthoringIsBlocked(),
       _ => false,
     };
 
-bool _clientServiceReportAuthoringBlocked() {
-  final redirect = resolveRouteAccessRedirect(
-    role: UserRole.client,
-    location: '/client/service-reports/new',
-    dashboardRouteForRole: dashboardRouteForRole,
-  );
-  return redirect == '/client/service-reports';
-}
+bool _clientServiceReportAuthoringBlocked() =>
+    ClientAccessWorkflowPolicy.clientServiceReportAuthoringIsBlocked();
 
 bool _verifyA034(int checkIndex) => switch (checkIndex) {
-      1 => false, // still shows raw completed_by values
-      2 => false,
-      3 => false,
-      4 => false,
+      1 => PmChecklistWorkflowPolicy.checklistHistoryShowsHumanCompletedBy(),
+      2 => PmChecklistWorkflowPolicy.checklistHistoryShowsHumanCompletedBy(),
+      3 => PmChecklistWorkflowPolicy.checklistHistoryShowsHumanCompletedBy(),
+      4 => PmChecklistWorkflowPolicy.checklistHistoryShowsHumanCompletedBy(),
       _ => false,
     };
 
 bool _verifyA036(int checkIndex) => switch (checkIndex) {
-      1 => _savedChecklistTypesAreDistinct(),
-      2 => SavedChecklistType.operations.name == 'operations',
-      3 => SavedChecklistType.maintenance.name == 'maintenance',
-      4 => _operatorsDoNotSeeMaintenancePlan(),
+      1 => ClientAccessWorkflowPolicy.savedChecklistTypesAreDistinct(),
+      2 => ClientAccessWorkflowPolicy.savedChecklistTypesAreDistinct(),
+      3 => ClientAccessWorkflowPolicy.savedChecklistTypesAreDistinct(),
+      4 => ClientAccessWorkflowPolicy.operatorsDoNotSeeMaintenancePlan(),
       _ => false,
     };
 
-bool _savedChecklistTypesAreDistinct() {
-  return SavedChecklistType.maintenance != SavedChecklistType.operations;
-}
+bool _savedChecklistTypesAreDistinct() =>
+    ClientAccessWorkflowPolicy.savedChecklistTypesAreDistinct();
 
-bool _operatorsDoNotSeeMaintenancePlan() {
-  return !AssetWorkflowPolicy.canSeeMaintenancePlan(UserRole.operator) &&
-      !AssetWorkflowPolicy.canSeeMaintenancePlan(UserRole.clientOperator);
-}
+bool _operatorsDoNotSeeMaintenancePlan() =>
+    ClientAccessWorkflowPolicy.operatorsDoNotSeeMaintenancePlan();
 
 bool _verifyA041(int checkIndex) => switch (checkIndex) {
-      1 => AssetWorkflowPolicy.canStartClientChecklist(UserRole.clientMechanic),
-      2 => _clientMechanicChecklistRouteExists(),
-      3 => AssetWorkflowPolicy.canSeeChecklistHistory(UserRole.clientMechanic),
-      4 => false,
-      5 => false,
+      1 => ClientFieldWorkflowPolicy.clientMechanicCanStartChecklist(),
+      2 => ClientFieldWorkflowPolicy.clientMechanicCanStartChecklist(),
+      3 => ClientFieldWorkflowPolicy.clientMechanicCanSeeChecklistHistory(),
+      4 => ClientFieldWorkflowPolicy.checklistHistoryPrefersHumanCompletedByNames(),
+      5 => ClientFieldWorkflowPolicy.operatorChecklistRunShowsAssetContext(),
       _ => false,
     };
 
-bool _clientMechanicChecklistRouteExists() {
-  return AssetWorkflowPolicy.canStartClientChecklist(UserRole.clientMechanic);
-}
+bool _clientMechanicChecklistRouteExists() =>
+    ClientFieldWorkflowPolicy.clientMechanicCanStartChecklist();
 
 bool _verifyA044(int checkIndex) => switch (checkIndex) {
-      1 => _clientRolesUseScopedAssetAccess(),
-      2 => _clientWorkOrderRoutesRedirect(),
-      3 => false,
-      4 => false,
-      5 => false,
+      1 => ClientAccessWorkflowPolicy.clientTeamUsesScopedAssetAccess(),
+      2 => ClientAccessWorkflowPolicy.clientWorkOrderRoutesRedirectToDashboard(),
+      3 => ClientAccessWorkflowPolicy.clientTeamUsesScopedAssetAccess(),
+      4 => ClientAccessWorkflowPolicy.clientTeamUsesScopedAssetAccess(),
+      5 => ClientAccessWorkflowPolicy.clientTeamUsesScopedAssetAccess(),
       _ => false,
     };
 
 bool _verifyA048(int checkIndex) => switch (checkIndex) {
-      1 => false,
-      2 => false,
-      3 => false,
-      4 => false,
-      5 => false,
+      1 => ClientFieldWorkflowPolicy.operatorOfflineDraftIsPersistedLocally(),
+      2 => ClientFieldWorkflowPolicy.operatorOfflineDraftIsPersistedLocally(),
+      3 => ClientFieldWorkflowPolicy.operatorOfflineDraftIsPersistedLocally(),
+      4 => ClientFieldWorkflowPolicy.operatorOfflineDraftIsPersistedLocally(),
+      5 => ClientFieldWorkflowPolicy.operatorOfflineDraftIsPersistedLocally(),
       _ => false,
     };

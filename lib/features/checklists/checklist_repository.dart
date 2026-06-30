@@ -7,6 +7,7 @@ import 'package:vortice_app/core/constants.dart';
 import 'package:vortice_app/core/supabase_client.dart';
 import 'package:vortice_app/db/database.dart';
 import 'package:vortice_app/features/checklists/checklist_repository_support.dart';
+import 'package:vortice_app/features/checklists/checklist_submission_support.dart';
 import 'package:vortice_app/features/checklists/work_order_checklist_snapshot_repository.dart';
 import 'package:vortice_app/models/checklist_item.dart';
 import 'package:vortice_app/models/checklist_response.dart';
@@ -236,13 +237,6 @@ class ChecklistRepository {
     // saves visible immediately instead of waiting for a long HTTP timeout.
     await _db.checklistsDao.upsertResponses(pendingEntries);
 
-    if (holdForSyncReason != null) {
-      await _markPendingResponsesWithError(pendingEntries, holdForSyncReason);
-      throw const LocalChecklistPendingException(
-        'Saved locally. Sync pending.',
-      );
-    }
-
     try {
       await supabase
           .from(AppConstants.tChecklistResponses)
@@ -251,14 +245,24 @@ class ChecklistRepository {
       await _db.checklistsDao.upsertResponses(localEntries);
     } on TimeoutException catch (error) {
       await _markPendingResponsesWithError(pendingEntries, error);
-      throw const LocalChecklistPendingException(
-        'Saved locally. Sync pending.',
+      throw LocalChecklistPendingException(
+        ChecklistSubmissionSupport.pendingSyncMessage(
+          intentionalOffline: true,
+        ),
       );
     } catch (error) {
       await _markPendingResponsesWithError(pendingEntries, error);
-      throw const LocalChecklistPendingException(
-        'Saved locally. Sync pending.',
-      );
+      if (ChecklistSubmissionSupport.isPermissionSyncError(error)) {
+        rethrow;
+      }
+      if (ChecklistSubmissionSupport.isTransientSyncError(error)) {
+        throw LocalChecklistPendingException(
+          ChecklistSubmissionSupport.pendingSyncMessage(
+            intentionalOffline: false,
+          ),
+        );
+      }
+      rethrow;
     }
   }
 
@@ -307,7 +311,17 @@ class ChecklistRepository {
             )
             .toList(),
       );
-      throw LocalChecklistPendingException(error.toString());
+      if (ChecklistSubmissionSupport.isPermissionSyncError(error)) {
+        rethrow;
+      }
+      if (ChecklistSubmissionSupport.isTransientSyncError(error)) {
+        throw LocalChecklistPendingException(
+          ChecklistSubmissionSupport.pendingSyncMessage(
+            intentionalOffline: false,
+          ),
+        );
+      }
+      rethrow;
     }
   }
 

@@ -4,9 +4,11 @@ import 'package:go_router/go_router.dart';
 import 'package:vortice_app/core/theme.dart';
 import 'package:vortice_app/features/assets/asset_provider.dart';
 import 'package:vortice_app/features/auth/auth_provider.dart';
+import 'package:vortice_app/features/parts/pm_parts_provider.dart';
 import 'package:vortice_app/features/service_intervals/maintenance_work_order_draft.dart';
 import 'package:vortice_app/features/service_requests/service_request_provider.dart';
 import 'package:vortice_app/features/work_orders/create_work_order_form.dart';
+import 'package:vortice_app/features/work_orders/create_work_order_pm_parts_support.dart';
 import 'package:vortice_app/features/work_orders/create_work_order_support.dart';
 import 'package:vortice_app/features/work_orders/work_order_provider.dart';
 import 'package:vortice_app/l10n/app_localizations.dart';
@@ -51,6 +53,26 @@ class _CreateWorkOrderScreenState extends ConsumerState<CreateWorkOrderScreen> {
     final engineHours = initialDraft?.engineHours;
     if (engineHours != null) {
       _hoursCtrl.text = engineHours.toString();
+    }
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _prefillPartsFromTemplate(_selectedChecklistTemplateId);
+    });
+  }
+
+  Future<void> _prefillPartsFromTemplate(String? templateId) async {
+    if (templateId == null || !pmKitSelectionPrefillsWorkOrderPartsField()) {
+      return;
+    }
+
+    try {
+      final parts =
+          await ref.read(pmPartsRequirementsProvider(templateId).future);
+      if (!mounted) return;
+      setState(() {
+        _partsCtrl.text = formatPmPartsForWorkOrderNotes(parts);
+      });
+    } catch (_) {
+      // Parts preview still loads in the form when requirements are available.
     }
   }
 
@@ -255,10 +277,13 @@ class _CreateWorkOrderScreenState extends ConsumerState<CreateWorkOrderScreen> {
             _selectedEngineId = null;
             _selectedChecklistTemplateId = null;
             _selectedTechIds = const [];
+            _partsCtrl.clear();
           }),
           onEngineChanged: (v) => setState(() => _selectedEngineId = v),
-          onChecklistTemplateChanged: (v) =>
-              setState(() => _selectedChecklistTemplateId = v),
+          onChecklistTemplateChanged: (v) {
+            setState(() => _selectedChecklistTemplateId = v);
+            _prefillPartsFromTemplate(v);
+          },
           onPickScheduledDate: _pickScheduledDate,
           onClearScheduledDate: () => setState(() => _scheduledDate = null),
           onPickTechnicians: _pickTechnicians,

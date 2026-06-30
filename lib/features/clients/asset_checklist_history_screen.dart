@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:vortice_app/core/theme.dart';
+import 'package:vortice_app/features/checklists/checklist_history_display_support.dart';
 import 'package:vortice_app/features/checklists/saved_checklists_provider.dart';
 import 'package:vortice_app/models/profile.dart';
 import 'package:vortice_app/models/saved_checklist.dart';
@@ -134,7 +135,16 @@ class _SavedChecklistCard extends StatelessWidget {
         children: [
           _HeaderLine(
               label: 'Completed by',
-              value: '${header['completed_by'] ?? row.submittedBy ?? '—'}'),
+              value: formatChecklistCompletedByDisplay(
+                completedByName: header['completed_by_name'] as String?,
+                completedBy: header['completed_by'] as String?,
+                submittedBy: row.submittedBy,
+              )),
+          if ((row.submittedByRole ?? '').isNotEmpty)
+            _HeaderLine(
+              label: 'Role',
+              value: formatChecklistSubmittedByRole(row.submittedByRole),
+            ),
           _HeaderLine(
               label: 'Submitted', value: '${row.submittedAt.toLocal()}'),
           if (row.currentHours != null)

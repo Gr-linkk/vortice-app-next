@@ -117,7 +117,7 @@ class ServiceRequest {
 
   String get clientStatusLabel => switch (status) {
         ServiceRequestStatus.newRequest => 'Sent',
-        ServiceRequestStatus.resolved => 'Being handled',
+        ServiceRequestStatus.resolved => 'Accepted',
         ServiceRequestStatus.declined => 'Declined',
       };
 
@@ -130,6 +130,13 @@ class ServiceRequest {
   String get createdLabel => createdAt == null
       ? '—'
       : DateFormat('MMM d, yyyy • h:mm a').format(createdAt!.toLocal());
+
+  String? get handledLabel => handledAt == null
+      ? null
+      : 'Accepted ${DateFormat('MMM d, yyyy • h:mm a').format(handledAt!.toLocal())}';
+
+  String? get workOrderLinkLabel =>
+      generatedWorkOrderId == null ? null : 'Work order created';
 }
 
 ServiceRequestUrgency _urgencyFromJson(dynamic value) {

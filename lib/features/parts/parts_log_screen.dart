@@ -189,6 +189,8 @@ class _AddPartSheetState extends ConsumerState<_AddPartSheet> {
                 initialValue: _selectedWorkOrderId,
                 decoration: InputDecoration(labelText: l10n.linkedWorkOrder),
                 dropdownColor: AppColors.surfaceVariant,
+                menuMaxHeight: 320,
+                isExpanded: true,
                 items: orders
                     .map((w) => DropdownMenuItem(
                           value: w.id,
@@ -242,9 +244,10 @@ class _AddPartSheetState extends ConsumerState<_AddPartSheet> {
                     decoration: InputDecoration(
                       labelText: l10n.unitCost,
                       prefixText: '\$',
+                      helperText: 'Optional — owner can price later',
                     ),
                     validator: (v) {
-                      if (v == null || v.isEmpty) return l10n.fieldRequired;
+                      if (v == null || v.trim().isEmpty) return null;
                       if (double.tryParse(v) == null) return l10n.invalidNumber;
                       return null;
                     },

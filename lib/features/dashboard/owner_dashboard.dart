@@ -222,6 +222,15 @@ class OwnerDashboard extends ConsumerWidget {
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
               child: _QuickAccessCard(
+                icon: Icons.settings_outlined,
+                label: l10n.partsTitle,
+                color: AppColors.primary,
+                onTap: () => context.push('/owner/parts'),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+              child: _QuickAccessCard(
                 icon: Icons.support_agent_outlined,
                 label: 'Service Requests',
                 color: AppColors.warning,

@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:vortice_app/features/checklists/checklist_attachment_support.dart';
 import 'package:vortice_app/features/checklists/checklist_screen_support.dart';
 import 'package:vortice_app/features/checklists/work_order_checklist_snapshot_repository.dart';
 import 'package:vortice_app/models/checklist_item.dart';
@@ -86,7 +87,7 @@ void main() {
       expect(restored.templateId, 'tpl-1');
       expect(restored.responses, {'item-1': 'pass'});
       expect(restored.photoUrls, isEmpty);
-      expect(restored.photos['item-1'], Uint8List.fromList([1, 2, 3]));
+      expect(restored.photos['item-1'], [Uint8List.fromList([1, 2, 3])]);
       expect(restored.restoredDraftPhotos, isTrue);
       expect(restored.completedAt, DateTime.parse('2026-06-03T10:00:00.000'));
     });
@@ -153,25 +154,52 @@ void main() {
   });
 
   group('uploadPendingChecklistPhotos', () {
-    test('keeps existing url when upload fails', () async {
+    test('keeps existing urls when upload fails', () async {
       final result = await uploadPendingChecklistPhotos(
-        photos: {'item-1': Uint8List.fromList([9])},
-        existingUrls: {'item-1': 'https://example.com/existing.jpg'},
+        photos: {
+          'item-1': [Uint8List.fromList([9])]
+        },
+        existingUrls: photoUrlListsFromLegacyMap(
+          {'item-1': 'https://example.com/existing.jpg'},
+        ),
         upload: (_, __) async => throw Exception('offline'),
       );
 
-      expect(result.urls['item-1'], 'https://example.com/existing.jpg');
+      expect(
+        checklistPhotoUrlsForItem(result.urls, 'item-1'),
+        ['https://example.com/existing.jpg'],
+      );
       expect(result.deferredReason, contains('offline'));
+    });
+
+    test('appends uploaded urls without replacing existing ones', () async {
+      final result = await uploadPendingChecklistPhotos(
+        photos: {
+          'item-1': [Uint8List.fromList([9])]
+        },
+        existingUrls: {
+          'item-1': ['https://example.com/existing.jpg']
+        },
+        upload: (_, __) async => 'https://example.com/new.jpg',
+      );
+
+      expect(
+        checklistPhotoUrlsForItem(result.urls, 'item-1'),
+        [
+          'https://example.com/existing.jpg',
+          'https://example.com/new.jpg',
+        ],
+      );
     });
   });
 
   group('photo cache codec', () {
     test('round-trips encoded photos', () {
       final encoded = encodePhotoCache({
-        'item-1': Uint8List.fromList([4, 5]),
+        'item-1': [Uint8List.fromList([4, 5])],
       });
       final decoded = decodePhotoCacheJson(jsonEncode(encoded));
-      expect(decoded['item-1'], Uint8List.fromList([4, 5]));
+      expect(decoded['item-1'], [Uint8List.fromList([4, 5])]);
     });
   });
 }

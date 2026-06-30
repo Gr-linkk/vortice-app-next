@@ -3,6 +3,7 @@ import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:vortice_app/core/theme.dart';
+import 'package:vortice_app/features/checklists/checklist_attachment_support.dart';
 import 'package:vortice_app/features/checklists/checklist_item_widget.dart';
 import 'package:vortice_app/features/checklists/checklist_provider.dart';
 import 'package:vortice_app/features/checklists/checklist_run_header.dart';
@@ -22,7 +23,7 @@ class ChecklistForm extends ConsumerStatefulWidget {
   final String? metadataCaption;
   final Map<String, String?> responses;
   final Map<String, String> notes;
-  final Map<String, Uint8List?> photos;
+  final ChecklistItemPhotoLists photos;
   final Map<String, String?> photoUrls;
   final DateTime completedAt;
   final double? currentHours;
@@ -34,7 +35,9 @@ class ChecklistForm extends ConsumerStatefulWidget {
   final ValueChanged<String?> onGeneralNotesChanged;
   final void Function(String id, String? v) onResponseChanged;
   final void Function(String id, String note) onNoteChanged;
-  final void Function(String id, Uint8List? photo) onPhotoChanged;
+  final void Function(String id, Uint8List bytes) onPhotoAppended;
+  final void Function(String id, int index) onLocalPhotoRemoved;
+  final void Function(String id, int index) onUploadedPhotoRemoved;
   final VoidCallback onSubmit;
 
   const ChecklistForm({
@@ -58,7 +61,9 @@ class ChecklistForm extends ConsumerStatefulWidget {
     required this.onGeneralNotesChanged,
     required this.onResponseChanged,
     required this.onNoteChanged,
-    required this.onPhotoChanged,
+    required this.onPhotoAppended,
+    required this.onLocalPhotoRemoved,
+    required this.onUploadedPhotoRemoved,
     required this.onSubmit,
   });
 
@@ -232,15 +237,24 @@ class _ChecklistFormState extends ConsumerState<ChecklistForm> {
                           item: item,
                           status: widget.responses[item.id],
                           note: widget.notes[item.id] ?? '',
-                          photo: widget.photos[item.id],
-                          photoUrl: widget.photoUrls[item.id],
+                          localPhotos: checklistPhotosForItem(
+                            widget.photos,
+                            item.id,
+                          ),
+                          uploadedPhotoUrls: parseChecklistPhotoUrls(
+                            widget.photoUrls[item.id],
+                          ),
                           syncStatus: syncStatusByItem[item.id],
                           onStatusChanged: (v) =>
                               widget.onResponseChanged(item.id, v),
                           onNoteChanged: (v) =>
                               widget.onNoteChanged(item.id, v),
-                          onPhotoChanged: (v) =>
-                              widget.onPhotoChanged(item.id, v),
+                          onPhotoAppended: (bytes) =>
+                              widget.onPhotoAppended(item.id, bytes),
+                          onLocalPhotoRemoved: (index) =>
+                              widget.onLocalPhotoRemoved(item.id, index),
+                          onUploadedPhotoRemoved: (index) =>
+                              widget.onUploadedPhotoRemoved(item.id, index),
                         ),
                     ],
                   ),

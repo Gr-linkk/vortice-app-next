@@ -6,13 +6,12 @@
 /// 3. Implement until green, wire UI, then move to the next workflow.
 const activeWorkflowTdd = <String>{
   'wo_lifecycle',
-  // 'invoice',
-  // 'pm_checklist',
-  // 'client_access',
-  // 'client_field',
-  // 'service_request',
-  // 'parts_log',
-  // 'service_report_copy',
+  'invoice',
+  'pm_checklist',
+  'client_access',
+  'client_field',
+  'service_request',
+  'parts_log',
 };
 
 bool isWorkflowTddActive(String workflowKey) =>

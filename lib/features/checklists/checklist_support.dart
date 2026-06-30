@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:typed_data';
 
+import 'package:vortice_app/features/checklists/checklist_attachment_support.dart';
 import 'package:vortice_app/models/checklist_template.dart';
 import 'package:vortice_app/sync/sync_status.dart';
 
@@ -14,8 +15,8 @@ String checklistPhotoCacheKey(String runKey) => 'checklist_photo_cache_$runKey';
 bool requiresAttentionDetail(
   Map<String, String?> responses,
   Map<String, String> notes,
-  Map<String, Uint8List?> photos,
-  Map<String, String?> photoUrls,
+  ChecklistItemPhotoLists photos,
+  ChecklistItemPhotoUrlLists photoUrls,
 ) {
   for (final entry in responses.entries) {
     final status = entry.value;
@@ -23,9 +24,12 @@ bool requiresAttentionDetail(
       continue;
     }
     final hasNote = notes[entry.key]?.trim().isNotEmpty == true;
-    final hasLocalPhoto = photos[entry.key] != null;
-    final hasUploadedPhoto = photoUrls[entry.key]?.isNotEmpty == true;
-    if (!hasNote && !hasLocalPhoto && !hasUploadedPhoto) return true;
+    final hasPhoto = checklistItemHasPhotoEvidence(
+      photos: photos,
+      photoUrls: photoUrls,
+      itemId: entry.key,
+    );
+    if (!hasNote && !hasPhoto) return true;
   }
   return false;
 }
@@ -101,18 +105,18 @@ Map<String, dynamic> encodeChecklistDraft({
   required DateTime completedAt,
   required double? currentHours,
   required String? generalNotes,
-  required Map<String, Uint8List?> photos,
+  required ChecklistItemPhotoLists photos,
 }) {
   return {
     'templateId': templateId,
     'responses': responses,
     'notes': notes,
-    'photoUrls': photoUrls,
+    'photoUrls': legacyPhotoUrlMapFromLists(
+      photoUrlListsFromLegacyMap(photoUrls),
+    ),
     'completedAt': completedAt.toIso8601String(),
     'currentHours': currentHours,
     'generalNotes': generalNotes,
-    'photos': photos.map(
-      (key, value) => MapEntry(key, value == null ? null : base64Encode(value)),
-    ),
+    'photos': encodePhotoListsCache(photos),
   };
 }

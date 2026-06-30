@@ -11,24 +11,28 @@ class ChecklistItemWidget extends StatefulWidget {
   final ChecklistItem item;
   final String? status;
   final String note;
-  final Uint8List? photo;
-  final String? photoUrl;
+  final List<Uint8List> localPhotos;
+  final List<String> uploadedPhotoUrls;
   final String? syncStatus;
   final void Function(String? v) onStatusChanged;
   final void Function(String v) onNoteChanged;
-  final void Function(Uint8List? v) onPhotoChanged;
+  final void Function(Uint8List bytes) onPhotoAppended;
+  final void Function(int index) onLocalPhotoRemoved;
+  final void Function(int index) onUploadedPhotoRemoved;
 
   const ChecklistItemWidget({
     super.key,
     required this.item,
     required this.status,
     required this.note,
-    required this.photo,
-    required this.photoUrl,
+    required this.localPhotos,
+    required this.uploadedPhotoUrls,
     required this.syncStatus,
     required this.onStatusChanged,
     required this.onNoteChanged,
-    required this.onPhotoChanged,
+    required this.onPhotoAppended,
+    required this.onLocalPhotoRemoved,
+    required this.onUploadedPhotoRemoved,
   });
 
   @override
@@ -64,7 +68,7 @@ class _ChecklistItemWidgetState extends State<ChecklistItemWidget> {
         await _picker.pickImage(source: ImageSource.gallery, imageQuality: 70);
     if (file != null) {
       final bytes = await file.readAsBytes();
-      widget.onPhotoChanged(bytes);
+      widget.onPhotoAppended(bytes);
     }
   }
 
@@ -73,7 +77,7 @@ class _ChecklistItemWidgetState extends State<ChecklistItemWidget> {
         await _picker.pickImage(source: ImageSource.camera, imageQuality: 70);
     if (file != null) {
       final bytes = await file.readAsBytes();
-      widget.onPhotoChanged(bytes);
+      widget.onPhotoAppended(bytes);
     }
   }
 
@@ -82,6 +86,8 @@ class _ChecklistItemWidgetState extends State<ChecklistItemWidget> {
     final status = widget.status;
     final showDetail =
         status == 'alert' || status == 'monitor' || status == 'action';
+    final hasPhotos = widget.localPhotos.isNotEmpty ||
+        widget.uploadedPhotoUrls.isNotEmpty;
 
     return Card(
       margin: const EdgeInsets.only(bottom: 10),
@@ -174,27 +180,45 @@ class _ChecklistItemWidgetState extends State<ChecklistItemWidget> {
                           onChanged: widget.onNoteChanged,
                         ),
                         const SizedBox(height: 8),
+                        if (hasPhotos)
+                          SingleChildScrollView(
+                            scrollDirection: Axis.horizontal,
+                            child: Row(
+                              children: [
+                                for (var i = 0;
+                                    i < widget.uploadedPhotoUrls.length;
+                                    i++)
+                                  Padding(
+                                    padding: const EdgeInsets.only(right: 8),
+                                    child: _ChecklistPhotoTile(
+                                      child: ChecklistPhotoPreview(
+                                        photo: null,
+                                        photoUrl: widget.uploadedPhotoUrls[i],
+                                      ),
+                                      onRemove: () =>
+                                          widget.onUploadedPhotoRemoved(i),
+                                    ),
+                                  ),
+                                for (var i = 0;
+                                    i < widget.localPhotos.length;
+                                    i++)
+                                  Padding(
+                                    padding: const EdgeInsets.only(right: 8),
+                                    child: _ChecklistPhotoTile(
+                                      child: ChecklistPhotoPreview(
+                                        photo: widget.localPhotos[i],
+                                        photoUrl: null,
+                                      ),
+                                      onRemove: () =>
+                                          widget.onLocalPhotoRemoved(i),
+                                    ),
+                                  ),
+                              ],
+                            ),
+                          ),
+                        if (hasPhotos) const SizedBox(height: 8),
                         Row(
                           children: [
-                            if (widget.photo != null ||
-                                widget.photoUrl != null) ...[
-                              ClipRRect(
-                                borderRadius: BorderRadius.circular(6),
-                                child: ChecklistPhotoPreview(
-                                  photo: widget.photo,
-                                  photoUrl: widget.photoUrl,
-                                ),
-                              ),
-                              const SizedBox(width: 8),
-                              IconButton(
-                                icon: const Icon(Icons.close,
-                                    size: 16, color: AppColors.error),
-                                onPressed: () => widget.onPhotoChanged(null),
-                                padding: EdgeInsets.zero,
-                                constraints: const BoxConstraints(),
-                              ),
-                              const SizedBox(width: 8),
-                            ],
                             OutlinedButton.icon(
                               onPressed: _pickPhoto,
                               icon: const Icon(Icons.photo_library, size: 16),
@@ -227,6 +251,36 @@ class _ChecklistItemWidgetState extends State<ChecklistItemWidget> {
           ],
         ),
       ),
+    );
+  }
+}
+
+class _ChecklistPhotoTile extends StatelessWidget {
+  final Widget child;
+  final VoidCallback onRemove;
+
+  const _ChecklistPhotoTile({
+    required this.child,
+    required this.onRemove,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Stack(
+      clipBehavior: Clip.none,
+      children: [
+        ClipRRect(borderRadius: BorderRadius.circular(6), child: child),
+        Positioned(
+          top: -6,
+          right: -6,
+          child: IconButton(
+            icon: const Icon(Icons.close, size: 16, color: AppColors.error),
+            onPressed: onRemove,
+            padding: EdgeInsets.zero,
+            constraints: const BoxConstraints(minWidth: 24, minHeight: 24),
+          ),
+        ),
+      ],
     );
   }
 }

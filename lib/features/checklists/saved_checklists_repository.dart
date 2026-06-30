@@ -40,6 +40,7 @@ class SavedChecklistsRepository {
     required String sourceType,
     required String checklistType,
     required String completedBy,
+    String? completedByName,
     String? submittedByRole,
     DateTime? submittedAt,
     double? currentHours,
@@ -86,6 +87,8 @@ class SavedChecklistsRepository {
         'asset_id': assetId,
         'checklist_name': template.name,
         'completed_by': completedBy,
+        if (completedByName != null && completedByName.trim().isNotEmpty)
+          'completed_by_name': completedByName.trim(),
         'submitted_at': submitted.toIso8601String(),
         'current_hours': currentHours,
         'general_notes': generalNotes,
