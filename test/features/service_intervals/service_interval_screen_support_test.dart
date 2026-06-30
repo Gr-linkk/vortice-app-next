@@ -24,12 +24,14 @@ void main() {
   group('maintenanceTemplatesForAsset', () {
     test('filters active PM templates for asset type', () {
       final templates = [
-        _template(id: 'a', name: 'A', assetTypeId: 'type-1', intervalHours: 100),
-        _template(id: 'b', name: 'B', assetTypeId: 'type-2', intervalHours: 200),
+        _template(
+            id: 'a', name: 'A', assetTypeId: 'type-1', intervalHours: 100),
+        _template(
+            id: 'b', name: 'B', assetTypeId: 'type-2', intervalHours: 200),
         _template(id: 'c', name: 'C', assetTypeId: null, intervalHours: 250),
       ];
 
-      final asset = Asset(
+      const asset = Asset(
         id: 'asset-1',
         clientId: 'client-1',
         name: 'Dredge',

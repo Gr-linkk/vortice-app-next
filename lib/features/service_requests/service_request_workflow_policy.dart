@@ -46,7 +46,7 @@ class ServiceRequestWorkflowPolicy {
   }
 
   static bool clientStatusWordingIsClientFriendly() {
-    final request = ServiceRequest(
+    const request = ServiceRequest(
       id: 'sr-1',
       clientId: 'client-1',
       title: 'Breakdown',

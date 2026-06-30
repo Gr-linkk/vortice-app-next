@@ -48,7 +48,7 @@ void main() {
           notes: 'looks good',
           photoUrl: 'https://example.com/a.jpg',
         ),
-        ChecklistResponse(
+        const ChecklistResponse(
           id: 'r-2',
           workOrderId: 'wo-1',
           checklistItemId: 'item-2',
@@ -76,7 +76,9 @@ void main() {
           'responses': {'item-1': 'pass'},
           'notes': {'item-1': 'note'},
           'photoUrls': {'item-1': 'https://example.com/old.jpg'},
-          'photos': {'item-1': base64Encode([1, 2, 3])},
+          'photos': {
+            'item-1': base64Encode([1, 2, 3])
+          },
           'completedAt': '2026-06-03T10:00:00.000',
           'currentHours': 42,
           'generalNotes': 'draft',
@@ -87,7 +89,9 @@ void main() {
       expect(restored.templateId, 'tpl-1');
       expect(restored.responses, {'item-1': 'pass'});
       expect(restored.photoUrls, isEmpty);
-      expect(restored.photos['item-1'], [Uint8List.fromList([1, 2, 3])]);
+      expect(restored.photos['item-1'], [
+        Uint8List.fromList([1, 2, 3])
+      ]);
       expect(restored.restoredDraftPhotos, isTrue);
       expect(restored.completedAt, DateTime.parse('2026-06-03T10:00:00.000'));
     });
@@ -155,9 +159,10 @@ void main() {
 
   group('uploadPendingChecklistPhotos', () {
     test('keeps existing urls when upload fails', () async {
+      final failedBytes = Uint8List.fromList([9]);
       final result = await uploadPendingChecklistPhotos(
         photos: {
-          'item-1': [Uint8List.fromList([9])]
+          'item-1': [failedBytes]
         },
         existingUrls: photoUrlListsFromLegacyMap(
           {'item-1': 'https://example.com/existing.jpg'},
@@ -169,13 +174,15 @@ void main() {
         checklistPhotoUrlsForItem(result.urls, 'item-1'),
         ['https://example.com/existing.jpg'],
       );
+      expect(result.remainingPhotos['item-1'], [failedBytes]);
       expect(result.deferredReason, contains('offline'));
     });
 
     test('appends uploaded urls without replacing existing ones', () async {
+      final uploadedBytes = Uint8List.fromList([9]);
       final result = await uploadPendingChecklistPhotos(
         photos: {
-          'item-1': [Uint8List.fromList([9])]
+          'item-1': [uploadedBytes]
         },
         existingUrls: {
           'item-1': ['https://example.com/existing.jpg']
@@ -190,16 +197,47 @@ void main() {
           'https://example.com/new.jpg',
         ],
       );
+      expect(result.remainingPhotos, isEmpty);
+    });
+
+    test('keeps only failed bytes after partial upload failure', () async {
+      final uploadedBytes = Uint8List.fromList([1]);
+      final failedBytes = Uint8List.fromList([2]);
+      var call = 0;
+
+      final result = await uploadPendingChecklistPhotos(
+        photos: {
+          'item-1': [uploadedBytes, failedBytes]
+        },
+        existingUrls: const {},
+        upload: (_, __) async {
+          call += 1;
+          if (call == 2) throw Exception('offline');
+          return 'https://example.com/uploaded.jpg';
+        },
+      );
+
+      expect(
+        checklistPhotoUrlsForItem(result.urls, 'item-1'),
+        ['https://example.com/uploaded.jpg'],
+      );
+      expect(result.remainingPhotos['item-1'], [failedBytes]);
+      expect(hasDeferredChecklistPhotoUpload(result.deferredReason), isTrue);
+      expect(hasDeferredChecklistPhotoUpload('  '), isFalse);
     });
   });
 
   group('photo cache codec', () {
     test('round-trips encoded photos', () {
       final encoded = encodePhotoCache({
-        'item-1': [Uint8List.fromList([4, 5])],
+        'item-1': [
+          Uint8List.fromList([4, 5])
+        ],
       });
       final decoded = decodePhotoCacheJson(jsonEncode(encoded));
-      expect(decoded['item-1'], [Uint8List.fromList([4, 5])]);
+      expect(decoded['item-1'], [
+        Uint8List.fromList([4, 5])
+      ]);
     });
   });
 }
