@@ -23,11 +23,20 @@ import 'package:vortice_app/core/constants.dart';
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
+  if (AppConstants.supabaseUrl.isEmpty ||
+      AppConstants.supabaseAnonKey.isEmpty) {
+    throw StateError(
+      'Missing isolated backend configuration. Pass SUPABASE_URL and '
+      'SUPABASE_ANON_KEY with --dart-define. Do not use the original '
+      'Vortice Supabase project.',
+    );
+  }
+
   // --- Firebase (uncomment once flutterfire configure is complete) ---
   // await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
   // FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
 
-  // Supabase
+  // Supabase: this independent project requires an explicit backend target.
   await Supabase.initialize(
     url: AppConstants.supabaseUrl,
     anonKey: AppConstants.supabaseAnonKey,
@@ -37,9 +46,5 @@ Future<void> main() async {
     ),
   );
 
-  runApp(
-    const ProviderScope(
-      child: VorticeApp(),
-    ),
-  );
+  runApp(const ProviderScope(child: VorticeApp()));
 }

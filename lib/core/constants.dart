@@ -2,7 +2,7 @@ class AppConstants {
   AppConstants._();
 
   // ── Supabase ──────────────────────────────────────────────────────────────
-  static const String supabaseUrl = 'https://REDACTED.supabase.co';
+  static const String supabaseUrl = String.fromEnvironment('SUPABASE_URL');
   static const String supabaseAnonKey = 'REDACTED_SUPABASE_KEY';
 
   // ── Table names ────────────────────────────────────────────────────────────
