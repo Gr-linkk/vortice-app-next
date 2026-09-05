@@ -17,17 +17,26 @@ The app is asset-first: assets are the hub for work orders, service reports, mai
 
 ## Local Development
 
-Recommended workspace path on Garrett's WSL machine:
+This is the independent continuation of the Vortice application. See
+[`FORK_PROVENANCE.md`](FORK_PROVENANCE.md) for its separation point and
+[`AGENTS.md`](AGENTS.md) for repository and service-isolation rules.
 
-```bash
-/home/garrett/projects/vortice-app-main
-```
-
-From Windows Android Studio, open the WSL project path:
+Recommended Windows workspace path:
 
 ```text
-\\wsl.localhost\Ubuntu\home\garrett\projects\vortice-app-main
+C:\Users\Garrett\Documents\Codex\2026-09-05\vortice-app-fork
 ```
+
+The app will not start without an explicitly selected, independent Supabase
+project. Supply its client configuration at build or run time:
+
+```bash
+flutter run \
+  --dart-define=SUPABASE_URL=https://YOUR-PROJECT.supabase.co \
+  --dart-define=SUPABASE_ANON_KEY=YOUR-ANON-KEY
+```
+
+Never use the original application's Supabase project with this checkout.
 
 Install dependencies:
 
