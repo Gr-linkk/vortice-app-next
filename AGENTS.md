@@ -27,8 +27,9 @@ was separated from `https://github.com/Gr-linkk/vortice-app` at commit
   project ref `hkjpojobdbbtjkhaudki`.
 - Before every Supabase deployment, verify that `supabase/.temp/project-ref`
   contains exactly `hkjpojobdbbtjkhaudki`. Stop if it is absent or different.
-- Do not deploy migrations until a complete base-schema migration has been
-  added ahead of the existing incremental migrations.
+- The deployable migration chain starts with the reviewed current-schema
+  baseline in `supabase/migrations/`. Older incomplete incremental migrations
+  are reference-only files under `supabase/migrations_legacy/`.
 - Require explicit `SUPABASE_URL` and `SUPABASE_ANON_KEY` build-time values.
 - Keep Firebase projects, mobile application identifiers, signing material,
   deployment targets, secrets, and service accounts separate from the

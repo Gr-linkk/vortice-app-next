@@ -36,13 +36,19 @@ flutter run \
   --dart-define=SUPABASE_ANON_KEY=YOUR-ANON-KEY
 ```
 
+This checkout also has a Git-ignored local configuration at
+`config/vortice-next.local.json`. Run against the dedicated backend with:
+
+```bash
+flutter run --dart-define-from-file=config/vortice-next.local.json
+```
+
 Never use the original application's Supabase project with this checkout.
 
 The dedicated backend is **Vortice Next** (`hkjpojobdbbtjkhaudki`) in Canada
-Central. It is linked locally, but its schema is intentionally not deployed
-yet: the inherited repository contains incremental migrations but not the
-original base schema. Add and review a complete base-schema migration before
-running `supabase db push`.
+Central. Its deployable migration chain is a current-schema baseline under
+`supabase/migrations/`; the inherited incremental files are preserved for
+reference under `supabase/migrations_legacy/`.
 
 Install dependencies:
 
