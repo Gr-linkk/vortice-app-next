@@ -38,6 +38,12 @@ flutter run \
 
 Never use the original application's Supabase project with this checkout.
 
+The dedicated backend is **Vortice Next** (`hkjpojobdbbtjkhaudki`) in Canada
+Central. It is linked locally, but its schema is intentionally not deployed
+yet: the inherited repository contains incremental migrations but not the
+original base schema. Add and review a complete base-schema migration before
+running `supabase db push`.
+
 Install dependencies:
 
 ```bash

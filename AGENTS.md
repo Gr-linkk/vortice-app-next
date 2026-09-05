@@ -23,8 +23,12 @@ was separated from `https://github.com/Gr-linkk/vortice-app` at commit
 
 - Never connect this checkout to the original Supabase project
   `REDACTED_SUPABASE_PROJECT`.
-- Do not deploy Supabase migrations or functions until a separate project has
-  been created and its target has been verified.
+- The only authorized Supabase target for this checkout is `Vortice Next`,
+  project ref `hkjpojobdbbtjkhaudki`.
+- Before every Supabase deployment, verify that `supabase/.temp/project-ref`
+  contains exactly `hkjpojobdbbtjkhaudki`. Stop if it is absent or different.
+- Do not deploy migrations until a complete base-schema migration has been
+  added ahead of the existing incremental migrations.
 - Require explicit `SUPABASE_URL` and `SUPABASE_ANON_KEY` build-time values.
 - Keep Firebase projects, mobile application identifiers, signing material,
   deployment targets, secrets, and service accounts separate from the
