@@ -38,3 +38,8 @@ ios/Runner.xcworkspace/xcuserdata/
 # Local reconciliation/export artifacts
 *.bundle
 supabase/.temp/
+
+# Local generated access material and transfer artifacts
+/outputs/
+/work/
+/config/*.local.json

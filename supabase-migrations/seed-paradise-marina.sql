@@ -5,7 +5,7 @@
 --
 -- BEFORE RUNNING:
 --   1. Create the Supabase Auth user for Paradise Marina in the Auth UI:
---      Email: paradise@vortice.dev  Password: vortice2026  (or a real email)
+--      Email: paradise@vortice.dev  Password: <SET_A_UNIQUE_TEST_PASSWORD>
 --   2. Copy the auth user UUID and replace PARADISE_UUID below
 --   3. Run in Supabase Dashboard → SQL Editor
 --

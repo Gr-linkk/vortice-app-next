@@ -14,7 +14,6 @@ class _DevAccount {
   final String subtitle;
   final List<String> workflows;
   final String email;
-  final String password;
   final int color;
 
   const _DevAccount({
@@ -23,7 +22,6 @@ class _DevAccount {
     required this.subtitle,
     required this.workflows,
     required this.email,
-    required this.password,
     required this.color,
   });
 }
@@ -36,7 +34,6 @@ const _devAccounts = [
         'Service business owner view for clients, assets, work, and billing.',
     workflows: ['Clients', 'Assets', 'Work orders', 'Billing'],
     email: 'owner@vortice.dev',
-    password: 'vortice2026',
     color: 0xFF1A6B3C,
   ),
   _DevAccount(
@@ -45,7 +42,6 @@ const _devAccounts = [
     subtitle: 'Internal mechanic view for assigned work and service reporting.',
     workflows: ['Assigned work', 'Service reports', 'PM follow-up'],
     email: 'tech@vortice.dev',
-    password: 'vortice2026',
     color: 0xFF1565C0,
   ),
   _DevAccount(
@@ -55,7 +51,6 @@ const _devAccounts = [
         'Generic client admin with team, vessel, and checklist workflows.',
     workflows: ['Team', 'Assets', 'Operator checks'],
     email: 'paradise@vortice.dev',
-    password: 'vortice2026',
     color: 0xFF004527,
   ),
   _DevAccount(
@@ -64,7 +59,6 @@ const _devAccounts = [
     subtitle: 'Second generic client admin for cross-client workflow testing.',
     workflows: ['Team', 'Assets', 'PM planning'],
     email: 'client@vortice.dev',
-    password: 'vortice2026',
     color: 0xFF6A1B9A,
   ),
   _DevAccount(
@@ -73,7 +67,6 @@ const _devAccounts = [
     subtitle: 'Client-side mechanic view for PM checklists and asset history.',
     workflows: ['Mechanic checks', 'Asset history', 'PM parts'],
     email: 'client_mechanic@vortice.dev',
-    password: 'vortice2026',
     color: 0xFF4527A0,
   ),
   _DevAccount(
@@ -82,7 +75,6 @@ const _devAccounts = [
     subtitle: 'Captain/operator view for vessel pre-op and daily checklists.',
     workflows: ['Pre-op', 'Daily checks', 'Maintenance flags'],
     email: 'operator@vortice.dev',
-    password: 'vortice2026',
     color: 0xFFE65100,
   ),
 ];
@@ -289,8 +281,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
           onTap: () {
             Navigator.pop(sheetContext);
             _emailCtrl.text = acct.email;
-            _passwordCtrl.text = acct.password;
-            _submit();
+            _passwordCtrl.clear();
           },
         ),
       );
