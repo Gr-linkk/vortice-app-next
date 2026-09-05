@@ -1,0 +1,49 @@
+name: Feature or improvement
+description: Propose a user outcome for consideration in the product backlog.
+title: "[Feature]: "
+labels: []
+body:
+  - type: markdown
+    attributes:
+      value: >-
+        Issues are intake, not the priority list. Approved work must receive a
+        stable ID in BACKLOG.md before implementation.
+  - type: input
+    id: backlog
+    attributes:
+      label: Backlog ID
+      description: Leave blank for new intake; use the stable ID if already approved.
+      placeholder: NOW-002
+  - type: textarea
+    id: problem
+    attributes:
+      label: User problem
+      description: Who is affected, and what are they unable to do?
+    validations:
+      required: true
+  - type: textarea
+    id: outcome
+    attributes:
+      label: Desired outcome
+      description: Describe observable success without prescribing implementation.
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Acceptance criteria
+      placeholder: |
+        - Given ... when ... then ...
+        - Failure state ...
+    validations:
+      required: true
+  - type: textarea
+    id: roles
+    attributes:
+      label: Roles, data, and devices
+      description: Identify affected roles, authorization boundaries, data, platforms, and offline behavior.
+  - type: textarea
+    id: out_of_scope
+    attributes:
+      label: Out of scope
+      description: What should this change deliberately avoid?

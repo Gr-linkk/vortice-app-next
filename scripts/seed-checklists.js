@@ -6,17 +6,49 @@ const fs = require('fs');
 const path = require('path');
 const https = require('https');
 
+const EXPECTED_PROJECT_HOST = 'hkjpojobdbbtjkhaudki.supabase.co';
+const REPO_ROOT = path.resolve(__dirname, '..');
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
-const OWNER_ID = 'f33c1b15-f58e-409a-a90f-7c5c233c6bfb';
+const OWNER_ID = process.env.VORTICE_SEED_OWNER_ID;
 const MOTOR_YACHT_TYPE_ID = '00000000-0000-0000-0000-000000000001';
 
-const CHECKLIST_DIR = path.join(__dirname, '..', '..', 'app-mockup', 'checklists');
+const CHECKLIST_DIR = path.resolve(
+  process.env.VORTICE_CHECKLIST_DIR || path.join(REPO_ROOT, 'seed', 'checklists'),
+);
 
-if (!SUPABASE_URL || !SERVICE_KEY) {
+if (process.argv[2] !== '--confirm-vortice-next') {
+  console.error('Refusing to seed without --confirm-vortice-next.');
+  process.exit(1);
+}
+
+if (!SUPABASE_URL || !SERVICE_KEY || !OWNER_ID) {
   console.error(
-    'Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY environment variable.',
+    'Missing SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, or VORTICE_SEED_OWNER_ID.',
   );
+  process.exit(1);
+}
+
+let configuredHost;
+try {
+  configuredHost = new URL(SUPABASE_URL).host;
+} catch {
+  console.error('SUPABASE_URL is not a valid URL.');
+  process.exit(1);
+}
+
+if (configuredHost !== EXPECTED_PROJECT_HOST) {
+  console.error(`Refusing to seed unexpected Supabase host: ${configuredHost}`);
+  process.exit(1);
+}
+
+if (!CHECKLIST_DIR.startsWith(`${REPO_ROOT}${path.sep}`)) {
+  console.error('VORTICE_CHECKLIST_DIR must resolve inside this repository.');
+  process.exit(1);
+}
+
+if (!fs.existsSync(CHECKLIST_DIR)) {
+  console.error(`Checklist fixture directory does not exist: ${CHECKLIST_DIR}`);
   process.exit(1);
 }
 

@@ -1,0 +1,65 @@
+name: Bug report
+description: Report reproducible incorrect behavior in the independent application.
+title: "[Bug]: "
+labels: []
+body:
+  - type: input
+    id: backlog
+    attributes:
+      label: Backlog ID
+      description: Use the related ID if one exists.
+  - type: dropdown
+    id: role
+    attributes:
+      label: User role
+      options:
+        - Owner or admin
+        - Internal technician
+        - Client admin
+        - Client mechanic
+        - Operator or captain
+        - Signed out
+        - Unknown or not applicable
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Reproduction steps
+      placeholder: |
+        1. Start from ...
+        2. Select ...
+        3. Observe ...
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behavior
+    validations:
+      required: true
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      description: Platform, device, app version/commit, connectivity, and relevant configuration without secrets.
+    validations:
+      required: true
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Evidence
+      description: Add safe logs, screenshots, or a recording. Remove tokens and personal data.
+  - type: checkboxes
+    id: isolation
+    attributes:
+      label: Service isolation
+      options:
+        - label: I reproduced this against the independent Vortice Next environment, not the original project.
+          required: true

@@ -21,6 +21,12 @@ jobs:
     steps:
       - name: Check out repository
         uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Set up PowerShell
+        shell: bash
+        run: command -v pwsh
 
       - name: Set up Flutter
         uses: subosito/flutter-action@v2.23.0
@@ -29,14 +35,12 @@ jobs:
           channel: stable
           cache: true
 
-      - name: Install dependencies
-        run: flutter pub get
-
-      - name: Generate Drift and Freezed sources
-        run: dart run build_runner build
-
-      - name: Analyze
-        run: flutter analyze
-
-      - name: Test
-        run: flutter test
+      - name: Verify repository
+        shell: pwsh
+        run: |
+          $baseRef = if ('${{ github.event_name }}' -eq 'pull_request') {
+            '${{ github.event.pull_request.base.sha }}'
+          } else {
+            ''
+          }
+          ./scripts/verify.ps1 -BaseRef $baseRef
