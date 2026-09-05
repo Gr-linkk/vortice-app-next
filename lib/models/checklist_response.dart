@@ -5,7 +5,7 @@ part 'checklist_response.freezed.dart';
 part 'checklist_response.g.dart';
 
 @freezed
-class ChecklistResponse with _$ChecklistResponse {
+abstract class ChecklistResponse with _$ChecklistResponse {
   const factory ChecklistResponse({
     required String id,
     @JsonKey(name: 'work_order_id') required String workOrderId,

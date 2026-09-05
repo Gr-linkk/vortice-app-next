@@ -6,7 +6,7 @@ part 'checklist_assignment.g.dart';
 enum AssignmentStatus { pending, inProgress, completed, cancelled }
 
 @freezed
-class ChecklistAssignment with _$ChecklistAssignment {
+abstract class ChecklistAssignment with _$ChecklistAssignment {
   const factory ChecklistAssignment({
     required String id,
     @JsonKey(name: 'template_id') required String templateId,

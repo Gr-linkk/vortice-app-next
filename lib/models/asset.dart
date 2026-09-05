@@ -4,7 +4,7 @@ part 'asset.freezed.dart';
 part 'asset.g.dart';
 
 @freezed
-class Asset with _$Asset {
+abstract class Asset with _$Asset {
   const factory Asset({
     required String id,
     @JsonKey(name: 'client_id') required String clientId,

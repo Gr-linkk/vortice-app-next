@@ -4,7 +4,7 @@ part 'hour_log.freezed.dart';
 part 'hour_log.g.dart';
 
 @freezed
-class HourLog with _$HourLog {
+abstract class HourLog with _$HourLog {
   const factory HourLog({
     required String id,
     @JsonKey(name: 'engine_id') required String engineId,

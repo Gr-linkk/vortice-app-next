@@ -16,7 +16,7 @@ enum InvoiceStatus {
 }
 
 @freezed
-class Invoice with _$Invoice {
+abstract class Invoice with _$Invoice {
   const factory Invoice({
     required String id,
     @JsonKey(name: 'work_order_id') required String workOrderId,

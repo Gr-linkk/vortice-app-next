@@ -4,7 +4,7 @@ part 'imported_doc.freezed.dart';
 part 'imported_doc.g.dart';
 
 @freezed
-class ImportedDoc with _$ImportedDoc {
+abstract class ImportedDoc with _$ImportedDoc {
   const factory ImportedDoc({
     required String id,
     @JsonKey(name: 'file_name') required String fileName,

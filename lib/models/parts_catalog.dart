@@ -4,7 +4,7 @@ part 'parts_catalog.freezed.dart';
 part 'parts_catalog.g.dart';
 
 @freezed
-class PartsCatalog with _$PartsCatalog {
+abstract class PartsCatalog with _$PartsCatalog {
   const factory PartsCatalog({
     required String id,
     @JsonKey(name: 'part_number') String? partNumber,

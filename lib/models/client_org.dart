@@ -4,7 +4,7 @@ part 'client_org.freezed.dart';
 part 'client_org.g.dart';
 
 @freezed
-class ClientOrg with _$ClientOrg {
+abstract class ClientOrg with _$ClientOrg {
   const factory ClientOrg({
     required String id,
     required String name,

@@ -26,7 +26,7 @@ enum AlertSeverity {
 }
 
 @freezed
-class TelemetryAlert with _$TelemetryAlert {
+abstract class TelemetryAlert with _$TelemetryAlert {
   const factory TelemetryAlert({
     required String id,
     @JsonKey(name: 'asset_id') required String assetId,

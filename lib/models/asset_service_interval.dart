@@ -4,7 +4,7 @@ part 'asset_service_interval.freezed.dart';
 part 'asset_service_interval.g.dart';
 
 @freezed
-class AssetServiceInterval with _$AssetServiceInterval {
+abstract class AssetServiceInterval with _$AssetServiceInterval {
   const factory AssetServiceInterval({
     required String id,
     @JsonKey(name: 'asset_id') required String assetId,

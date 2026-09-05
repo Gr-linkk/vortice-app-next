@@ -4,7 +4,7 @@ part 'asset_engine.freezed.dart';
 part 'asset_engine.g.dart';
 
 @freezed
-class AssetEngine with _$AssetEngine {
+abstract class AssetEngine with _$AssetEngine {
   const factory AssetEngine({
     required String id,
     @JsonKey(name: 'asset_id') required String assetId,

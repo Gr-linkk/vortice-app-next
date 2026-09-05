@@ -4,7 +4,7 @@ part 'asset_type.freezed.dart';
 part 'asset_type.g.dart';
 
 @freezed
-class AssetTypeModel with _$AssetTypeModel {
+abstract class AssetTypeModel with _$AssetTypeModel {
   const factory AssetTypeModel({
     required String id,
     required String name,

@@ -4,7 +4,7 @@ part 'telemetry_reading.freezed.dart';
 part 'telemetry_reading.g.dart';
 
 @freezed
-class TelemetryReading with _$TelemetryReading {
+abstract class TelemetryReading with _$TelemetryReading {
   const factory TelemetryReading({
     required String id,
     @JsonKey(name: 'asset_id') required String assetId,

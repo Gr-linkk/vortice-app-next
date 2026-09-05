@@ -29,7 +29,7 @@ enum WorkOrderJobType {
 }
 
 @freezed
-class WorkOrder with _$WorkOrder {
+abstract class WorkOrder with _$WorkOrder {
   const factory WorkOrder({
     required String id,
     @JsonKey(name: 'asset_id') required String assetId,
