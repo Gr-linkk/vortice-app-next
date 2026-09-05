@@ -9,6 +9,12 @@ Push-Location $script:ProjectRoot
 try {
   Assert-RepositoryIdentity
   Assert-LocalSupabaseConfig
+  # Check the values consumed by the app, not just the local JSON file.
+  Invoke-ProjectCommand -Command 'flutter' -Arguments @(
+    'test',
+    '--dart-define-from-file=config/vortice-next.local.json',
+    'test/core/backend_build_config_test.dart'
+  )
   $buildArguments = @(
     'build',
     'apk',

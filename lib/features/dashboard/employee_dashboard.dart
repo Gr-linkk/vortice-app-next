@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:vortice_app/l10n/app_localizations.dart';
 import 'package:vortice_app/core/theme.dart';
+import 'package:vortice_app/features/fleet/fleet_entry_card.dart';
 import 'package:vortice_app/features/auth/auth_provider.dart';
 import 'package:vortice_app/features/work_orders/work_order_provider.dart';
 import 'package:vortice_app/features/service_reports/service_report_provider.dart';
@@ -76,6 +77,7 @@ class EmployeeDashboard extends ConsumerWidget {
             return ListView(
               padding: const EdgeInsets.only(bottom: 32),
               children: [
+                const FleetEntryCard(),
                 // ── Greeting + date ────────────────────────────────
                 Padding(
                   padding: const EdgeInsets.fromLTRB(16, 20, 16, 4),

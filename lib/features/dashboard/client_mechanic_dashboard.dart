@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:vortice_app/core/theme.dart';
+import 'package:vortice_app/features/fleet/fleet_entry_card.dart';
 import 'package:vortice_app/features/assets/client_team_asset_access.dart';
 import 'package:vortice_app/features/auth/auth_provider.dart';
 import 'package:vortice_app/features/checklists/asset_checklist_template_filter.dart';
@@ -102,6 +103,7 @@ class ClientMechanicDashboard extends ConsumerWidget {
         child: ListView(
           padding: const EdgeInsets.only(bottom: 32),
           children: [
+            const FleetEntryCard(),
             const _SectionHeader(
               title: 'Fleet Checklists',
               icon: Icons.checklist_outlined,

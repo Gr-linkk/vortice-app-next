@@ -5,6 +5,35 @@ elsewhere, but every active task must be represented here with a stable ID.
 
 ## Now
 
+### NOW-004 — Restore internal dev persona login
+
+Outcome: the login logo's dev panel fills both email and the corresponding
+Next mock-account password in the internal Android APK. Load passwords from
+ignored local build configuration only, gate them to debug builds targeting
+Next, verify all six accounts through the app's runtime configuration, and
+deliver build 1.1.2+4 to the phone. This includes correcting the inherited
+placeholder API-key constant and checking config wiring before every APK build.
+
+### NOW-003 — Fault-to-repair tracking and asset availability
+
+Outcome: report an asset fault, assign and track its repair, verify resolution,
+and explicitly record availability and downtime in an internal Android build.
+
+Selected by Garrett's September 5 request to autonomously build two features
+and deliver an APK to his phone. Specification:
+`docs/specs/NOW-003-faults-and-availability.md`.
+
+Acceptance criteria:
+
+- Fleet-scoped fault reporting, assignment, progress, review and event history
+  work for company owners/admins, mechanics, operators and provider staff.
+- Authorized managers record availability changes with reasons and history;
+  downtime survives transitions between unavailable states.
+- Cross-company access, invalid transitions, stale edits and duplicate retries
+  are rejected or handled safely by the backend, not only the UI.
+- Flutter verification, database authorization tests and rendered UI checks
+  pass; the isolated internal APK is copied to the phone's Downloads folder.
+
 ### NOW-001 — Choose the product identity
 
 Outcome: replace the working Vortice Next name with the chosen product name.
@@ -17,26 +46,12 @@ Acceptance criteria:
   are inventoried before implementation.
 - Production signing remains out of scope unless separately approved.
 
-### NOW-002 — Choose the first independent product slice
-
-Outcome: select one user journey to improve first and write observable
-acceptance criteria for it.
-
-Candidate input includes the historical product walkthrough in
-`docs/PRODUCT-WALKTHROUGH-BACKLOG-2026-06-18.md`; its entries are not active
-requirements until promoted here.
-
 ## Next
 
 ### NEXT-001 — Audit invoice authorization before real client data
 
 Confirm invoice RLS, client scoping, export authorization, and role-based UI
 behavior together before non-mock invoice data is introduced.
-
-### NEXT-002 — Turn the selected product slice into an executable specification
-
-Link the approved journey, roles, happy path, failure states, data changes, and
-device-level acceptance checks from this item.
 
 ## Later
 

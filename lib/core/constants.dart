@@ -3,7 +3,9 @@ class AppConstants {
 
   // ── Supabase ──────────────────────────────────────────────────────────────
   static const String supabaseUrl = String.fromEnvironment('SUPABASE_URL');
-  static const String supabaseAnonKey = 'REDACTED_SUPABASE_KEY';
+  static const String supabaseAnonKey = String.fromEnvironment(
+    'SUPABASE_ANON_KEY',
+  );
 
   // ── Table names ────────────────────────────────────────────────────────────
   static const String tOrgCodes = 'org_codes';

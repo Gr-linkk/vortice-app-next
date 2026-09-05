@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:vortice_app/core/asset_icons.dart';
 import 'package:vortice_app/core/theme.dart';
+import 'package:vortice_app/features/fleet/fleet_entry_card.dart';
 import 'package:vortice_app/features/assets/asset_checklist_history_card.dart';
 import 'package:vortice_app/features/assets/asset_client_assign_row.dart';
 import 'package:vortice_app/features/assets/asset_detail_row.dart';
@@ -85,6 +86,8 @@ class AssetDetailBody extends ConsumerWidget {
           AssetClientAssignRow(asset: asset),
         const SizedBox(height: 16),
         AssetWorkflowSummaryCard(assetId: asset.id, role: role),
+        const SizedBox(height: 16),
+        AssetReadinessCard(assetId: asset.id),
         if (AssetWorkflowPolicy.canStartClientChecklist(role)) ...[
           const SizedBox(height: 16),
           ClientCapabilityGate(

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:vortice_app/core/theme.dart';
+import 'package:vortice_app/features/fleet/work_order_fault_card.dart';
 import 'package:vortice_app/features/checklists/checklist_provider.dart';
 import 'package:vortice_app/features/work_orders/work_order_client_checklist_context_section.dart';
 import 'package:vortice_app/features/work_orders/work_order_detail_actions_section.dart';
@@ -53,6 +54,7 @@ class WorkOrderDetailBody extends ConsumerWidget {
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
+        WorkOrderFaultCard(workOrderId: workOrder.id, assetId: workOrder.assetId),
         // ── Status banner ──────────────────────────────────────────
         Container(
           padding: const EdgeInsets.all(16),

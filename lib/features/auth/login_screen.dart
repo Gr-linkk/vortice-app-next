@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:vortice_app/l10n/app_localizations.dart';
 import 'package:vortice_app/core/theme.dart';
 import 'package:vortice_app/features/auth/auth_provider.dart';
+import 'package:vortice_app/features/auth/dev_login_credentials.dart';
 
 // ── Dev login panel — debug builds only ──────────────────────────────────────
 const bool kDevMode = kDebugMode;
@@ -161,8 +162,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 child: Text(
                   'Pick a tester persona. Capability chips are static hints for now.',
                   textAlign: TextAlign.center,
-                  style:
-                      TextStyle(color: AppColors.textSecondary, fontSize: 12),
+                  style: TextStyle(
+                    color: AppColors.textSecondary,
+                    fontSize: 12,
+                  ),
                 ),
               ),
               const Divider(height: 1),
@@ -281,7 +284,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
           onTap: () {
             Navigator.pop(sheetContext);
             _emailCtrl.text = acct.email;
-            _passwordCtrl.clear();
+            _passwordCtrl.text =
+                ref.read(devLoginPasswordsProvider)[acct.email] ?? '';
           },
         ),
       );
@@ -323,8 +327,12 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                             clipBehavior: Clip.none,
                             children: [
                               Center(
-                                  child: Icon(Icons.engineering,
-                                      size: 48, color: Colors.white)),
+                                child: Icon(
+                                  Icons.engineering,
+                                  size: 48,
+                                  color: Colors.white,
+                                ),
+                              ),
                             ],
                           ),
                         ),
@@ -333,18 +341,15 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     const SizedBox(height: 20),
                     Text(
                       'Vórtice Mechanical',
-                      style:
-                          Theme.of(context).textTheme.headlineSmall?.copyWith(
-                                fontWeight: FontWeight.bold,
-                              ),
+                      style: Theme.of(context).textTheme.headlineSmall
+                          ?.copyWith(fontWeight: FontWeight.bold),
                     ),
                     const SizedBox(height: 6),
                     Text(
                       l10n.loginSubtitle,
-                      style: Theme.of(context)
-                          .textTheme
-                          .bodyMedium
-                          ?.copyWith(color: AppColors.textSecondary),
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        color: AppColors.textSecondary,
+                      ),
                     ),
                   ],
                 ),
@@ -383,11 +388,14 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                         labelText: l10n.password,
                         prefixIcon: const Icon(Icons.lock_outline),
                         suffixIcon: IconButton(
-                          icon: Icon(_obscurePassword
-                              ? Icons.visibility_outlined
-                              : Icons.visibility_off_outlined),
+                          icon: Icon(
+                            _obscurePassword
+                                ? Icons.visibility_outlined
+                                : Icons.visibility_off_outlined,
+                          ),
                           onPressed: () => setState(
-                              () => _obscurePassword = !_obscurePassword),
+                            () => _obscurePassword = !_obscurePassword,
+                          ),
                         ),
                       ),
                       validator: (v) {

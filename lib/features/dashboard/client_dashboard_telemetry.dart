@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
 import 'package:vortice_app/core/theme.dart';
+import 'package:vortice_app/features/fleet/fleet_entry_card.dart';
 import 'package:vortice_app/features/assets/asset_provider.dart';
 import 'package:vortice_app/features/auth/auth_provider.dart';
 import 'package:vortice_app/features/invoices/invoice_provider.dart';
@@ -84,6 +85,7 @@ class ClientDashboardTelemetry extends ConsumerWidget {
           child: ListView(
             padding: const EdgeInsets.only(bottom: 32),
             children: [
+              const FleetEntryCard(),
               // ── Fleet Health Bar ─────────────────────────────────────────────
               const SizedBox(height: 16),
               Padding(

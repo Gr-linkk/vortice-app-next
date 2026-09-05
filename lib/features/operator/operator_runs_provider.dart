@@ -145,7 +145,7 @@ class MaintenanceRequest {
   }
 
   bool get isUrgent => severity == 'urgent';
-  bool get isOpen => status == 'open';
+  bool get isOpen => status != 'resolved' && status != 'dismissed';
 }
 
 /// Fetch operator checklist runs for a specific asset
@@ -185,7 +185,7 @@ final openMaintenanceRequestsProvider =
   final data = await supabase
       .from(AppConstants.tMaintenanceRequests)
       .select()
-      .eq('status', 'open')
+      .inFilter('status', ['open', 'acknowledged', 'converted', 'in_progress', 'pending_review'])
       .order('created_at', ascending: false);
 
   return (data as List)
@@ -204,7 +204,7 @@ final clientFlaggedIssuesProvider =
   final data = await supabase
       .from(AppConstants.tMaintenanceRequests)
       .select('id, description, severity, status, created_at, assets(name, id)')
-      .eq('status', 'open')
+      .inFilter('status', ['open', 'acknowledged', 'converted', 'in_progress', 'pending_review'])
       .inFilter('asset_id', assetIds)
       .order('created_at', ascending: false)
       .limit(10);

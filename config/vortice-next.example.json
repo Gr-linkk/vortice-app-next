@@ -1,4 +1,5 @@
 {
   "SUPABASE_URL": "https://hkjpojobdbbtjkhaudki.supabase.co",
-  "SUPABASE_ANON_KEY": "YOUR-PUBLISHABLE-OR-ANON-KEY"
+  "SUPABASE_ANON_KEY": "YOUR-PUBLISHABLE-OR-ANON-KEY",
+  "DEV_LOGIN_PASSWORDS": "{}"
 }

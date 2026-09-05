@@ -14,10 +14,11 @@ parts, and invoices.
 
 ## Current direction
 
-The immediate goal is to establish the new product identity and choose the
-first user-facing build slice. Until those choices are made, preserve the
-working application and its verified independent backend rather than starting
-broad redesigns.
+The first user-facing build slice is fault-to-repair tracking and explicit
+asset availability, selected under Garrett's authorization to build two
+features autonomously. See `docs/specs/NOW-003-faults-and-availability.md`.
+The product identity remains a separate decision; preserve the current visual
+language while validating this internal Android build.
 
 Detailed client-access terminology and rules live in `CONTEXT.md`.
 

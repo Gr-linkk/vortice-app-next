@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 import 'package:vortice_app/core/constants.dart';
 import 'package:vortice_app/core/supabase_client.dart';
 import 'package:vortice_app/core/theme.dart';
+import 'package:vortice_app/features/fleet/fleet_entry_card.dart';
 import 'package:vortice_app/features/assets/client_team_asset_access.dart';
 import 'package:vortice_app/features/auth/auth_provider.dart';
 import 'package:vortice_app/features/checklists/checklist_assignment_provider.dart';
@@ -85,6 +86,7 @@ class ClientOperatorDashboard extends ConsumerWidget {
         child: ListView(
           padding: const EdgeInsets.only(bottom: 32),
           children: [
+            const FleetEntryCard(),
             if (!showOperationalChecklists)
               const Padding(
                 padding: EdgeInsets.all(16),

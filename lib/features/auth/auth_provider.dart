@@ -54,16 +54,17 @@ class AppAuthStatus {
   });
 
   static const loading = AppAuthStatus(isLoading: true, isAuthenticated: false);
-  static const unauthenticated =
-      AppAuthStatus(isLoading: false, isAuthenticated: false);
+  static const unauthenticated = AppAuthStatus(
+    isLoading: false,
+    isAuthenticated: false,
+  );
 }
 
 final authStatusProvider = Provider<AppAuthStatus>((ref) {
   final authAsync = ref.watch(_supabaseAuthStreamProvider);
 
   return authAsync.when(
-    loading: () =>
-        authStatusWhileStreamLoading(supabase.auth.currentSession),
+    loading: () => authStatusWhileStreamLoading(supabase.auth.currentSession),
     error: (_, __) => AppAuthStatus.unauthenticated,
     data: (auth) {
       if (auth.session == null) return AppAuthStatus.unauthenticated;
@@ -102,64 +103,16 @@ class AuthController extends StateNotifier<AsyncValue<void>> {
   }) async {
     state = const AsyncLoading();
     state = await AsyncValue.guard(() async {
-      // Validate org code
-      final org = await supabase
-          .from(AppConstants.tOrgCodes)
-          .select(
-              'id, code, intended_role, single_use, max_uses, use_count, expires_at, org_id')
-          .eq('code', orgCode.toUpperCase())
-          .maybeSingle();
-
-      if (org == null) throw Exception('invalidOrgCode');
-
-      // Check expiry
-      final expiresAt = org['expires_at'] as String?;
-      if (expiresAt != null &&
-          DateTime.parse(expiresAt).isBefore(DateTime.now())) {
-        throw Exception('orgCodeExpired');
-      }
-
-      // Check usage
-      final singleUse = org['single_use'] as bool? ?? true;
-      final maxUses = org['max_uses'] as int? ?? 1;
-      final useCount = org['use_count'] as int? ?? 0;
-      if (singleUse && useCount >= maxUses) {
-        throw Exception('orgCodeUsed');
-      }
-
-      // Capture org_id and role from code. The DB trigger is the durable
-      // source of truth, but passing both values makes the signup intent
-      // explicit and keeps local/dev environments from drifting.
-      final normalizedCode = orgCode.toUpperCase();
-      final orgId = org['org_id'] as String?;
-      final intendedRole = org['intended_role'] as String?;
-
+      // The server validates and consumes the code atomically. Clients cannot
+      // choose their own role, organization or edit invitation usage counters.
       await supabase.auth.signUp(
         email: email,
         password: password,
         data: {
           'full_name': fullName,
-          'org_code_used': normalizedCode,
-          if (intendedRole != null) 'role': intendedRole,
-          if (orgId != null) 'org_id': orgId,
+          'org_code_used': orgCode.trim().toUpperCase(),
         },
       );
-
-      // Increment use count
-      await supabase
-          .from(AppConstants.tOrgCodes)
-          .update({'use_count': useCount + 1}).eq('id', org['id']);
-
-      // If the session is immediately available, also repair the profile
-      // directly in case an older DB trigger only created a partial profile.
-      final userId = supabase.auth.currentUser?.id;
-      if (userId != null) {
-        await supabase.from(AppConstants.tProfiles).update({
-          if (intendedRole != null) 'role': intendedRole,
-          if (orgId != null) 'org_id': orgId,
-          'org_code_used': normalizedCode,
-        }).eq('id', userId);
-      }
     });
   }
 
@@ -201,8 +154,8 @@ class AuthController extends StateNotifier<AsyncValue<void>> {
 
 final authControllerProvider =
     StateNotifierProvider<AuthController, AsyncValue<void>>((ref) {
-  return AuthController();
-});
+      return AuthController();
+    });
 
 // ── Locale ─────────────────────────────────────────────────────────────────
 
