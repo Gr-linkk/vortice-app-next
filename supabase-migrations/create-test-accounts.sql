@@ -7,7 +7,7 @@
 -- Admin API before running this SQL.
 --
 --   Authentication → Users → Invite User (or Add User)
---   Email: <email below>   Password: <REDACTED_TEST_PASSWORD>
+--   Email: <email below>   Password: <SET_A_UNIQUE_TEST_PASSWORD>
 --
 -- Once all auth users exist, run this script to set their profile rows
 -- (role, tier, display name). Uses ON CONFLICT so it's safe to re-run.
