@@ -4,7 +4,7 @@ part 'work_order_assignment.freezed.dart';
 part 'work_order_assignment.g.dart';
 
 @freezed
-class WorkOrderAssignment with _$WorkOrderAssignment {
+abstract class WorkOrderAssignment with _$WorkOrderAssignment {
   const factory WorkOrderAssignment({
     required String id,
     @JsonKey(name: 'work_order_id') required String workOrderId,

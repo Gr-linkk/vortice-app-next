@@ -4,7 +4,7 @@ part 'pm_parts_requirement.freezed.dart';
 part 'pm_parts_requirement.g.dart';
 
 @freezed
-class PmPartsRequirement with _$PmPartsRequirement {
+abstract class PmPartsRequirement with _$PmPartsRequirement {
   const factory PmPartsRequirement({
     required String id,
     @JsonKey(name: 'template_id') required String templateId,

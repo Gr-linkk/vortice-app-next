@@ -4,7 +4,7 @@ part 'service_reminder.freezed.dart';
 part 'service_reminder.g.dart';
 
 @freezed
-class ServiceReminder with _$ServiceReminder {
+abstract class ServiceReminder with _$ServiceReminder {
   const factory ServiceReminder({
     required String id,
     @JsonKey(name: 'asset_id') required String assetId,

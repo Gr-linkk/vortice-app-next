@@ -4,7 +4,7 @@ part 'checklist_template.freezed.dart';
 part 'checklist_template.g.dart';
 
 @freezed
-class ChecklistTemplate with _$ChecklistTemplate {
+abstract class ChecklistTemplate with _$ChecklistTemplate {
   const factory ChecklistTemplate({
     required String id,
     @JsonKey(name: 'asset_type_id') String? assetTypeId,

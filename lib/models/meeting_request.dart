@@ -4,7 +4,7 @@ part 'meeting_request.freezed.dart';
 part 'meeting_request.g.dart';
 
 @freezed
-class MeetingRequest with _$MeetingRequest {
+abstract class MeetingRequest with _$MeetingRequest {
   const factory MeetingRequest({
     required String id,
     @JsonKey(name: 'profile_id') required String profileId,

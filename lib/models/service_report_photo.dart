@@ -4,7 +4,7 @@ part 'service_report_photo.freezed.dart';
 part 'service_report_photo.g.dart';
 
 @freezed
-class ServiceReportPhoto with _$ServiceReportPhoto {
+abstract class ServiceReportPhoto with _$ServiceReportPhoto {
   const factory ServiceReportPhoto({
     required String id,
     @JsonKey(name: 'service_report_id') required String serviceReportId,

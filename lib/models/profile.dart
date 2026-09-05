@@ -15,7 +15,7 @@ enum UserRole {
 }
 
 @freezed
-class Profile with _$Profile {
+abstract class Profile with _$Profile {
   const factory Profile({
     required String id,
     required String email,
