@@ -32,7 +32,7 @@ project. Supply its client configuration at build or run time:
 
 ```bash
 flutter run \
-  --dart-define=SUPABASE_URL=https://YOUR-PROJECT.supabase.co \
+  --dart-define=SUPABASE_URL=https://hkjpojobdbbtjkhaudki.supabase.co \
   --dart-define=SUPABASE_ANON_KEY=YOUR-ANON-KEY
 ```
 
@@ -50,23 +50,31 @@ Central. Its deployable migration chain is a current-schema baseline under
 `supabase/migrations/`; the inherited incremental files are preserved for
 reference under `supabase/migrations_legacy/`.
 
-Install dependencies:
+Read [`PROJECT.md`](PROJECT.md) for product direction and document authority,
+then [`BACKLOG.md`](BACKLOG.md) for the active priority list.
 
-```bash
-flutter pub get
+Set up dependencies and generated code:
+
+```powershell
+./scripts/setup.cmd
 ```
 
-Run analyzer and tests:
+Run the app with the validated, Git-ignored Vortice Next configuration:
 
-```bash
-flutter analyze
-flutter test
+```powershell
+./scripts/run.cmd
 ```
 
-Build a debug APK:
+Run the same verification entry point as CI:
 
-```bash
-flutter build apk --debug
+```powershell
+./scripts/verify.cmd
+```
+
+Build and checksum an internal debug APK under ignored `outputs/builds/`:
+
+```powershell
+./scripts/build-android.cmd
 ```
 
 Install to a connected Android device from WSL using the Windows Android SDK:
@@ -77,6 +85,12 @@ Install to a connected Android device from WSL using the Windows Android SDK:
 
 ## Useful Docs
 
+- [Project operating brief](PROJECT.md) - direction, authority, and non-goals.
+- [Product backlog](BACKLOG.md) - the sole live Now/Next/Later priority list.
+- [Development workflow](docs/DEVELOPMENT-WORKFLOW.md) - task lifecycle and helper commands.
+- [Decision records](docs/decisions/README.md) - durable choices and template.
+- [Release checklist](docs/RELEASE-CHECKLIST.md) - internal and production artifact gates.
+- [Supabase workflow](supabase/README.md) - migrations, fixtures, and guarded deployment.
 - [CONTEXT.md](CONTEXT.md) - current client org/access language and rules.
 - [Workflow architecture notes](docs/WORKFLOW-ARCHITECTURE-NOTES-2026-05-08.md) - workflow seams and asset-first direction.
 - [Client org access model](docs/CLIENT-ORG-ACCESS-MODEL-2026-05-08.md) - how client teams inherit fleet access.
@@ -109,10 +123,8 @@ PRs should include:
 
 Common verification set:
 
-```bash
-flutter analyze
-flutter test
-flutter build apk --debug
+```powershell
+./scripts/verify.cmd -BaseRef origin/main
 ```
 
 ## Guardrails
@@ -125,6 +137,4 @@ flutter build apk --debug
 
 ## Current Follow-Ups
 
-- Audit invoice RLS/data scope before real client invoice data is used.
-- Continue tightening workflow specs as work orders, service reports, invoices, and client visibility settle.
-- Keep README/current docs in sync with branch/PR workflow changes.
+See [`BACKLOG.md`](BACKLOG.md). Do not maintain a second priority list here.

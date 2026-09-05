@@ -43,3 +43,16 @@ was separated from `https://github.com/Gr-linkk/vortice-app` at commit
 - Keep the original repository's history and contributor attribution intact.
 - Record any intentional transfer between projects in the commit or pull
   request that performs it.
+- At the start of a task, read `PROJECT.md`, then `BACKLOG.md`, then any linked
+  current decision or specification that applies to the task.
+- Treat `PROJECT.md` as the product and document-authority map, `BACKLOG.md` as
+  the only live priority list, and `docs/decisions/` as the record of durable
+  technical and product decisions. Dated plans and archived documents are
+  inputs, not current authority.
+- Use `scripts/verify.cmd` on Windows (or `verify.ps1` in CI) before opening a
+  pull request. Use the guarded run,
+  build, and Supabase helpers instead of reconstructing commands from old
+  notes.
+- Put disposable agent artifacts in ignored `work/`, durable local deliverables
+  in ignored `outputs/`, local credentials in ignored `config/*.local.json`,
+  and reusable project knowledge in tracked documentation.
