@@ -12,14 +12,14 @@ try {
   # Check the values consumed by the app, not just the local JSON file.
   Invoke-ProjectCommand -Command 'flutter' -Arguments @(
     'test',
-    '--dart-define-from-file=config/vortice-next.local.json',
+    (Get-FlutterConfigArgument),
     'test/core/backend_build_config_test.dart'
   )
   $buildArguments = @(
     'build',
     'apk',
     '--debug',
-    '--dart-define-from-file=config/vortice-next.local.json'
+    (Get-FlutterConfigArgument)
   ) + $FlutterArguments
   Invoke-ProjectCommand -Command 'flutter' -Arguments $buildArguments
 

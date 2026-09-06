@@ -17,6 +17,20 @@ class CoordinationEntry extends StatelessWidget {
     child: Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
+        if (subjectId == null) ...[
+          OutlinedButton.icon(
+            onPressed: () => context.push('/assurance/assets/$assetId'),
+            icon: const Icon(Icons.fact_check_outlined),
+            label: Text(
+              fleetText(
+                context,
+                'Custody & inspections',
+                'Custodia e inspecciones',
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
+        ],
         if (subjectId != null) ...[
           OutlinedButton.icon(
             onPressed: () => context.push('/discussion/$kind/$subjectId'),

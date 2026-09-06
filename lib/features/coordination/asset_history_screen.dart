@@ -288,7 +288,10 @@ class _HistoryEvent extends ConsumerWidget {
     final es = fleetSpanish(context);
     final detail = Map<String, dynamic>.from(row['detail'] as Map? ?? {});
     String? route;
-    if (row['post_id'] != null) {
+    if (row['source_type'] == 'custody' ||
+        row['source_type'] == 'asset_inspection') {
+      route = '/assurance/assets/${row['asset_id']}';
+    } else if (row['post_id'] != null) {
       route =
           '/discussion/${detail['subject_kind']}/${detail['subject_id']}?post=${row['post_id']}';
     } else if (row['category'] == 'fault') {

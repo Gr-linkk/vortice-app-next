@@ -1,4 +1,5 @@
 import 'package:vortice_app/core/app_dropdown_field.dart';
+import 'package:vortice_app/features/assurance/assurance_repository.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:uuid/uuid.dart';
@@ -116,6 +117,9 @@ class _MaintenanceSetupScreenState
   Widget build(BuildContext context) {
     final es = isSpanish(context), frozen = _busy || _pending != null;
     final workspace = ref.watch(maintenanceWorkspaceProvider);
+    final custody = widget.kind == 'asset' && widget.initial['id'] != null
+        ? ref.watch(assuranceContextProvider(widget.initial['id'] as String))
+        : null;
     final title = switch (widget.kind) {
       'asset' => es ? 'Equipo' : 'Asset',
       'component' => es ? 'Componente' : 'Component',
@@ -226,7 +230,24 @@ class _MaintenanceSetupScreenState
                 field('make', 'Make', 'Marca'),
                 field('model', 'Model', 'Modelo'),
                 field('serial_number', 'Serial number', 'Número de serie'),
-                field('location', 'Location', 'Ubicación'),
+                field(
+                  'location',
+                  'Location',
+                  'Ubicación',
+                  readOnly:
+                      custody != null &&
+                      (!custody.hasValue ||
+                          custody.valueOrNull?['custody'] != null),
+                ),
+                if (custody?.valueOrNull?['custody'] != null)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 16),
+                    child: Text(
+                      es
+                          ? 'Usa Registrar traslado en Custodia e inspecciones para cambiar la ubicación.'
+                          : 'Use Record transfer in Custody & inspections to change the location.',
+                    ),
+                  ),
               ] else if (widget.kind == 'component') ...[
                 field('label', 'Component name', 'Nombre', required: true),
                 if (widget.initial.isEmpty) ...[

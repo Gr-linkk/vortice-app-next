@@ -1,4 +1,5 @@
 import 'package:vortice_app/core/user_feedback.dart';
+import 'package:vortice_app/features/assurance/assurance_screen.dart';
 import 'package:vortice_app/features/coordination/asset_history_screen.dart';
 import 'package:vortice_app/features/coordination/discussion_screen.dart';
 import 'package:vortice_app/features/coordination/fleet_overview_screen.dart';
@@ -223,6 +224,15 @@ final routerProvider = Provider<GoRouter>((ref) {
             path: '/maintenance/assets/:id',
             builder: (_, state) =>
                 MaintenanceAssetScreen(assetId: state.pathParameters['id']!),
+          ),
+          GoRoute(
+            path: '/assurance',
+            builder: (_, __) => const AssuranceScreen(),
+          ),
+          GoRoute(
+            path: '/assurance/assets/:id',
+            builder: (_, state) =>
+                AssuranceScreen(asset: state.pathParameters['id']!),
           ),
           // Owner
           GoRoute(

@@ -4,7 +4,22 @@ $ErrorActionPreference = 'Stop'
 $script:ProjectRoot = Split-Path -Parent $PSScriptRoot
 $script:ExpectedOrigin = 'https://github.com/Gr-linkk/vortice-app-next'
 $script:ExpectedSupabaseUrl = 'https://hkjpojobdbbtjkhaudki.supabase.co'
-$script:LocalConfigPath = Join-Path $script:ProjectRoot 'config/vortice-next.local.json'
+$script:LocalConfigPath = if ([string]::IsNullOrWhiteSpace($env:VORTICE_NEXT_CONFIG)) {
+  Join-Path $script:ProjectRoot 'config/vortice-next.local.json'
+} else {
+  [IO.Path]::GetFullPath($env:VORTICE_NEXT_CONFIG)
+}
+
+function Get-FlutterConfigArgument {
+  # Reuse an explicitly selected Next configuration without copying credentials
+  # into isolated worktrees. The target is checked by Assert-LocalSupabaseConfig.
+  $configPath = $script:LocalConfigPath
+  if ($null -eq (Get-Command flutter -ErrorAction SilentlyContinue) -and $env:OS -eq 'Windows_NT') {
+    $configPath = (& wsl.exe -e wslpath -u $configPath).Trim()
+    if ($LASTEXITCODE -ne 0) { throw 'Could not translate the selected config path.' }
+  }
+  return "--dart-define-from-file=$configPath"
+}
 
 function Invoke-ProjectCommand {
   param(

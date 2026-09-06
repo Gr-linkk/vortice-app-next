@@ -1,4 +1,5 @@
 import 'package:vortice_app/core/app_dropdown_field.dart';
+import 'package:vortice_app/features/assurance/assurance_repository.dart';
 import 'package:vortice_app/core/user_feedback.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -117,6 +118,7 @@ class _EditAssetScreenState extends ConsumerState<EditAssetScreen> {
     final isLoading = ref.watch(assetControllerProvider).isLoading;
     final assetTypesAsync = ref.watch(assetTypesProvider);
     final clientsAsync = ref.watch(clientsProvider);
+    final custody = ref.watch(assuranceContextProvider(widget.asset.id));
 
     return Scaffold(
       appBar: AppBar(title: Text(l10n.editAsset)),
@@ -237,6 +239,9 @@ class _EditAssetScreenState extends ConsumerState<EditAssetScreen> {
                   Expanded(
                     child: TextFormField(
                       controller: _locationCtrl,
+                      readOnly:
+                          !custody.hasValue ||
+                          custody.valueOrNull?['custody'] != null,
                       decoration: InputDecoration(
                         labelText: l10n.location,
                         prefixIcon: const Icon(Icons.location_on_outlined),
@@ -254,6 +259,12 @@ class _EditAssetScreenState extends ConsumerState<EditAssetScreen> {
                   alignLabelWithHint: true,
                 ),
               ),
+              if (custody.valueOrNull?['custody'] != null)
+                Text(
+                  isSpanish(context)
+                      ? 'Usa Registrar traslado en Custodia e inspecciones para cambiar la ubicación.'
+                      : 'Use Record transfer in Custody & inspections to change the location.',
+                ),
               const SizedBox(height: 24),
               OutlinedButton.icon(
                 onPressed: () async {

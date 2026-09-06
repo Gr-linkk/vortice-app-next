@@ -24,7 +24,14 @@ Run the app against the dedicated backend:
 
 The run helper validates the repository identity and local Supabase target
 before invoking Flutter. Extra Flutter arguments may be passed through, for
-example `./scripts/run.cmd -d windows`.
+example `./scripts/run.cmd --device-id=windows`.
+
+An isolated worktree may select an existing Next configuration through the
+`VORTICE_NEXT_CONFIG` environment variable. The helper validates the selected
+file's exact Next URL and translates its path for WSL; this avoids copying local
+credentials. Omit the variable to use the checkout's usual ignored config file.
+Use `--device-id=web-server` for browser checks; PowerShell can interpret `-d`
+as its own Debug option.
 
 Use `work/` for throwaway analysis, exports, and scripts. Use `outputs/` for
 durable local deliverables that should not enter Git. Put reusable findings in

@@ -38,6 +38,11 @@ const isolationStates = {
   'not_required': ('Isolation not required', 'No requiere aislamiento'),
 };
 const historyKinds = {
+  'custody_transferred': ('Custody transferred', 'Custodia transferida'),
+  'inspection_required': ('Inspection registered', 'Inspección registrada'),
+  'renewal_submit': ('Renewal submitted', 'Renovación enviada'),
+  'renewal_approve': ('Renewal approved', 'Renovación aprobada'),
+  'renewal_return': ('Renewal returned', 'Renovación devuelta'),
   'asset_recorded': ('Asset recorded', 'Activo registrado'),
   'asset_changed': ('Asset details changed', 'Datos del activo cambiados'),
   'component_recorded': ('Component recorded', 'Componente registrado'),

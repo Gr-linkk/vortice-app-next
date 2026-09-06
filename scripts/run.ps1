@@ -11,7 +11,7 @@ try {
   Assert-LocalSupabaseConfig
   $runArguments = @(
     'run',
-    '--dart-define-from-file=config/vortice-next.local.json'
+    (Get-FlutterConfigArgument)
   ) + $FlutterArguments
   Invoke-ProjectCommand -Command 'flutter' -Arguments $runArguments
 } finally {

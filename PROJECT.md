@@ -29,7 +29,10 @@ The next selected areas are asset history, job/fault discussions and handovers,
 and actionable fleet decisions (original items 14, 15 and 16). Their integrated
 scope is `docs/specs/NOW-007-fleet-coordination.md`; privacy, event capture and
 indicator rules are recorded in `docs/decisions/0006-fleet-coordination.md`.
-The other 14 areas remain intake in `docs/specs/NOW-006-feature-continuation.md`.
+Asset custody/site transfers and inspection renewals (original areas 19 and 20)
+are selected under `docs/specs/NOW-009-custody-inspections.md`. Their recorded
+states, versioning and access rules are in `docs/decisions/0007-custody-inspections.md`.
+The other 12 areas remain intake in `docs/specs/NOW-006-feature-continuation.md`.
 Preserve the current visual language; naming and production identity remain
 separate decisions. Hosted activation and device review are tracked separately
 from the internal build.

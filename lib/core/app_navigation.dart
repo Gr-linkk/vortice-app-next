@@ -68,6 +68,14 @@ List<AppDestination> toolDestinations(UserRole role) {
   final staff = role == UserRole.owner || role == UserRole.employee;
   final admin = role == UserRole.client || role == UserRole.clientAdmin;
   return [
+    const AppDestination(
+      'Fleet inspections',
+      'Inspecciones de la flota',
+      Icons.fact_check_outlined,
+      '/assurance',
+      description: 'Track custody, inspection evidence and expiry dates',
+      descriptionEs: 'Consultar custodia, evidencia y vencimientos',
+    ),
     if (role == UserRole.owner || admin)
       const AppDestination(
         'Fleet decisions',

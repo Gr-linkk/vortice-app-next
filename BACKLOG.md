@@ -5,6 +5,32 @@ elsewhere, but every active task must be represented here with a stable ID.
 
 ## Now
 
+### NOW-009 — Asset custody and inspection renewals
+
+Selected under Garrett's delegated feature choice: original areas 19 and 20.
+Build on verified Build 11, commit `655f96b`, in an isolated feature branch.
+Scope and acceptance: `docs/specs/NOW-009-custody-inspections.md`.
+
+- Managers record an asset's site, responsible company member and lifecycle,
+  with a required reason and immutable transfer history; stale edits fail.
+- Teams register inspections, attach private evidence and submit renewals.
+  Managers approve or return a renewal; prior approved evidence stays visible.
+- Asset navigation and a fleet register expose upcoming, expired and
+  review-needed inspections in English and Spanish.
+- Server permissions, validation, retry handling, persistence and connected
+  workflows pass, including other-company denial and test-record cleanup.
+- Run guarded verification and deliver internal Build 12, commit and push the
+  feature branch. No main merge or production release.
+
+Implemented and verified: clean analysis, 388 passing tests (204 existing skips),
+all six hosted SQL suites, and connected native save/reopen, return/resubmit,
+approval, renewal, role and cross-company media journeys. Test records and
+objects were removed with unrelated counts preserved. Evidence and device
+coverage limits are recorded in the specification.
+Internal `1.5.0+12` is delivered to Samsung Downloads as
+`INSTALL-Vortice-Next-Build-12.apk`; its phone SHA-256 matches the verified APK.
+Physical installation and interaction remain for device review.
+
 ### NOW-008 — Connected workflow audit
 
 Garrett requested an end-to-end audit of all features built today: interact with
@@ -57,8 +83,8 @@ Inventory, existing foundations and proposed next discussion:
 Garrett selected original items 1, 4 and 5 together: company-owned maintenance,
 mechanic execution, and trustworthy maintenance completion. Implement one
 connected journey under this ID. Scope and acceptance:
-`docs/specs/NOW-006-company-maintenance.md`. NOW-007 owns the next three;
-the other 14 areas remain intake.
+`docs/specs/NOW-006-company-maintenance.md`. NOW-007 owns the next three and
+NOW-009 owns areas 19 and 20; the other 12 areas remain intake.
 The Build 7 device review remains open; it does not block this authorized work.
 
 Items 1, 4 and 5 are implemented and verified for internal build `1.3.0+8`:
