@@ -1,3 +1,4 @@
+import 'package:vortice_app/core/app_dropdown_field.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:vortice_app/core/theme.dart';
@@ -25,17 +26,19 @@ class ServiceReportSectionHeader extends StatelessWidget {
         children: [
           Text(
             title.toUpperCase(),
-            style: Theme.of(context)
-                .textTheme
-                .labelSmall
-                ?.copyWith(color: AppColors.primary, letterSpacing: 0.8),
+            style: Theme.of(context).textTheme.labelSmall?.copyWith(
+              color: AppColors.primary,
+              letterSpacing: 0.8,
+            ),
           ),
           if (subtitle != null) ...[
             const SizedBox(height: 2),
             Text(
               subtitle!,
-              style:
-                  const TextStyle(color: AppColors.textSecondary, fontSize: 11),
+              style: const TextStyle(
+                color: AppColors.textSecondary,
+                fontSize: 11,
+              ),
             ),
           ],
         ],
@@ -72,8 +75,10 @@ class ServiceReportTextField extends StatelessWidget {
       decoration: InputDecoration(
         hintText: hintText,
         alignLabelWithHint: true,
-        contentPadding:
-            const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 14,
+          vertical: 12,
+        ),
       ),
       validator: requiredField
           ? (v) => (v == null || v.trim().isEmpty) ? l10n.fieldRequired : null
@@ -92,9 +97,7 @@ class ServiceReportPermissionBanner extends StatelessWidget {
       decoration: BoxDecoration(
         color: AppColors.warning.withValues(alpha: 0.12),
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(
-          color: AppColors.warning.withValues(alpha: 0.35),
-        ),
+        border: Border.all(color: AppColors.warning.withValues(alpha: 0.35)),
       ),
       child: const Text(
         'Only owner and employee accounts can submit service reports.',
@@ -157,11 +160,15 @@ class ServiceReportWorkOrderSection extends ConsumerWidget {
           ),
           data: (orders) {
             final active = orders
-                .where((w) =>
-                    ServiceReportWorkflow.canAttachReportToWorkOrder(w.status))
+                .where(
+                  (w) => ServiceReportWorkflow.canAttachReportToWorkOrder(
+                    w.status,
+                  ),
+                )
                 .toList();
-            final hasSelectedWorkOrder =
-                active.any((w) => w.id == selectedWorkOrderId);
+            final hasSelectedWorkOrder = active.any(
+              (w) => w.id == selectedWorkOrderId,
+            );
             if (active.isEmpty) {
               return Container(
                 padding: const EdgeInsets.all(12),
@@ -175,18 +182,19 @@ class ServiceReportWorkOrderSection extends ConsumerWidget {
                 ),
               );
             }
-            Widget workOrderLabel(WorkOrder w) => Text(
-                  w.status == WorkOrderStatus.closed
-                      ? '${w.title} • closed'
-                      : w.title,
-                  overflow: TextOverflow.ellipsis,
-                  maxLines: 1,
-                );
+            Widget workOrderLabel(WorkOrder w, {bool selected = false}) => Text(
+              w.status == WorkOrderStatus.closed
+                  ? '${w.title} • closed'
+                  : w.title,
+              overflow: selected ? TextOverflow.ellipsis : TextOverflow.visible,
+              maxLines: selected ? 1 : null,
+            );
 
-            final resolvedWorkOrderId =
-                hasSelectedWorkOrder ? selectedWorkOrderId : null;
+            final resolvedWorkOrderId = hasSelectedWorkOrder
+                ? selectedWorkOrderId
+                : null;
 
-            return DropdownButtonFormField<String>(
+            return AppDropdownField<String>(
               key: ValueKey(
                 'service-report-work-order-$resolvedWorkOrderId-${active.length}',
               ),
@@ -196,7 +204,7 @@ class ServiceReportWorkOrderSection extends ConsumerWidget {
                   .map(
                     (w) => Align(
                       alignment: Alignment.centerLeft,
-                      child: workOrderLabel(w),
+                      child: workOrderLabel(w, selected: true),
                     ),
                   )
                   .toList(),
@@ -207,10 +215,8 @@ class ServiceReportWorkOrderSection extends ConsumerWidget {
               dropdownColor: AppColors.surfaceVariant,
               items: active
                   .map(
-                    (w) => DropdownMenuItem(
-                      value: w.id,
-                      child: workOrderLabel(w),
-                    ),
+                    (w) =>
+                        DropdownMenuItem(value: w.id, child: workOrderLabel(w)),
                   )
                   .toList(),
               onChanged: onWorkOrderChanged,

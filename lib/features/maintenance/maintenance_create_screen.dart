@@ -1,3 +1,4 @@
+import 'package:vortice_app/core/app_dropdown_field.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -130,7 +131,7 @@ class _MaintenanceCreateScreenState
                   e,
                   () => ref.invalidate(maintenanceWorkspaceProvider),
                 ),
-                data: (w) => DropdownButtonFormField<String>(
+                data: (w) => AppDropdownField<String>(
                   initialValue: _asset,
                   isExpanded: true,
                   decoration: InputDecoration(
@@ -185,6 +186,7 @@ class _MaintenanceCreateScreenState
                       ? (es ? 'Describe el trabajo' : 'Describe the job')
                       : null,
                 ),
+                const SizedBox(height: 16),
                 TextFormField(
                   controller: _instructions,
                   enabled: !frozen,
@@ -195,7 +197,7 @@ class _MaintenanceCreateScreenState
                   ),
                 ),
                 const SizedBox(height: 16),
-                DropdownButtonFormField<String>(
+                AppDropdownField<String>(
                   key: ValueKey('plan-$_asset'),
                   initialValue: _plan,
                   isExpanded: true,
@@ -229,8 +231,9 @@ class _MaintenanceCreateScreenState
                       ? null
                       : (v) => setState(() => _plan = v == '' ? null : v),
                 ),
-                if (_plan == null)
-                  DropdownButtonFormField<String>(
+                const SizedBox(height: 16),
+                if (_plan == null) ...[
+                  AppDropdownField<String>(
                     key: ValueKey('component-$_asset'),
                     initialValue: _component,
                     isExpanded: true,
@@ -249,7 +252,9 @@ class _MaintenanceCreateScreenState
                         ? null
                         : (v) => setState(() => _component = v),
                   ),
-                DropdownButtonFormField<String>(
+                  const SizedBox(height: 16),
+                ],
+                AppDropdownField<String>(
                   key: ValueKey('assignee-$_asset'),
                   initialValue: _assignee,
                   isExpanded: true,
@@ -268,7 +273,8 @@ class _MaintenanceCreateScreenState
                       ? null
                       : (v) => setState(() => _assignee = v),
                 ),
-                DropdownButtonFormField<String>(
+                const SizedBox(height: 16),
+                AppDropdownField<String>(
                   initialValue: _priority,
                   decoration: InputDecoration(
                     labelText: es ? 'Prioridad' : 'Priority',
@@ -284,6 +290,7 @@ class _MaintenanceCreateScreenState
                       ? null
                       : (v) => setState(() => _priority = v!),
                 ),
+                const SizedBox(height: 16),
                 ListTile(
                   contentPadding: EdgeInsets.zero,
                   title: Text(es ? 'Fecha límite' : 'Due date'),
@@ -307,6 +314,7 @@ class _MaintenanceCreateScreenState
                           }
                         },
                 ),
+                const SizedBox(height: 16),
                 TextFormField(
                   controller: _cost,
                   enabled: !frozen,

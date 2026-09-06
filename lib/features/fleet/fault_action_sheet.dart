@@ -1,3 +1,4 @@
+import 'package:vortice_app/core/app_dropdown_field.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:uuid/uuid.dart';
@@ -104,7 +105,7 @@ class _FaultActionSheetState extends ConsumerState<FaultActionSheet> {
                                       ? 'No hay responsables elegibles en esta flota.'
                                       : 'No eligible repair assignees in this fleet.',
                                 )
-                              : DropdownButtonFormField<String>(
+                              : AppDropdownField<String>(
                                   isExpanded: true,
                                   initialValue:
                                       members.any((m) => m.id == _assignee)

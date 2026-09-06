@@ -1,3 +1,4 @@
+import 'package:vortice_app/core/app_dropdown_field.dart';
 import 'package:vortice_app/core/user_feedback.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -29,8 +30,10 @@ class PartsLogScreen extends ConsumerWidget {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Text(friendlyError(context, err),
-                  style: const TextStyle(color: AppColors.error)),
+              Text(
+                friendlyError(context, err),
+                style: const TextStyle(color: AppColors.error),
+              ),
               const SizedBox(height: 12),
               ElevatedButton(
                 onPressed: () => ref.invalidate(allPartsProvider),
@@ -42,18 +45,18 @@ class PartsLogScreen extends ConsumerWidget {
         data: (parts) {
           if (parts.isEmpty) {
             return Center(
-              child: Text(l10n.noParts,
-                  style: const TextStyle(color: AppColors.textSecondary)),
+              child: Text(
+                l10n.noParts,
+                style: const TextStyle(color: AppColors.textSecondary),
+              ),
             );
           }
           return RefreshIndicator(
             onRefresh: () async => ref.invalidate(allPartsProvider),
             child: ListView.builder(
               itemCount: parts.length,
-              itemBuilder: (_, i) => _PartTile(
-                part: parts[i],
-                canDelete: canAdd,
-              ),
+              itemBuilder: (_, i) =>
+                  _PartTile(part: parts[i], canDelete: canAdd),
             ),
           );
         },
@@ -103,29 +106,45 @@ class _PartTile extends ConsumerWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             if (part.partNumber != null)
-              Text('# ${part.partNumber}',
-                  style: const TextStyle(
-                      color: AppColors.textSecondary, fontSize: 11)),
+              Text(
+                '# ${part.partNumber}',
+                style: const TextStyle(
+                  color: AppColors.textSecondary,
+                  fontSize: 11,
+                ),
+              ),
             Row(
               children: [
-                Text('${l10n.quantity}: ${part.quantity}',
-                    style: const TextStyle(
-                        color: AppColors.textSecondary, fontSize: 12)),
-                const Text(' · ',
-                    style: TextStyle(color: AppColors.textSecondary)),
-                Text('\$$totalCost',
-                    style: const TextStyle(
-                        color: AppColors.success,
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600)),
+                Text(
+                  '${l10n.quantity}: ${part.quantity}',
+                  style: const TextStyle(
+                    color: AppColors.textSecondary,
+                    fontSize: 12,
+                  ),
+                ),
+                const Text(
+                  ' · ',
+                  style: TextStyle(color: AppColors.textSecondary),
+                ),
+                Text(
+                  '\$$totalCost',
+                  style: const TextStyle(
+                    color: AppColors.success,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
               ],
             ),
           ],
         ),
         trailing: canDelete
             ? IconButton(
-                icon: const Icon(Icons.delete_outline,
-                    color: AppColors.error, size: 20),
+                icon: const Icon(
+                  Icons.delete_outline,
+                  color: AppColors.error,
+                  size: 20,
+                ),
                 onPressed: () async {
                   await ref
                       .read(partsControllerProvider.notifier)
@@ -172,9 +191,15 @@ class _AddPartSheetState extends ConsumerState<_AddPartSheet> {
     final workOrdersAsync = ref.watch(workOrdersProvider);
     final profile = ref.watch(profileProvider).valueOrNull;
 
-    return Padding(
+    return SingleChildScrollView(
       padding: EdgeInsets.fromLTRB(
-          16, 16, 16, MediaQuery.of(context).viewInsets.bottom + 16),
+        16,
+        16,
+        16,
+        MediaQuery.of(context).viewInsets.bottom +
+            MediaQuery.paddingOf(context).bottom +
+            16,
+      ),
       child: Form(
         key: _formKey,
         child: Column(
@@ -186,17 +211,19 @@ class _AddPartSheetState extends ConsumerState<_AddPartSheet> {
             workOrdersAsync.when(
               loading: () => const SizedBox.shrink(),
               error: (_, __) => const SizedBox.shrink(),
-              data: (orders) => DropdownButtonFormField<String>(
+              data: (orders) => AppDropdownField<String>(
                 initialValue: _selectedWorkOrderId,
                 decoration: InputDecoration(labelText: l10n.linkedWorkOrder),
                 dropdownColor: AppColors.surfaceVariant,
                 menuMaxHeight: 320,
                 isExpanded: true,
                 items: orders
-                    .map((w) => DropdownMenuItem(
-                          value: w.id,
-                          child: Text(w.title, overflow: TextOverflow.ellipsis),
-                        ))
+                    .map(
+                      (w) => DropdownMenuItem(
+                        value: w.id,
+                        child: Text(w.title, overflow: TextOverflow.ellipsis),
+                      ),
+                    )
                     .toList(),
                 onChanged: (v) => setState(() => _selectedWorkOrderId = v),
                 validator: (v) => v == null ? l10n.fieldRequired : null,
@@ -222,8 +249,9 @@ class _AddPartSheetState extends ConsumerState<_AddPartSheet> {
                 Expanded(
                   child: TextFormField(
                     controller: _qtyCtrl,
-                    keyboardType:
-                        const TextInputType.numberWithOptions(decimal: true),
+                    keyboardType: const TextInputType.numberWithOptions(
+                      decimal: true,
+                    ),
                     decoration: InputDecoration(labelText: l10n.quantity),
                     validator: (v) {
                       if (v == null || v.isEmpty) return l10n.fieldRequired;
@@ -240,8 +268,9 @@ class _AddPartSheetState extends ConsumerState<_AddPartSheet> {
                 Expanded(
                   child: TextFormField(
                     controller: _costCtrl,
-                    keyboardType:
-                        const TextInputType.numberWithOptions(decimal: true),
+                    keyboardType: const TextInputType.numberWithOptions(
+                      decimal: true,
+                    ),
                     decoration: InputDecoration(
                       labelText: l10n.unitCost,
                       prefixText: '\$',
@@ -291,7 +320,8 @@ class _AddPartSheetState extends ConsumerState<_AddPartSheet> {
                         Navigator.pop(context);
                       } else {
                         final errorState = ref.read(partsControllerProvider);
-                        final errorMsg = errorState.error?.toString() ??
+                        final errorMsg =
+                            errorState.error?.toString() ??
                             'Failed to save part. Check your connection and try again.';
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(

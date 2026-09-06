@@ -322,6 +322,8 @@ void main() {
       300,
       scrollable: find.byType(Scrollable).first,
     );
+    await tester.ensureVisible(find.text('Create job'));
+    await tester.pumpAndSettle();
     await tester.tap(find.text('Create job'));
     await tester.pumpAndSettle();
     expect(repository.writes.length, 1);

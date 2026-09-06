@@ -82,18 +82,19 @@ class _InvoiceDetailScreenState extends ConsumerState<InvoiceDetailScreen> {
 
     final labourTotal = computeLabourTotal(labourHours, billableRate);
 
-    final success =
-        await ref.read(invoiceControllerProvider.notifier).updateLineItems(
-              widget.invoiceId,
-              labourHours: labourHours,
-              billableRate: billableRate,
-              labourTotal: labourTotal,
-              partsTotal: partsTotal,
-              consumablesTotal: consumables,
-              notes: _notesCtrl.text.trim().isNotEmpty
-                  ? _notesCtrl.text.trim()
-                  : null,
-            );
+    final success = await ref
+        .read(invoiceControllerProvider.notifier)
+        .updateLineItems(
+          widget.invoiceId,
+          labourHours: labourHours,
+          billableRate: billableRate,
+          labourTotal: labourTotal,
+          partsTotal: partsTotal,
+          consumablesTotal: consumables,
+          notes: _notesCtrl.text.trim().isNotEmpty
+              ? _notesCtrl.text.trim()
+              : null,
+        );
 
     if (success && mounted) {
       setState(() => _isEditing = false);
@@ -188,14 +189,14 @@ class _InvoiceDetailScreenState extends ConsumerState<InvoiceDetailScreen> {
                           result == null
                               ? 'Exchange rate refresh failed.'
                               : result.isFallback
-                                  ? 'Live exchange rate unavailable. Using fallback: 1 USD = ${result.rate.toStringAsFixed(4)} MXN.'
-                                  : 'Exchange rate refreshed: 1 USD = ${result.rate.toStringAsFixed(4)} MXN.',
+                              ? 'Live exchange rate unavailable. Using fallback: 1 USD = ${result.rate.toStringAsFixed(4)} MXN.'
+                              : 'Exchange rate refreshed: 1 USD = ${result.rate.toStringAsFixed(4)} MXN.',
                         ),
                         backgroundColor: result == null
                             ? AppColors.error
                             : result.isFallback
-                                ? AppColors.warning
-                                : AppColors.success,
+                            ? AppColors.warning
+                            : AppColors.success,
                       ),
                     );
                 }
@@ -207,7 +208,7 @@ class _InvoiceDetailScreenState extends ConsumerState<InvoiceDetailScreen> {
                     children: [
                       const Icon(Icons.currency_exchange, size: 18),
                       const SizedBox(width: 8),
-                      Text(l10n.refreshExchangeRate),
+                      Flexible(child: Text(l10n.refreshExchangeRate)),
                     ],
                   ),
                 ),
@@ -217,7 +218,10 @@ class _InvoiceDetailScreenState extends ConsumerState<InvoiceDetailScreen> {
       ),
       body: invoiceAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (err, _) => AppErrorState(error: err, onRetry: () => ref.invalidate(invoiceByIdProvider(widget.invoiceId))),
+        error: (err, _) => AppErrorState(
+          error: err,
+          onRetry: () => ref.invalidate(invoiceByIdProvider(widget.invoiceId)),
+        ),
         data: (invoice) {
           if (invoice == null) {
             return Center(child: Text(l10n.notFound));
@@ -248,10 +252,7 @@ class _InvoiceDetailScreenState extends ConsumerState<InvoiceDetailScreen> {
                         showMxn: _showMxn,
                       ),
                 const SizedBox(height: 16),
-                InvoiceDetailSummaryCard(
-                  invoice: invoice,
-                  showMxn: _showMxn,
-                ),
+                InvoiceDetailSummaryCard(invoice: invoice, showMxn: _showMxn),
                 const SizedBox(height: 24),
                 if (_isEditing) ...[
                   Row(
@@ -270,8 +271,9 @@ class _InvoiceDetailScreenState extends ConsumerState<InvoiceDetailScreen> {
                               ? const SizedBox(
                                   width: 20,
                                   height: 20,
-                                  child:
-                                      CircularProgressIndicator(strokeWidth: 2),
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                  ),
                                 )
                               : Text(l10n.save),
                         ),
@@ -286,10 +288,11 @@ class _InvoiceDetailScreenState extends ConsumerState<InvoiceDetailScreen> {
                           onPressed: _isFileActionRunning
                               ? null
                               : () => _runFileAction(() async {
-                                    await InvoicePdfService.generateAndShare(
-                                        invoice);
-                                    return null;
-                                  }),
+                                  await InvoicePdfService.generateAndShare(
+                                    invoice,
+                                  );
+                                  return null;
+                                }),
                           icon: const Icon(Icons.picture_as_pdf_outlined),
                           label: Text(l10n.exportPdf),
                         ),
@@ -300,10 +303,11 @@ class _InvoiceDetailScreenState extends ConsumerState<InvoiceDetailScreen> {
                           onPressed: _isFileActionRunning
                               ? null
                               : () => _runFileAction(() async {
-                                    await InvoiceExcelService.generateAndShare(
-                                        invoice);
-                                    return null;
-                                  }),
+                                  await InvoiceExcelService.generateAndShare(
+                                    invoice,
+                                  );
+                                  return null;
+                                }),
                           icon: const Icon(Icons.table_chart_outlined),
                           label: Text(l10n.exportExcel),
                         ),
@@ -318,11 +322,12 @@ class _InvoiceDetailScreenState extends ConsumerState<InvoiceDetailScreen> {
                           onPressed: _isFileActionRunning
                               ? null
                               : () => _runFileAction(() async {
-                                    final file =
-                                        await InvoicePdfService.downloadAndOpen(
-                                            invoice);
-                                    return 'Downloaded PDF: ${file.path}';
-                                  }),
+                                  final file =
+                                      await InvoicePdfService.downloadAndOpen(
+                                        invoice,
+                                      );
+                                  return 'Downloaded PDF: ${file.path}';
+                                }),
                           icon: const Icon(Icons.download_outlined),
                           label: Text(l10n.downloadPdf),
                         ),
@@ -333,14 +338,17 @@ class _InvoiceDetailScreenState extends ConsumerState<InvoiceDetailScreen> {
                           onPressed: _isFileActionRunning
                               ? null
                               : () => _runFileAction(() async {
-                                    final file = await InvoiceExcelService
-                                        .downloadAndOpen(invoice);
-                                    if (file == null) {
-                                      throw StateError(
-                                          'Excel generation returned no data');
-                                    }
-                                    return 'Downloaded Excel: ${file.path}';
-                                  }),
+                                  final file =
+                                      await InvoiceExcelService.downloadAndOpen(
+                                        invoice,
+                                      );
+                                  if (file == null) {
+                                    throw StateError(
+                                      'Excel generation returned no data',
+                                    );
+                                  }
+                                  return 'Downloaded Excel: ${file.path}';
+                                }),
                           icon: const Icon(Icons.download_outlined),
                           label: Text(l10n.downloadExcel),
                         ),
@@ -360,18 +368,22 @@ class _InvoiceDetailScreenState extends ConsumerState<InvoiceDetailScreen> {
                           ..hideCurrentSnackBar()
                           ..showSnackBar(
                             SnackBar(
-                              content: Text(success
-                                  ? l10n.invoiceMarkedPaid
-                                  : 'Could not mark invoice paid.'),
-                              backgroundColor:
-                                  success ? AppColors.success : AppColors.error,
+                              content: Text(
+                                success
+                                    ? l10n.invoiceMarkedPaid
+                                    : 'Could not mark invoice paid.',
+                              ),
+                              backgroundColor: success
+                                  ? AppColors.success
+                                  : AppColors.error,
                             ),
                           );
                       },
                       icon: const Icon(Icons.check_circle),
                       label: Text(l10n.markPaid),
                       style: ElevatedButton.styleFrom(
-                          backgroundColor: AppColors.success),
+                        backgroundColor: AppColors.success,
+                      ),
                     ),
                 ],
               ],

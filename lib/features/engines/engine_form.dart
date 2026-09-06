@@ -1,3 +1,4 @@
+import 'package:vortice_app/core/app_dropdown_field.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:vortice_app/core/theme.dart';
@@ -31,8 +32,9 @@ class _EngineFormState extends ConsumerState<EngineForm> {
     super.initState();
     _makeCtrl = TextEditingController(text: widget.engine?.make ?? '');
     _modelCtrl = TextEditingController(text: widget.engine?.model ?? '');
-    _serialCtrl =
-        TextEditingController(text: widget.engine?.serialNumber ?? '');
+    _serialCtrl = TextEditingController(
+      text: widget.engine?.serialNumber ?? '',
+    );
     _kind = normalizeEngineKind(widget.engine?.kind);
   }
 
@@ -61,8 +63,9 @@ class _EngineFormState extends ConsumerState<EngineForm> {
           .read(engineControllerProvider.notifier)
           .updateEngine(widget.engine!.id, widget.assetId, data);
     } else {
-      success =
-          await ref.read(engineControllerProvider.notifier).addEngine(data);
+      success = await ref
+          .read(engineControllerProvider.notifier)
+          .addEngine(data);
     }
     if (success && mounted) Navigator.pop(context);
   }
@@ -75,7 +78,13 @@ class _EngineFormState extends ConsumerState<EngineForm> {
 
     return Padding(
       padding: EdgeInsets.fromLTRB(
-          16, 16, 16, MediaQuery.of(context).viewInsets.bottom + 16),
+        16,
+        16,
+        16,
+        MediaQuery.of(context).viewInsets.bottom +
+            MediaQuery.paddingOf(context).bottom +
+            16,
+      ),
       child: Form(
         key: _formKey,
         child: SingleChildScrollView(
@@ -99,15 +108,17 @@ class _EngineFormState extends ConsumerState<EngineForm> {
                 style: Theme.of(context).textTheme.titleLarge,
               ),
               const SizedBox(height: 16),
-              DropdownButtonFormField<String>(
+              AppDropdownField<String>(
                 initialValue: _kind,
                 decoration: const InputDecoration(labelText: 'Title'),
                 dropdownColor: AppColors.surfaceVariant,
                 items: kEngineKindOptions
-                    .map((option) => DropdownMenuItem(
-                          value: option.value,
-                          child: Text(option.suggestedLabel),
-                        ))
+                    .map(
+                      (option) => DropdownMenuItem(
+                        value: option.value,
+                        child: Text(option.suggestedLabel),
+                      ),
+                    )
                     .toList(),
                 onChanged: (v) {
                   if (v == null) return;
@@ -132,10 +143,7 @@ class _EngineFormState extends ConsumerState<EngineForm> {
               const SizedBox(height: 12),
               const Text(
                 'Hours are pulled from the most recent work order for this engine.',
-                style: TextStyle(
-                  color: AppColors.textSecondary,
-                  fontSize: 12,
-                ),
+                style: TextStyle(color: AppColors.textSecondary, fontSize: 12),
               ),
               const SizedBox(height: 20),
               ElevatedButton(

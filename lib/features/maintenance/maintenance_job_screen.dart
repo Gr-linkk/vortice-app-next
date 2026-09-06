@@ -1,3 +1,4 @@
+import 'package:vortice_app/core/app_dropdown_field.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -563,15 +564,18 @@ class _JobActionDialogState extends State<_JobActionDialog> {
   Widget build(BuildContext context) {
     final es = isSpanish(context);
     return AlertDialog(
+      insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
       title: Text(widget.title),
       content: SingleChildScrollView(
         child: Form(
           key: _form,
           child: Column(
             mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            spacing: 16,
             children: [
               if (widget.action == 'assign')
-                DropdownButtonFormField<String>(
+                AppDropdownField<String>(
                   isExpanded: true,
                   decoration: InputDecoration(
                     labelText: es ? 'Responsable' : 'Assigned to',

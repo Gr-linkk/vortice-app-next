@@ -1,3 +1,4 @@
+import 'package:vortice_app/core/app_dropdown_field.dart';
 import 'package:vortice_app/core/unsaved_form_guard.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -108,7 +109,7 @@ class _FaultReportScreenState extends ConsumerState<FaultReportScreen> {
                       style: const TextStyle(color: AppColors.textSecondary),
                     ),
                     const SizedBox(height: 24),
-                    DropdownButtonFormField<String>(
+                    AppDropdownField<String>(
                       initialValue: selected?.id,
                       isExpanded: true,
                       decoration: InputDecoration(

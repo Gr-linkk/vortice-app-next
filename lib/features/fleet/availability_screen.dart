@@ -1,3 +1,4 @@
+import 'package:vortice_app/core/app_dropdown_field.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -311,7 +312,7 @@ class _AvailabilityEditSheetState extends ConsumerState<AvailabilityEditSheet> {
                   const SizedBox(height: 8),
                   Text(widget.asset.name),
                   const SizedBox(height: 20),
-                  DropdownButtonFormField<OperatingState>(
+                  AppDropdownField<OperatingState>(
                     initialValue: _state,
                     isExpanded: true,
                     decoration: InputDecoration(

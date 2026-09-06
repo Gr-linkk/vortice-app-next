@@ -95,7 +95,7 @@ class AppShell extends ConsumerWidget {
         return true;
       },
       child: Scaffold(
-        body: child,
+        body: SafeArea(top: false, child: child),
         bottomNavigationBar: hideBottomNavigation
             ? null
             : Container(

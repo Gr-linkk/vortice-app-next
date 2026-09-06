@@ -1,3 +1,4 @@
+import 'package:vortice_app/core/app_dropdown_field.dart';
 import 'package:flutter/material.dart';
 import 'package:vortice_app/core/theme.dart';
 import 'package:vortice_app/features/service_requests/service_request_form_support.dart';
@@ -17,7 +18,7 @@ class ServiceRequestFormAssetField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return DropdownButtonFormField<String>(
+    return AppDropdownField<String>(
       initialValue: value,
       decoration: const InputDecoration(
         hintText: 'Select asset',

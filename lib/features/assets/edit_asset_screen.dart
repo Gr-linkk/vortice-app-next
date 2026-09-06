@@ -1,3 +1,4 @@
+import 'package:vortice_app/core/app_dropdown_field.dart';
 import 'package:vortice_app/core/user_feedback.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -74,10 +75,12 @@ class _EditAssetScreenState extends ConsumerState<EditAssetScreen> {
       'name': _nameCtrl.text.trim(),
       'client_id': _selectedClientId,
       'asset_type_id': _selectedAssetTypeId,
-      'serial_number':
-          _serialCtrl.text.trim().isNotEmpty ? _serialCtrl.text.trim() : null,
-      'model':
-          _modelCtrl.text.trim().isNotEmpty ? _modelCtrl.text.trim() : null,
+      'serial_number': _serialCtrl.text.trim().isNotEmpty
+          ? _serialCtrl.text.trim()
+          : null,
+      'model': _modelCtrl.text.trim().isNotEmpty
+          ? _modelCtrl.text.trim()
+          : null,
       'make': _manufacturerCtrl.text.trim().isNotEmpty
           ? _manufacturerCtrl.text.trim()
           : null,
@@ -87,8 +90,9 @@ class _EditAssetScreenState extends ConsumerState<EditAssetScreen> {
       'location': _locationCtrl.text.trim().isNotEmpty
           ? _locationCtrl.text.trim()
           : null,
-      'notes':
-          _notesCtrl.text.trim().isNotEmpty ? _notesCtrl.text.trim() : null,
+      'notes': _notesCtrl.text.trim().isNotEmpty
+          ? _notesCtrl.text.trim()
+          : null,
     };
 
     final success = await ref
@@ -129,7 +133,7 @@ class _EditAssetScreenState extends ConsumerState<EditAssetScreen> {
                   err.toString(),
                   style: const TextStyle(color: AppColors.error),
                 ),
-                data: (clients) => DropdownButtonFormField<String>(
+                data: (clients) => AppDropdownField<String>(
                   initialValue: _selectedClientId,
                   decoration: const InputDecoration(
                     labelText: 'Assigned Client',
@@ -137,13 +141,15 @@ class _EditAssetScreenState extends ConsumerState<EditAssetScreen> {
                   ),
                   dropdownColor: AppColors.surfaceVariant,
                   items: clients
-                      .map((c) => DropdownMenuItem(
-                            value: c.id,
-                            child: Text(
-                              c.fullName.isNotEmpty ? c.fullName : c.email,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ))
+                      .map(
+                        (c) => DropdownMenuItem(
+                          value: c.id,
+                          child: Text(
+                            c.fullName.isNotEmpty ? c.fullName : c.email,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      )
                       .toList(),
                   onChanged: (v) => setState(() => _selectedClientId = v),
                   validator: (v) => v == null ? 'Please select a client' : null,
@@ -154,7 +160,7 @@ class _EditAssetScreenState extends ConsumerState<EditAssetScreen> {
               assetTypesAsync.when(
                 loading: () => const LinearProgressIndicator(),
                 error: (_, __) => const SizedBox.shrink(),
-                data: (types) => DropdownButtonFormField<String>(
+                data: (types) => AppDropdownField<String>(
                   initialValue: _selectedAssetTypeId,
                   decoration: InputDecoration(
                     labelText: l10n.assetType,
@@ -162,10 +168,10 @@ class _EditAssetScreenState extends ConsumerState<EditAssetScreen> {
                   ),
                   dropdownColor: AppColors.surfaceVariant,
                   items: types
-                      .map((t) => DropdownMenuItem(
-                            value: t.id,
-                            child: Text(t.name),
-                          ))
+                      .map(
+                        (t) =>
+                            DropdownMenuItem(value: t.id, child: Text(t.name)),
+                      )
                       .toList(),
                   onChanged: (v) => setState(() => _selectedAssetTypeId = v),
                   validator: (v) => v == null ? l10n.fieldRequired : null,

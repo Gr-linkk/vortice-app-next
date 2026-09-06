@@ -1,3 +1,4 @@
+import 'package:vortice_app/core/app_dropdown_field.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:uuid/uuid.dart';
@@ -155,7 +156,7 @@ class _MaintenanceSetupScreenState
       bool required = true,
     }) => Padding(
       padding: const EdgeInsets.only(bottom: 16),
-      child: DropdownButtonFormField<String>(
+      child: AppDropdownField<String>(
         initialValue: _values[key] as String?,
         isExpanded: true,
         decoration: InputDecoration(labelText: es ? spanish : en),

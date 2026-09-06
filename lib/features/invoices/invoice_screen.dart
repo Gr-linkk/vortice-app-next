@@ -1,3 +1,4 @@
+import 'package:vortice_app/core/app_dropdown_field.dart';
 import 'package:vortice_app/core/user_feedback.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -27,43 +28,57 @@ class InvoiceScreen extends ConsumerWidget {
         .from(AppConstants.tWorkOrders)
         .select('id, title, status')
         .inFilter('status', [
-      WorkOrderStatus.pendingReview.dbValue,
-      WorkOrderStatus.closed.dbValue,
-    ]);
+          WorkOrderStatus.pendingReview.dbValue,
+          WorkOrderStatus.closed.dbValue,
+        ]);
 
     if (!context.mounted) return;
 
     String? selectedWoId;
     await showModalBottomSheet(
       context: context,
+      isScrollControlled: true,
       backgroundColor: AppColors.surface,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
       ),
       builder: (ctx) => StatefulBuilder(
-        builder: (ctx, setSheetState) => Padding(
-          padding: const EdgeInsets.all(20),
+        builder: (ctx, setSheetState) => SingleChildScrollView(
+          padding: EdgeInsets.fromLTRB(
+            20,
+            20,
+            20,
+            20 + MediaQuery.paddingOf(ctx).bottom,
+          ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Text(l10n.selectWorkOrderForInvoice,
-                  style: Theme.of(ctx).textTheme.titleMedium),
+              Text(
+                l10n.selectWorkOrderForInvoice,
+                style: Theme.of(ctx).textTheme.titleMedium,
+              ),
               const SizedBox(height: 16),
               if ((woData as List).isEmpty)
-                Text(l10n.noCompletedWorkOrders,
-                    style: const TextStyle(color: AppColors.textSecondary))
+                Text(
+                  l10n.noCompletedWorkOrders,
+                  style: const TextStyle(color: AppColors.textSecondary),
+                )
               else
-                DropdownButtonFormField<String>(
+                AppDropdownField<String>(
                   initialValue: selectedWoId,
                   decoration: const InputDecoration(),
                   dropdownColor: AppColors.surfaceVariant,
                   items: (woData as List)
-                      .map((w) => DropdownMenuItem<String>(
-                            value: w['id'] as String,
-                            child: Text(w['title'] as String,
-                                overflow: TextOverflow.ellipsis),
-                          ))
+                      .map(
+                        (w) => DropdownMenuItem<String>(
+                          value: w['id'] as String,
+                          child: Text(
+                            w['title'] as String,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      )
                       .toList(),
                   onChanged: (v) => setSheetState(() => selectedWoId = v),
                 ),
@@ -88,13 +103,14 @@ class InvoiceScreen extends ConsumerWidget {
                             );
                           final basePath =
                               ref.read(profileProvider).valueOrNull?.role ==
-                                      UserRole.owner
-                                  ? '/owner'
-                                  : '/client';
+                                  UserRole.owner
+                              ? '/owner'
+                              : '/client';
                           context.push('$basePath/invoices/$newId');
                         } else {
-                          final error =
-                              ref.read(invoiceControllerProvider).error;
+                          final error = ref
+                              .read(invoiceControllerProvider)
+                              .error;
                           ScaffoldMessenger.of(context)
                             ..hideCurrentSnackBar()
                             ..showSnackBar(
@@ -142,8 +158,10 @@ class InvoiceScreen extends ConsumerWidget {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Text(friendlyError(context, err),
-                  style: const TextStyle(color: AppColors.error)),
+              Text(
+                friendlyError(context, err),
+                style: const TextStyle(color: AppColors.error),
+              ),
               const SizedBox(height: 12),
               ElevatedButton(
                 onPressed: () => ref.invalidate(invoicesProvider),
@@ -155,21 +173,27 @@ class InvoiceScreen extends ConsumerWidget {
         data: (invoices) {
           if (invoices.isEmpty) {
             return Center(
-              child: Text(l10n.noInvoices,
-                  style: const TextStyle(color: AppColors.textSecondary)),
+              child: Text(
+                l10n.noInvoices,
+                style: const TextStyle(color: AppColors.textSecondary),
+              ),
             );
           }
 
           // Group by status
           final unpaid = invoices
-              .where((i) =>
-                  i.status == InvoiceStatus.sent ||
-                  i.status == InvoiceStatus.draft)
+              .where(
+                (i) =>
+                    i.status == InvoiceStatus.sent ||
+                    i.status == InvoiceStatus.draft,
+              )
               .toList();
-          final paid =
-              invoices.where((i) => i.status == InvoiceStatus.paid).toList();
-          final voided =
-              invoices.where((i) => i.status == InvoiceStatus.voided).toList();
+          final paid = invoices
+              .where((i) => i.status == InvoiceStatus.paid)
+              .toList();
+          final voided = invoices
+              .where((i) => i.status == InvoiceStatus.voided)
+              .toList();
 
           return RefreshIndicator(
             onRefresh: () async => ref.invalidate(invoicesProvider),
@@ -185,7 +209,9 @@ class InvoiceScreen extends ConsumerWidget {
                 ],
                 if (voided.isNotEmpty) ...[
                   const _SectionHeader(
-                      label: 'VOIDED', color: AppColors.textSecondary),
+                    label: 'VOIDED',
+                    color: AppColors.textSecondary,
+                  ),
                   ...voided.map((i) => _InvoiceTile(invoice: i)),
                 ],
               ],
@@ -209,10 +235,9 @@ class _SectionHeader extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(16, 20, 16, 6),
       child: Text(
         label.toUpperCase(),
-        style: Theme.of(context).textTheme.labelSmall?.copyWith(
-              color: color,
-              letterSpacing: 1.2,
-            ),
+        style: Theme.of(
+          context,
+        ).textTheme.labelSmall?.copyWith(color: color, letterSpacing: 1.2),
       ),
     );
   }
@@ -223,11 +248,11 @@ class _InvoiceTile extends ConsumerWidget {
   const _InvoiceTile({required this.invoice});
 
   Color _statusColor() => switch (invoice.status) {
-        InvoiceStatus.paid => AppColors.success,
-        InvoiceStatus.sent => AppColors.warning,
-        InvoiceStatus.draft => AppColors.textSecondary,
-        InvoiceStatus.voided => AppColors.textSecondary,
-      };
+    InvoiceStatus.paid => AppColors.success,
+    InvoiceStatus.sent => AppColors.warning,
+    InvoiceStatus.draft => AppColors.textSecondary,
+    InvoiceStatus.voided => AppColors.textSecondary,
+  };
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -255,8 +280,8 @@ class _InvoiceTile extends ConsumerWidget {
             invoice.status == InvoiceStatus.paid
                 ? Icons.check_circle
                 : invoice.status == InvoiceStatus.voided
-                    ? Icons.cancel
-                    : Icons.receipt_long,
+                ? Icons.cancel
+                : Icons.receipt_long,
             color: _statusColor(),
             size: 20,
           ),
@@ -280,7 +305,9 @@ class _InvoiceTile extends ConsumerWidget {
               Text(
                 '\$${invoice.totalMxn!.toStringAsFixed(2)} MXN',
                 style: const TextStyle(
-                    color: AppColors.textSecondary, fontSize: 11),
+                  color: AppColors.textSecondary,
+                  fontSize: 11,
+                ),
               ),
           ],
         ),
@@ -295,11 +322,14 @@ class _InvoiceTile extends ConsumerWidget {
                     ..hideCurrentSnackBar()
                     ..showSnackBar(
                       SnackBar(
-                        content: Text(success
-                            ? l10n.invoiceMarkedPaid
-                            : 'Could not mark invoice paid.'),
-                        backgroundColor:
-                            success ? AppColors.success : AppColors.error,
+                        content: Text(
+                          success
+                              ? l10n.invoiceMarkedPaid
+                              : 'Could not mark invoice paid.',
+                        ),
+                        backgroundColor: success
+                            ? AppColors.success
+                            : AppColors.error,
                       ),
                     );
                 },
@@ -314,9 +344,10 @@ class _InvoiceTile extends ConsumerWidget {
                 child: Text(
                   statusLabel,
                   style: TextStyle(
-                      color: _statusColor(),
-                      fontSize: 11,
-                      fontWeight: FontWeight.bold),
+                    color: _statusColor(),
+                    fontSize: 11,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
               ),
         isThreeLine: true,

@@ -1,3 +1,4 @@
+import 'package:vortice_app/core/app_dropdown_field.dart';
 import 'package:vortice_app/core/user_feedback.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -39,15 +40,23 @@ class _OrgAdminAssignChecklistSheetState
 
     final templates = _checklistType == 'pm' ? pmAsync : preOpAsync;
 
-    return Padding(
+    return SingleChildScrollView(
       padding: EdgeInsets.fromLTRB(
-          16, 16, 16, MediaQuery.of(context).viewInsets.bottom + 24),
+        16,
+        16,
+        16,
+        MediaQuery.of(context).viewInsets.bottom +
+            MediaQuery.paddingOf(context).bottom +
+            24,
+      ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          const Text('Assign Checklist',
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+          const Text(
+            'Assign Checklist',
+            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+          ),
           const SizedBox(height: 16),
 
           SegmentedButton<String>(
@@ -67,19 +76,22 @@ class _OrgAdminAssignChecklistSheetState
           templates.when(
             loading: () => const LinearProgressIndicator(),
             error: (_, __) => const SizedBox.shrink(),
-            data: (list) => DropdownButtonFormField<String>(
+            data: (list) => AppDropdownField<String>(
               initialValue: _selectedTemplateId,
-              decoration:
-                  const InputDecoration(labelText: 'Checklist template'),
+              decoration: const InputDecoration(
+                labelText: 'Checklist template',
+              ),
               dropdownColor: AppColors.surfaceVariant,
               items: list
-                  .map((t) => DropdownMenuItem(
-                        value: t['id'] as String,
-                        child: Text(
-                          t['name'] as String? ?? '',
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ))
+                  .map(
+                    (t) => DropdownMenuItem(
+                      value: t['id'] as String,
+                      child: Text(
+                        t['name'] as String? ?? '',
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  )
                   .toList(),
               onChanged: (v) => setState(() => _selectedTemplateId = v),
             ),
@@ -90,20 +102,25 @@ class _OrgAdminAssignChecklistSheetState
             loading: () => const LinearProgressIndicator(),
             error: (_, __) => const SizedBox.shrink(),
             data: (members) {
-              final filtered =
-                  filterMembersForChecklistType(members, _checklistType);
-              return DropdownButtonFormField<String>(
+              final filtered = filterMembersForChecklistType(
+                members,
+                _checklistType,
+              );
+              return AppDropdownField<String>(
                 initialValue: _selectedMemberId,
                 decoration: InputDecoration(
-                    labelText: _checklistType == 'pm'
-                        ? 'Assign to mechanic'
-                        : 'Assign to operator'),
+                  labelText: _checklistType == 'pm'
+                      ? 'Assign to mechanic'
+                      : 'Assign to operator',
+                ),
                 dropdownColor: AppColors.surfaceVariant,
                 items: filtered
-                    .map((m) => DropdownMenuItem(
-                          value: m.id,
-                          child: Text(m.fullName),
-                        ))
+                    .map(
+                      (m) => DropdownMenuItem(
+                        value: m.id,
+                        child: Text(m.fullName),
+                      ),
+                    )
                     .toList(),
                 onChanged: (v) => setState(() => _selectedMemberId = v),
               );
@@ -114,16 +131,15 @@ class _OrgAdminAssignChecklistSheetState
           assetsAsync.when(
             loading: () => const LinearProgressIndicator(),
             error: (_, __) => const SizedBox.shrink(),
-            data: (assets) => DropdownButtonFormField<String>(
+            data: (assets) => AppDropdownField<String>(
               initialValue: _selectedAssetId,
               decoration: const InputDecoration(labelText: 'Vessel (optional)'),
               dropdownColor: AppColors.surfaceVariant,
               items: [
                 const DropdownMenuItem(value: null, child: Text('No vessel')),
-                ...assets.map((a) => DropdownMenuItem(
-                      value: a.id,
-                      child: Text(a.name),
-                    )),
+                ...assets.map(
+                  (a) => DropdownMenuItem(value: a.id, child: Text(a.name)),
+                ),
               ],
               onChanged: (v) => setState(() => _selectedAssetId = v),
             ),
@@ -131,7 +147,8 @@ class _OrgAdminAssignChecklistSheetState
           const SizedBox(height: 24),
 
           ElevatedButton(
-            onPressed: _submitting ||
+            onPressed:
+                _submitting ||
                     _selectedTemplateId == null ||
                     _selectedMemberId == null
                 ? null
@@ -141,7 +158,10 @@ class _OrgAdminAssignChecklistSheetState
                     height: 16,
                     width: 16,
                     child: CircularProgressIndicator(
-                        strokeWidth: 2, color: Colors.white))
+                      strokeWidth: 2,
+                      color: Colors.white,
+                    ),
+                  )
                 : const Text('Assign'),
           ),
         ],
@@ -165,7 +185,9 @@ class _OrgAdminAssignChecklistSheetState
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-              content: Text(friendlyError(context, e)), backgroundColor: AppColors.error),
+            content: Text(friendlyError(context, e)),
+            backgroundColor: AppColors.error,
+          ),
         );
       }
     } finally {

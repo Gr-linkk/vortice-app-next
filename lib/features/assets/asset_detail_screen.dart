@@ -61,8 +61,10 @@ class AssetDetailScreen extends ConsumerWidget {
                         ),
                         TextButton(
                           onPressed: () => ctx.pop(true),
-                          child: Text(l10n.delete,
-                              style: const TextStyle(color: AppColors.error)),
+                          child: Text(
+                            l10n.delete,
+                            style: const TextStyle(color: AppColors.error),
+                          ),
                         ),
                       ],
                     ),
@@ -80,11 +82,18 @@ class AssetDetailScreen extends ConsumerWidget {
                   value: 'delete',
                   child: Row(
                     children: [
-                      const Icon(Icons.delete_outline,
-                          color: AppColors.error, size: 18),
+                      const Icon(
+                        Icons.delete_outline,
+                        color: AppColors.error,
+                        size: 18,
+                      ),
                       const SizedBox(width: 8),
-                      Text(l10n.delete,
-                          style: const TextStyle(color: AppColors.error)),
+                      Flexible(
+                        child: Text(
+                          l10n.delete,
+                          style: const TextStyle(color: AppColors.error),
+                        ),
+                      ),
                     ],
                   ),
                 ),
@@ -94,7 +103,10 @@ class AssetDetailScreen extends ConsumerWidget {
       ),
       body: assetAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (err, _) => AppErrorState(error: err, onRetry: () => ref.invalidate(assetByIdProvider(assetId))),
+        error: (err, _) => AppErrorState(
+          error: err,
+          onRetry: () => ref.invalidate(assetByIdProvider(assetId)),
+        ),
         data: (asset) {
           if (asset == null) {
             return Center(child: Text(l10n.assetNotFound));

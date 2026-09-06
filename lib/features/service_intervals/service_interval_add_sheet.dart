@@ -1,3 +1,4 @@
+import 'package:vortice_app/core/app_dropdown_field.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:vortice_app/core/theme.dart';
@@ -53,8 +54,9 @@ class _ServiceIntervalAddSheetState
     if (success && mounted) {
       Navigator.pop(context);
     } else if (!success && mounted) {
-      final error =
-          ref.read(serviceIntervalControllerProvider.notifier).lastError;
+      final error = ref
+          .read(serviceIntervalControllerProvider.notifier)
+          .lastError;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(error ?? 'Failed to save interval. Try again.'),
@@ -122,8 +124,9 @@ class _ServiceIntervalAddSheetState
                 const SizedBox(height: 12),
                 TextFormField(
                   controller: _nextDueCtrl,
-                  keyboardType:
-                      const TextInputType.numberWithOptions(decimal: true),
+                  keyboardType: const TextInputType.numberWithOptions(
+                    decimal: true,
+                  ),
                   decoration: const InputDecoration(
                     labelText: 'Due Hours (optional)',
                     helperText:
@@ -132,7 +135,7 @@ class _ServiceIntervalAddSheetState
                   ),
                 ),
                 const SizedBox(height: 12),
-                DropdownButtonFormField<ChecklistTemplate?>(
+                AppDropdownField<ChecklistTemplate?>(
                   initialValue: _selectedTemplate,
                   isExpanded: true,
                   decoration: InputDecoration(
@@ -146,15 +149,17 @@ class _ServiceIntervalAddSheetState
                   items: [
                     const DropdownMenuItem<ChecklistTemplate?>(
                       value: null,
-                      child: Text('— No template —',
-                          style: TextStyle(color: AppColors.textSecondary)),
+                      child: Text(
+                        '— No template —',
+                        style: TextStyle(color: AppColors.textSecondary),
+                      ),
                     ),
-                    ...templates
-                        .map((t) => DropdownMenuItem<ChecklistTemplate?>(
-                              value: t,
-                              child:
-                                  Text(t.name, overflow: TextOverflow.ellipsis),
-                            )),
+                    ...templates.map(
+                      (t) => DropdownMenuItem<ChecklistTemplate?>(
+                        value: t,
+                        child: Text(t.name, overflow: TextOverflow.ellipsis),
+                      ),
+                    ),
                   ],
                   onChanged: (t) => setState(() => _selectedTemplate = t),
                 ),
@@ -166,7 +171,9 @@ class _ServiceIntervalAddSheetState
                           width: 16,
                           height: 16,
                           child: CircularProgressIndicator(
-                              strokeWidth: 2, color: Colors.white),
+                            strokeWidth: 2,
+                            color: Colors.white,
+                          ),
                         )
                       : const Icon(Icons.save),
                   label: const Text('Save'),

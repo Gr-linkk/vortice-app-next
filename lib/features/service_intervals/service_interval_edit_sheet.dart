@@ -1,3 +1,4 @@
+import 'package:vortice_app/core/app_dropdown_field.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:vortice_app/core/theme.dart';
@@ -35,8 +36,9 @@ class _ServiceIntervalEditSheetState
     super.initState();
     final interval = widget.summary.interval;
     _labelCtrl = TextEditingController(text: interval.label ?? '');
-    _hoursCtrl =
-        TextEditingController(text: interval.intervalHours.toInt().toString());
+    _hoursCtrl = TextEditingController(
+      text: interval.intervalHours.toInt().toString(),
+    );
     _nextDueCtrl = TextEditingController(
       text: widget.summary.nextDueHours?.toStringAsFixed(0) ?? '',
     );
@@ -63,7 +65,8 @@ class _ServiceIntervalEditSheetState
           assetId: widget.assetId,
           intervalHours: hours,
           checklistTemplateId: _selectedTemplate?.id,
-          clearChecklistTemplate: _selectedTemplate == null &&
+          clearChecklistTemplate:
+              _selectedTemplate == null &&
               widget.summary.interval.checklistTemplateId != null,
           label: _labelCtrl.text.trim(),
           enabled: _enabled,
@@ -73,8 +76,9 @@ class _ServiceIntervalEditSheetState
     if (success && mounted) {
       Navigator.pop(context);
     } else if (!success && mounted) {
-      final error =
-          ref.read(serviceIntervalControllerProvider.notifier).lastError;
+      final error = ref
+          .read(serviceIntervalControllerProvider.notifier)
+          .lastError;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(error ?? 'Failed to update interval. Try again.'),
@@ -143,8 +147,9 @@ class _ServiceIntervalEditSheetState
                 const SizedBox(height: 12),
                 TextFormField(
                   controller: _nextDueCtrl,
-                  keyboardType:
-                      const TextInputType.numberWithOptions(decimal: true),
+                  keyboardType: const TextInputType.numberWithOptions(
+                    decimal: true,
+                  ),
                   decoration: const InputDecoration(
                     labelText: 'Due Hours',
                     helperText:
@@ -153,43 +158,51 @@ class _ServiceIntervalEditSheetState
                   ),
                 ),
                 const SizedBox(height: 12),
-                Builder(builder: (context) {
-                  _selectedTemplate ??= templates
-                      .where((t) => t.id == interval.checklistTemplateId)
-                      .firstOrNull;
-                  return DropdownButtonFormField<ChecklistTemplate?>(
-                    initialValue: _selectedTemplate,
-                    isExpanded: true,
-                    decoration: InputDecoration(
-                      labelText: 'Checklist Template (optional)',
-                      helperText: templates.isEmpty
-                          ? 'No maintenance templates match this asset yet.'
-                          : 'Showing maintenance templates for this asset only.',
-                      prefixIcon: const Icon(Icons.checklist_outlined),
-                    ),
-                    dropdownColor: AppColors.surfaceVariant,
-                    items: [
-                      const DropdownMenuItem<ChecklistTemplate?>(
-                        value: null,
-                        child: Text('— No template —',
-                            style: TextStyle(color: AppColors.textSecondary)),
+                Builder(
+                  builder: (context) {
+                    _selectedTemplate ??= templates
+                        .where((t) => t.id == interval.checklistTemplateId)
+                        .firstOrNull;
+                    return AppDropdownField<ChecklistTemplate?>(
+                      initialValue: _selectedTemplate,
+                      isExpanded: true,
+                      decoration: InputDecoration(
+                        labelText: 'Checklist Template (optional)',
+                        helperText: templates.isEmpty
+                            ? 'No maintenance templates match this asset yet.'
+                            : 'Showing maintenance templates for this asset only.',
+                        prefixIcon: const Icon(Icons.checklist_outlined),
                       ),
-                      ...templates
-                          .map((t) => DropdownMenuItem<ChecklistTemplate?>(
-                                value: t,
-                                child: Text(t.name,
-                                    overflow: TextOverflow.ellipsis),
-                              )),
-                    ],
-                    onChanged: (t) => setState(() => _selectedTemplate = t),
-                  );
-                }),
+                      dropdownColor: AppColors.surfaceVariant,
+                      items: [
+                        const DropdownMenuItem<ChecklistTemplate?>(
+                          value: null,
+                          child: Text(
+                            '— No template —',
+                            style: TextStyle(color: AppColors.textSecondary),
+                          ),
+                        ),
+                        ...templates.map(
+                          (t) => DropdownMenuItem<ChecklistTemplate?>(
+                            value: t,
+                            child: Text(
+                              t.name,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        ),
+                      ],
+                      onChanged: (t) => setState(() => _selectedTemplate = t),
+                    );
+                  },
+                ),
                 const SizedBox(height: 8),
                 SwitchListTile.adaptive(
                   contentPadding: EdgeInsets.zero,
                   title: const Text('Visible to client'),
-                  subtitle:
-                      const Text('Hide intervals you do not want published.'),
+                  subtitle: const Text(
+                    'Hide intervals you do not want published.',
+                  ),
                   value: _enabled,
                   onChanged: isLoading
                       ? null
@@ -203,7 +216,9 @@ class _ServiceIntervalEditSheetState
                           width: 16,
                           height: 16,
                           child: CircularProgressIndicator(
-                              strokeWidth: 2, color: Colors.white),
+                            strokeWidth: 2,
+                            color: Colors.white,
+                          ),
                         )
                       : const Icon(Icons.save),
                   label: const Text('Save Changes'),

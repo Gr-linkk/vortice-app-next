@@ -1,3 +1,4 @@
+import 'package:vortice_app/core/app_dropdown_field.dart';
 import 'package:vortice_app/core/user_feedback.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -18,11 +19,7 @@ class ServiceIntervalScreen extends ConsumerStatefulWidget {
   final String? assetId;
   final bool readOnly;
 
-  const ServiceIntervalScreen({
-    super.key,
-    this.assetId,
-    this.readOnly = false,
-  });
+  const ServiceIntervalScreen({super.key, this.assetId, this.readOnly = false});
 
   @override
   ConsumerState<ServiceIntervalScreen> createState() =>
@@ -36,18 +33,21 @@ class _ServiceIntervalScreenState extends ConsumerState<ServiceIntervalScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final fixedAssetAsync =
-        _isFixedAsset ? ref.watch(assetByIdProvider(widget.assetId!)) : null;
+    final fixedAssetAsync = _isFixedAsset
+        ? ref.watch(assetByIdProvider(widget.assetId!))
+        : null;
     final assetsAsync = _isFixedAsset ? null : ref.watch(visibleAssetsProvider);
     ref.watch(checklistTemplatesProvider);
-    final activeAsset =
-        _isFixedAsset ? fixedAssetAsync?.valueOrNull : _selectedAsset;
+    final activeAsset = _isFixedAsset
+        ? fixedAssetAsync?.valueOrNull
+        : _selectedAsset;
     final activeAssetId = activeAsset?.id;
 
     final scaffold = Scaffold(
       appBar: AppBar(
-        title:
-            Text(widget.readOnly ? 'Parts & Maintenance' : 'Maintenance Plan'),
+        title: Text(
+          widget.readOnly ? 'Parts & Maintenance' : 'Maintenance Plan',
+        ),
       ),
       floatingActionButton: widget.readOnly || activeAssetId == null
           ? null
@@ -64,8 +64,10 @@ class _ServiceIntervalScreenState extends ConsumerState<ServiceIntervalScreen> {
               loading: () => const LinearProgressIndicator(),
               error: (err, _) => Padding(
                 padding: const EdgeInsets.all(16),
-                child: Text(friendlyError(context, err),
-                    style: const TextStyle(color: AppColors.error)),
+                child: Text(
+                  friendlyError(context, err),
+                  style: const TextStyle(color: AppColors.error),
+                ),
               ),
               data: (asset) => ServiceIntervalAssetHeader(asset: asset),
             )
@@ -74,9 +76,11 @@ class _ServiceIntervalScreenState extends ConsumerState<ServiceIntervalScreen> {
               padding: const EdgeInsets.all(16),
               child: assetsAsync!.when(
                 loading: () => const LinearProgressIndicator(),
-                error: (err, _) => Text(friendlyError(context, err),
-                    style: const TextStyle(color: AppColors.error)),
-                data: (assets) => DropdownButtonFormField<Asset>(
+                error: (err, _) => Text(
+                  friendlyError(context, err),
+                  style: const TextStyle(color: AppColors.error),
+                ),
+                data: (assets) => AppDropdownField<Asset>(
                   initialValue: _selectedAsset,
                   decoration: const InputDecoration(
                     labelText: 'Select Asset',
@@ -84,11 +88,12 @@ class _ServiceIntervalScreenState extends ConsumerState<ServiceIntervalScreen> {
                   ),
                   dropdownColor: AppColors.surfaceVariant,
                   items: assets
-                      .map((a) => DropdownMenuItem<Asset>(
-                            value: a,
-                            child:
-                                Text(a.name, overflow: TextOverflow.ellipsis),
-                          ))
+                      .map(
+                        (a) => DropdownMenuItem<Asset>(
+                          value: a,
+                          child: Text(a.name, overflow: TextOverflow.ellipsis),
+                        ),
+                      )
                       .toList(),
                   onChanged: (a) => setState(() => _selectedAsset = a),
                 ),
@@ -100,8 +105,11 @@ class _ServiceIntervalScreenState extends ConsumerState<ServiceIntervalScreen> {
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Icon(Icons.schedule,
-                            size: 56, color: AppColors.textSecondary),
+                        Icon(
+                          Icons.schedule,
+                          size: 56,
+                          color: AppColors.textSecondary,
+                        ),
                         SizedBox(height: 12),
                         Text(
                           'Select an asset to manage its\nservice intervals.',
@@ -117,11 +125,8 @@ class _ServiceIntervalScreenState extends ConsumerState<ServiceIntervalScreen> {
                     readOnly: widget.readOnly,
                     onEdit: widget.readOnly
                         ? null
-                        : (summary) => _showEditSheet(
-                              context,
-                              activeAsset!,
-                              summary,
-                            ),
+                        : (summary) =>
+                              _showEditSheet(context, activeAsset!, summary),
                   ),
           ),
         ],

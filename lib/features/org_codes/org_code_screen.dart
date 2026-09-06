@@ -1,3 +1,4 @@
+import 'package:vortice_app/core/app_dropdown_field.dart';
 import 'package:vortice_app/core/user_feedback.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -37,8 +38,10 @@ class OrgCodeScreen extends ConsumerWidget {
         data: (codes) {
           if (codes.isEmpty) {
             return Center(
-              child: Text(l10n.noOrgCodes,
-                  style: const TextStyle(color: AppColors.textSecondary)),
+              child: Text(
+                l10n.noOrgCodes,
+                style: const TextStyle(color: AppColors.textSecondary),
+              ),
             );
           }
           return RefreshIndicator(
@@ -62,8 +65,12 @@ class OrgCodeScreen extends ConsumerWidget {
     );
   }
 
-  void _confirmDelete(BuildContext context, WidgetRef ref,
-      AppLocalizations l10n, OrgCode code) async {
+  void _confirmDelete(
+    BuildContext context,
+    WidgetRef ref,
+    AppLocalizations l10n,
+    OrgCode code,
+  ) async {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -71,14 +78,13 @@ class OrgCodeScreen extends ConsumerWidget {
         title: Text(l10n.confirmDelete),
         content: Text(l10n.confirmDeleteMessage),
         actions: [
-          TextButton(
-            onPressed: () => ctx.pop(false),
-            child: Text(l10n.cancel),
-          ),
+          TextButton(onPressed: () => ctx.pop(false), child: Text(l10n.cancel)),
           TextButton(
             onPressed: () => ctx.pop(true),
-            child: Text(l10n.delete,
-                style: const TextStyle(color: AppColors.error)),
+            child: Text(
+              l10n.delete,
+              style: const TextStyle(color: AppColors.error),
+            ),
           ),
         ],
       ),
@@ -89,7 +95,10 @@ class OrgCodeScreen extends ConsumerWidget {
   }
 
   void _showCreateSheet(
-      BuildContext context, WidgetRef ref, AppLocalizations l10n) {
+    BuildContext context,
+    WidgetRef ref,
+    AppLocalizations l10n,
+  ) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -103,12 +112,12 @@ class OrgCodeScreen extends ConsumerWidget {
 }
 
 Color _roleColor(String role) => switch (role) {
-      'owner' => AppColors.success,
-      'employee' => AppColors.primary,
-      'client' => const Color(0xFF9C27B0),
-      'operator' => AppColors.warning,
-      _ => AppColors.textSecondary,
-    };
+  'owner' => AppColors.success,
+  'employee' => AppColors.primary,
+  'client' => const Color(0xFF9C27B0),
+  'operator' => AppColors.warning,
+  _ => AppColors.textSecondary,
+};
 
 class _OrgCodeTile extends StatelessWidget {
   final OrgCode code;
@@ -149,13 +158,19 @@ class _OrgCodeTile extends StatelessWidget {
             ),
             title: Row(
               children: [
-                Text(code.code,
-                    style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                        fontFamily: 'monospace', letterSpacing: 1.5)),
+                Text(
+                  code.code,
+                  style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                    fontFamily: 'monospace',
+                    letterSpacing: 1.5,
+                  ),
+                ),
                 const SizedBox(width: 8),
                 Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 6,
+                    vertical: 2,
+                  ),
                   decoration: BoxDecoration(
                     color: roleColor.withValues(alpha: 0.15),
                     borderRadius: BorderRadius.circular(4),
@@ -177,7 +192,9 @@ class _OrgCodeTile extends StatelessWidget {
                 Text(
                   '${code.useCount}/${code.maxUses} uses',
                   style: const TextStyle(
-                      color: AppColors.textSecondary, fontSize: 11),
+                    color: AppColors.textSecondary,
+                    fontSize: 11,
+                  ),
                 ),
                 if (code.expiresAt != null)
                   Text(
@@ -192,9 +209,13 @@ class _OrgCodeTile extends StatelessWidget {
                     ),
                   ),
                 if (code.notes != null && code.notes!.isNotEmpty)
-                  Text(code.notes!,
-                      style: const TextStyle(
-                          color: AppColors.textSecondary, fontSize: 11)),
+                  Text(
+                    code.notes!,
+                    style: const TextStyle(
+                      color: AppColors.textSecondary,
+                      fontSize: 11,
+                    ),
+                  ),
               ],
             ),
             isThreeLine: true,
@@ -269,7 +290,13 @@ class _OrgCodeFormState extends ConsumerState<_OrgCodeForm> {
 
     return Padding(
       padding: EdgeInsets.fromLTRB(
-          16, 16, 16, MediaQuery.of(context).viewInsets.bottom + 16),
+        16,
+        16,
+        16,
+        MediaQuery.of(context).viewInsets.bottom +
+            MediaQuery.paddingOf(context).bottom +
+            16,
+      ),
       child: Form(
         key: _formKey,
         child: SingleChildScrollView(
@@ -288,8 +315,10 @@ class _OrgCodeFormState extends ConsumerState<_OrgCodeForm> {
                 ),
               ),
               const SizedBox(height: 16),
-              Text(l10n.createOrgCode,
-                  style: Theme.of(context).textTheme.titleLarge),
+              Text(
+                l10n.createOrgCode,
+                style: Theme.of(context).textTheme.titleLarge,
+              ),
               const SizedBox(height: 16),
               TextFormField(
                 controller: _codeCtrl,
@@ -297,17 +326,20 @@ class _OrgCodeFormState extends ConsumerState<_OrgCodeForm> {
                   labelText: l10n.orgCode,
                   suffixIcon: IconButton(
                     icon: const Icon(Icons.refresh),
-                    onPressed: () => setState(() =>
-                        _codeCtrl.text = OrgCodeController.generateCode()),
+                    onPressed: () => setState(
+                      () => _codeCtrl.text = OrgCodeController.generateCode(),
+                    ),
                   ),
                 ),
                 style: const TextStyle(
-                    fontFamily: 'monospace', letterSpacing: 1.5),
+                  fontFamily: 'monospace',
+                  letterSpacing: 1.5,
+                ),
                 validator: (v) =>
                     (v == null || v.trim().isEmpty) ? l10n.fieldRequired : null,
               ),
               const SizedBox(height: 12),
-              DropdownButtonFormField<String>(
+              AppDropdownField<String>(
                 initialValue: _role,
                 decoration: InputDecoration(labelText: l10n.intendedRole),
                 dropdownColor: AppColors.surfaceVariant,
@@ -329,8 +361,10 @@ class _OrgCodeFormState extends ConsumerState<_OrgCodeForm> {
               SwitchListTile(
                 value: _singleUse,
                 onChanged: (v) => setState(() => _singleUse = v),
-                title:
-                    Text(l10n.singleUse, style: const TextStyle(fontSize: 14)),
+                title: Text(
+                  l10n.singleUse,
+                  style: const TextStyle(fontSize: 14),
+                ),
                 contentPadding: EdgeInsets.zero,
                 activeThumbColor: AppColors.primary,
               ),
@@ -347,8 +381,11 @@ class _OrgCodeFormState extends ConsumerState<_OrgCodeForm> {
                         : AppColors.textSecondary,
                   ),
                 ),
-                trailing: const Icon(Icons.calendar_today,
-                    color: AppColors.textSecondary, size: 20),
+                trailing: const Icon(
+                  Icons.calendar_today,
+                  color: AppColors.textSecondary,
+                  size: 20,
+                ),
                 onTap: _pickDate,
               ),
               const SizedBox(height: 8),

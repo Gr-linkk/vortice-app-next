@@ -1,3 +1,4 @@
+import 'package:vortice_app/core/app_dropdown_field.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:vortice_app/core/theme.dart';
@@ -44,8 +45,8 @@ class OperatorChecklistSelectionStep extends StatelessWidget {
             data: (assets) {
               final grouped = <String, List<Map<String, dynamic>>>{};
               for (final a in assets) {
-                final client = (a['profiles']
-                            as Map<String, dynamic>?)?['full_name']
+                final client =
+                    (a['profiles'] as Map<String, dynamic>?)?['full_name']
                         as String? ??
                     'Unknown';
                 grouped.putIfAbsent(client, () => []).add(a);
@@ -57,14 +58,11 @@ class OperatorChecklistSelectionStep extends StatelessWidget {
                   for (final a in grouped[client]!)
                     DropdownMenuItem<String>(
                       value: a['id'] as String,
-                      child: Padding(
-                        padding: const EdgeInsets.only(left: 12),
-                        child: Text('  ${a['name']}'),
-                      ),
+                      child: Text('${a['name']}'),
                     ),
               ];
 
-              return DropdownButtonFormField<String>(
+              return AppDropdownField<String>(
                 initialValue: selectedAsset?['id'] as String?,
                 decoration: const InputDecoration(),
                 dropdownColor: AppColors.surfaceVariant,
@@ -97,20 +95,19 @@ class OperatorChecklistSelectionStep extends StatelessWidget {
               final operatorTemplates = templates
                   .where((t) => t.checklistType == 'operator_daily')
                   .toList();
-              return DropdownButtonFormField<String>(
+              return AppDropdownField<String>(
                 initialValue: selectedTemplate?.id,
                 decoration: const InputDecoration(),
                 dropdownColor: AppColors.surfaceVariant,
-                items: (operatorTemplates.isEmpty
-                        ? templates
-                        : operatorTemplates)
-                    .map(
-                      (t) => DropdownMenuItem(
-                        value: t.id,
-                        child: Text(t.name),
-                      ),
-                    )
-                    .toList(),
+                items:
+                    (operatorTemplates.isEmpty ? templates : operatorTemplates)
+                        .map(
+                          (t) => DropdownMenuItem(
+                            value: t.id,
+                            child: Text(t.name),
+                          ),
+                        )
+                        .toList(),
                 hint: Text(
                   l10n.selectTemplate,
                   style: const TextStyle(color: AppColors.textSecondary),

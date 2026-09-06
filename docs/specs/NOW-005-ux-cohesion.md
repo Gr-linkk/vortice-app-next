@@ -129,3 +129,39 @@ checks passed. No APK rebuild or hosted deployment was performed for this cleanu
 Kept shared dashboard components, capability gates, and transactional fault
 checks: they own repeated presentation, access decisions, and duplicate/stale-save
 protection respectively. No broader replacement was justified by this review.
+
+## Form spacing follow-up
+
+Garrett's Build 8 screenshot showed maintenance dropdowns touching and the
+bottom action entering Android's navigation area. Build `1.3.1+9` adds 16 px
+gaps throughout that form, preserves the gap when a selected plan hides the
+component field, separates parts-dialog inputs and report evidence controls,
+and gives authenticated screens a system-safe bottom edge.
+
+All 38 form dropdowns in 23 feature files now use `AppDropdownField`, a small
+wrapper around Flutter's native form dropdown. Selected labels use one line;
+expanded rows wrap long names with vertical padding, a bounded scrollable menu,
+and the existing navy theme. Values, callbacks, validators, nullable options,
+disabled fields and custom selected labels retain their existing ownership.
+The two asset/invoice action menus allow labels to wrap beside their icons.
+Parts, invoice and checklist assignment sheets scroll; engine and organization
+code sheets include bottom system padding. Existing form gaps were retained
+where already present.
+
+Evidence: six focused widget regressions plus the 14 maintenance checks passed.
+The spacing and system-inset regressions failed before their fixes. Native
+Flutter renders cover English maintenance screens and Spanish at 320 px with
+1.5x text, long open/selected menu labels, validation, legacy asset/checklist
+selectors, and the parts dialog with a simulated keyboard inset. Screenshots
+are under `outputs/screenshots/form-*.png` and `maintenance-*.png`; the source
+audit is `outputs/NOW-005-dropdown-audit.txt`. This is a complete dropdown source
+audit with representative native renders, not a claim that every app screen
+was exercised on the physical phone. Final verification and APK delivery are
+recorded in `outputs/NOW-005-form-build-notes.md`.
+
+Final result: clean whole-project analysis, 343 passing tests and 204 existing
+skips. The new scrolling test needed an explicit settle in the default-font
+suite; the corrected test passed focused analysis and the full suite rerun.
+The ARM64 APK's package, version and signing certificate are verified. Build 9
+is in phone Downloads with matching SHA-256 and Android media indexing complete.
+Installation and physical-device review remain open.

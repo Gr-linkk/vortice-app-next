@@ -1,3 +1,4 @@
+import 'package:vortice_app/core/app_dropdown_field.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:vortice_app/core/theme.dart';
@@ -31,7 +32,7 @@ class CreateWorkOrderForm extends ConsumerWidget {
   final VoidCallback onPickScheduledDate;
   final VoidCallback onClearScheduledDate;
   final Future<void> Function(List<Map<String, dynamic>> employees)
-      onPickTechnicians;
+  onPickTechnicians;
   final VoidCallback onSubmit;
 
   const CreateWorkOrderForm({
@@ -88,17 +89,21 @@ class CreateWorkOrderForm extends ConsumerWidget {
                 (v == null || v.trim().isEmpty) ? l10n.fieldRequired : null,
           ),
           const SizedBox(height: 16),
-          DropdownButtonFormField<WorkOrderJobType>(
+          AppDropdownField<WorkOrderJobType>(
             initialValue: jobType,
             decoration: InputDecoration(labelText: l10n.jobType),
             dropdownColor: AppColors.surfaceVariant,
             items: WorkOrderJobType.values
-                .map((t) => DropdownMenuItem(
-                      value: t,
-                      child: Text(t == WorkOrderJobType.preventative
+                .map(
+                  (t) => DropdownMenuItem(
+                    value: t,
+                    child: Text(
+                      t == WorkOrderJobType.preventative
                           ? 'Preventative Maintenance'
-                          : 'Repair / Troubleshooting'),
-                    ))
+                          : 'Repair / Troubleshooting',
+                    ),
+                  ),
+                )
                 .toList(),
             onChanged: (v) => onJobTypeChanged(v!),
           ),
@@ -106,7 +111,7 @@ class CreateWorkOrderForm extends ConsumerWidget {
           assetsAsync.when(
             loading: () => const Center(child: CircularProgressIndicator()),
             error: (_, __) => const SizedBox.shrink(),
-            data: (assets) => DropdownButtonFormField<String?>(
+            data: (assets) => AppDropdownField<String?>(
               initialValue: selectedAssetId,
               decoration: InputDecoration(
                 labelText: '${l10n.linkedAsset} *',
@@ -116,25 +121,29 @@ class CreateWorkOrderForm extends ConsumerWidget {
               items: [
                 DropdownMenuItem(
                   value: null,
-                  child: Text(l10n.noAsset,
-                      style: const TextStyle(color: AppColors.textSecondary)),
+                  child: Text(
+                    l10n.noAsset,
+                    style: const TextStyle(color: AppColors.textSecondary),
+                  ),
                 ),
-                ...assets.map((a) => DropdownMenuItem(
-                      value: a.id,
-                      child: Text(a.name),
-                    )),
+                ...assets.map(
+                  (a) => DropdownMenuItem(value: a.id, child: Text(a.name)),
+                ),
               ],
               onChanged: onAssetChanged,
             ),
           ),
           if (selectedAssetId != null)
-            ref.watch(assetEnginesProvider(selectedAssetId!)).when(
+            ref
+                .watch(assetEnginesProvider(selectedAssetId!))
+                .when(
                   loading: () => const Padding(
                     padding: EdgeInsets.only(top: 16),
                     child: SizedBox(
                       height: 48,
                       child: Center(
-                          child: CircularProgressIndicator(strokeWidth: 2)),
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      ),
                     ),
                   ),
                   error: (_, __) => const SizedBox.shrink(),
@@ -144,7 +153,7 @@ class CreateWorkOrderForm extends ConsumerWidget {
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
                         const SizedBox(height: 16),
-                        DropdownButtonFormField<String?>(
+                        AppDropdownField<String?>(
                           initialValue: selectedEngineId,
                           decoration: const InputDecoration(
                             labelText: 'Engine / Position',
@@ -154,9 +163,12 @@ class CreateWorkOrderForm extends ConsumerWidget {
                           items: [
                             const DropdownMenuItem(
                               value: null,
-                              child: Text('None',
-                                  style: TextStyle(
-                                      color: AppColors.textSecondary)),
+                              child: Text(
+                                'None',
+                                style: TextStyle(
+                                  color: AppColors.textSecondary,
+                                ),
+                              ),
                             ),
                             ...engines.map((e) {
                               final label = (e['label'] as String?)?.trim();
@@ -180,40 +192,54 @@ class CreateWorkOrderForm extends ConsumerWidget {
 
           // ── CHECKLIST TEMPLATE ──────────────────────────────────
           const SizedBox(height: 8),
-          Text('Checklist Template',
-              style: Theme.of(context).textTheme.titleSmall),
+          Text(
+            'Checklist Template',
+            style: Theme.of(context).textTheme.titleSmall,
+          ),
           const SizedBox(height: 8),
-          ref.watch(checklistTemplatesProvider).when(
+          ref
+              .watch(checklistTemplatesProvider)
+              .when(
                 loading: () => const SizedBox(
                   height: 48,
                   child: Center(
-                      child: CircularProgressIndicator(strokeWidth: 2)),
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  ),
                 ),
-                error: (_, __) => const Text('Could not load templates',
-                    style: TextStyle(color: AppColors.error)),
+                error: (_, __) => const Text(
+                  'Could not load templates',
+                  style: TextStyle(color: AppColors.error),
+                ),
                 data: (templates) {
                   final selectedAsset = assetsAsync.valueOrNull
                       ?.where((asset) => asset.id == selectedAssetId)
                       .firstOrNull;
-                  final filtered =
-                      checklistTemplatesForAsset(templates, selectedAsset);
-                  final selectedTemplateStillVisible = filtered
-                      .any((t) => t.id == selectedChecklistTemplateId);
+                  final filtered = checklistTemplatesForAsset(
+                    templates,
+                    selectedAsset,
+                  );
+                  final selectedTemplateStillVisible = filtered.any(
+                    (t) => t.id == selectedChecklistTemplateId,
+                  );
                   final selectedValue = selectedTemplateStillVisible
                       ? selectedChecklistTemplateId
                       : null;
 
-                  return DropdownButtonFormField<String?>(
+                  return AppDropdownField<String?>(
                     initialValue: selectedValue,
                     isExpanded: true,
                     decoration: InputDecoration(
                       hintText: 'Optional — assign a checklist',
                       hintStyle: const TextStyle(
-                          color: AppColors.textSecondary, fontSize: 14),
+                        color: AppColors.textSecondary,
+                        fontSize: 14,
+                      ),
                       filled: true,
                       fillColor: AppColors.surface,
                       contentPadding: const EdgeInsets.symmetric(
-                          horizontal: 12, vertical: 12),
+                        horizontal: 12,
+                        vertical: 12,
+                      ),
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(8),
                         borderSide: const BorderSide(color: AppColors.divider),
@@ -227,8 +253,10 @@ class CreateWorkOrderForm extends ConsumerWidget {
                     items: [
                       const DropdownMenuItem<String?>(
                         value: null,
-                        child: Text('None',
-                            style: TextStyle(color: AppColors.textSecondary)),
+                        child: Text(
+                          'None',
+                          style: TextStyle(color: AppColors.textSecondary),
+                        ),
                       ),
                       for (final t in filtered)
                         DropdownMenuItem<String?>(
@@ -263,14 +291,17 @@ class CreateWorkOrderForm extends ConsumerWidget {
             error: (_, __) => const SizedBox.shrink(),
             data: (employees) {
               final selectedNames = employees
-                  .where((employee) =>
-                      selectedTechIds.contains(employee['id'] as String))
-                  .map((employee) => (employee['full_name'] as String?)
-                              ?.trim()
-                              .isNotEmpty ==
-                          true
-                      ? employee['full_name'] as String
-                      : 'Unnamed tech')
+                  .where(
+                    (employee) =>
+                        selectedTechIds.contains(employee['id'] as String),
+                  )
+                  .map(
+                    (employee) =>
+                        (employee['full_name'] as String?)?.trim().isNotEmpty ==
+                            true
+                        ? employee['full_name'] as String
+                        : 'Unnamed tech',
+                  )
                   .toList();
 
               return Column(

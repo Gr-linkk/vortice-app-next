@@ -1,3 +1,4 @@
+import 'package:vortice_app/core/app_dropdown_field.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -215,7 +216,7 @@ class _FleetScreenState extends ConsumerState<FleetScreen> {
             children: [
               FleetSummary(assets: assets),
               const SizedBox(height: 12),
-              DropdownButtonFormField<OperatingState>(
+              AppDropdownField<OperatingState>(
                 initialValue: _state,
                 isExpanded: true,
                 decoration: InputDecoration(

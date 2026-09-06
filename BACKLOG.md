@@ -33,6 +33,13 @@ Outcome: existing and new workflows feel like one app for less technical users.
 Garrett authorized a broad UX pass, including removal of unnecessary duplication.
 Specification: `docs/specs/NOW-005-ux-cohesion.md`.
 
+Completed spacing follow-up for `1.3.1+9`: restored maintenance-form gaps,
+standardized all 38 form dropdowns, audited expanded menus, and protected bottom
+actions from Android system bars. Native English/Spanish and large-text renders,
+clean analysis, and 343 passing tests (204 existing skips) verify the changes.
+Build 9 is in phone Downloads with checksum and media indexing verified;
+physical-device review remains open. Evidence: `outputs/NOW-005-form-build-notes.md`.
+
 Implementation is verified for internal build `1.2.2+7`: clean analysis and
 328 passing tests (204 existing skipped walkthrough checks). Awaiting Garrett's
 device review; findings and evidence are recorded in the specification.

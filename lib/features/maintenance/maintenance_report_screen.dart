@@ -1,3 +1,4 @@
+import 'package:vortice_app/core/app_dropdown_field.dart';
 import 'dart:convert';
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
@@ -224,6 +225,7 @@ class _MaintenanceReportScreenState
                       ),
                       Wrap(
                         spacing: 8,
+                        runSpacing: 8,
                         children: [
                           for (final choice in [
                             ('pass', es ? 'Correcto' : 'Pass'),
@@ -248,8 +250,9 @@ class _MaintenanceReportScreenState
                             ),
                         ],
                       ),
-                      if (item['requires_photo'] == true)
-                        DropdownButtonFormField<String>(
+                      if (item['requires_photo'] == true) ...[
+                        const SizedBox(height: 12),
+                        AppDropdownField<String>(
                           key: ValueKey(
                             '${item['id']}:${(_answers[item['id']] as Map?)?['photo_path']}',
                           ),
@@ -280,6 +283,7 @@ class _MaintenanceReportScreenState
                                   _dirty = true;
                                 }),
                         ),
+                      ],
                     ],
                   ),
                 ),

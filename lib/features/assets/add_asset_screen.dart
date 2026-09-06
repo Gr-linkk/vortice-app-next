@@ -1,3 +1,4 @@
+import 'package:vortice_app/core/app_dropdown_field.dart';
 import 'package:vortice_app/core/user_feedback.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -70,10 +71,12 @@ class _AddAssetScreenState extends ConsumerState<AddAssetScreen> {
       'name': _nameCtrl.text.trim(),
       'client_id': _selectedClientId ?? profile?.id,
       'asset_type_id': _selectedAssetTypeId,
-      'serial_number':
-          _serialCtrl.text.trim().isNotEmpty ? _serialCtrl.text.trim() : null,
-      'model':
-          _modelCtrl.text.trim().isNotEmpty ? _modelCtrl.text.trim() : null,
+      'serial_number': _serialCtrl.text.trim().isNotEmpty
+          ? _serialCtrl.text.trim()
+          : null,
+      'model': _modelCtrl.text.trim().isNotEmpty
+          ? _modelCtrl.text.trim()
+          : null,
       'make': _manufacturerCtrl.text.trim().isNotEmpty
           ? _manufacturerCtrl.text.trim()
           : null,
@@ -83,14 +86,17 @@ class _AddAssetScreenState extends ConsumerState<AddAssetScreen> {
       'location': _locationCtrl.text.trim().isNotEmpty
           ? _locationCtrl.text.trim()
           : null,
-      'notes':
-          _notesCtrl.text.trim().isNotEmpty ? _notesCtrl.text.trim() : null,
+      'notes': _notesCtrl.text.trim().isNotEmpty
+          ? _notesCtrl.text.trim()
+          : null,
     };
 
-    final success =
-        await ref.read(assetControllerProvider.notifier).createAsset(data);
+    final success = await ref
+        .read(assetControllerProvider.notifier)
+        .createAsset(data);
 
-    final hasEngineDetails = _engineMakeCtrl.text.trim().isNotEmpty ||
+    final hasEngineDetails =
+        _engineMakeCtrl.text.trim().isNotEmpty ||
         _engineModelCtrl.text.trim().isNotEmpty ||
         _engineSerialCtrl.text.trim().isNotEmpty;
 
@@ -151,7 +157,7 @@ class _AddAssetScreenState extends ConsumerState<AddAssetScreen> {
               assetTypesAsync.when(
                 loading: () => const LinearProgressIndicator(),
                 error: (_, __) => const SizedBox.shrink(),
-                data: (types) => DropdownButtonFormField<String>(
+                data: (types) => AppDropdownField<String>(
                   initialValue: _selectedAssetTypeId,
                   decoration: InputDecoration(
                     labelText: l10n.assetType,
@@ -159,10 +165,10 @@ class _AddAssetScreenState extends ConsumerState<AddAssetScreen> {
                   ),
                   dropdownColor: AppColors.surfaceVariant,
                   items: types
-                      .map((t) => DropdownMenuItem(
-                            value: t.id,
-                            child: Text(t.name),
-                          ))
+                      .map(
+                        (t) =>
+                            DropdownMenuItem(value: t.id, child: Text(t.name)),
+                      )
                       .toList(),
                   onChanged: (v) => setState(() => _selectedAssetTypeId = v),
                   validator: (v) => v == null ? l10n.fieldRequired : null,
@@ -257,18 +263,20 @@ class _AddAssetScreenState extends ConsumerState<AddAssetScreen> {
               Text(
                 l10n.enginesTitle.toUpperCase(),
                 style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                      color: AppColors.primary,
-                      letterSpacing: 1.2,
-                    ),
+                  color: AppColors.primary,
+                  letterSpacing: 1.2,
+                ),
               ),
               const SizedBox(height: 4),
               Text(
                 l10n.addEngineHint,
                 style: const TextStyle(
-                    color: AppColors.textSecondary, fontSize: 12),
+                  color: AppColors.textSecondary,
+                  fontSize: 12,
+                ),
               ),
               const SizedBox(height: 12),
-              DropdownButtonFormField<String>(
+              AppDropdownField<String>(
                 initialValue: _engineKind,
                 decoration: const InputDecoration(
                   labelText: 'Title',
@@ -276,10 +284,12 @@ class _AddAssetScreenState extends ConsumerState<AddAssetScreen> {
                 ),
                 dropdownColor: AppColors.surfaceVariant,
                 items: kEngineKindOptions
-                    .map((option) => DropdownMenuItem(
-                          value: option.value,
-                          child: Text(option.suggestedLabel),
-                        ))
+                    .map(
+                      (option) => DropdownMenuItem(
+                        value: option.value,
+                        child: Text(option.suggestedLabel),
+                      ),
+                    )
                     .toList(),
                 onChanged: (value) {
                   if (value == null) return;
@@ -366,7 +376,7 @@ class _ClientDropdown extends ConsumerWidget {
     return clientsAsync.when(
       loading: () => const LinearProgressIndicator(),
       error: (_, __) => const SizedBox.shrink(),
-      data: (clients) => DropdownButtonFormField<String>(
+      data: (clients) => AppDropdownField<String>(
         initialValue: selectedClientId,
         decoration: const InputDecoration(
           labelText: 'Client',
@@ -376,10 +386,7 @@ class _ClientDropdown extends ConsumerWidget {
         hint: const Text('Select Client'),
         validator: (value) => value == null ? 'Please select a client' : null,
         items: clients
-            .map((c) => DropdownMenuItem(
-                  value: c.id,
-                  child: Text(c.fullName),
-                ))
+            .map((c) => DropdownMenuItem(value: c.id, child: Text(c.fullName)))
             .toList(),
         onChanged: onChanged,
       ),
