@@ -120,8 +120,11 @@ callback. Client options are distinct from the private sender key.
   permission prompts, Android Back/keyboard, forced process restart, interrupted
   upload and a notification while the app is closed remain device acceptance.
   Native host tests and APK contents are not substitutes for those checks.
-- Copying Build 13 to the S24 is pending explicit transfer approval. The checked
-  APK remains available locally. No main merge or store release was requested.
+- Garrett requested the phone Downloads copy. Build 13 was transferred to
+  `/storage/emulated/0/Download/INSTALL-Vortice-Next-Build-13.apk` on the verified
+  S24 and its SHA-256 matches the inspected APK. The extra computer Downloads
+  copy was removed at Garrett's request. Installation and physical acceptance
+  remain separate; no main merge or store release was requested.
 
 Setup and future operations: `supabase/operations/README.md`. Durable decisions:
 `docs/decisions/0008-field-reliability.md`.

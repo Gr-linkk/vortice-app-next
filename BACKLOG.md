@@ -20,7 +20,7 @@ Firebase notification sender/worker schedule and recovery callback are active.
 Ten hosted SQL suites, four connected field-reliability steps, nine operations
 regressions and live synthetic recovery pass. Test assets and photos are removed.
 Open acceptance: customer SMTP/domain setup and physical Android testing. APK
-inspection passes; phone transfer is awaiting explicit approval. Full evidence
+inspection passes; Build 13 is in the S24 Downloads folder with a verified hash. Full evidence
 and artifact hash are in the specification.
 Final guarded verification passes with clean analysis, 407 Flutter tests and 204
 existing skips; two notification-payload tests also pass.
