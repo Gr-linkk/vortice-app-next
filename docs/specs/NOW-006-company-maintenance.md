@@ -101,6 +101,8 @@ permission checks. The migration ledger and private evidence bucket were
 confirmed. Zero synthetic users, jobs or evidence objects remained afterward.
 
 Evidence: `outputs/NOW-006-hosted-*.log`. Build 8 already contains the matching
-client; no rebuild is needed for activation. Phone transfer and physical-device
+client; no rebuild is needed for activation. Build 8 was subsequently copied to
+the phone's Downloads as `INSTALL-Vortice-Next-Build-8.apk`; its SHA-256 matched
+the local APK and the media scan indexed it. Installation and physical-device
 workflow review remain pending. HTTP verification covered authenticated reads;
 the hosted SQL contracts exercised mutations, approval and storage policies.
