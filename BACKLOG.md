@@ -25,7 +25,7 @@ Specification: `docs/specs/NOW-005-ux-cohesion.md`.
 Implementation is verified for internal build `1.2.2+7`: clean analysis and
 328 passing tests (204 existing skipped walkthrough checks). Awaiting Garrett's
 device review; findings and evidence are recorded in the specification.
-Build 7 is ready locally; phone delivery is waiting for its connection.
+Build 7 is in phone Downloads; its checksum and media indexing are verified.
 
 Follow-up: restore Sign out at the top right of every profile's home dashboard
 while retaining it in More. Both entry points share the same confirmation.
