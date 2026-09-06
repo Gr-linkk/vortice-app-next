@@ -1,4 +1,5 @@
 import 'package:vortice_app/models/profile.dart';
+import 'package:vortice_app/features/maintenance/maintenance_models.dart';
 
 bool isVorticeStaffRole(UserRole? role) =>
     role == UserRole.owner || role == UserRole.employee;
@@ -27,6 +28,10 @@ String? resolveRouteAccessRedirect({
   required String Function(UserRole? role) dashboardRouteForRole,
 }) {
   if (role == null) return null;
+  if ((location == '/maintenance' || location.startsWith('/maintenance/')) &&
+      !canUseMaintenance(role)) {
+    return dashboardRouteForRole(role);
+  }
 
   if (isRetiredMeetingRequestRoute(location)) {
     return dashboardRouteForRole(role);

@@ -1,92 +1,79 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:vortice_app/features/checklists/checklist_submission_orchestrator.dart';
 import 'package:vortice_app/features/checklists/saved_checklist_history_writer.dart';
-import 'package:vortice_app/features/service_intervals/preventative_maintenance_completion.dart';
 import 'package:vortice_app/features/checklists/saved_checklists_repository.dart';
 import 'package:vortice_app/models/checklist_item.dart';
 import 'package:vortice_app/models/checklist_template.dart';
 
 void main() {
   group('MaintenanceChecklistSubmission', () {
-    test('submits responses before history and PM completion', () async {
+    test(
+      'records inspection history without inferring service completion',
+      () async {
+        final events = <String>[];
+        final repository = _RecordingSavedChecklistsRepository(events);
+        final submission = MaintenanceChecklistSubmission(
+          submitResponses:
+              ({
+                required workOrderId,
+                required completedBy,
+                required responses,
+                notes,
+                photoUrls,
+                holdForSyncReason,
+              }) async {
+                events.add('responses');
+              },
+          hasChecklistSubmitError: () => false,
+          historyWriter: SavedChecklistHistoryWriter(repository),
+        );
+
+        await submission.submit(
+          workOrderId: 'wo-1',
+          assetId: 'asset-1',
+          clientId: 'client-1',
+          template: _template(),
+          loadItems: () async {
+            events.add('load-items');
+            return [_item()];
+          },
+          completedBy: 'staff-1',
+          submittedByRole: 'technician',
+          submittedAt: DateTime.utc(2026, 5, 8, 12),
+          responses: {'item-1': 'pass'},
+          notes: {'item-1': 'ok'},
+          photoUrls: {'item-1': 'photo-url'},
+          currentHours: 123,
+          generalNotes: 'done',
+          holdForSyncReason: null,
+        );
+
+        expect(events, ['responses', 'load-items', 'history']);
+        expect(
+          repository.calls.single,
+          containsPair('sourceType', 'work_order'),
+        );
+        expect(repository.calls.single, containsPair('workOrderId', 'wo-1'));
+      },
+    );
+
+    test('preserves the reported meter in inspection history', () async {
       final events = <String>[];
       final repository = _RecordingSavedChecklistsRepository(events);
       final submission = MaintenanceChecklistSubmission(
-        submitResponses: ({
-          required workOrderId,
-          required completedBy,
-          required responses,
-          notes,
-          photoUrls,
-          holdForSyncReason,
-        }) async {
-          events.add('responses');
-        },
+        submitResponses:
+            ({
+              required workOrderId,
+              required completedBy,
+              required responses,
+              notes,
+              photoUrls,
+              holdForSyncReason,
+            }) async {
+              events.add('responses');
+            },
         hasChecklistSubmitError: () => false,
         historyWriter: SavedChecklistHistoryWriter(repository),
-        preventativeMaintenanceCompletion: PreventativeMaintenanceCompletion(
-          store: _RecordingPmCompletionStore(events),
-        ),
-      );
-
-      await submission.submit(
-        workOrderId: 'wo-1',
-        assetId: 'asset-1',
-        clientId: 'client-1',
-        template: _template(),
-        loadItems: () async {
-          events.add('load-items');
-          return [_item()];
-        },
-        completedBy: 'staff-1',
-        submittedByRole: 'technician',
-        submittedAt: DateTime.utc(2026, 5, 8, 12),
-        responses: {'item-1': 'pass'},
-        notes: {'item-1': 'ok'},
-        photoUrls: {'item-1': 'photo-url'},
-        currentHours: 123,
-        generalNotes: 'done',
-        holdForSyncReason: null,
-      );
-
-      expect(
-        events,
-        ['responses', 'load-items', 'history', 'pm-completion:wo-1'],
-      );
-      expect(repository.calls.single, containsPair('sourceType', 'work_order'));
-      expect(repository.calls.single, containsPair('workOrderId', 'wo-1'));
-    });
-
-    test('uses checklist current hours for staff PM completion', () async {
-      final events = <String>[];
-      final repository = _RecordingSavedChecklistsRepository(events);
-      final pmStore = _RecordingPmCompletionStore(
-        events,
-        workOrder: {
-          'id': 'wo-1',
-          'asset_id': 'asset-1',
-          'engine_id': 'engine-1',
-          'checklist_template_id': 'template-1',
-          'hours_at_end': 999,
-          'hours_at_start': 888,
-        },
-        interval: {'id': 'interval-1', 'interval_hours': 250},
-      );
-      final submission = MaintenanceChecklistSubmission(
-        submitResponses: ({
-          required workOrderId,
-          required completedBy,
-          required responses,
-          notes,
-          photoUrls,
-          holdForSyncReason,
-        }) async {
-          events.add('responses');
-        },
-        hasChecklistSubmitError: () => false,
-        historyWriter: SavedChecklistHistoryWriter(repository),
-        preventativeMaintenanceCompletion:
-            PreventativeMaintenanceCompletion(store: pmStore),
       );
 
       await submission.submit(
@@ -106,32 +93,27 @@ void main() {
         holdForSyncReason: null,
       );
 
-      expect(pmStore.insertedReminderValues, containsPair('due_at_hours', 373));
-      expect(events, isNot(contains('telemetry:engine-1')));
-      expect(events, isNot(contains('engine:engine-1')));
+      expect(repository.calls.single, containsPair('currentHours', 123.0));
+      expect(events, ['responses', 'history']);
     });
 
-    test(
-        'does not write history or satisfy interval when response submit fails',
-        () async {
+    test('does not write history when response submit fails', () async {
       final events = <String>[];
       final repository = _RecordingSavedChecklistsRepository(events);
       final submission = MaintenanceChecklistSubmission(
-        submitResponses: ({
-          required workOrderId,
-          required completedBy,
-          required responses,
-          notes,
-          photoUrls,
-          holdForSyncReason,
-        }) async {
-          events.add('responses');
-        },
+        submitResponses:
+            ({
+              required workOrderId,
+              required completedBy,
+              required responses,
+              notes,
+              photoUrls,
+              holdForSyncReason,
+            }) async {
+              events.add('responses');
+            },
         hasChecklistSubmitError: () => true,
         historyWriter: SavedChecklistHistoryWriter(repository),
-        preventativeMaintenanceCompletion: PreventativeMaintenanceCompletion(
-          store: _RecordingPmCompletionStore(events),
-        ),
       );
 
       await submission.submit(
@@ -161,37 +143,41 @@ void main() {
 
   group('ClientChecklistSubmission', () {
     test(
-        'writes saved checklist history without PM completion or work order response writes',
-        () async {
-      final events = <String>[];
-      final repository = _RecordingSavedChecklistsRepository(events);
-      final submission = ClientChecklistSubmission(
-        historyWriter: SavedChecklistHistoryWriter(repository),
-      );
+      'writes saved checklist history without PM completion or work order response writes',
+      () async {
+        final events = <String>[];
+        final repository = _RecordingSavedChecklistsRepository(events);
+        final submission = ClientChecklistSubmission(
+          historyWriter: SavedChecklistHistoryWriter(repository),
+        );
 
-      await submission.submit(
-        assetId: 'asset-1',
-        clientId: 'client-1',
-        submittedBy: 'client-user-1',
-        submittedByRole: 'clientMechanic',
-        template: _template(),
-        items: [_item()],
-        responses: {'item-1': 'pass'},
-        notes: {'item-1': 'ok'},
-        photoUrls: const {},
-        submittedAt: DateTime.utc(2026, 5, 8, 14),
-        currentHours: 789,
-        generalNotes: 'client note',
-      );
+        await submission.submit(
+          assetId: 'asset-1',
+          clientId: 'client-1',
+          submittedBy: 'client-user-1',
+          submittedByRole: 'clientMechanic',
+          template: _template(),
+          items: [_item()],
+          responses: {'item-1': 'pass'},
+          notes: {'item-1': 'ok'},
+          photoUrls: const {},
+          submittedAt: DateTime.utc(2026, 5, 8, 14),
+          currentHours: 789,
+          generalNotes: 'client note',
+        );
 
-      expect(events, ['history']);
-      expect(repository.calls.single, containsPair('sourceType', 'client'));
-      expect(repository.calls.single,
-          containsPair('checklistType', 'maintenance'));
-      expect(repository.calls.single, containsPair('workOrderId', null));
-      expect(
-          repository.calls.single['extraHeader'], {'client_submitted': true});
-    });
+        expect(events, ['history']);
+        expect(repository.calls.single, containsPair('sourceType', 'client'));
+        expect(
+          repository.calls.single,
+          containsPair('checklistType', 'maintenance'),
+        );
+        expect(repository.calls.single, containsPair('workOrderId', null));
+        expect(repository.calls.single['extraHeader'], {
+          'client_submitted': true,
+        });
+      },
+    );
   });
 
   group('OperationsChecklistSubmission', () {
@@ -199,26 +185,24 @@ void main() {
       final events = <String>[];
       final repository = _RecordingSavedChecklistsRepository(events);
       final submission = OperationsChecklistSubmission(
-        createRun: ({
-          required assetId,
-          required operatorId,
-          required templateId,
-          required runType,
-          required completedAt,
-        }) async {
-          events.add('run:$assetId:$templateId:$operatorId');
-          return const OperationsChecklistRunRecord(
-            id: 'run-1',
-            clientId: 'run-client',
-          );
-        },
-        insertResponses: ({
-          required runId,
-          required responses,
-          required notes,
-        }) async {
-          events.add('responses:$runId');
-        },
+        createRun:
+            ({
+              required assetId,
+              required operatorId,
+              required templateId,
+              required runType,
+              required completedAt,
+            }) async {
+              events.add('run:$assetId:$templateId:$operatorId');
+              return const OperationsChecklistRunRecord(
+                id: 'run-1',
+                clientId: 'run-client',
+              );
+            },
+        insertResponses:
+            ({required runId, required responses, required notes}) async {
+              events.add('responses:$runId');
+            },
         historyWriter: SavedChecklistHistoryWriter(repository),
       );
 
@@ -253,18 +237,18 @@ void main() {
 }
 
 ChecklistTemplate _template() => const ChecklistTemplate(
-      id: 'template-1',
-      checklistType: 'pm',
-      name: 'Template',
-      version: 2,
-    );
+  id: 'template-1',
+  checklistType: 'pm',
+  name: 'Template',
+  version: 2,
+);
 
 ChecklistItem _item() => const ChecklistItem(
-      id: 'item-1',
-      templateId: 'template-1',
-      descriptionEn: 'Inspect thing',
-      sortOrder: 1,
-    );
+  id: 'item-1',
+  templateId: 'template-1',
+  descriptionEn: 'Inspect thing',
+  sortOrder: 1,
+);
 
 class _RecordingSavedChecklistsRepository extends SavedChecklistsRepository {
   _RecordingSavedChecklistsRepository(this.events);
@@ -313,73 +297,5 @@ class _RecordingSavedChecklistsRepository extends SavedChecklistsRepository {
       'assignmentId': assignmentId,
       'extraHeader': extraHeader,
     });
-  }
-}
-
-class _RecordingPmCompletionStore
-    implements PreventativeMaintenanceCompletionStore {
-  _RecordingPmCompletionStore(
-    this.events, {
-    this.workOrder,
-    this.interval,
-  });
-
-  final List<String> events;
-  final Map<String, dynamic>? workOrder;
-  final Map<String, dynamic>? interval;
-  Map<String, dynamic>? updatedReminderValues;
-  Map<String, dynamic>? insertedReminderValues;
-
-  @override
-  Future<Map<String, dynamic>?> workOrderById(String workOrderId) async {
-    events.add('pm-completion:$workOrderId');
-    return workOrder;
-  }
-
-  @override
-  Future<Map<String, dynamic>?> matchingInterval({
-    required String assetId,
-    required String checklistTemplateId,
-  }) async {
-    events.add('interval:$assetId:$checklistTemplateId');
-    return interval;
-  }
-
-  @override
-  Future<double?> latestTelemetryHours(String engineId) async {
-    events.add('telemetry:$engineId');
-    return null;
-  }
-
-  @override
-  Future<double?> engineCurrentHours(String engineId) async {
-    events.add('engine:$engineId');
-    return null;
-  }
-
-  @override
-  Future<List<Map<String, dynamic>>> remindersForAsset(String assetId) async {
-    events.add('reminders:$assetId');
-    return const [];
-  }
-
-  @override
-  Future<void> updateReminder({
-    required String reminderId,
-    required Map<String, dynamic> values,
-  }) async {
-    events.add('updateReminder:$reminderId');
-    updatedReminderValues = values;
-  }
-
-  @override
-  Future<void> insertReminder(Map<String, dynamic> values) async {
-    events.add('insertReminder');
-    insertedReminderValues = values;
-  }
-
-  @override
-  Future<void> closeWorkOrder(String workOrderId) async {
-    events.add('closeWorkOrder:$workOrderId');
   }
 }

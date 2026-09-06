@@ -75,10 +75,8 @@ class _ChecklistScreenBodyState extends ConsumerState<ChecklistScreenBody> {
     });
   }
 
-  String get _checklistRunKey => checklistRunKey(
-        workOrderId: widget.workOrderId,
-        assetId: widget.assetId,
-      );
+  String get _checklistRunKey =>
+      checklistRunKey(workOrderId: widget.workOrderId, assetId: widget.assetId);
 
   String get _draftKey => checklistDraftKey(_checklistRunKey);
   String get _photoCacheKey => checklistPhotoCacheKey(_checklistRunKey);
@@ -220,14 +218,16 @@ class _ChecklistScreenBodyState extends ConsumerState<ChecklistScreenBody> {
     final snapshot = workOrderId == null
         ? null
         : ref
-            .watch(workOrderChecklistSnapshotProvider(workOrderId))
-            .valueOrNull;
+              .watch(workOrderChecklistSnapshotProvider(workOrderId))
+              .valueOrNull;
     final profile = ref.watch(profileProvider).valueOrNull;
-    final assetName = widget.assetName ??
+    final assetName =
+        widget.assetName ??
         (workOrder == null
             ? null
             : ref.watch(assetNameProvider(workOrder.assetId)).valueOrNull);
-    final boundTemplateId = snapshot?.templateId ??
+    final boundTemplateId =
+        snapshot?.templateId ??
         workOrder?.checklistTemplateId ??
         widget.preSelectedTemplateId;
     final templateSelectionLocked = boundTemplateId != null;
@@ -250,8 +250,10 @@ class _ChecklistScreenBodyState extends ConsumerState<ChecklistScreenBody> {
       body: templatesAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (err, _) => Center(
-          child: Text(friendlyError(context, err),
-              style: const TextStyle(color: AppColors.error)),
+          child: Text(
+            friendlyError(context, err),
+            style: const TextStyle(color: AppColors.error),
+          ),
         ),
         data: (allTemplates) {
           final templates = widget.clientHistoryOnly
@@ -426,10 +428,13 @@ class _ChecklistScreenBodyState extends ConsumerState<ChecklistScreenBody> {
     final workOrder = widget.workOrderId == null
         ? null
         : ref.read(workOrderByIdProvider(widget.workOrderId!)).valueOrNull;
-    final List<ChecklistItem> items = snapshotItems ??
+    final List<ChecklistItem> items =
+        snapshotItems ??
         await ref.read(checklistItemsProvider(_selectedTemplate!.id).future);
     if (widget.clientHistoryOnly) {
-      await ref.read(clientChecklistSubmissionProvider).submit(
+      await ref
+          .read(clientChecklistSubmissionProvider)
+          .submit(
             assetId: widget.assetId!,
             clientId: widget.assetClientId!,
             submittedBy: profile?.id ?? '',
@@ -444,7 +449,9 @@ class _ChecklistScreenBodyState extends ConsumerState<ChecklistScreenBody> {
             generalNotes: _generalNotes,
           );
     } else {
-      await ref.read(maintenanceChecklistSubmissionProvider).submit(
+      await ref
+          .read(maintenanceChecklistSubmissionProvider)
+          .submit(
             workOrderId: widget.workOrderId!,
             assetId: workOrder?.assetId,
             clientId: workOrder?.clientId,
@@ -467,11 +474,12 @@ class _ChecklistScreenBodyState extends ConsumerState<ChecklistScreenBody> {
           final savedLocally = error is LocalChecklistPendingException;
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text(savedLocally
-                  ? error.message
-                  : 'Checklist save failed: $error'),
-              backgroundColor:
-                  savedLocally ? AppColors.warning : AppColors.error,
+              content: Text(
+                savedLocally ? error.message : 'Checklist save failed: $error',
+              ),
+              backgroundColor: savedLocally
+                  ? AppColors.warning
+                  : AppColors.error,
             ),
           );
         }
@@ -485,9 +493,7 @@ class _ChecklistScreenBodyState extends ConsumerState<ChecklistScreenBody> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            ChecklistSubmissionSupport.onlineSubmittedMessage(
-              deferredPhotoReason: _photoUploadDeferredReason,
-            ),
+            '${ChecklistSubmissionSupport.onlineSubmittedMessage(deferredPhotoReason: _photoUploadDeferredReason)} ${isSpanish(context) ? 'El servicio se completa desde un trabajo vinculado a un plan.' : 'Complete service through a job linked to its plan.'}',
           ),
           backgroundColor: AppColors.success,
         ),

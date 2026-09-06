@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:vortice_app/features/maintenance/maintenance_models.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:vortice_app/core/asset_icons.dart';
 import 'package:vortice_app/core/theme.dart';
@@ -114,20 +115,9 @@ class AssetDetailBody extends ConsumerWidget {
           const SizedBox(height: 16),
           AssetEnginesCard(assetId: asset.id, routePrefix: prefix),
         ],
-        if (AssetWorkflowPolicy.canSeeMaintenancePlan(role)) ...[
+        if (canUseMaintenance(role)) ...[
           const SizedBox(height: 16),
-          ClientCapabilityGate(
-            clientId: asset.clientId,
-            capability: ClientCapability.maintenancePlanning,
-            loadingBuilder: (_) => const SizedBox.shrink(),
-            errorBuilder: (_, __) => const SizedBox.shrink(),
-            blockedBuilder: (_) => const SizedBox.shrink(),
-            allowedBuilder: (_) => AssetMaintenancePlanCard(
-              assetId: asset.id,
-              routePrefix: prefix,
-              readOnly: !AssetWorkflowPolicy.canManageAsset(role),
-            ),
-          ),
+          AssetMaintenancePlanCard(assetId: asset.id),
         ],
         const SizedBox(height: 16),
         AssetTelemetrySection(asset: asset),

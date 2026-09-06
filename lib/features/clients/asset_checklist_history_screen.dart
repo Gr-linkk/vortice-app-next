@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
+import 'package:vortice_app/core/user_feedback.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:vortice_app/core/theme.dart';
 import 'package:vortice_app/features/checklists/checklist_history_display_support.dart';
@@ -133,20 +135,34 @@ class _SavedChecklistCard extends StatelessWidget {
         ),
         childrenPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
         children: [
+          if (row.snapshot['managed_maintenance'] == true &&
+              row.workOrderId != null)
+            TextButton(
+              onPressed: () =>
+                  context.push('/maintenance/jobs/${row.workOrderId}'),
+              child: Text(
+                isSpanish(context)
+                    ? 'Ver trabajo e informe'
+                    : 'View job & report',
+              ),
+            ),
           _HeaderLine(
-              label: 'Completed by',
-              value: formatChecklistCompletedByDisplay(
-                completedByName: header['completed_by_name'] as String?,
-                completedBy: header['completed_by'] as String?,
-                submittedBy: row.submittedBy,
-              )),
+            label: 'Completed by',
+            value: formatChecklistCompletedByDisplay(
+              completedByName: header['completed_by_name'] as String?,
+              completedBy: header['completed_by'] as String?,
+              submittedBy: row.submittedBy,
+            ),
+          ),
           if ((row.submittedByRole ?? '').isNotEmpty)
             _HeaderLine(
               label: 'Role',
               value: formatChecklistSubmittedByRole(row.submittedByRole),
             ),
           _HeaderLine(
-              label: 'Submitted', value: '${row.submittedAt.toLocal()}'),
+            label: 'Submitted',
+            value: '${row.submittedAt.toLocal()}',
+          ),
           if (row.currentHours != null)
             _HeaderLine(label: 'Current hours', value: '${row.currentHours}'),
           if ((row.generalNotes ?? '').isNotEmpty)
@@ -156,8 +172,9 @@ class _SavedChecklistCard extends StatelessWidget {
             (item) => ListTile(
               dense: true,
               contentPadding: EdgeInsets.zero,
-              title:
-                  Text((item['description_en'] ?? 'Checklist item').toString()),
+              title: Text(
+                (item['description_en'] ?? 'Checklist item').toString(),
+              ),
               subtitle: ((item['note'] ?? '').toString().isNotEmpty)
                   ? Text(item['note'].toString())
                   : null,

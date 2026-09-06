@@ -13,9 +13,17 @@ project task for this continuation after the initial two features and UX work.
 Inventory, existing foundations and proposed next discussion:
 `docs/specs/NOW-006-feature-continuation.md`.
 
-Hosted deployment is complete and verified. Finish device review, then agree
-one focused slice.
-Do not treat the whole inventory as a single implementation task.
+Garrett selected original items 1, 4 and 5 together: company-owned maintenance,
+mechanic execution, and trustworthy maintenance completion. Implement one
+connected journey under this ID. Scope and acceptance:
+`docs/specs/NOW-006-company-maintenance.md`. The other 17 areas remain intake.
+The Build 7 device review remains open; it does not block this authorized work.
+
+Items 1, 4 and 5 are implemented and verified for internal build `1.3.0+8`:
+clean analysis, 337 passing tests, 204 existing skips, all three isolated SQL
+contract suites, and English/Spanish rendered maintenance screens. Hosted
+activation of the new maintenance migration and physical-device review remain
+open. Evidence and limits are recorded in the company-maintenance specification.
 
 ### NOW-005 — Make the whole app easier to navigate and use
 

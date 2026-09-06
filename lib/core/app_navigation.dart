@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:vortice_app/models/profile.dart';
+import 'package:vortice_app/features/maintenance/maintenance_models.dart';
 
 String roleRoutePrefix(UserRole role) => switch (role) {
   UserRole.owner => '/owner',
@@ -37,12 +38,12 @@ List<AppDestination> primaryDestinations(
       Icons.directions_boat_outlined,
       '$prefix/assets',
     ),
-    if (role == UserRole.owner || role == UserRole.employee)
-      AppDestination(
+    if (canUseMaintenance(role))
+      const AppDestination(
         'Work',
         'Trabajo',
         Icons.build_outlined,
-        '$prefix/work-orders',
+        '/maintenance',
       ),
     if ((role == UserRole.operator || role == UserRole.clientOperator) &&
         operationalChecklistsEnabled)
@@ -67,6 +68,24 @@ List<AppDestination> toolDestinations(UserRole role) {
   final staff = role == UserRole.owner || role == UserRole.employee;
   final admin = role == UserRole.client || role == UserRole.clientAdmin;
   return [
+    if (canUseMaintenance(role))
+      const AppDestination(
+        'Assets & plans',
+        'Equipos y planes',
+        Icons.event_note_outlined,
+        '/maintenance/assets',
+        description: 'Manage components and schedule reliable maintenance',
+        descriptionEs: 'Administrar componentes y programar mantenimiento',
+      ),
+    if (staff)
+      AppDestination(
+        'Service work orders',
+        'Órdenes de servicio',
+        Icons.build_outlined,
+        '$prefix/work-orders',
+        description: 'Existing provider jobs and customer billing workflows',
+        descriptionEs: 'Trabajos del proveedor y facturación al cliente',
+      ),
     if (staff || admin)
       AppDestination(
         'Service requests',

@@ -219,21 +219,28 @@ List<AppDestination> dashboardActions(
         'New work order',
         'Nueva orden de trabajo',
         Icons.add_task,
-        '/owner/work-orders/create',
+        '/maintenance/new',
       )
     else if (role == UserRole.employee)
       const AppDestination(
         'Work orders',
         'Órdenes de trabajo',
         Icons.build_outlined,
-        '/employee/work-orders',
+        '/maintenance',
       )
     else if (admin)
       const AppDestination(
-        'Request service',
-        'Solicitar servicio',
-        Icons.support_agent,
-        '/client/service-requests/new',
+        'New maintenance job',
+        'Crear trabajo',
+        Icons.add_task,
+        '/maintenance/new',
+      )
+    else if (role == UserRole.clientMechanic)
+      const AppDestination(
+        'My Work',
+        'Mi trabajo',
+        Icons.build_outlined,
+        '/maintenance',
       )
     else if (operationalChecklistsEnabled &&
         (role == UserRole.operator || role == UserRole.clientOperator))

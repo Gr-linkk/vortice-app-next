@@ -1,4 +1,8 @@
 import 'package:vortice_app/core/user_feedback.dart';
+import 'package:vortice_app/features/maintenance/maintenance_list_screen.dart';
+import 'package:vortice_app/features/maintenance/maintenance_create_screen.dart';
+import 'package:vortice_app/features/maintenance/maintenance_job_screen.dart';
+import 'package:vortice_app/features/maintenance/maintenance_asset_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -167,6 +171,34 @@ final routerProvider = Provider<GoRouter>((ref) {
             path: '/fleet/assets/:id',
             builder: (_, state) =>
                 AvailabilityScreen(assetId: state.pathParameters['id']!),
+          ),
+          GoRoute(
+            path: '/maintenance',
+            builder: (_, state) => MaintenanceListScreen(
+              assetId: state.uri.queryParameters['assetId'],
+            ),
+          ),
+          GoRoute(
+            path: '/maintenance/new',
+            builder: (_, state) => MaintenanceCreateScreen(
+              assetId: state.uri.queryParameters['assetId'],
+              planId: state.uri.queryParameters['planId'],
+              parentJobId: state.uri.queryParameters['parentJobId'],
+            ),
+          ),
+          GoRoute(
+            path: '/maintenance/jobs/:id',
+            builder: (_, state) =>
+                MaintenanceJobScreen(jobId: state.pathParameters['id']!),
+          ),
+          GoRoute(
+            path: '/maintenance/assets',
+            builder: (_, __) => const MaintenanceAssetsScreen(),
+          ),
+          GoRoute(
+            path: '/maintenance/assets/:id',
+            builder: (_, state) =>
+                MaintenanceAssetScreen(assetId: state.pathParameters['id']!),
           ),
           // Owner
           GoRoute(
@@ -578,7 +610,8 @@ class _OperatorChecklistCapabilityGate extends ConsumerWidget {
         body: Center(
           child: Padding(
             padding: const EdgeInsets.all(24),
-            child: Text(friendlyError(context, assetAsync!.asError!.error),
+            child: Text(
+              friendlyError(context, assetAsync!.asError!.error),
               style: const TextStyle(color: AppColors.error),
             ),
           ),

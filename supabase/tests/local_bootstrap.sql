@@ -22,6 +22,7 @@ create table storage.buckets(id text primary key,name text,public boolean,
  file_size_limit bigint,allowed_mime_types text[]);
 create table storage.objects(id uuid primary key,bucket_id text,name text);
 alter table storage.objects enable row level security;
+grant select,insert,update,delete on storage.objects to authenticated,anon,service_role;
 grant usage on schema public,auth,storage,extensions to authenticated,anon,service_role;
 alter default privileges in schema public grant all on tables to authenticated,anon,service_role;
 set search_path=public,extensions;

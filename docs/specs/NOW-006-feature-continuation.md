@@ -23,15 +23,13 @@ hosted changes without the applicable authorization.
 - Preserve the shared dashboard/navigation design, Sign out at the top right
   and in More, English/Spanish support, and large-text behavior.
 
-## Recommended next conversation
+## Selected implementation
 
-First resolve the recorded deployment/device follow-ups. Then compare the gaps
-in company-owned internal maintenance (1), mechanic execution (4), and reliable
-maintenance completion (5). Recommend one small end-to-end slice with observable
-acceptance criteria and role/server checks. Let Garrett choose the next feature
-before implementation; this new task is the place to continue that discussion.
+Garrett requested all of items 1, 4 and 5 together. Their connected implementation
+and verification are tracked in `NOW-006-company-maintenance.md`. The other 17
+areas remain intake. Build 7's device review does not block this authorized work.
 
-## Remaining 20 areas
+## Original continuation inventory
 
 The descriptions below are the original assessment scope, not verified current
 absence. Some components already exist and should be extended rather than rebuilt.

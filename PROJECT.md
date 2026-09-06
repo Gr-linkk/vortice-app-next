@@ -20,10 +20,15 @@ Implementation and deployment limits are recorded in
 `docs/specs/NOW-003-faults-and-availability.md` and
 `docs/specs/NOW-005-ux-cohesion.md`.
 
-Garrett's next focus is the remaining 20 areas from the original 22-feature
-assessment. Use `docs/specs/NOW-006-feature-continuation.md` as the intake map
-and BACKLOG.md to select one concrete slice. Preserve the current visual
-language; product naming and production identity remain separate decisions.
+Garrett selected items 1, 4 and 5 from the original assessment: company
+maintenance, mechanic execution and component-specific service completion.
+The connected implementation is specified in
+`docs/specs/NOW-006-company-maintenance.md`; its completion rules are recorded
+in `docs/decisions/0005-managed-maintenance-completion.md`. The other 17 areas
+remain intake in `docs/specs/NOW-006-feature-continuation.md`.
+Preserve the current visual language; naming and production identity remain
+separate decisions. Hosted activation and device review are tracked separately
+from the internal build.
 
 Detailed client-access terminology and rules live in `CONTEXT.md`.
 
