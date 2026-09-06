@@ -1,11 +1,13 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:vortice_app/core/constants.dart';
 import 'package:vortice_app/core/supabase_client.dart';
+import 'package:vortice_app/features/auth/auth_provider.dart';
 import 'package:vortice_app/core/invoice_service.dart';
 import 'package:vortice_app/features/work_orders/work_order_read_providers.dart';
 import 'package:vortice_app/models/invoice.dart';
 
 final invoicesProvider = FutureProvider<List<Invoice>>((ref) async {
+  if (await ref.watch(profileProvider.future) == null) return [];
   final data = await supabase
       .from(AppConstants.tInvoices)
       .select()
@@ -17,6 +19,7 @@ final invoicesProvider = FutureProvider<List<Invoice>>((ref) async {
 
 final invoiceByIdProvider =
     FutureProvider.family<Invoice?, String>((ref, id) async {
+  if (await ref.watch(profileProvider.future) == null) return null;
   final data = await supabase
       .from(AppConstants.tInvoices)
       .select()

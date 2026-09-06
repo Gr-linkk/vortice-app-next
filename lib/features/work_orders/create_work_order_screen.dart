@@ -14,6 +14,7 @@ import 'package:vortice_app/features/work_orders/create_work_order_support.dart'
 import 'package:vortice_app/features/work_orders/work_order_provider.dart';
 import 'package:vortice_app/l10n/app_localizations.dart';
 import 'package:vortice_app/models/work_order.dart';
+import 'package:vortice_app/models/profile.dart';
 
 class CreateWorkOrderScreen extends ConsumerStatefulWidget {
   final MaintenanceWorkOrderDraft? initialDraft;
@@ -151,7 +152,15 @@ class _CreateWorkOrderScreenState extends ConsumerState<CreateWorkOrderScreen> {
               workOrderId: workOrderId,
             );
       }
-      if (mounted) context.pop();
+      if (mounted) {
+        if (context.canPop()) {
+          context.pop();
+        } else {
+          context.go(
+            '${profile.role == UserRole.owner ? '/owner' : '/employee'}/work-orders',
+          );
+        }
+      }
       return;
     }
 

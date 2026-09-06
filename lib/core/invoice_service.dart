@@ -86,7 +86,10 @@ class InvoiceService {
     double labourTotal;
 
     final techAssignments = assignments.where((a) => a.role == 'tech').toList();
-    if (techAssignments.isNotEmpty) {
+    // Assignment rows exist as soon as a job is assigned. They are not labour
+    // records until hours are entered; the current Log Hours form saves the
+    // work-order total. Do not replace that total with empty assignment values.
+    if (techAssignments.any((assignment) => assignment.hoursLogged != null)) {
       labourHours = 0;
       labourTotal = 0;
       for (final assignment in techAssignments) {
@@ -197,6 +200,11 @@ class InvoiceService {
     double? consumablesTotal,
     String? notes,
   }) async {
+    if ([labourHours, billableRate, labourTotal, partsTotal, consumablesTotal]
+        .whereType<double>()
+        .any((value) => !value.isFinite || value < 0)) {
+      throw ArgumentError('Invoice amounts must be finite and non-negative.');
+    }
     // Recalculate totals if any line item changes
     final invoiceData = await supabase
         .from(AppConstants.tInvoices)

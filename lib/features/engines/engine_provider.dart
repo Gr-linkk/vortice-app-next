@@ -1,12 +1,14 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:vortice_app/core/constants.dart';
 import 'package:vortice_app/core/supabase_client.dart';
+import 'package:vortice_app/features/auth/auth_provider.dart';
 import 'package:vortice_app/models/asset_engine.dart';
 
 // ── Fetch a single engine by ID ────────────────────────────────────────────
 
 final engineByIdProvider =
     FutureProvider.family<AssetEngine?, String>((ref, engineId) async {
+  if (await ref.watch(profileProvider.future) == null) return null;
   final data = await supabase
       .from(AppConstants.tAssetEngines)
       .select()
@@ -21,6 +23,7 @@ final engineByIdProvider =
 
 final enginesForAssetProvider =
     FutureProvider.family<List<AssetEngine>, String>((ref, assetId) async {
+  if (await ref.watch(profileProvider.future) == null) return [];
   final remote = await supabase
       .from(AppConstants.tAssetEngines)
       .select()

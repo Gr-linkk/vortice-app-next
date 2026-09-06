@@ -173,7 +173,11 @@ class WorkOrderDetailActionsSection extends ConsumerWidget {
                         );
                     if (!context.mounted) return;
                     if (success) {
-                      context.pop();
+                      if (context.canPop()) {
+                        context.pop();
+                      } else {
+                        context.go('$routePrefix/work-orders');
+                      }
                     } else {
                       showWorkOrderActionFailedSnackBar(context);
                     }

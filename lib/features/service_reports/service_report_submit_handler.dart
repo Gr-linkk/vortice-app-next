@@ -4,6 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:vortice_app/core/theme.dart';
+import 'package:vortice_app/core/app_navigation.dart';
+import 'package:vortice_app/features/auth/auth_provider.dart';
 import 'package:vortice_app/features/service_reports/service_report_provider.dart';
 import 'package:vortice_app/features/service_reports/service_report_repository.dart';
 import 'package:vortice_app/features/service_reports/service_report_screen_support.dart';
@@ -205,7 +207,18 @@ class ServiceReportSubmitHandler {
       if (outcome.shouldResetForm) {
         formKey.currentState!.reset();
         await onClearDraft();
-        if (context.mounted) context.pop();
+        if (context.mounted) {
+          if (context.canPop()) {
+            context.pop();
+          } else {
+            final profile = ref.read(profileProvider).valueOrNull;
+            context.go(
+              profile == null
+                  ? '/login'
+                  : '${roleRoutePrefix(profile.role)}/work-orders/${input.selectedWorkOrderId}',
+            );
+          }
+        }
       }
       return ServiceReportSubmitResultState(
         pendingReportId: outcome.pendingReportId,

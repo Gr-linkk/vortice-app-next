@@ -5,6 +5,30 @@ elsewhere, but every active task must be represented here with a stable ID.
 
 ## Now
 
+### NOW-010 — Whole-app workflow audit
+
+Garrett requested end-to-end testing across the whole app to find broken or
+incomplete workflows. Continue from Build 12 (`4084d19`) in an isolated audit
+branch. Exercise actual native screens against Next with disposable E2E-010
+records, including role navigation, assets/plans, maintenance, provider work,
+reports, faults, coordination, inspections, operator checks, parts, invoices,
+team/invites and telemetry read states. Verify saved outcomes, permissions,
+validation and recovery. Fix confirmed in-scope defects with regression proof.
+Record coverage, findings, retests, cleanup and limits in
+`docs/specs/NOW-010-full-app-audit.md` and local `outputs/NOW-010-*` evidence.
+
+Audit evidence: 122 role/route visits, nine request-to-billing/isolation steps,
+nine maintenance/fault/availability/handover steps, the custody/renewal journey
+and all six hosted SQL suites pass. Confirmed online account-cache, invoice
+labour/validation and direct-entry navigation defects are repaired locally.
+All 12 test assets and four synthetic uploads were removed.
+Guarded verification passed with clean analysis and 390 tests (204 existing skips).
+
+Next repair priorities remain open in the audit specification: P1 public
+service-request photos; P1 account ownership of offline work-order/asset caches;
+P2 transactional operator checklist retries and photo transport. Physical-device
+and uncovered legacy save workflows must not be inferred from route coverage.
+
 ### NOW-009 — Asset custody and inspection renewals
 
 Selected under Garrett's delegated feature choice: original areas 19 and 20.

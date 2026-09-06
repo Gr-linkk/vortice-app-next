@@ -82,6 +82,22 @@ class _InvoiceDetailScreenState extends ConsumerState<InvoiceDetailScreen> {
 
     final labourTotal = computeLabourTotal(labourHours, billableRate);
 
+    if ([
+      labourHours,
+      billableRate,
+      partsTotal,
+      consumables,
+      labourTotal,
+    ].any((value) => value == null || !value.isFinite || value < 0)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(AppLocalizations.of(context).invalidNumber),
+          backgroundColor: AppColors.error,
+        ),
+      );
+      return;
+    }
+
     final success = await ref
         .read(invoiceControllerProvider.notifier)
         .updateLineItems(
@@ -91,9 +107,7 @@ class _InvoiceDetailScreenState extends ConsumerState<InvoiceDetailScreen> {
           labourTotal: labourTotal,
           partsTotal: partsTotal,
           consumablesTotal: consumables,
-          notes: _notesCtrl.text.trim().isNotEmpty
-              ? _notesCtrl.text.trim()
-              : null,
+          notes: _notesCtrl.text.trim(),
         );
 
     if (success && mounted) {
@@ -102,6 +116,15 @@ class _InvoiceDetailScreenState extends ConsumerState<InvoiceDetailScreen> {
         SnackBar(
           content: Text(AppLocalizations.of(context).invoiceSaved),
           backgroundColor: AppColors.success,
+        ),
+      );
+    } else if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            friendlyError(context, ref.read(invoiceControllerProvider).error),
+          ),
+          backgroundColor: AppColors.error,
         ),
       );
     }

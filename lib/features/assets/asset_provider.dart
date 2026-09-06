@@ -11,6 +11,7 @@ import 'package:vortice_app/models/profile.dart';
 // ── Remote fetch ───────────────────────────────────────────────────────────
 
 final assetsProvider = FutureProvider<List<Asset>>((ref) async {
+  if (await ref.watch(profileProvider.future) == null) return [];
   final db = ref.watch(databaseProvider);
   final dao = db.assetsDao;
 
@@ -104,6 +105,7 @@ final operatorScopedAssetsProvider = currentClientFleetAssetsProvider;
 
 final assetAssignedProfilesProvider =
     FutureProvider<Map<String, Profile>>((ref) async {
+  if (await ref.watch(profileProvider.future) == null) return {};
   final data = await supabase
       .from(AppConstants.tProfiles)
       .select('id, email, full_name, role, org_id')
@@ -117,6 +119,7 @@ final assetAssignedProfilesProvider =
 
 final assetByIdProvider =
     FutureProvider.family<Asset?, String>((ref, id) async {
+  if (await ref.watch(profileProvider.future) == null) return null;
   final data = await supabase
       .from(AppConstants.tAssets)
       .select()

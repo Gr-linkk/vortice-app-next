@@ -43,6 +43,7 @@ final workOrdersProvider = FutureProvider<List<WorkOrder>>((ref) async {
 
 final workOrderByIdProvider =
     FutureProvider.family<WorkOrder?, String>((ref, id) async {
+  if (await ref.watch(profileProvider.future) == null) return null;
   return ref.watch(workOrderRepositoryProvider).getWorkOrderById(id);
 });
 
@@ -51,6 +52,7 @@ final assignableWorkOrderProfilesProvider =
   ref,
   clientId,
 ) async {
+  if (await ref.watch(profileProvider.future) == null) return [];
   final employees = await supabase
       .from(AppConstants.tProfiles)
       .select('id, full_name, role')
@@ -91,6 +93,7 @@ final employeesProvider = FutureProvider<List<Map<String, dynamic>>>((ref) {
 final assetEnginesProvider =
     FutureProvider.family<List<Map<String, dynamic>>, String>(
         (ref, assetId) async {
+  if (await ref.watch(profileProvider.future) == null) return [];
   final data = await supabase
       .from('asset_engines')
       .select('id, label, kind')
@@ -100,6 +103,7 @@ final assetEnginesProvider =
 
 final assetNameProvider =
     FutureProvider.family<String?, String>((ref, assetId) async {
+  if (await ref.watch(profileProvider.future) == null) return null;
   final db = ref.watch(databaseProvider);
   final cached = await db.assetsDao.getById(assetId);
 
