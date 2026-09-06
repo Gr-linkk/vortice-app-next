@@ -19,8 +19,10 @@ run_sql() {
 }
 run_sql supabase/tests/local_bootstrap.sql
 upgrade=false
+upgrade_reports=false
 single_query=false
 if [ "${1:-}" = --upgrade-coordination ]; then upgrade=true; shift; fi
+if [ "${1:-}" = --upgrade-reports ]; then upgrade_reports=true; shift; fi
 if [ "${1:-}" = --single-query ]; then single_query=true; shift; fi
 run_contract() {
   if $single_query; then
@@ -34,8 +36,16 @@ for migration in supabase/migrations/*.sql; do
   if $upgrade && [ "$(basename "$migration")" = 20260906040000_fleet_coordination.sql ]; then
     run_sql supabase/tests/fixtures/coordination_upgrade_seed.sql
   fi
+  if $upgrade_reports && [ "$(basename "$migration")" = 20260906062000_provider_report_history.sql ]; then
+    run_sql supabase/tests/fixtures/provider_reports_upgrade_seed.sql
+  fi
   run_sql "$migration"
 done
+if $upgrade_reports; then
+  run_sql supabase/tests/fixtures/provider_reports_upgrade_assert.sql
+  echo 'PASS populated report-history upgrade'
+  exit 0
+fi
 if $upgrade; then
   run_sql supabase/tests/fixtures/coordination_upgrade_assert.sql
   echo 'PASS populated coordination upgrade'

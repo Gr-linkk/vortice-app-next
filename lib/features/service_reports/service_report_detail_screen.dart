@@ -4,6 +4,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:vortice_app/core/theme.dart';
+import 'package:vortice_app/core/constants.dart';
+import 'package:vortice_app/features/service_reports/service_report_media.dart';
 import 'package:vortice_app/features/auth/auth_provider.dart';
 import 'package:vortice_app/features/service_reports/service_report_provider.dart';
 import 'package:vortice_app/features/service_reports/service_report_screen.dart';
@@ -19,8 +21,9 @@ class ServiceReportDetailScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     if (reportId == 'new') {
       return ServiceReportScreen(
-        initialWorkOrderId:
-            GoRouterState.of(context).uri.queryParameters['workOrderId'],
+        initialWorkOrderId: GoRouterState.of(
+          context,
+        ).uri.queryParameters['workOrderId'],
       );
     }
 
@@ -46,7 +49,10 @@ class ServiceReportDetailScreen extends ConsumerWidget {
       appBar: AppBar(title: const Text('Service Report Detail')),
       body: reportAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (err, _) => AppErrorState(error: err, onRetry: () => ref.invalidate(serviceReportByIdProvider(reportId))),
+        error: (err, _) => AppErrorState(
+          error: err,
+          onRetry: () => ref.invalidate(serviceReportByIdProvider(reportId)),
+        ),
         data: (report) {
           if (report == null) {
             return Center(child: Text(l10n.notFound));
@@ -67,7 +73,9 @@ class _ReportBody extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final date = report.createdAt != null
-        ? DateFormat('MMMM d, yyyy · h:mm a').format(report.createdAt!)
+        ? DateFormat(
+            'MMMM d, yyyy · h:mm a',
+          ).format(report.createdAt!.toLocal())
         : '—';
 
     return SingleChildScrollView(
@@ -85,15 +93,19 @@ class _ReportBody extends StatelessWidget {
               ),
               borderRadius: BorderRadius.circular(14),
               border: const Border.fromBorderSide(
-                  BorderSide(color: AppColors.cardBorder)),
+                BorderSide(color: AppColors.cardBorder),
+              ),
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Row(
                   children: [
-                    const Icon(Icons.description_outlined,
-                        color: AppColors.primary, size: 20),
+                    const Icon(
+                      Icons.description_outlined,
+                      color: AppColors.primary,
+                      size: 20,
+                    ),
                     const SizedBox(width: 8),
                     const Text(
                       'SERVICE REPORT',
@@ -108,15 +120,19 @@ class _ReportBody extends StatelessWidget {
                     if (report.techSignatureUrl != null)
                       const Row(
                         children: [
-                          Icon(Icons.draw_outlined,
-                              size: 13, color: AppColors.success),
+                          Icon(
+                            Icons.draw_outlined,
+                            size: 13,
+                            color: AppColors.success,
+                          ),
                           SizedBox(width: 4),
                           Text(
                             'Signed',
                             style: TextStyle(
-                                color: AppColors.success,
-                                fontSize: 12,
-                                fontWeight: FontWeight.w600),
+                              color: AppColors.success,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                            ),
                           ),
                         ],
                       ),
@@ -134,13 +150,18 @@ class _ReportBody extends StatelessWidget {
                 const SizedBox(height: 4),
                 Row(
                   children: [
-                    const Icon(Icons.calendar_today_outlined,
-                        size: 12, color: AppColors.textSecondary),
+                    const Icon(
+                      Icons.calendar_today_outlined,
+                      size: 12,
+                      color: AppColors.textSecondary,
+                    ),
                     const SizedBox(width: 4),
                     Text(
                       date,
                       style: const TextStyle(
-                          color: AppColors.textSecondary, fontSize: 12),
+                        color: AppColors.textSecondary,
+                        fontSize: 12,
+                      ),
                     ),
                   ],
                 ),
@@ -195,21 +216,20 @@ class _ReportBody extends StatelessWidget {
                 border: Border.all(color: AppColors.divider),
               ),
               clipBehavior: Clip.hardEdge,
-              child: Image.network(
-                report.techSignatureUrl!,
+              child: ServiceReportImage(
+                bucket: AppConstants.bucketSignatures,
+                reference: report.techSignatureUrl!,
                 fit: BoxFit.contain,
-                errorBuilder: (_, __, ___) => const Center(
-                  child: Icon(Icons.broken_image_outlined,
-                      color: AppColors.textSecondary),
-                ),
               ),
             ),
             if (report.signedAt != null) ...[
               const SizedBox(height: 6),
               Text(
-                'Signed ${DateFormat('MMM d, yyyy · h:mm a').format(report.signedAt!)}',
+                'Signed ${DateFormat('MMM d, yyyy · h:mm a').format(report.signedAt!.toLocal())}',
                 style: const TextStyle(
-                    color: AppColors.textSecondary, fontSize: 11),
+                  color: AppColors.textSecondary,
+                  fontSize: 11,
+                ),
               ),
             ],
           ],
@@ -224,9 +244,9 @@ class _ReportBody extends StatelessWidget {
     return Text(
       title.toUpperCase(),
       style: Theme.of(context).textTheme.labelSmall?.copyWith(
-            color: AppColors.primary,
-            letterSpacing: 1.2,
-          ),
+        color: AppColors.primary,
+        letterSpacing: 1.2,
+      ),
     );
   }
 }
@@ -252,9 +272,9 @@ class _ServiceReportPhotosSection extends ConsumerWidget {
             Text(
               'PHOTOS',
               style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                    color: AppColors.primary,
-                    letterSpacing: 1.2,
-                  ),
+                color: AppColors.primary,
+                letterSpacing: 1.2,
+              ),
             ),
             const SizedBox(height: 8),
             SizedBox(
@@ -267,20 +287,12 @@ class _ServiceReportPhotosSection extends ConsumerWidget {
                   final photo = photos[index];
                   return ClipRRect(
                     borderRadius: BorderRadius.circular(10),
-                    child: Image.network(
-                      photo.photoUrl,
+                    child: ServiceReportImage(
+                      bucket: AppConstants.bucketReportPhotos,
+                      reference: photo.photoUrl,
                       width: 112,
                       height: 112,
                       fit: BoxFit.cover,
-                      errorBuilder: (_, __, ___) => Container(
-                        width: 112,
-                        height: 112,
-                        color: AppColors.surfaceVariant,
-                        child: const Icon(
-                          Icons.broken_image_outlined,
-                          color: AppColors.textSecondary,
-                        ),
-                      ),
                     ),
                   );
                 },

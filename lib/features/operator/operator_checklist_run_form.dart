@@ -64,8 +64,9 @@ class _OperatorChecklistRunFormState
   @override
   void initState() {
     super.initState();
-    _hoursCtrl =
-        TextEditingController(text: widget.currentHours?.toString() ?? '');
+    _hoursCtrl = TextEditingController(
+      text: widget.currentHours?.toString() ?? '',
+    );
     _notesCtrl = TextEditingController(text: widget.generalNotes ?? '');
   }
 
@@ -169,7 +170,12 @@ class _OperatorChecklistRunFormState
         Padding(
           padding: const EdgeInsets.all(16),
           child: ElevatedButton.icon(
-            onPressed: widget.submitting ? null : widget.onSubmit,
+            onPressed:
+                widget.submitting ||
+                    !itemsAsync.hasValue ||
+                    itemsAsync.value!.isEmpty
+                ? null
+                : widget.onSubmit,
             icon: widget.submitting
                 ? const SizedBox(
                     width: 16,
@@ -181,9 +187,7 @@ class _OperatorChecklistRunFormState
                   )
                 : const Icon(Icons.check),
             label: Text(l10n.completeChecklist),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.success,
-            ),
+            style: ElevatedButton.styleFrom(backgroundColor: AppColors.success),
           ),
         ),
       ],

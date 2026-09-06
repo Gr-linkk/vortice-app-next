@@ -2,17 +2,25 @@ import 'dart:async';
 import 'dart:math';
 
 import 'package:drift/drift.dart' show Value;
+import 'package:supabase_flutter/supabase_flutter.dart' show SupabaseClient;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:vortice_app/core/constants.dart';
 import 'package:vortice_app/core/supabase_client.dart';
 import 'package:vortice_app/db/database.dart';
+import 'package:vortice_app/features/auth/auth_provider.dart';
+import 'package:vortice_app/features/service_reports/service_report_workflow.dart';
 import 'package:vortice_app/models/service_report.dart';
 import 'package:vortice_app/sync/sync_status.dart';
 
-final serviceReportRepositoryProvider =
-    Provider<ServiceReportRepository>((ref) {
+final serviceReportRepositoryProvider = Provider<ServiceReportRepository>((
+  ref,
+) {
   final db = ref.watch(databaseProvider);
-  return ServiceReportRepository(db);
+  final profile = ref.watch(profileProvider).valueOrNull;
+  return ServiceReportRepository(
+    db,
+    canAuthor: ServiceReportWorkflow.canCreateOrUpdateReport(profile?.role),
+  );
 });
 
 class LocalServiceReportPendingException implements Exception {
@@ -35,23 +43,41 @@ class ServiceReportSubmitResult {
 }
 
 class ServiceReportRepository {
-  ServiceReportRepository(this._db);
+  ServiceReportRepository(
+    this._db, {
+    SupabaseClient? client,
+    bool canAuthor = true,
+  }) : _client = client ?? supabase,
+       _canAuthor = canAuthor;
 
   final AppDatabase _db;
+  final SupabaseClient _client;
+  final bool _canAuthor;
+  final _readableReportIds = <String>{};
+
+  List<ServiceReport> _readableCache(List<ServiceReport> reports) => _canAuthor
+      ? reports
+      : reports
+            .where(
+              (report) =>
+                  report.syncStatus == SyncStatusValues.synced &&
+                  _readableReportIds.contains(report.id),
+            )
+            .toList();
 
   Future<List<ServiceReport>> listAll() async {
     await syncPendingServiceReports();
-    final cached =
-        (await _db.serviceReportsDao.getAll()).map(_fromRow).toList();
+    final cached = (await _db.serviceReportsDao.getAll())
+        .map(_fromRow)
+        .toList();
     try {
-      final remote = await supabase
-          .from(AppConstants.tServiceReports)
-          .select()
-          .order('created_at', ascending: false)
+      final remote = await _client
+          .rpc('provider_service_reports')
           .timeout(const Duration(seconds: 4));
       return _cacheAndMergeRemote(remote as List, cached);
     } catch (_) {
-      if (cached.isNotEmpty) return cached;
+      final readable = _readableCache(cached);
+      if (readable.isNotEmpty) return readable;
       rethrow;
     }
   }
@@ -61,16 +87,19 @@ class ServiceReportRepository {
     final cachedRow = await _db.serviceReportsDao.getById(reportId);
     final cached = cachedRow == null ? null : _fromRow(cachedRow);
     try {
-      final remote = await supabase
-          .from(AppConstants.tServiceReports)
-          .select()
-          .eq('id', reportId)
-          .maybeSingle()
+      final rows = await _client
+          .rpc('provider_service_reports', params: {'p_report': reportId})
           .timeout(const Duration(seconds: 4));
-      if (remote == null) return cached;
-      final report = ServiceReport.fromJson(remote);
-      if (cached?.syncStatus != SyncStatusValues.synced) {
-        return cached;
+      if ((rows as List).isEmpty) {
+        _readableReportIds.remove(reportId);
+        return _canAuthor && cached?.syncStatus != SyncStatusValues.synced
+            ? cached
+            : null;
+      }
+      final report = ServiceReport.fromJson(rows.first as Map<String, dynamic>);
+      _readableReportIds.add(report.id);
+      if (cached != null && cached.syncStatus != SyncStatusValues.synced) {
+        return _canAuthor ? cached : report;
       }
       await _db.serviceReportsDao.upsert(
         _toCompanion(
@@ -86,45 +115,44 @@ class ServiceReportRepository {
         lastError: null,
       );
     } catch (_) {
-      if (cached != null) return cached;
+      if (cached != null && _readableCache([cached]).isNotEmpty) return cached;
       rethrow;
     }
   }
 
   Future<List<ServiceReport>> listByWorkOrder(String workOrderId) async {
     await syncPendingServiceReports(workOrderId: workOrderId);
-    final cached = (await _db.serviceReportsDao.listByWorkOrder(workOrderId))
-        .map(_fromRow)
-        .toList();
+    final cached = (await _db.serviceReportsDao.listByWorkOrder(
+      workOrderId,
+    )).map(_fromRow).toList();
     try {
-      final remote = await supabase
-          .from(AppConstants.tServiceReports)
-          .select()
-          .eq('work_order_id', workOrderId)
-          .order('created_at', ascending: false)
+      final remote = await _client
+          .rpc(
+            'provider_service_reports',
+            params: {'p_work_order': workOrderId},
+          )
           .timeout(const Duration(seconds: 4));
       return _cacheAndMergeRemote(remote as List, cached);
     } catch (_) {
-      if (cached.isNotEmpty) return cached;
+      final readable = _readableCache(cached);
+      if (readable.isNotEmpty) return readable;
       rethrow;
     }
   }
 
   Future<List<ServiceReport>> listForAsset(String assetId) async {
     await syncPendingServiceReports();
-    final cached = (await _db.serviceReportsDao.listByAsset(assetId))
-        .map(_fromRow)
-        .toList();
+    final cached = (await _db.serviceReportsDao.listByAsset(
+      assetId,
+    )).map(_fromRow).toList();
     try {
-      final remote = await supabase
-          .from(AppConstants.tServiceReports)
-          .select('*, work_orders!inner(asset_id)')
-          .eq('work_orders.asset_id', assetId)
-          .order('created_at', ascending: false)
+      final remote = await _client
+          .rpc('provider_service_reports', params: {'p_asset': assetId})
           .timeout(const Duration(seconds: 4));
       return _cacheAndMergeRemote(remote as List, cached);
     } catch (_) {
-      if (cached.isNotEmpty) return cached;
+      final readable = _readableCache(cached);
+      if (readable.isNotEmpty) return readable;
       rethrow;
     }
   }
@@ -169,7 +197,7 @@ class ServiceReportRepository {
     );
 
     try {
-      await supabase
+      await _client
           .from(AppConstants.tServiceReports)
           .upsert(_toRemoteRow(report), onConflict: 'id')
           .timeout(const Duration(seconds: 4));
@@ -232,7 +260,7 @@ class ServiceReportRepository {
     );
 
     try {
-      await supabase
+      await _client
           .from(AppConstants.tServiceReports)
           .upsert(_toRemoteRow(report), onConflict: 'id')
           .timeout(const Duration(seconds: 4));
@@ -260,10 +288,14 @@ class ServiceReportRepository {
     final existing = await _db.serviceReportsDao.getById(reportId);
     if (existing == null) return;
     await _db.serviceReportsDao.upsert(
-      existing.toCompanion(true).copyWith(
-            syncStatus: Value(existing.syncStatus == SyncStatusValues.synced
-                ? SyncStatusValues.pendingUpdate
-                : existing.syncStatus),
+      existing
+          .toCompanion(true)
+          .copyWith(
+            syncStatus: Value(
+              existing.syncStatus == SyncStatusValues.synced
+                  ? SyncStatusValues.pendingUpdate
+                  : existing.syncStatus,
+            ),
             updatedAt: Value(DateTime.now()),
             lastError: Value(error.toString()),
           ),
@@ -274,6 +306,7 @@ class ServiceReportRepository {
     String? reportId,
     String? workOrderId,
   }) async {
+    if (!_canAuthor) return 0;
     final pendingRows = await _db.serviceReportsDao.listPendingSync();
     var syncedCount = 0;
     for (final row in pendingRows) {
@@ -281,12 +314,14 @@ class ServiceReportRepository {
       if (workOrderId != null && row.workOrderId != workOrderId) continue;
       final report = _fromRow(row);
       try {
-        await supabase
+        await _client
             .from(AppConstants.tServiceReports)
             .upsert(_toRemoteRow(report), onConflict: 'id')
             .timeout(const Duration(seconds: 4));
         await _db.serviceReportsDao.upsert(
-          row.toCompanion(true).copyWith(
+          row
+              .toCompanion(true)
+              .copyWith(
                 syncStatus: const Value(SyncStatusValues.synced),
                 lastSyncedAt: Value(DateTime.now()),
                 lastError: const Value(null),
@@ -307,9 +342,17 @@ class ServiceReportRepository {
     final remote = remoteRaw
         .map((e) => ServiceReport.fromJson(e as Map<String, dynamic>))
         .toList();
+    _readableReportIds.removeAll(cached.map((report) => report.id));
+    _readableReportIds.addAll(remote.map((report) => report.id));
+    // An asset query can have an empty local join while a pending report exists
+    // (the work order has not been cached yet). Never overwrite that draft.
+    final relevantIds = {
+      ...cached.map((r) => r.id),
+      ...remote.map((r) => r.id),
+    };
     final localUnsyncedById = {
-      for (final report in cached)
-        if (report.syncStatus != SyncStatusValues.synced) report.id: report,
+      for (final row in await _db.serviceReportsDao.listPendingSync())
+        if (relevantIds.contains(row.id)) row.id: _fromRow(row),
     };
     final now = DateTime.now();
     await _db.serviceReportsDao.upsertAll(
@@ -334,30 +377,32 @@ class ServiceReportRepository {
           lastError: null,
         ),
     };
-    byId.addAll(localUnsyncedById);
+    if (_canAuthor) byId.addAll(localUnsyncedById);
     final merged = byId.values.toList()
-      ..sort((a, b) => (b.createdAt ?? DateTime.fromMillisecondsSinceEpoch(0))
-          .compareTo(a.createdAt ?? DateTime.fromMillisecondsSinceEpoch(0)));
+      ..sort(
+        (a, b) => (b.createdAt ?? DateTime.fromMillisecondsSinceEpoch(0))
+            .compareTo(a.createdAt ?? DateTime.fromMillisecondsSinceEpoch(0)),
+      );
     return merged;
   }
 }
 
 ServiceReport _fromRow(ServiceReportsTableData row) => ServiceReport(
-      id: row.id,
-      workOrderId: row.workOrderId,
-      complaint: row.complaint,
-      cause: row.cause,
-      correction: row.correction,
-      collateral: row.collateral,
-      comments: row.comments,
-      techSignatureUrl: row.techSignatureUrl,
-      signedAt: row.signedAt,
-      createdAt: row.createdAt,
-      updatedAt: row.updatedAt,
-      syncStatus: row.syncStatus,
-      lastSyncedAt: row.lastSyncedAt,
-      lastError: row.lastError,
-    );
+  id: row.id,
+  workOrderId: row.workOrderId,
+  complaint: row.complaint,
+  cause: row.cause,
+  correction: row.correction,
+  collateral: row.collateral,
+  comments: row.comments,
+  techSignatureUrl: row.techSignatureUrl,
+  signedAt: row.signedAt,
+  createdAt: row.createdAt,
+  updatedAt: row.updatedAt,
+  syncStatus: row.syncStatus,
+  lastSyncedAt: row.lastSyncedAt,
+  lastError: row.lastError,
+);
 
 ServiceReportsTableCompanion _toCompanion(
   ServiceReport report, {
@@ -365,37 +410,36 @@ ServiceReportsTableCompanion _toCompanion(
   DateTime? updatedAt,
   DateTime? lastSyncedAt,
   String? lastError,
-}) =>
-    ServiceReportsTableCompanion(
-      id: Value(report.id),
-      workOrderId: Value(report.workOrderId),
-      complaint: Value(report.complaint),
-      cause: Value(report.cause),
-      correction: Value(report.correction),
-      collateral: Value(report.collateral),
-      comments: Value(report.comments),
-      techSignatureUrl: Value(report.techSignatureUrl),
-      signedAt: Value(report.signedAt),
-      createdAt: Value(report.createdAt),
-      updatedAt: Value(updatedAt ?? report.updatedAt),
-      syncStatus: Value(syncStatus),
-      lastSyncedAt: Value(lastSyncedAt ?? report.lastSyncedAt),
-      lastError: Value(lastError),
-    );
+}) => ServiceReportsTableCompanion(
+  id: Value(report.id),
+  workOrderId: Value(report.workOrderId),
+  complaint: Value(report.complaint),
+  cause: Value(report.cause),
+  correction: Value(report.correction),
+  collateral: Value(report.collateral),
+  comments: Value(report.comments),
+  techSignatureUrl: Value(report.techSignatureUrl),
+  signedAt: Value(report.signedAt),
+  createdAt: Value(report.createdAt),
+  updatedAt: Value(updatedAt ?? report.updatedAt),
+  syncStatus: Value(syncStatus),
+  lastSyncedAt: Value(lastSyncedAt ?? report.lastSyncedAt),
+  lastError: Value(lastError),
+);
 
 Map<String, dynamic> _toRemoteRow(ServiceReport report) => {
-      'id': report.id,
-      'work_order_id': report.workOrderId,
-      'complaint': report.complaint,
-      'cause': report.cause,
-      'correction': report.correction,
-      'collateral': report.collateral,
-      'comments': report.comments,
-      'tech_signature_url': report.techSignatureUrl,
-      'signed_at': report.signedAt?.toIso8601String(),
-      'created_at': report.createdAt?.toIso8601String(),
-      'updated_at': report.updatedAt?.toIso8601String(),
-    };
+  'id': report.id,
+  'work_order_id': report.workOrderId,
+  'complaint': report.complaint,
+  'cause': report.cause,
+  'correction': report.correction,
+  'collateral': report.collateral,
+  'comments': report.comments,
+  'tech_signature_url': report.techSignatureUrl,
+  'signed_at': report.signedAt?.toUtc().toIso8601String(),
+  'created_at': report.createdAt?.toUtc().toIso8601String(),
+  'updated_at': report.updatedAt?.toUtc().toIso8601String(),
+};
 
 String _uuidV4() {
   final random = Random.secure();

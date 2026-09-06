@@ -205,6 +205,7 @@ Future<void> pumpMaintenance(
   double width = 390,
   double scale = 1,
   UserRole role = UserRole.clientAdmin,
+  List<Override> overrides = const [],
 }) async {
   tester.view.physicalSize = Size(width, 844);
   tester.view.devicePixelRatio = 1;
@@ -236,6 +237,7 @@ Future<void> pumpMaintenance(
             role: role,
           ),
         ),
+        ...overrides,
       ],
       child: RepaintBoundary(
         key: const Key('fleet-capture'),
@@ -295,6 +297,54 @@ void main() {
     final job = MaintenanceJob(jobData());
     expect(job.completedLabourHours, 1.5);
     expect(job.labourCost + job.partsCost, 85);
+  });
+  test('live labour timestamps retain the server completion cost rounding', () {
+    final job = MaintenanceJob({
+      ...jobData(),
+      'hourly_cost': 45,
+      'parts': [
+        {'quantity': 1, 'unit_cost': 18.75},
+      ],
+      'labour': [
+        {
+          'started_at': '2026-09-06T04:48:19.792271+00:00',
+          'stopped_at': '2026-09-06T04:49:20.665931+00:00',
+        },
+        {
+          'started_at': '2026-09-06T05:03:56.744311+00:00',
+          'stopped_at': '2026-09-06T05:12:40.270681+00:00',
+        },
+      ],
+    });
+    expect(job.labourCost + job.partsCost, closeTo(26.055000375, 0.000000001));
+    expect((job.labourCost + job.partsCost).toStringAsFixed(2), '26.06');
+  });
+  testWidgets('reapproval explains that the service baseline is preserved', (
+    tester,
+  ) async {
+    await pumpMaintenance(
+      tester,
+      const MaintenanceJobScreen(jobId: 'job'),
+      FixtureMaintenance(
+        job: {
+          ...jobData(status: 'pending_review'),
+          'service_applied_at': '2026-09-06T05:17:17Z',
+        },
+      ),
+    );
+    await tester.ensureVisible(find.text('Approve & complete'));
+    await tester.tap(find.text('Approve & complete'));
+    await tester.pumpAndSettle();
+    expect(
+      find.text(
+        'Closes this reopened job. Its previously completed service and next service due stay unchanged.',
+      ),
+      findsOneWidget,
+    );
+    expect(
+      find.text('Completes this job and updates only its linked service plan.'),
+      findsNothing,
+    );
   });
   test('retry payload is detached from editable checklist input', () {
     final answers = {

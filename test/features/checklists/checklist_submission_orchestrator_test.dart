@@ -181,6 +181,122 @@ void main() {
   });
 
   group('OperationsChecklistSubmission', () {
+    test('maps every UI response to the baseline storage constraints', () {
+      expect(operationsResponseStorageValues('pass'), {
+        'result': 'good',
+        'response_status': 'pass',
+      });
+      expect(operationsResponseStorageValues('monitor'), {
+        'result': 'needs_attention',
+        'response_status': 'alert',
+      });
+      expect(operationsResponseStorageValues('action'), {
+        'result': 'needs_attention',
+        'response_status': 'action',
+      });
+      expect(operationsResponseStorageValues('n/a'), {
+        'result': 'not_applicable',
+        'response_status': null,
+      });
+    });
+    test(
+      'rejects incomplete or unsupported evidence before any write',
+      () async {
+        final events = <String>[];
+        final submission = OperationsChecklistSubmission(
+          createRun:
+              ({
+                required assetId,
+                required operatorId,
+                required templateId,
+                required runType,
+                required completedAt,
+              }) async {
+                events.add('run');
+                return const OperationsChecklistRunRecord(
+                  id: 'run',
+                  clientId: 'client',
+                );
+              },
+          insertResponses:
+              ({required runId, required responses, required notes}) async {
+                events.add('responses');
+              },
+          historyWriter: SavedChecklistHistoryWriter(
+            _RecordingSavedChecklistsRepository(events),
+          ),
+        );
+        for (final scenario in [
+          (
+            items: <ChecklistItem>[],
+            responses: <String, String?>{},
+            notes: <String, String>{},
+            hours: 1.0,
+          ),
+          (
+            items: [_item()],
+            responses: <String, String?>{},
+            notes: <String, String>{},
+            hours: 1.0,
+          ),
+          (
+            items: [_item()],
+            responses: {'item-1': 'invalid'},
+            notes: <String, String>{},
+            hours: 1.0,
+          ),
+          (
+            items: [_item()],
+            responses: {'item-1': 'monitor'},
+            notes: {'item-1': ' '},
+            hours: 1.0,
+          ),
+          (
+            items: [_item().copyWith(requiresPhoto: true)],
+            responses: {'item-1': 'pass'},
+            notes: <String, String>{},
+            hours: 1.0,
+          ),
+          (
+            items: [_item()],
+            responses: {'item-1': 'pass'},
+            notes: <String, String>{},
+            hours: -1.0,
+          ),
+          (
+            items: [_item()],
+            responses: {'item-1': 'pass'},
+            notes: <String, String>{},
+            hours: double.nan,
+          ),
+        ]) {
+          await expectLater(
+            submission.submit(
+              assetId: 'asset',
+              assetClientId: 'client',
+              operatorId: 'operator',
+              submittedByRole: 'operator',
+              runType: 'pre_departure',
+              template: _template(),
+              items: scenario.items,
+              responses: scenario.responses,
+              notes: scenario.notes,
+              submittedAt: DateTime.utc(2026),
+              currentHours: scenario.hours,
+              generalNotes: null,
+            ),
+            throwsA(isA<OperationsChecklistValidationException>()),
+          );
+          expect(events, isEmpty);
+        }
+        expect(
+          () =>
+              validateOperationsChecklist([_item()], {'item-1': 'n/a'}, {}, 0),
+          returnsNormally,
+        );
+      },
+    );
+
     test('creates run and responses before saved operations history', () async {
       final events = <String>[];
       final repository = _RecordingSavedChecklistsRepository(events);

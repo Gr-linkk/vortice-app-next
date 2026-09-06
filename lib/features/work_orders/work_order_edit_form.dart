@@ -5,6 +5,7 @@ import 'package:vortice_app/core/theme.dart';
 import 'package:vortice_app/features/work_orders/work_order_edit_support.dart';
 import 'package:vortice_app/features/work_orders/work_order_edit_tech_picker_sheet.dart';
 import 'package:vortice_app/features/work_orders/work_order_provider.dart';
+import 'package:vortice_app/features/work_orders/work_order_hours_validation.dart';
 import 'package:vortice_app/l10n/app_localizations.dart';
 import 'package:vortice_app/models/work_order.dart';
 
@@ -60,7 +61,11 @@ class WorkOrderEditForm extends ConsumerWidget {
 
     return Padding(
       padding: EdgeInsets.fromLTRB(
-          16, 16, 16, MediaQuery.of(context).viewInsets.bottom + 16),
+        16,
+        16,
+        16,
+        MediaQuery.of(context).viewInsets.bottom + 16,
+      ),
       child: Form(
         key: formKey,
         child: SingleChildScrollView(
@@ -68,8 +73,10 @@ class WorkOrderEditForm extends ConsumerWidget {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Text(l10n.editWorkOrder,
-                  style: Theme.of(context).textTheme.titleMedium),
+              Text(
+                l10n.editWorkOrder,
+                style: Theme.of(context).textTheme.titleMedium,
+              ),
               const SizedBox(height: 16),
               TextFormField(
                 controller: titleCtrl,
@@ -112,8 +119,10 @@ class WorkOrderEditForm extends ConsumerWidget {
                   Expanded(
                     child: TextFormField(
                       controller: hoursStartCtrl,
-                      keyboardType:
-                          const TextInputType.numberWithOptions(decimal: true),
+                      validator: (v) => validateWorkOrderHours(v, l10n),
+                      keyboardType: const TextInputType.numberWithOptions(
+                        decimal: true,
+                      ),
                       decoration: InputDecoration(labelText: l10n.hoursAtStart),
                     ),
                   ),
@@ -121,8 +130,10 @@ class WorkOrderEditForm extends ConsumerWidget {
                   Expanded(
                     child: TextFormField(
                       controller: hoursEndCtrl,
-                      keyboardType:
-                          const TextInputType.numberWithOptions(decimal: true),
+                      validator: (v) => validateWorkOrderHours(v, l10n),
+                      keyboardType: const TextInputType.numberWithOptions(
+                        decimal: true,
+                      ),
                       decoration: InputDecoration(labelText: l10n.hoursAtEnd),
                     ),
                   ),
@@ -131,8 +142,10 @@ class WorkOrderEditForm extends ConsumerWidget {
               const SizedBox(height: 12),
               TextFormField(
                 controller: labourCtrl,
-                keyboardType:
-                    const TextInputType.numberWithOptions(decimal: true),
+                validator: (v) => validateWorkOrderHours(v, l10n),
+                keyboardType: const TextInputType.numberWithOptions(
+                  decimal: true,
+                ),
                 decoration: InputDecoration(labelText: l10n.labourHours),
               ),
               const SizedBox(height: 12),
@@ -154,7 +167,9 @@ class WorkOrderEditForm extends ConsumerWidget {
                         width: 16,
                         height: 16,
                         child: CircularProgressIndicator(
-                            strokeWidth: 2, color: Colors.white),
+                          strokeWidth: 2,
+                          color: Colors.white,
+                        ),
                       )
                     : Text(l10n.save),
               ),
@@ -180,15 +195,18 @@ class _TechnicianAssignmentField extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context);
-    final assignableAsync =
-        ref.watch(assignableWorkOrderProfilesProvider(clientId));
+    final assignableAsync = ref.watch(
+      assignableWorkOrderProfilesProvider(clientId),
+    );
 
     return assignableAsync.when(
       loading: () => const LinearProgressIndicator(),
       error: (_, __) => const SizedBox.shrink(),
       data: (employees) {
-        final selectedNames =
-            selectedTechnicianNames(employees, assignedTechIds);
+        final selectedNames = selectedTechnicianNames(
+          employees,
+          assignedTechIds,
+        );
 
         return Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -214,18 +232,18 @@ class _TechnicianAssignmentField extends ConsumerWidget {
               Wrap(
                 spacing: 8,
                 runSpacing: 8,
-                children:
-                    selectedNames.map((name) => Chip(label: Text(name))).toList(),
+                children: selectedNames
+                    .map((name) => Chip(label: Text(name)))
+                    .toList(),
               ),
             ] else
               Padding(
                 padding: const EdgeInsets.only(top: 8),
                 child: Text(
                   'No technicians assigned',
-                  style: Theme.of(context)
-                      .textTheme
-                      .bodySmall
-                      ?.copyWith(color: AppColors.textSecondary),
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: AppColors.textSecondary,
+                  ),
                 ),
               ),
           ],

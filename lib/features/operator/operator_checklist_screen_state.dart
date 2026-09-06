@@ -9,8 +9,6 @@ import 'package:vortice_app/core/theme.dart';
 import 'package:vortice_app/features/auth/auth_provider.dart';
 import 'package:vortice_app/features/checklists/checklist_provider.dart';
 import 'package:vortice_app/features/checklists/checklist_submission_orchestrator.dart';
-import 'package:vortice_app/features/checklists/checklist_attachment_support.dart';
-import 'package:vortice_app/features/checklists/checklist_support.dart';
 import 'package:vortice_app/features/operator/operator_checklist_run_form.dart';
 import 'package:vortice_app/features/operator/operator_checklist_screen.dart';
 import 'package:vortice_app/features/operator/operator_checklist_selection_step.dart';
@@ -229,25 +227,15 @@ class OperatorChecklistScreenState
     await _saveDraft();
     setState(() => _submitting = true);
     try {
-      if (requiresAttentionDetail(
-        _responses,
-        _notes,
-        photoListsFromLegacySinglePhotos(_photos),
-        const {},
-      )) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Monitor and Action items need a note or photo.'),
-              backgroundColor: AppColors.error,
-            ),
-          );
-        }
-        return;
+      if (operatorSubmissionHasPhotos(_photos)) {
+        throw const OperationsChecklistValidationException('photos');
       }
-      final items =
-          await ref.read(checklistItemsProvider(_selectedTemplate!.id).future);
-      await ref.read(operationsChecklistSubmissionProvider).submit(
+      final items = await ref.read(
+        checklistItemsProvider(_selectedTemplate!.id).future,
+      );
+      await ref
+          .read(operationsChecklistSubmissionProvider)
+          .submit(
             assetId: _selectedAsset!['id'] as String,
             assetClientId: _selectedAsset!['client_id'] as String?,
             operatorId: profile?.id,
@@ -262,17 +250,12 @@ class OperatorChecklistScreenState
             generalNotes: _generalNotes,
           );
 
-      final hasPhotos = operatorSubmissionHasPhotos(_photos);
       await _clearDraft();
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(
-              hasPhotos
-                  ? operatorPhotoNotSubmittedMessage
-                  : AppLocalizations.of(context).checklistSubmitted,
-            ),
-            backgroundColor: hasPhotos ? AppColors.warning : AppColors.success,
+            content: Text(AppLocalizations.of(context).checklistSubmitted),
+            backgroundColor: AppColors.success,
           ),
         );
         setState(() {
@@ -285,6 +268,19 @@ class OperatorChecklistScreenState
           _currentHours = null;
           _generalNotes = null;
         });
+      }
+    } on OperationsChecklistValidationException catch (error) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              error.message(
+                Localizations.localeOf(context).languageCode == 'es',
+              ),
+            ),
+            backgroundColor: AppColors.error,
+          ),
+        );
       }
     } on TimeoutException {
       if (mounted) {

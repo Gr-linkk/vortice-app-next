@@ -1,3 +1,5 @@
+import 'package:intl/intl.dart';
+
 const historyCategories = {
   'asset': ('Asset & location', 'Activo y ubicación'),
   'usage': ('Meter readings', 'Lecturas de horas'),
@@ -182,7 +184,9 @@ String historyDetailText(Map<String, dynamic> data, bool es) {
   for (final entry in _details.entries) {
     final value = data[entry.key];
     if (value != null && value.toString().isNotEmpty) {
-      lines.add('${es ? entry.value.$2 : entry.value.$1}: $value');
+      lines.add(
+        '${es ? entry.value.$2 : entry.value.$1}: ${_historyValue(entry.key, value, es)}',
+      );
     }
   }
   if (data['isolation'] != null) {
@@ -204,7 +208,7 @@ String historyDetailText(Map<String, dynamic> data, bool es) {
     for (final part in data['parts'] as List) {
       if (part is Map) {
         lines.add(
-          '${es ? 'Pieza' : 'Part'}: ${part['description'] ?? ''} · ${part['part_number'] ?? ''} · ${part['quantity'] ?? 0} × ${part['unit_cost'] ?? 0}',
+          '${es ? 'Pieza' : 'Part'}: ${part['description'] ?? ''} · ${part['part_number'] ?? ''} · ${part['quantity'] ?? 0} × ${_historyValue('unit_cost', part['unit_cost'] ?? 0, es)}',
         );
       }
     }
@@ -227,4 +231,16 @@ String historyDetailText(Map<String, dynamic> data, bool es) {
     );
   }
   return lines.join('\n');
+}
+
+String _historyValue(String key, Object value, bool es) {
+  const costs = {'unit_cost', 'total_cost', 'parts_cost', 'hourly_cost'};
+  final number = value is num ? value : num.tryParse(value.toString());
+  if (number != null &&
+      number.isFinite &&
+      (costs.contains(key) || key == 'labour_hours')) {
+    final formatted = NumberFormat('0.00', es ? 'es' : 'en').format(number);
+    return costs.contains(key) ? '$formatted USD' : formatted;
+  }
+  return value.toString();
 }

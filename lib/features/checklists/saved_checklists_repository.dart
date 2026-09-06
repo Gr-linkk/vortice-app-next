@@ -66,7 +66,8 @@ class SavedChecklistsRepository {
         )
         .toList(growable: false);
 
-    final normalizedType = checklistType == 'operations' ||
+    final normalizedType =
+        checklistType == 'operations' ||
             checklistType == 'operator_daily' ||
             checklistType == 'pre_ops'
         ? SavedChecklistType.operations
@@ -89,7 +90,7 @@ class SavedChecklistsRepository {
         'completed_by': completedBy,
         if (completedByName != null && completedByName.trim().isNotEmpty)
           'completed_by_name': completedByName.trim(),
-        'submitted_at': submitted.toIso8601String(),
+        'submitted_at': submitted.toUtc().toIso8601String(),
         'current_hours': currentHours,
         'general_notes': generalNotes,
         if (extraHeader != null) ...extraHeader,
@@ -112,7 +113,7 @@ class SavedChecklistsRepository {
       'source_type': sourceType,
       'submitted_by': completedBy,
       'submitted_by_role': submittedByRole,
-      'submitted_at': submitted.toIso8601String(),
+      'submitted_at': submitted.toUtc().toIso8601String(),
       'current_hours': currentHours,
       'general_notes': generalNotes,
       'work_order_id': workOrderId,

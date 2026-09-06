@@ -18,7 +18,11 @@ class AssetServiceReportsCard extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final reportsAsync = ref.watch(serviceReportsForAssetProvider(asset.id));
+    final reportsAsync = ref.watch(
+      serviceReportIndexProvider((assetId: asset.id, workOrderId: null)),
+    );
+    final es = Localizations.localeOf(context).languageCode == 'es';
+    final title = es ? 'Informes de servicio' : 'Service Reports';
 
     return InkWell(
       borderRadius: BorderRadius.circular(12),
@@ -45,41 +49,54 @@ class AssetServiceReportsCard extends ConsumerWidget {
                 loading: () => Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('Service Reports',
-                        style: Theme.of(context).textTheme.titleSmall),
-                    const Text(
-                      'Loading vessel records...',
-                      style: TextStyle(
-                          color: AppColors.textSecondary, fontSize: 12),
+                    Text(title, style: Theme.of(context).textTheme.titleSmall),
+                    Text(
+                      es ? 'Cargando informes...' : 'Loading asset records...',
+                      style: const TextStyle(
+                        color: AppColors.textSecondary,
+                        fontSize: 12,
+                      ),
                     ),
                   ],
                 ),
                 error: (_, __) => Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('Service Reports',
-                        style: Theme.of(context).textTheme.titleSmall),
-                    const Text(
-                      'Service report records unavailable.',
-                      style: TextStyle(
-                          color: AppColors.textSecondary, fontSize: 12),
+                    Text(title, style: Theme.of(context).textTheme.titleSmall),
+                    Text(
+                      es
+                          ? 'Informes no disponibles.'
+                          : 'Service report records unavailable.',
+                      style: const TextStyle(
+                        color: AppColors.textSecondary,
+                        fontSize: 12,
+                      ),
                     ),
                   ],
                 ),
                 data: (reports) {
-                  final latest = reports.isEmpty ? null : reports.first;
+                  final latest = reports.isEmpty ? null : reports.first.date;
+                  final countLabel = es
+                      ? '${reports.length} informe${reports.length == 1 ? '' : 's'}'
+                      : '${reports.length} report${reports.length == 1 ? '' : 's'}';
                   final subtitle = reports.isEmpty
-                      ? 'No service reports attached yet'
-                      : '${reports.length} report${reports.length == 1 ? '' : 's'} • latest ${DateFormat('MMM d, yyyy').format((latest!.createdAt ?? DateTime.now()).toLocal())}';
+                      ? (es
+                            ? 'Aún no hay informes de servicio'
+                            : 'No service reports attached yet')
+                      : '$countLabel${latest == null ? '' : ' • ${es ? 'último' : 'latest'} ${DateFormat.yMMMd(es ? 'es' : 'en').format(latest.toLocal())}'}';
                   return Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text('Service Reports',
-                          style: Theme.of(context).textTheme.titleSmall),
+                      Text(
+                        title,
+                        style: Theme.of(context).textTheme.titleSmall,
+                      ),
                       Text(
                         subtitle,
                         style: const TextStyle(
-                            color: AppColors.textSecondary, fontSize: 12),
+                          color: AppColors.textSecondary,
+                          fontSize: 12,
+                        ),
                       ),
                     ],
                   );

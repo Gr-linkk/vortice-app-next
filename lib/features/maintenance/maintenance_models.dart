@@ -88,7 +88,7 @@ class MaintenanceJob {
     return sum +
         (start == null || stop == null
             ? 0
-            : stop.difference(start).inMilliseconds / 3600000);
+            : stop.difference(start).inMicroseconds / 3600000000);
   });
   double get labourCost =>
       completedLabourHours * ((data['hourly_cost'] as num?)?.toDouble() ?? 0);
@@ -98,4 +98,20 @@ class MaintenanceJob {
         sum +
         (p['quantity'] as num).toDouble() * (p['unit_cost'] as num).toDouble(),
   );
+}
+
+String maintenanceApprovalDescription(MaintenanceJob job, bool es) {
+  if (job.isService && job.data['service_applied_at'] != null) {
+    return es
+        ? 'Cierra este trabajo reabierto. El servicio ya completado y las próximas horas de servicio no cambian.'
+        : 'Closes this reopened job. Its previously completed service and next service due stay unchanged.';
+  }
+  if (job.isService) {
+    return es
+        ? 'Completa el trabajo y actualiza únicamente su plan de servicio vinculado.'
+        : 'Completes this job and updates only its linked service plan.';
+  }
+  return es
+      ? 'Completa esta reparación. La disponibilidad del equipo y la resolución de fallas se revisan por separado.'
+      : 'Completes this repair. Asset availability and fault resolution are reviewed separately.';
 }

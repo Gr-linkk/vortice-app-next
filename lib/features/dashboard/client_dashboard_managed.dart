@@ -149,8 +149,11 @@ class ClientDashboardManaged extends ConsumerWidget {
                         ? DateTime.tryParse(r['created_at'] as String)
                         : null;
                     return ListTile(
-                      onTap: () =>
-                          context.push('/client/service-reports/${r['id']}'),
+                      onTap: () => context.push(
+                        r['maintenance_job_id'] != null
+                            ? '/maintenance/jobs/${r['maintenance_job_id']}'
+                            : '/client/service-reports/${r['id']}',
+                      ),
                       leading: const CircleAvatar(
                         backgroundColor: AppColors.surfaceVariant,
                         child: Icon(

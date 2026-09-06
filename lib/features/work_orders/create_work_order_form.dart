@@ -9,6 +9,7 @@ import 'package:vortice_app/features/work_orders/create_work_order_pm_parts_prev
 import 'package:vortice_app/features/work_orders/create_work_order_pm_parts_support.dart';
 import 'package:vortice_app/features/work_orders/create_work_order_support.dart';
 import 'package:vortice_app/features/work_orders/work_order_provider.dart';
+import 'package:vortice_app/features/work_orders/work_order_hours_validation.dart';
 import 'package:vortice_app/l10n/app_localizations.dart';
 import 'package:vortice_app/models/work_order.dart';
 
@@ -371,6 +372,7 @@ class CreateWorkOrderForm extends ConsumerWidget {
           const SizedBox(height: 16),
           TextFormField(
             controller: hoursCtrl,
+            validator: (v) => validateWorkOrderHours(v, l10n),
             keyboardType: const TextInputType.numberWithOptions(decimal: true),
             decoration: const InputDecoration(
               labelText: 'Current Engine Hours',

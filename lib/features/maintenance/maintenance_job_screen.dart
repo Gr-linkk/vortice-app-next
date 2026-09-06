@@ -90,6 +90,10 @@ class _MaintenanceJobScreenState extends ConsumerState<MaintenanceJobScreen> {
         action: action,
         title: title,
         assignees: maintenanceRows(catalog?['assignees']),
+        approvalDescription: maintenanceApprovalDescription(
+          job,
+          isSpanish(context),
+        ),
       ),
     );
     if (values != null && mounted) await _act(job, action, values);
@@ -544,8 +548,10 @@ class _JobActionDialog extends StatefulWidget {
     required this.action,
     required this.title,
     required this.assignees,
+    required this.approvalDescription,
   });
   final String action, title;
+  final String approvalDescription;
   final List<Map<String, dynamic>> assignees;
   @override
   State<_JobActionDialog> createState() => _JobActionDialogState();
@@ -668,11 +674,7 @@ class _JobActionDialogState extends State<_JobActionDialog> {
                 ),
               ] else ...[
                 if (widget.action == 'approve')
-                  Text(
-                    es
-                        ? 'Completa el trabajo y actualiza únicamente su plan de servicio vinculado.'
-                        : 'Completes this job and updates only its linked service plan.',
-                  ),
+                  Text(widget.approvalDescription),
                 TextFormField(
                   controller: _note,
                   minLines: 2,

@@ -13,12 +13,14 @@ class ServiceReportSubmitOutcome {
   final bool shouldResetForm;
   final bool shouldPop;
   final bool showPhotosPendingWarning;
+  final bool showReportPendingWarning;
 
   const ServiceReportSubmitOutcome({
     required this.pendingReportId,
     required this.shouldResetForm,
     required this.shouldPop,
     required this.showPhotosPendingWarning,
+    this.showReportPendingWarning = false,
   });
 }
 
@@ -26,15 +28,17 @@ ServiceReportSubmitOutcome? resolveServiceReportSubmitOutcome({
   required String? reportId,
   required bool photosUploaded,
   required bool hadPhotos,
+  bool reportSynced = true,
 }) {
   if (reportId == null) return null;
 
   if (photosUploaded) {
-    return const ServiceReportSubmitOutcome(
+    return ServiceReportSubmitOutcome(
       pendingReportId: null,
       shouldResetForm: true,
       shouldPop: true,
       showPhotosPendingWarning: false,
+      showReportPendingWarning: !reportSynced,
     );
   }
 

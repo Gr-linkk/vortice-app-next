@@ -5,6 +5,9 @@ import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:vortice_app/core/theme.dart';
 import 'package:vortice_app/features/auth/auth_provider.dart';
+import 'package:vortice_app/features/maintenance/maintenance_models.dart';
+import 'package:vortice_app/features/maintenance/maintenance_repository.dart';
+import 'package:vortice_app/features/service_reports/service_report_index.dart';
 import 'package:vortice_app/features/service_reports/service_report_authoring_policy.dart';
 import 'package:vortice_app/features/service_reports/service_report_provider.dart';
 import 'package:vortice_app/features/service_reports/service_report_workflow.dart';
@@ -26,6 +29,7 @@ class ServiceReportListScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context);
+    final es = Localizations.localeOf(context).languageCode == 'es';
     final profile = ref.watch(profileProvider).valueOrNull;
     final role = profile?.role;
     final canView = ServiceReportWorkflow.canViewReport(role);
@@ -54,20 +58,39 @@ class ServiceReportListScreen extends ConsumerWidget {
       _ => '/owner',
     };
 
-    final reportsAsync = initialWorkOrderId != null
-        ? ref.watch(serviceReportsByWorkOrderProvider(initialWorkOrderId!))
-        : initialAssetId != null
-        ? ref.watch(serviceReportsForAssetProvider(initialAssetId!))
-        : ref.watch(serviceReportsProvider);
+    final scope = (assetId: initialAssetId, workOrderId: initialWorkOrderId);
+    final reportsAsync = ref.watch(serviceReportIndexProvider(scope));
+    void refreshReports() {
+      if (initialWorkOrderId != null) {
+        ref.invalidate(serviceReportsByWorkOrderProvider(initialWorkOrderId!));
+        ref.invalidate(maintenanceJobProvider(initialWorkOrderId!));
+      } else {
+        if (initialAssetId != null) {
+          ref.invalidate(serviceReportsForAssetProvider(initialAssetId!));
+        } else {
+          ref.invalidate(serviceReportsProvider);
+        }
+        ref.invalidate(maintenanceJobsProvider(initialAssetId));
+      }
+    }
 
     final title = initialWorkOrderId != null
-        ? 'Work Order Service Reports'
+        ? (es ? 'Informes de la orden' : 'Work Order Service Reports')
         : initialAssetId != null
-        ? 'Asset Service Reports'
+        ? (es ? 'Informes del equipo' : 'Asset Service Reports')
         : l10n.serviceReportListTitle;
 
     return Scaffold(
-      appBar: AppBar(title: Text(title)),
+      appBar: AppBar(
+        title: Text(title),
+        actions: [
+          IconButton(
+            tooltip: es ? 'Actualizar' : 'Refresh',
+            onPressed: refreshReports,
+            icon: const Icon(Icons.refresh),
+          ),
+        ],
+      ),
       floatingActionButton: canCreateForWorkOrder
           ? FloatingActionButton.extended(
               onPressed: () {
@@ -81,20 +104,7 @@ class ServiceReportListScreen extends ConsumerWidget {
           : null,
       body: reportsAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (err, _) => AppErrorState(
-          error: err,
-          onRetry: () {
-            if (initialWorkOrderId != null) {
-              ref.invalidate(
-                serviceReportsByWorkOrderProvider(initialWorkOrderId!),
-              );
-            } else if (initialAssetId != null) {
-              ref.invalidate(serviceReportsForAssetProvider(initialAssetId!));
-            } else {
-              ref.invalidate(serviceReportsProvider);
-            }
-          },
-        ),
+        error: (err, _) => AppErrorState(error: err, onRetry: refreshReports),
         data: (reports) {
           if (reports.isEmpty) {
             return Center(
@@ -130,33 +140,66 @@ class ServiceReportListScreen extends ConsumerWidget {
 
           return RefreshIndicator(
             onRefresh: () async {
-              if (initialWorkOrderId != null) {
-                ref.invalidate(
-                  serviceReportsByWorkOrderProvider(initialWorkOrderId!),
-                );
-                return;
-              }
-              if (initialAssetId != null) {
-                ref.invalidate(serviceReportsForAssetProvider(initialAssetId!));
-                return;
-              }
-              ref.invalidate(serviceReportsProvider);
+              refreshReports();
+              await ref.read(serviceReportIndexProvider(scope).future);
             },
             child: ListView.separated(
               padding: const EdgeInsets.fromLTRB(16, 12, 16, 100),
               itemCount: reports.length,
               separatorBuilder: (_, __) => const SizedBox(height: 10),
               itemBuilder: (context, index) {
-                final report = reports[index];
+                final entry = reports[index];
+                if (entry.maintenance != null) {
+                  return _MaintenanceReportCard(
+                    entry: entry,
+                    onTap: () => context.push(entry.route(prefix)),
+                  );
+                }
                 return _ReportCard(
-                  report: report,
-                  onTap: () =>
-                      context.push('$prefix/service-reports/${report.id}'),
+                  report: entry.legacy!,
+                  onTap: () => context.push(entry.route(prefix)),
                 );
               },
             ),
           );
         },
+      ),
+    );
+  }
+}
+
+class _MaintenanceReportCard extends StatelessWidget {
+  const _MaintenanceReportCard({required this.entry, required this.onTap});
+  final ServiceReportEntry entry;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final es = Localizations.localeOf(context).languageCode == 'es';
+    final job = entry.maintenance!;
+    final date = entry.date;
+    return Card(
+      margin: EdgeInsets.zero,
+      child: ListTile(
+        contentPadding: const EdgeInsets.all(14),
+        leading: const Icon(
+          Icons.description_outlined,
+          color: AppColors.primary,
+        ),
+        title: Text(job.title, maxLines: 2, overflow: TextOverflow.ellipsis),
+        subtitle: Padding(
+          padding: const EdgeInsets.only(top: 6),
+          child: Text(
+            [
+              job.assetName,
+              '${es ? 'Informe de mantenimiento' : 'Maintenance report'} · ${maintenanceStatus(job.status, es)}',
+              if (date != null)
+                DateFormat.yMMMd(es ? 'es' : 'en').format(date.toLocal()),
+            ].join('\n'),
+          ),
+        ),
+        trailing: const Icon(Icons.chevron_right),
+        onTap: onTap,
       ),
     );
   }
@@ -171,7 +214,7 @@ class _ReportCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final date = report.createdAt != null
-        ? DateFormat('MMM d, yyyy').format(report.createdAt!)
+        ? DateFormat('MMM d, yyyy').format(report.createdAt!.toLocal())
         : '—';
     final hasSig = report.techSignatureUrl != null;
 

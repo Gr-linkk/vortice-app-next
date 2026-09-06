@@ -59,8 +59,9 @@ class ServiceReportSubmitHandler {
     required Future<void> Function() onClearDraft,
   }) async {
     if (!formKey.currentState!.validate()) return null;
-    final missingWorkOrderMessage =
-        validateServiceReportWorkOrderSelection(input.selectedWorkOrderId);
+    final missingWorkOrderMessage = validateServiceReportWorkOrderSelection(
+      input.selectedWorkOrderId,
+    );
     if (missingWorkOrderMessage != null) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -136,24 +137,27 @@ class ServiceReportSubmitHandler {
     }
 
     final submitResult = input.pendingReportId == null
-        ? await ref.read(serviceReportControllerProvider.notifier).createReport(
-              workOrderId: selectedWorkOrderId,
-              complaint: input.complaint.trim().isNotEmpty
-                  ? input.complaint.trim()
-                  : null,
-              cause:
-                  input.cause.trim().isNotEmpty ? input.cause.trim() : null,
-              correction: input.correction.trim().isNotEmpty
-                  ? input.correction.trim()
-                  : null,
-              collateral: input.collateral.trim().isNotEmpty
-                  ? input.collateral.trim()
-                  : null,
-              comments: input.comments.trim().isNotEmpty
-                  ? input.comments.trim()
-                  : null,
-              techSignatureUrl: signatureUrl,
-            )
+        ? await ref
+              .read(serviceReportControllerProvider.notifier)
+              .createReport(
+                workOrderId: selectedWorkOrderId,
+                complaint: input.complaint.trim().isNotEmpty
+                    ? input.complaint.trim()
+                    : null,
+                cause: input.cause.trim().isNotEmpty
+                    ? input.cause.trim()
+                    : null,
+                correction: input.correction.trim().isNotEmpty
+                    ? input.correction.trim()
+                    : null,
+                collateral: input.collateral.trim().isNotEmpty
+                    ? input.collateral.trim()
+                    : null,
+                comments: input.comments.trim().isNotEmpty
+                    ? input.comments.trim()
+                    : null,
+                techSignatureUrl: signatureUrl,
+              )
         : ServiceReportSubmitResult(
             reportId: input.pendingReportId!,
             synced: true,
@@ -177,14 +181,23 @@ class ServiceReportSubmitHandler {
         reportId: reportId,
         photosUploaded: photosUploaded,
         hadPhotos: input.photos.isNotEmpty,
+        reportSynced: submitResult?.synced ?? false,
       );
       if (outcome == null || !context.mounted) return null;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(outcome.showPhotosPendingWarning
-              ? serviceReportPhotosPendingMessage
-              : AppLocalizations.of(context).reportSubmitted),
-          backgroundColor: outcome.showPhotosPendingWarning
+          content: Text(
+            outcome.showPhotosPendingWarning
+                ? serviceReportPhotosPendingMessage
+                : outcome.showReportPendingWarning
+                ? (Localizations.localeOf(context).languageCode == 'es'
+                      ? 'Guardado en este dispositivo. Sincronización pendiente.'
+                      : 'Saved on this device. Sync pending.')
+                : AppLocalizations.of(context).reportSubmitted,
+          ),
+          backgroundColor:
+              outcome.showPhotosPendingWarning ||
+                  outcome.showReportPendingWarning
               ? AppColors.warning
               : AppColors.success,
         ),

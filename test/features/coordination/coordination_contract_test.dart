@@ -1,10 +1,31 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:vortice_app/features/coordination/coordination_labels.dart';
 import 'package:vortice_app/features/coordination/coordination_repository.dart';
 import 'package:vortice_app/core/route_access_policy.dart';
 import 'package:vortice_app/core/app_navigation.dart';
 import 'package:vortice_app/models/profile.dart';
 
 void main() {
+  test('history formats captured costs and labour for English and Spanish', () {
+    final detail = {
+      'total_cost': 26.055000375,
+      'labour_hours': 0.16233334166666666,
+      'parts': [
+        {'description': 'Seal', 'quantity': 1, 'unit_cost': 18.75},
+      ],
+    };
+    expect(
+      historyDetailText(detail, false),
+      contains('Internal total cost: 26.06 USD'),
+    );
+    expect(historyDetailText(detail, false), contains('Labour hours: 0.16'));
+    expect(
+      historyDetailText(detail, true),
+      contains('Costo interno total: 26,06 USD'),
+    );
+    expect(historyDetailText(detail, true), contains('Horas de trabajo: 0,16'));
+    expect(historyDetailText(detail, true), contains('18,75 USD'));
+  });
   test(
     'fleet overview is restricted to managers while every role has an inbox',
     () {

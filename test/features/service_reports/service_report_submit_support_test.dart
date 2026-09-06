@@ -4,8 +4,10 @@ import 'package:vortice_app/features/service_reports/service_report_submit_suppo
 void main() {
   group('validateServiceReportWorkOrderSelection', () {
     test('requires a selected work order', () {
-      expect(validateServiceReportWorkOrderSelection(null),
-          serviceReportMissingWorkOrderMessage);
+      expect(
+        validateServiceReportWorkOrderSelection(null),
+        serviceReportMissingWorkOrderMessage,
+      );
       expect(validateServiceReportWorkOrderSelection(''), isNotNull);
       expect(validateServiceReportWorkOrderSelection('wo-1'), isNull);
     });
@@ -46,6 +48,17 @@ void main() {
       expect(outcome?.shouldResetForm, isFalse);
       expect(outcome?.shouldPop, isFalse);
       expect(outcome?.showPhotosPendingWarning, isTrue);
+    });
+
+    test('local-only save never claims successful remote submission', () {
+      final outcome = resolveServiceReportSubmitOutcome(
+        reportId: 'pending-report',
+        photosUploaded: true,
+        hadPhotos: false,
+        reportSynced: false,
+      );
+      expect(outcome?.showReportPendingWarning, isTrue);
+      expect(outcome?.showPhotosPendingWarning, isFalse);
     });
   });
 }

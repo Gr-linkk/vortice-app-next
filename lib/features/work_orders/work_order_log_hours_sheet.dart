@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:vortice_app/core/theme.dart';
 import 'package:vortice_app/features/work_orders/work_order_provider.dart';
+import 'package:vortice_app/features/work_orders/work_order_hours_validation.dart';
 import 'package:vortice_app/l10n/app_localizations.dart';
 
 class LogHoursSheet extends ConsumerStatefulWidget {
@@ -64,7 +65,11 @@ class _LogHoursSheetState extends ConsumerState<LogHoursSheet> {
 
     return Padding(
       padding: EdgeInsets.fromLTRB(
-          16, 16, 16, MediaQuery.of(context).viewInsets.bottom + 16),
+        16,
+        16,
+        16,
+        MediaQuery.of(context).viewInsets.bottom + 16,
+      ),
       child: Form(
         key: _formKey,
         child: Column(
@@ -75,21 +80,23 @@ class _LogHoursSheetState extends ConsumerState<LogHoursSheet> {
             const SizedBox(height: 16),
             TextFormField(
               controller: _hoursWorkedCtrl,
-              keyboardType:
-                  const TextInputType.numberWithOptions(decimal: true),
+              keyboardType: const TextInputType.numberWithOptions(
+                decimal: true,
+              ),
               decoration: InputDecoration(
                 labelText: l10n.labourHours,
                 hintText: '0.0',
                 prefixIcon: const Icon(Icons.access_time),
               ),
-              validator: (v) =>
-                  (v == null || v.trim().isEmpty) ? l10n.fieldRequired : null,
+              validator: (v) => validateWorkOrderHours(v, l10n, required: true),
             ),
             const SizedBox(height: 12),
             TextFormField(
               controller: _engineHoursEndCtrl,
-              keyboardType:
-                  const TextInputType.numberWithOptions(decimal: true),
+              validator: (v) => validateWorkOrderHours(v, l10n),
+              keyboardType: const TextInputType.numberWithOptions(
+                decimal: true,
+              ),
               decoration: InputDecoration(
                 labelText: l10n.hoursAtEnd,
                 hintText: '0.0',
@@ -104,7 +111,9 @@ class _LogHoursSheetState extends ConsumerState<LogHoursSheet> {
                       width: 16,
                       height: 16,
                       child: CircularProgressIndicator(
-                          strokeWidth: 2, color: Colors.white),
+                        strokeWidth: 2,
+                        color: Colors.white,
+                      ),
                     )
                   : Text(l10n.save),
             ),

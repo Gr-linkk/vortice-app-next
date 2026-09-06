@@ -21,8 +21,9 @@ Map<String, dynamic> buildServiceReportPayload({
   String? signatureUrl,
 }) {
   return {
-    'work_order_id':
-        selectedWorkOrderId?.isNotEmpty == true ? selectedWorkOrderId : null,
+    'work_order_id': selectedWorkOrderId?.isNotEmpty == true
+        ? selectedWorkOrderId
+        : null,
     'complaint': complaint.trim().isNotEmpty ? complaint.trim() : null,
     'cause': cause.trim().isNotEmpty ? cause.trim() : null,
     'correction': correction.trim().isNotEmpty ? correction.trim() : null,
@@ -30,7 +31,7 @@ Map<String, dynamic> buildServiceReportPayload({
     'comments': comments.trim().isNotEmpty ? comments.trim() : null,
     if (signatureUrl != null) ...{
       'tech_signature_url': signatureUrl,
-      'signed_at': DateTime.now().toIso8601String(),
+      'signed_at': DateTime.now().toUtc().toIso8601String(),
     },
   };
 }
@@ -49,9 +50,7 @@ Future<String?> uploadServiceReportSignature({
         fileOptions: const FileOptions(contentType: 'image/png'),
       )
       .timeout(const Duration(seconds: 4));
-  return supabase.storage
-      .from(AppConstants.bucketSignatures)
-      .getPublicUrl(path);
+  return path;
 }
 
 Future<void> updatePendingServiceReport({
@@ -80,13 +79,13 @@ Future<void> uploadServiceReportPhotos({
           fileOptions: const FileOptions(contentType: 'image/jpeg'),
         )
         .timeout(const Duration(seconds: 4));
-    final photoUrl = supabase.storage
-        .from(AppConstants.bucketReportPhotos)
-        .getPublicUrl(path);
-    await supabase.from(AppConstants.tServiceReportPhotos).insert({
-      'service_report_id': serviceReportId,
-      'photo_url': photoUrl,
-      'sort_order': i,
-    }).timeout(const Duration(seconds: 4));
+    await supabase
+        .from(AppConstants.tServiceReportPhotos)
+        .insert({
+          'service_report_id': serviceReportId,
+          'photo_url': path,
+          'sort_order': i,
+        })
+        .timeout(const Duration(seconds: 4));
   }
 }

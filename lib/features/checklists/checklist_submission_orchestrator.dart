@@ -199,6 +199,7 @@ class OperationsChecklistSubmission {
     required double? currentHours,
     required String? generalNotes,
   }) async {
+    validateOperationsChecklist(items, responses, notes, currentHours);
     final run = await _createRun(
       assetId: assetId,
       operatorId: operatorId,
@@ -227,6 +228,67 @@ class OperationsChecklistSubmission {
   }
 }
 
+void validateOperationsChecklist(
+  List<ChecklistItem> items,
+  Map<String, String?> responses,
+  Map<String, String> notes,
+  double? currentHours,
+) {
+  if (items.isEmpty ||
+      items.any(
+        (item) => !const {
+          'pass',
+          'monitor',
+          'alert',
+          'action',
+          'n/a',
+        }.contains(responses[item.id]),
+      )) {
+    throw const OperationsChecklistValidationException('answers');
+  }
+  if (responses.keys.any((id) => !items.any((item) => item.id == id))) {
+    throw const OperationsChecklistValidationException('answers');
+  }
+  if (items.any((item) => item.requiresPhoto)) {
+    throw const OperationsChecklistValidationException('photos');
+  }
+  if (items.any(
+    (item) =>
+        const {'monitor', 'alert', 'action'}.contains(responses[item.id]) &&
+        (notes[item.id]?.trim().isEmpty ?? true),
+  )) {
+    throw const OperationsChecklistValidationException('notes');
+  }
+  if (currentHours != null && (!currentHours.isFinite || currentHours < 0)) {
+    throw const OperationsChecklistValidationException('hours');
+  }
+}
+
+class OperationsChecklistValidationException implements Exception {
+  const OperationsChecklistValidationException(this.reason);
+
+  final String reason;
+
+  String message(bool es) => switch (reason) {
+    'photos' =>
+      es
+          ? 'Las fotos de listas diarias aún no se pueden enviar. El borrador se conserva en este dispositivo.'
+          : 'Daily checklist photos cannot be submitted yet. Your draft is retained on this device.',
+    'notes' =>
+      es
+          ? 'Agrega una nota a los elementos de seguimiento o acción.'
+          : 'Add a note to each Monitor or Action item.',
+    'hours' =>
+      es
+          ? 'Ingresa horas válidas, iguales o mayores que cero.'
+          : 'Enter valid hours of zero or more.',
+    _ =>
+      es
+          ? 'Responde todos los elementos antes de completar la lista.'
+          : 'Answer every item before completing the checklist.',
+  };
+}
+
 Future<OperationsChecklistRunRecord> _createOperatorChecklistRun({
   required String assetId,
   required String? operatorId,
@@ -241,7 +303,7 @@ Future<OperationsChecklistRunRecord> _createOperatorChecklistRun({
         'operator_id': operatorId,
         'template_id': templateId,
         'run_type': runType,
-        'completed_at': completedAt.toIso8601String(),
+        'completed_at': completedAt.toUtc().toIso8601String(),
       })
       .select()
       .single()
@@ -266,8 +328,7 @@ Future<void> _insertOperatorChecklistResponses({
         (e) => {
           'run_id': runId,
           'checklist_item_id': e.key,
-          'result': e.value,
-          'response_status': e.value,
+          ...operationsResponseStorageValues(e.value!),
           if (notes[e.key]?.isNotEmpty == true) 'notes': notes[e.key],
         },
       )
@@ -280,3 +341,17 @@ Future<void> _insertOperatorChecklistResponses({
       .insert(rows)
       .timeout(const Duration(seconds: 4));
 }
+
+Map<String, String?> operationsResponseStorageValues(String response) => {
+  'result': switch (response) {
+    'pass' => 'good',
+    'n/a' => 'not_applicable',
+    'monitor' || 'alert' || 'action' => 'needs_attention',
+    _ => throw ArgumentError.value(response, 'response'),
+  },
+  'response_status': switch (response) {
+    'monitor' => 'alert',
+    'n/a' => null,
+    _ => response,
+  },
+};

@@ -5,6 +5,26 @@ elsewhere, but every active task must be represented here with a stable ID.
 
 ## Now
 
+### NOW-008 — Connected workflow audit
+
+Garrett requested an end-to-end audit of all features built today: interact with
+the real app, fill and submit forms, create and remove test data, exercise
+requests, work orders and reports, and inspect persisted results. Continue from
+Build 10 and fix confirmed problems within these workflows. Track tested
+journeys, defects, retests and device limits in `outputs/NOW-008-e2e-audit.md`.
+Use clearly marked disposable records in the isolated Next environment.
+
+The connected audit found and corrected report discovery/sync/media/date issues,
+cost precision, reapproval copy, provider hour validation and operator checklist
+validation/serialization. Five local and hosted SQL suites and the populated
+report upgrade pass; full native verification passed 380 tests with 204 existing
+skips. Results and exact live-versus-contract coverage:
+`docs/specs/NOW-008-connected-audit.md`. Device checks, legacy operator photo
+support/transactional retries, the explicitly gated cross-company direct-link
+check and disposal of the retained E2E-008 fixture remain open.
+Build `1.4.1+11` is delivered to Samsung Downloads as
+`INSTALL-Vortice-Next-Build-11.apk`; phone checksum and media indexing passed.
+
 ### NOW-007 — Asset history, handovers and fleet decisions
 
 Garrett delegated selection and complete delivery of three further features,
