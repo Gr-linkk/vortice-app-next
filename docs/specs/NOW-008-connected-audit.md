@@ -110,24 +110,30 @@ rewritten.
   writes. The failed pre-fix trials left incomplete runs in the disposable
   fixture. Transactional retry/idempotency and daily-checklist photo uploads are
   follow-up work, not claimed as fixed by the connected happy-path test.
-- A direct report URL opened as the other company was stopped by automatic
-  approval review, which required explicit authorization for that specific
-  cross-company test. It was not retried through another route. SQL denial and
-  the other company's filtered report list were checked successfully.
+- After Garrett explicitly authorized the cross-company check, both client
+  sessions were authenticated concurrently. The owning client could still read
+  the synthetic report after the other client signed in; the other client
+  received zero rows for that exact report. In the running app, the other
+  client's direct report URL displayed `Not found.` SQL denial and the filtered
+  report list also passed.
 
-## Evidence and fixture retention
+## Evidence and fixture cleanup
 
 Detailed execution: `outputs/NOW-008-e2e-audit.md`; verification:
 `outputs/NOW-008-verification.log`; narrow renders:
 `outputs/screenshots/audit/`; build evidence:
 `outputs/NOW-008-build-notes.md`. Outputs are local ignored artifacts.
 
-The disposable vessel `f1c29b2f-c31d-4b81-ad50-0ee37002157b` and its associated
-audit records are retained for the blocked direct-link check and review. The
-signed provider report is `fc21aa2b-90f5-4086-98b2-82622693b003`, on provider work
-order `0cca78ae-a235-41c9-b5b1-af4e983e1a60`. Cleanup must remove only this verified
-fixture and its own uploaded objects, after the final check or a decision to skip
-it. Temporary web adapter assets were removed and the browser server stopped.
+After the access check, guarded cleanup removed disposable vessel
+`f1c29b2f-c31d-4b81-ad50-0ee37002157b`, its three work orders, reports and linked
+audit records. The three exact test objects in coordination attachments,
+maintenance evidence and signatures were deleted through the Storage API and
+their absence verified before record removal. A transaction checked the fixture
+identity and preserved unrelated asset, work-order and report counts. Final
+queries found no fixture records. The local cleanup manifest is
+`outputs/NOW-008-cleanup-manifest.json`; simultaneous-session evidence is
+`outputs/NOW-008-simultaneous-clients.log`. Temporary web adapter assets were
+removed and the browser server stopped.
 
 Build `1.4.1+11` was delivered to Samsung Downloads as
 `INSTALL-Vortice-Next-Build-11.apk`. Package/signing/ARM64 checks, the phone's

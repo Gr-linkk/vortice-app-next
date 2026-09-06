@@ -19,9 +19,10 @@ cost precision, reapproval copy, provider hour validation and operator checklist
 validation/serialization. Five local and hosted SQL suites and the populated
 report upgrade pass; full native verification passed 380 tests with 204 existing
 skips. Results and exact live-versus-contract coverage:
-`docs/specs/NOW-008-connected-audit.md`. Device checks, legacy operator photo
-support/transactional retries, the explicitly gated cross-company direct-link
-check and disposal of the retained E2E-008 fixture remain open.
+`docs/specs/NOW-008-connected-audit.md`. Concurrent client sessions and the
+cross-company direct-link denial passed; the E2E-008 fixture and its uploaded
+images were removed with unrelated record counts preserved. Device checks and
+legacy operator photo support/transactional retries remain open.
 Build `1.4.1+11` is delivered to Samsung Downloads as
 `INSTALL-Vortice-Next-Build-11.apk`; phone checksum and media indexing passed.
 
