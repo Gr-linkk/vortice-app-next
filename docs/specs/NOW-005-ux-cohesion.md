@@ -23,7 +23,8 @@ navy visual identity. This is an app UX pass, not a new service or product slice
 All changes stay in Vortice Next. Preserve company scoping and existing optional
 capability gates. No feature removal based merely on low usage; remove only
 proven duplication or nonfunctional controls. Do not delete user data. The two
-previously prepared backend migrations remain pending explicit hosted approval.
+previously prepared backend migrations were subsequently approved and deployed;
+see NOW-003's hosted activation record.
 
 ## Validation and delivery
 
@@ -71,7 +72,8 @@ named APK in the phone's shared Downloads folder with a matching checksum.
 
 The inherited app is not fully translated by this pass. Invoice authorization
 before real customer data remains the separate backlog audit. The prior two
-hosted migrations are still pending; this UX task changes no hosted schema.
+hosted migrations were deployed separately after Garrett's explicit approval;
+this UX task itself changes no hosted schema.
 
 ## Sign-out placement follow-up
 

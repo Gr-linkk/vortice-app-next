@@ -13,7 +13,8 @@ project task for this continuation after the initial two features and UX work.
 Inventory, existing foundations and proposed next discussion:
 `docs/specs/NOW-006-feature-continuation.md`.
 
-Resolve recorded deployment/device follow-ups, then agree one focused slice.
+Hosted deployment is complete and verified. Finish device review, then agree
+one focused slice.
 Do not treat the whole inventory as a single implementation task.
 
 ### NOW-005 — Make the whole app easier to navigate and use
@@ -51,6 +52,10 @@ and explicitly record availability and downtime in an internal Android build.
 Selected by Garrett's September 5 request to autonomously build two features
 and deliver an APK to his phone. Specification:
 `docs/specs/NOW-003-faults-and-availability.md`.
+
+Both backend migrations are deployed to Next after Garrett's explicit approval.
+Hosted SQL contracts and six internal persona HTTP fleet checks passed on
+2026-09-06 UTC. Build 7 is delivered; physical workflow review remains open.
 
 Acceptance criteria:
 

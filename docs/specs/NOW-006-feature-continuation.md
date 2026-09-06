@@ -10,7 +10,9 @@ hosted changes without the applicable authorization.
 
 - Original item 2, fault-to-repair lifecycle, and item 3, asset readiness and
   downtime, have their initial implementation under NOW-003. Both hosted
-  migrations remain pending explicit deployment approval at handoff preparation.
+  migrations were explicitly approved and deployed to Vortice Next on
+  2026-09-06 UTC. Both hosted contract suites and six persona HTTP fleet checks
+  passed; see NOW-003's activation record. Device workflow review remains open.
 - The accepted implementation scope is in `NOW-003-faults-and-availability.md`
   and `../decisions/0004-faults-and-availability.md`. The original assessment
   described larger feature areas: source integration/photos/duplicate linking

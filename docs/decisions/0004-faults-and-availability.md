@@ -32,5 +32,7 @@ New writes require connectivity; failures retain input for retry. Offline queues
 company internal invoicing, push notifications and production signing are outside
 this slice. The additive backend migration and signup correction must be deployed
 to the independent Next backend before the APK's new workflows are usable.
-Hosted deployment is pending explicit approval; this decision records product and
-implementation scope, not deployment approval.
+Garrett subsequently explicitly approved both migrations. Deployment to Next
+completed on 2026-09-06 UTC; hosted contract suites and all six internal persona
+HTTP fleet checks passed. NOW-003 records the activation evidence. This approval
+applies to these two migrations only.

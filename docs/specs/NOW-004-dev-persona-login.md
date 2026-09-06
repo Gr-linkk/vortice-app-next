@@ -34,7 +34,9 @@ runs the runtime-config regression test using the same define file before buildi
 
 Corrected delivery target: internal Android 1.1.2+4, same application ID and debug signing,
 copied to Garrett's phone Downloads. The earlier fault/availability backend
-migrations remain separate and pending explicit hosted approval.
+migrations were subsequently approved and deployed; see NOW-003's hosted
+activation record. All six internal HTTP logins and fleet RPC reads passed
+again after deployment.
 
 Delivery verified 2026-09-05: phone SHA-256 matches the local APK. The signing
 certificate matches build 1.1.0+2. An installer open request was sent; installation

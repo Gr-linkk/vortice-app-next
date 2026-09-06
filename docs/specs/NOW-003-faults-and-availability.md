@@ -70,10 +70,11 @@ runtime changes and the original Vortice environment are outside this slice.
 
 ## Deployment and recovery
 
-The only target is Next `hkjpojobdbbtjkhaudki`. Apply
+The only target is Next `hkjpojobdbbtjkhaudki`. The migrations
 `20260905120000_faults_and_availability.sql` and
-`20260905121000_signup_role_boundary.sql` through the guarded deployment helper
-after explicit hosted approval. The first adds workflow data and replaces direct
+`20260905121000_signup_role_boundary.sql` were deployed through the guarded
+helper after Garrett's explicit hosted approval on September 5 (2026-09-06 UTC).
+The first adds workflow data and replaces direct
 fault mutations with checked RPCs. The second corrects signup role assignment;
 existing profiles are not rewritten. Neither migration deletes existing rows.
 
@@ -95,6 +96,14 @@ was performed; no independent review is claimed.
 Internal APK 1.1.0+2 (`com.example.vortice_app_next`) built successfully and was
 copied to Garrett's S24 Downloads folder. Phone-side SHA-256 verification passed.
 The build and screenshots are in ignored `outputs/`; details are in
-`outputs/NOW-003-build-notes.md`. Hosted deployment approval and physical-device
-workflow testing remain pending. The new functionality is not yet activated
-on the hosted backend.
+`outputs/NOW-003-build-notes.md`. This original build has been superseded by
+1.2.2+7. Physical-device workflow testing remains pending.
+
+Hosted activation completed 2026-09-06 at approximately 01:00 UTC, after
+Garrett explicitly approved both migrations. The guarded helper targeted only
+Next `hkjpojobdbbtjkhaudki`; remote migration history matches all three local
+versions. Both hosted SQL contract suites passed and rolled back their fixtures.
+A follow-up query confirmed zero remaining synthetic test users.
+HTTP checks passed for all six existing internal personas: Auth login, profile
+read and the new `maintenance_fleet` RPC. No app data was changed by these HTTP
+checks. Build 7 already includes the matching client; no rebuild is required.
