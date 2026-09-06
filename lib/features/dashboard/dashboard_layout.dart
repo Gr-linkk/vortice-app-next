@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:vortice_app/features/coordination/fleet_overview_screen.dart';
+import 'package:vortice_app/features/coordination/coordination_repository.dart';
+import 'package:vortice_app/features/fleet/fleet_policy.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
@@ -29,6 +32,7 @@ class DashboardRefresh extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) => RefreshIndicator(
     onRefresh: () async {
       ref.invalidate(fleetAssetsProvider);
+      ref.invalidate(fleetAttentionProvider);
       ref.invalidate(notificationsProvider);
       await onRefresh();
       try {
@@ -54,10 +58,8 @@ class DashboardAppBar extends ConsumerWidget implements PreferredSizeWidget {
       automaticallyImplyLeading: false,
       title: Text(dashboardText(context, 'Home', 'Inicio')),
       actions: [
-        if (role != null && role != UserRole.employee)
-          _DashboardNotifications(
-            route: '${roleRoutePrefix(role)}/notifications',
-          ),
+        if (role != null)
+          const _DashboardNotifications(route: '/notifications'),
         const SignOutButton(),
       ],
     );
@@ -141,6 +143,7 @@ class DashboardIntro extends ConsumerWidget {
           ),
         ),
         const FleetEntryCard(),
+        if (canManageFleet(role)) const FleetPriorityCard(),
         DashboardSection(title: es ? 'Acciones rápidas' : 'Quick actions'),
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -279,11 +282,11 @@ List<AppDestination> dashboardActions(
         '$prefix/assets',
       )
     else
-      AppDestination(
+      const AppDestination(
         'Notifications',
         'Notificaciones',
         Icons.notifications_outlined,
-        '$prefix/notifications',
+        '/notifications',
       ),
     const AppDestination(
       'All tools',

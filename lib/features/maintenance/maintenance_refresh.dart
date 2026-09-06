@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:vortice_app/features/coordination/coordination_repository.dart';
 import 'package:vortice_app/features/assets/asset_provider.dart';
 import 'package:vortice_app/features/assets/client_team_asset_access.dart';
 import 'package:vortice_app/features/checklists/saved_checklists_provider.dart';
@@ -12,6 +13,10 @@ void refreshMaintenance(
   bool assetsChanged = false,
 }) {
   ref.invalidate(maintenanceJobsProvider);
+  ref.invalidate(fleetAttentionProvider);
+  ref.invalidate(assetHistoryProvider);
+  ref.invalidate(coordinationThreadProvider);
+  ref.invalidate(coordinationPeopleProvider);
   ref.invalidate(maintenanceAssetProvider);
   if (jobId != null) ref.invalidate(maintenanceJobProvider(jobId));
   ref.invalidate(remindersProvider);

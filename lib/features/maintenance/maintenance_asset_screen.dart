@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:vortice_app/features/coordination/coordination_entry.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:vortice_app/core/user_feedback.dart';
@@ -147,6 +148,7 @@ class MaintenanceAssetScreen extends ConsumerWidget {
                   ),
                   if (asset['location'] != null)
                     Text(asset['location'] as String),
+                  CoordinationEntry(assetId: assetId),
                   Wrap(
                     spacing: 8,
                     runSpacing: 8,

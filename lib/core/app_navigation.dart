@@ -68,6 +68,15 @@ List<AppDestination> toolDestinations(UserRole role) {
   final staff = role == UserRole.owner || role == UserRole.employee;
   final admin = role == UserRole.client || role == UserRole.clientAdmin;
   return [
+    if (role == UserRole.owner || admin)
+      const AppDestination(
+        'Fleet decisions',
+        'Decisiones de la flota',
+        Icons.dashboard_outlined,
+        '/fleet/overview',
+        description: 'Act on overdue service, faults and waiting work',
+        descriptionEs: 'Atender servicios vencidos, fallas y trabajo pendiente',
+      ),
     if (canUseMaintenance(role))
       const AppDestination(
         'Assets & plans',
@@ -165,15 +174,14 @@ List<AppDestination> toolDestinations(UserRole role) {
         description: 'Manage your company and its members',
         descriptionEs: 'Administrar tu empresa y sus miembros',
       ),
-    if (role != UserRole.employee)
-      AppDestination(
-        'Notifications',
-        'Notificaciones',
-        Icons.notifications_outlined,
-        '$prefix/notifications',
-        description: 'Catch up on updates that need attention',
-        descriptionEs: 'Consultar novedades que requieren atención',
-      ),
+    const AppDestination(
+      'Notifications',
+      'Notificaciones',
+      Icons.notifications_outlined,
+      '/notifications',
+      description: 'Catch up on updates that need attention',
+      descriptionEs: 'Consultar novedades que requieren atención',
+    ),
   ];
 }
 

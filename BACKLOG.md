@@ -5,6 +5,26 @@ elsewhere, but every active task must be represented here with a stable ID.
 
 ## Now
 
+### NOW-007 — Asset history, handovers and fleet decisions
+
+Garrett delegated selection and complete delivery of three further features,
+including review, tests and an APK. Selected original areas 14, 15 and 16: one
+asset history, job/fault discussion and shift handover, and an actionable fleet
+dashboard. Extend the current maintenance, fault and availability workflows.
+Scope, access rules and observable acceptance:
+`docs/specs/NOW-007-fleet-coordination.md`. Build from verified `1.3.1+9`.
+
+Deliver the integrated native UI, checked server operations and migration,
+English/Spanish render and interaction proof, SQL authorization contracts, full
+Flutter checks, and the next internal APK in the phone's Downloads. The three
+additive migrations are active only on the guarded Next project. All four
+hosted rollback suites and six persona HTTP checks pass. Native analysis is
+clean; 360 tests pass with 204 pre-existing skips. Package and device-delivery
+evidence is recorded in `outputs/NOW-007-build-notes.md`. Build `1.4.0+10`
+is delivered to the Samsung Downloads folder as
+`INSTALL-Vortice-Next-Build-10.apk`; the phone copy passed its checksum check.
+Physical installation and device review remain open.
+
 ### NOW-006 — Continue the remaining feature areas
 
 Outcome: choose and deliver the next useful end-to-end feature from the 20
@@ -16,7 +36,8 @@ Inventory, existing foundations and proposed next discussion:
 Garrett selected original items 1, 4 and 5 together: company-owned maintenance,
 mechanic execution, and trustworthy maintenance completion. Implement one
 connected journey under this ID. Scope and acceptance:
-`docs/specs/NOW-006-company-maintenance.md`. The other 17 areas remain intake.
+`docs/specs/NOW-006-company-maintenance.md`. NOW-007 owns the next three;
+the other 14 areas remain intake.
 The Build 7 device review remains open; it does not block this authorized work.
 
 Items 1, 4 and 5 are implemented and verified for internal build `1.3.0+8`:

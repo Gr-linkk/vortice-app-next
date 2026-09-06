@@ -20,14 +20,29 @@ class NotificationsScreen extends ConsumerWidget {
       appBar: AppBar(
         title: Text(l10n.notificationsTitle),
         actions: [
+          IconButton(
+            tooltip: isSpanish(context) ? 'Actualizar' : 'Refresh',
+            onPressed: () => ref.invalidate(notificationsProvider),
+            icon: const Icon(Icons.refresh),
+          ),
           notificationsAsync.maybeWhen(
             data: (list) {
               final hasUnread = list.any((n) => !n.read);
               if (!hasUnread) return const SizedBox.shrink();
               return TextButton(
-                onPressed: () => ref
-                    .read(notificationControllerProvider.notifier)
-                    .markAllRead(),
+                onPressed: () async {
+                  try {
+                    await ref
+                        .read(notificationControllerProvider.notifier)
+                        .markAllRead();
+                  } catch (error) {
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text(friendlyError(context, error))),
+                      );
+                    }
+                  }
+                },
                 child: Text(
                   l10n.markAllRead,
                   style: const TextStyle(color: AppColors.primary),
@@ -40,9 +55,9 @@ class NotificationsScreen extends ConsumerWidget {
       ),
       body: notificationsAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (err, _) => Center(
-          child: Text(friendlyError(context, err),
-              style: const TextStyle(color: AppColors.error)),
+        error: (err, _) => AppErrorState(
+          error: err,
+          onRetry: () => ref.invalidate(notificationsProvider),
         ),
         data: (notifications) {
           if (notifications.isEmpty) {
@@ -50,9 +65,11 @@ class NotificationsScreen extends ConsumerWidget {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(Icons.notifications_none,
-                      size: 56,
-                      color: AppColors.textSecondary.withValues(alpha: 0.4)),
+                  Icon(
+                    Icons.notifications_none,
+                    size: 56,
+                    color: AppColors.textSecondary.withValues(alpha: 0.4),
+                  ),
                   const SizedBox(height: 12),
                   Text(
                     l10n.noNotifications,
@@ -88,20 +105,20 @@ class _NotificationTile extends ConsumerWidget {
   const _NotificationTile({required this.notification, required this.role});
 
   IconData _iconFor(String type) => switch (type) {
-        'maintenance_flag' => Icons.flag,
-        'telemetry_alert' => Icons.monitor_heart,
-        'work_order' => Icons.build,
-        'invoice' => Icons.receipt_long,
-        _ => Icons.notifications,
-      };
+    'maintenance_flag' => Icons.flag,
+    'telemetry_alert' => Icons.monitor_heart,
+    'work_order' => Icons.build,
+    'invoice' => Icons.receipt_long,
+    _ => Icons.notifications,
+  };
 
   Color _colorFor(String type) => switch (type) {
-        'maintenance_flag' => AppColors.warning,
-        'telemetry_alert' => AppColors.error,
-        'work_order' => AppColors.primary,
-        'invoice' => AppColors.success,
-        _ => AppColors.textSecondary,
-      };
+    'maintenance_flag' => AppColors.warning,
+    'telemetry_alert' => AppColors.error,
+    'work_order' => AppColors.primary,
+    'invoice' => AppColors.success,
+    _ => AppColors.textSecondary,
+  };
 
   String _timeAgo(DateTime dt) {
     final diff = DateTime.now().difference(dt);
@@ -125,6 +142,8 @@ class _NotificationTile extends ConsumerWidget {
       UserRole.clientOperator => '/client',
     };
     return switch (notification.type) {
+      'discussion_job' => '/discussion/job/$ref?post=${notification.id}',
+      'discussion_fault' => '/discussion/fault/$ref?post=${notification.id}',
       'maintenance_flag' => '$prefix/assets/$ref/flags?name=Asset',
       'work_order' => '$prefix/work-orders/$ref',
       // Invoices only visible to owner and client
@@ -144,9 +163,20 @@ class _NotificationTile extends ConsumerWidget {
       onTap: tappable
           ? () async {
               if (isUnread) {
-                await ref
-                    .read(notificationControllerProvider.notifier)
-                    .markRead(notification.id);
+                try {
+                  await ref
+                      .read(notificationControllerProvider.notifier)
+                      .markRead(
+                        notification.id,
+                        discussion: notification.type.startsWith('discussion_'),
+                      );
+                } catch (error) {
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text(friendlyError(context, error))),
+                    );
+                  }
+                }
               }
               if (route != null && context.mounted) {
                 context.push(route);
@@ -189,8 +219,9 @@ class _NotificationTile extends ConsumerWidget {
                           notification.title,
                           style: TextStyle(
                             color: AppColors.textPrimary,
-                            fontWeight:
-                                isUnread ? FontWeight.w600 : FontWeight.normal,
+                            fontWeight: isUnread
+                                ? FontWeight.w600
+                                : FontWeight.normal,
                             fontSize: 14,
                           ),
                         ),

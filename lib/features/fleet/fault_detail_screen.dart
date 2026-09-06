@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:vortice_app/features/coordination/coordination_entry.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:vortice_app/core/theme.dart';
@@ -58,6 +59,11 @@ class FaultDetailScreen extends ConsumerWidget {
               physics: const AlwaysScrollableScrollPhysics(),
               padding: const EdgeInsets.all(20),
               children: [
+                CoordinationEntry(
+                  assetId: fault.assetId,
+                  kind: 'fault',
+                  subjectId: fault.id,
+                ),
                 InkWell(
                   onTap: () => context.push('/fleet/assets/${fault.assetId}'),
                   child: Padding(

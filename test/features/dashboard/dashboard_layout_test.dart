@@ -8,6 +8,7 @@ import 'package:vortice_app/core/app_navigation.dart';
 import 'package:vortice_app/core/app_shell.dart';
 import 'package:vortice_app/core/theme.dart';
 import 'package:vortice_app/features/auth/auth_provider.dart';
+import 'package:vortice_app/features/coordination/coordination_repository.dart';
 import 'package:vortice_app/features/auth/sign_out_button.dart';
 import 'package:vortice_app/features/assets/asset_provider.dart';
 import 'package:vortice_app/features/assets/client_team_asset_access.dart';
@@ -101,6 +102,8 @@ Future<GoRouter> pumpDashboard(
               operationalChecklistsEnabled: true,
             ).map((a) => a.route),
             '/fleet',
+            '/fleet/overview',
+            '/notifications',
             '$prefix/assets',
             '$prefix/notifications',
             '/operator/checklist',
@@ -129,6 +132,13 @@ Future<GoRouter> pumpDashboard(
           ),
         ),
         fleetRepositoryProvider.overrideWithValue(FixtureFleetRepository()),
+        fleetAttentionProvider.overrideWith(
+          (_, query) async => {
+            'counts': <String, dynamic>{},
+            'items': <dynamic>[],
+            'generated_at': '2026-09-06T09:00:00Z',
+          },
+        ),
         notificationsProvider.overrideWith((_) async => []),
         assetsProvider.overrideWith((_) async => [asset]),
         visibleAssetsProvider.overrideWith((_) async => [asset]),

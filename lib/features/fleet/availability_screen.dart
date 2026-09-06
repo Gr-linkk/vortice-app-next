@@ -1,5 +1,6 @@
 import 'package:vortice_app/core/app_dropdown_field.dart';
 import 'package:flutter/material.dart';
+import 'package:vortice_app/features/coordination/coordination_entry.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:uuid/uuid.dart';
@@ -62,6 +63,7 @@ class AvailabilityScreen extends ConsumerWidget {
                       asset.name,
                       style: Theme.of(context).textTheme.headlineSmall,
                     ),
+                    CoordinationEntry(assetId: assetId),
                     if (asset.location != null) ...[
                       const SizedBox(height: 6),
                       Text(

@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:vortice_app/features/coordination/coordination_repository.dart';
 import 'package:vortice_app/core/supabase_client.dart';
 import 'package:vortice_app/features/auth/auth_provider.dart';
 import 'package:vortice_app/features/operator/operator_runs_provider.dart';
@@ -44,6 +45,9 @@ final fleetAssigneesProvider = FutureProvider.autoDispose
     });
 
 void refreshFleet(WidgetRef ref, {String? faultId, String? assetId}) {
+  ref.invalidate(fleetAttentionProvider);
+  ref.invalidate(assetHistoryProvider);
+  ref.invalidate(coordinationThreadProvider);
   ref.invalidate(fleetAssetsProvider);
   ref.invalidate(fleetFaultsProvider);
   ref.invalidate(openMaintenanceRequestsProvider);

@@ -26,8 +26,10 @@ hosted changes without the applicable authorization.
 ## Selected implementation
 
 Garrett requested all of items 1, 4 and 5 together. Their connected implementation
-and verification are tracked in `NOW-006-company-maintenance.md`. The other 17
-areas remain intake. Build 7's device review does not block this authorized work.
+and verification are tracked in `NOW-006-company-maintenance.md`. Garrett then
+delegated another three through a complete checked APK: items 14, 15 and 16 are
+selected under `NOW-007-fleet-coordination.md`. The other 14 areas remain intake.
+Device review of earlier builds does not block this authorized work.
 
 ## Original continuation inventory
 

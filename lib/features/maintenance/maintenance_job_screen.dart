@@ -1,4 +1,6 @@
 import 'package:vortice_app/core/app_dropdown_field.dart';
+import 'package:vortice_app/features/coordination/coordination_entry.dart';
+import 'package:vortice_app/features/coordination/coordination_labels.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -148,6 +150,11 @@ class _MaintenanceJobScreenState extends ConsumerState<MaintenanceJobScreen> {
             padding: const EdgeInsets.all(20),
             children: [
               Text(job.title, style: Theme.of(context).textTheme.headlineSmall),
+              CoordinationEntry(
+                assetId: job.assetId,
+                kind: 'job',
+                subjectId: job.id,
+              ),
               TextButton.icon(
                 onPressed: () =>
                     context.push('/maintenance/assets/${job.assetId}'),
@@ -552,6 +559,7 @@ class _JobActionDialogState extends State<_JobActionDialog> {
       _quantity = TextEditingController(text: '1'),
       _cost = TextEditingController(text: '0');
   String? _assignee;
+  String _blockedCategory = 'other';
   @override
   void dispose() {
     for (final c in [_note, _description, _partNumber, _quantity, _cost]) {
@@ -574,6 +582,23 @@ class _JobActionDialogState extends State<_JobActionDialog> {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             spacing: 16,
             children: [
+              if (widget.action == 'block')
+                AppDropdownField<String>(
+                  initialValue: _blockedCategory,
+                  decoration: InputDecoration(
+                    labelText: es ? 'Esperando' : 'Waiting for',
+                  ),
+                  items: [
+                    for (final key in blockedCategories.keys)
+                      DropdownMenuItem(
+                        value: key,
+                        child: Text(
+                          coordinationLabel(blockedCategories, key, es),
+                        ),
+                      ),
+                  ],
+                  onChanged: (value) => _blockedCategory = value!,
+                ),
               if (widget.action == 'assign')
                 AppDropdownField<String>(
                   isExpanded: true,
@@ -674,6 +699,8 @@ class _JobActionDialogState extends State<_JobActionDialog> {
           onPressed: () {
             if (!_form.currentState!.validate()) return;
             Navigator.pop(context, <String, dynamic>{
+              if (widget.action == 'block')
+                'blocked_category': _blockedCategory,
               if (widget.action == 'assign') 'assigned_to': _assignee,
               if (widget.action == 'add_part') ...{
                 'description': _description.text,

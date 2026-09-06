@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:vortice_app/features/coordination/coordination_entry.dart';
 import 'package:vortice_app/features/maintenance/maintenance_models.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:vortice_app/core/asset_icons.dart';
@@ -36,6 +37,7 @@ class AssetDetailBody extends ConsumerWidget {
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
+        CoordinationEntry(assetId: asset.id),
         Container(
           padding: const EdgeInsets.all(20),
           decoration: BoxDecoration(

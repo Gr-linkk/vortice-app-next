@@ -24,8 +24,12 @@ Garrett selected items 1, 4 and 5 from the original assessment: company
 maintenance, mechanic execution and component-specific service completion.
 The connected implementation is specified in
 `docs/specs/NOW-006-company-maintenance.md`; its completion rules are recorded
-in `docs/decisions/0005-managed-maintenance-completion.md`. The other 17 areas
-remain intake in `docs/specs/NOW-006-feature-continuation.md`.
+in `docs/decisions/0005-managed-maintenance-completion.md`.
+The next selected areas are asset history, job/fault discussions and handovers,
+and actionable fleet decisions (original items 14, 15 and 16). Their integrated
+scope is `docs/specs/NOW-007-fleet-coordination.md`; privacy, event capture and
+indicator rules are recorded in `docs/decisions/0006-fleet-coordination.md`.
+The other 14 areas remain intake in `docs/specs/NOW-006-feature-continuation.md`.
 Preserve the current visual language; naming and production identity remain
 separate decisions. Hosted activation and device review are tracked separately
 from the internal build.

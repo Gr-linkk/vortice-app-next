@@ -1,4 +1,5 @@
 import 'package:vortice_app/models/profile.dart';
+import 'package:vortice_app/features/fleet/fleet_policy.dart';
 import 'package:vortice_app/features/maintenance/maintenance_models.dart';
 
 bool isVorticeStaffRole(UserRole? role) =>
@@ -28,6 +29,9 @@ String? resolveRouteAccessRedirect({
   required String Function(UserRole? role) dashboardRouteForRole,
 }) {
   if (role == null) return null;
+  if (location == '/fleet/overview' && !canManageFleet(role)) {
+    return dashboardRouteForRole(role);
+  }
   if ((location == '/maintenance' || location.startsWith('/maintenance/')) &&
       !canUseMaintenance(role)) {
     return dashboardRouteForRole(role);

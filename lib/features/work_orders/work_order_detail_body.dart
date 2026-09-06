@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:vortice_app/features/coordination/coordination_entry.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:vortice_app/core/theme.dart';
@@ -55,6 +56,7 @@ class WorkOrderDetailBody extends ConsumerWidget {
       padding: const EdgeInsets.all(16),
       children: [
         WorkOrderFaultCard(workOrderId: workOrder.id, assetId: workOrder.assetId),
+        CoordinationEntry(assetId: workOrder.assetId, kind: 'job', subjectId: workOrder.id),
         // ── Status banner ──────────────────────────────────────────
         Container(
           padding: const EdgeInsets.all(16),

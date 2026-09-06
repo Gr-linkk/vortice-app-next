@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:vortice_app/features/coordination/coordination_repository.dart';
 import 'package:vortice_app/core/constants.dart';
 import 'package:vortice_app/core/supabase_client.dart';
 import 'package:vortice_app/features/auth/auth_provider.dart';
@@ -42,7 +43,9 @@ class AppNotification {
 
 // ── Provider ──────────────────────────────────────────────────────────────────
 
-final notificationsProvider = FutureProvider<List<AppNotification>>((ref) async {
+final notificationsProvider = FutureProvider<List<AppNotification>>((
+  ref,
+) async {
   final profile = ref.watch(profileProvider).valueOrNull;
   if (profile == null) return [];
 
@@ -53,7 +56,13 @@ final notificationsProvider = FutureProvider<List<AppNotification>>((ref) async 
       .order('created_at', ascending: false)
       .limit(50);
 
-  return (data as List).map((e) => AppNotification.fromJson(e)).toList();
+  final mentions = await ref.watch(coordinationRepositoryProvider).inbox();
+  final items = [
+    ...(data as List).map((e) => AppNotification.fromJson(e)),
+    ...mentions.map(AppNotification.fromJson),
+  ];
+  items.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+  return items;
 });
 
 final unreadCountProvider = Provider<int>((ref) {
@@ -67,7 +76,15 @@ class NotificationController extends AsyncNotifier<void> {
   @override
   Future<void> build() async {}
 
-  Future<void> markRead(String notificationId) async {
+  Future<void> markRead(
+    String notificationId, {
+    bool discussion = false,
+  }) async {
+    if (discussion) {
+      await ref.read(coordinationRepositoryProvider).markRead(notificationId);
+      ref.invalidate(notificationsProvider);
+      return;
+    }
     await supabase
         .from(AppConstants.tNotifications)
         .update({'read': true})
@@ -78,6 +95,7 @@ class NotificationController extends AsyncNotifier<void> {
   Future<void> markAllRead() async {
     final profile = ref.read(profileProvider).valueOrNull;
     if (profile == null) return;
+    await ref.read(coordinationRepositoryProvider).markRead();
     await supabase
         .from(AppConstants.tNotifications)
         .update({'read': true})
@@ -88,4 +106,6 @@ class NotificationController extends AsyncNotifier<void> {
 }
 
 final notificationControllerProvider =
-    AsyncNotifierProvider<NotificationController, void>(NotificationController.new);
+    AsyncNotifierProvider<NotificationController, void>(
+      NotificationController.new,
+    );

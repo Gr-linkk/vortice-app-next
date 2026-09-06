@@ -1,4 +1,7 @@
 import 'package:vortice_app/core/user_feedback.dart';
+import 'package:vortice_app/features/coordination/asset_history_screen.dart';
+import 'package:vortice_app/features/coordination/discussion_screen.dart';
+import 'package:vortice_app/features/coordination/fleet_overview_screen.dart';
 import 'package:vortice_app/features/maintenance/maintenance_list_screen.dart';
 import 'package:vortice_app/features/maintenance/maintenance_create_screen.dart';
 import 'package:vortice_app/features/maintenance/maintenance_job_screen.dart';
@@ -147,6 +150,27 @@ final routerProvider = Provider<GoRouter>((ref) {
         ),
         routes: [
           GoRoute(path: '/more', builder: (_, __) => const MoreScreen()),
+          GoRoute(
+            path: '/history/assets/:id',
+            builder: (_, state) =>
+                AssetHistoryScreen(assetId: state.pathParameters['id']!),
+          ),
+          GoRoute(
+            path: '/discussion/:kind/:id',
+            builder: (_, state) => DiscussionScreen(
+              kind: state.pathParameters['kind']!,
+              subjectId: state.pathParameters['id']!,
+              focusPost: state.uri.queryParameters['post'],
+            ),
+          ),
+          GoRoute(
+            path: '/notifications',
+            builder: (_, _) => const NotificationsScreen(),
+          ),
+          GoRoute(
+            path: '/fleet/overview',
+            builder: (_, _) => const FleetOverviewScreen(),
+          ),
           GoRoute(
             path: '/fleet',
             builder: (_, state) => FleetScreen(
