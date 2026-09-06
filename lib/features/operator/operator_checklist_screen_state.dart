@@ -1,4 +1,7 @@
 import 'dart:async';
+import 'package:uuid/uuid.dart';
+import 'package:vortice_app/sync/field_work_provider.dart';
+import 'package:vortice_app/core/account_storage.dart';
 import 'dart:convert';
 import 'dart:typed_data';
 
@@ -30,10 +33,16 @@ class OperatorChecklistScreenState
   DateTime _completedAt = DateTime.now();
   double? _currentHours;
   String? _generalNotes;
+  late final String _accountId;
+  String _operationId = const Uuid().v4();
+  Future<void> _draftWrite = Future.value();
+  String get _draftKey =>
+      accountStorageKey(_accountId, operatorChecklistDraftKey);
 
   @override
   void initState() {
     super.initState();
+    _accountId = ref.read(sessionProvider)?.user.id ?? 'signed_out';
     WidgetsBinding.instance.addPostFrameCallback((_) => _restoreDraftIfReady());
   }
 
@@ -47,7 +56,7 @@ class OperatorChecklistScreenState
     }
 
     final prefs = await SharedPreferences.getInstance();
-    final raw = prefs.getString(operatorChecklistDraftKey);
+    final raw = prefs.getString(_draftKey);
 
     Map<String, dynamic>? assetToSet = _selectedAsset;
     ChecklistTemplate? templateToSet = _selectedTemplate;
@@ -55,6 +64,7 @@ class OperatorChecklistScreenState
     if (raw != null) {
       try {
         final data = jsonDecode(raw) as Map<String, dynamic>;
+        _operationId = data['operation_id'] as String? ?? _operationId;
         final restored = decodeOperatorChecklistDraft(
           data,
           fallbackCompletedAt: _completedAt,
@@ -83,7 +93,7 @@ class OperatorChecklistScreenState
           });
         }
       } catch (_) {
-        await prefs.remove(operatorChecklistDraftKey);
+        await prefs.remove(_draftKey);
       }
     }
 
@@ -107,32 +117,36 @@ class OperatorChecklistScreenState
     _restoredDraft = true;
   }
 
-  Future<void> _saveDraft() async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(
-      operatorChecklistDraftKey,
-      jsonEncode(
-        encodeOperatorChecklistDraft(
-          asset: _selectedAsset,
-          template: _selectedTemplate,
-          responses: _responses,
-          notes: _notes,
-          completedAt: _completedAt,
-          currentHours: _currentHours,
-          generalNotes: _generalNotes,
-          photos: _photos,
-        ),
+  Future<void> _saveDraft() {
+    final raw = jsonEncode({
+      ...encodeOperatorChecklistDraft(
+        asset: _selectedAsset,
+        template: _selectedTemplate,
+        responses: _responses,
+        notes: _notes,
+        completedAt: _completedAt,
+        currentHours: _currentHours,
+        generalNotes: _generalNotes,
+        photos: _photos,
       ),
-    );
+      'operation_id': _operationId,
+    });
+    _draftWrite = _draftWrite.then((_) async {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(_draftKey, raw);
+    });
+    return _draftWrite;
   }
 
   Future<void> _clearDraft() async {
+    await _draftWrite;
     final prefs = await SharedPreferences.getInstance();
-    await prefs.remove(operatorChecklistDraftKey);
+    await prefs.remove(_draftKey);
   }
 
   void _resetChecklist() {
     setState(() {
+      _operationId = const Uuid().v4();
       _selectedAsset = null;
       _selectedTemplate = null;
       _responses.clear();
@@ -227,15 +241,17 @@ class OperatorChecklistScreenState
     await _saveDraft();
     setState(() => _submitting = true);
     try {
-      if (operatorSubmissionHasPhotos(_photos)) {
-        throw const OperationsChecklistValidationException('photos');
-      }
       final items = await ref.read(
         checklistItemsProvider(_selectedTemplate!.id).future,
       );
+      if (!mounted || ref.read(sessionProvider)?.user.id != _accountId) {
+        throw const AccountChangedException();
+      }
       await ref
           .read(operationsChecklistSubmissionProvider)
           .submit(
+            operationId: _operationId,
+            photos: _photos,
             assetId: _selectedAsset!['id'] as String,
             assetClientId: _selectedAsset!['client_id'] as String?,
             operatorId: profile?.id,
@@ -252,13 +268,29 @@ class OperatorChecklistScreenState
 
       await _clearDraft();
       if (mounted) {
+        final queued = (await ref.read(fieldWorkQueueProvider)?.list() ?? [])
+            .where((r) => r.id == _operationId)
+            .firstOrNull;
+        if (!mounted) return;
+        final es = Localizations.localeOf(context).languageCode == 'es';
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(AppLocalizations.of(context).checklistSubmitted),
+            content: Text(
+              queued?.synced == true
+                  ? AppLocalizations.of(context).checklistSubmitted
+                  : queued?.needsAttention == true
+                  ? (es
+                        ? 'Guardado; necesita atención. Abre sincronización.'
+                        : 'Saved; needs attention. Open sync status.')
+                  : (es
+                        ? 'Guardado en este dispositivo; pendiente de envío.'
+                        : 'Saved on this device; pending upload.'),
+            ),
             backgroundColor: AppColors.success,
           ),
         );
         setState(() {
+          _operationId = const Uuid().v4();
           _selectedAsset = null;
           _selectedTemplate = null;
           _responses.clear();

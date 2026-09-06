@@ -94,7 +94,8 @@ class ConnectedHarness {
   final WidgetTester tester;
   final String report;
   late Map passwords;
-  late AppDatabase db;
+  final _databases = <String, AppDatabase>{};
+  AppDatabase get db => container.read(databaseProvider);
   late ProviderContainer container;
   final boundary = GlobalKey();
   final steps = <Map<String, dynamic>>[];
@@ -130,9 +131,19 @@ class ConnectedHarness {
         detectSessionInUri: false,
       ),
     );
-    db = AppDatabase(NativeDatabase.memory());
     container = ProviderContainer(
-      overrides: [databaseProvider.overrideWithValue(db)],
+      overrides: [
+        databaseProvider.overrideWith((ref) {
+          final account = ref.watch(sessionProvider)?.user.id ?? 'signed_out';
+          return _databases.putIfAbsent(
+            account,
+            () => AppDatabase.forAccount(
+              account,
+              executor: NativeDatabase.memory(),
+            ),
+          );
+        }),
+      ],
     );
     tester.view.physicalSize = const Size(390, 844);
     tester.view.devicePixelRatio = 1;
@@ -178,7 +189,10 @@ class ConnectedHarness {
         find.byType(Scrollable).evaluate().isNotEmpty) {
       // A preceding action can leave a lazily built control above the viewport.
       // Return to the start before searching downward through this scroll view.
-      await tester.drag(find.byType(Scrollable).last, const Offset(0, 10000));
+      final scroll = tester.state<ScrollableState>(
+        find.byType(Scrollable).last,
+      );
+      scroll.position.jumpTo(scroll.position.minScrollExtent);
       await tester.pump(const Duration(milliseconds: 300));
       await tester.scrollUntilVisible(
         target,
@@ -278,7 +292,9 @@ class ConnectedHarness {
   Future<void> close() async {
     await tester.pumpWidget(const SizedBox());
     container.dispose();
-    await db.close();
+    for (final database in _databases.values) {
+      await database.close();
+    }
     await supabase.auth.signOut(scope: SignOutScope.local);
     await Supabase.instance.dispose();
     tester.view.resetPhysicalSize();

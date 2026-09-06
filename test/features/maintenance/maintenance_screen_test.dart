@@ -1,5 +1,7 @@
 import 'dart:async';
 import 'dart:typed_data';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:vortice_app/sync/field_work_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -228,6 +230,8 @@ Future<void> pumpMaintenance(
   await tester.pumpWidget(
     ProviderScope(
       overrides: [
+        sessionProvider.overrideWithValue(null),
+        fieldWorkQueueProvider.overrideWithValue(null),
         maintenanceRepositoryProvider.overrideWithValue(repository),
         profileProvider.overrideWith(
           (_) async => Profile(
@@ -292,6 +296,7 @@ Future<void> pumpMaintenance(
 }
 
 void main() {
+  setUp(() => SharedPreferences.setMockInitialValues({}));
   setUpAll(loadFleetScreenshotFonts);
   test('internal costs include every stopped labour session and parts', () {
     final job = MaintenanceJob(jobData());

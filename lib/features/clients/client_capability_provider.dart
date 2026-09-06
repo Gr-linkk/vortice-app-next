@@ -1,25 +1,43 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:vortice_app/core/account_storage.dart';
+import 'package:vortice_app/features/auth/auth_provider.dart';
 import 'package:vortice_app/core/constants.dart';
 import 'package:vortice_app/core/supabase_client.dart';
 import 'package:vortice_app/models/client_capability.dart';
 
 final clientCapabilitiesRepositoryProvider =
     Provider<ClientCapabilitiesRepository>((ref) {
-  return ClientCapabilitiesRepository();
-});
+      return ClientCapabilitiesRepository();
+    });
 
 final clientCapabilitiesProvider =
     FutureProvider.family<ClientCapabilitySwitchboard, String>((ref, clientId) {
-  final repository = ref.watch(clientCapabilitiesRepositoryProvider);
-  return repository.fetchForClient(clientId);
-});
+      final repository = ref.watch(clientCapabilitiesRepositoryProvider);
+      ref.watch(sessionProvider);
+      return repository.fetchForClient(clientId);
+    });
 
 class ClientCapabilitiesRepository {
   Future<ClientCapabilitySwitchboard> fetchForClient(String clientId) async {
-    final data = await supabase
-        .from(AppConstants.tClientCapabilities)
-        .select('capability_key, enabled')
-        .eq('client_id', clientId);
+    final account = supabase.auth.currentUser?.id;
+    if (account == null) {
+      return ClientCapabilitySwitchboard(
+        clientId: clientId,
+        enabledByCapability: const {},
+      );
+    }
+    final data =
+        await AccountJsonCache(
+          account,
+          () => supabase.auth.currentUser?.id,
+        ).readThrough(
+          'capabilities:$clientId',
+          () => supabase
+              .from(AppConstants.tClientCapabilities)
+              .select('capability_key, enabled')
+              .eq('client_id', clientId)
+              .timeout(const Duration(seconds: 6)),
+        );
 
     final enabledByCapability = <ClientCapability, bool>{
       for (final capability in ClientCapability.values) capability: false,
@@ -27,8 +45,9 @@ class ClientCapabilitiesRepository {
 
     for (final row in data as List) {
       final json = row as Map<String, dynamic>;
-      final capability =
-          ClientCapability.tryFromKey(json['capability_key'] as String);
+      final capability = ClientCapability.tryFromKey(
+        json['capability_key'] as String,
+      );
       if (capability == null) continue;
       enabledByCapability[capability] = json['enabled'] as bool? ?? false;
     }
@@ -82,5 +101,5 @@ class ClientCapabilityController extends StateNotifier<AsyncValue<void>> {
 
 final clientCapabilityControllerProvider =
     StateNotifierProvider<ClientCapabilityController, AsyncValue<void>>((ref) {
-  return ClientCapabilityController(ref);
-});
+      return ClientCapabilityController(ref);
+    });

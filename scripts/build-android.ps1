@@ -9,6 +9,22 @@ Push-Location $script:ProjectRoot
 try {
   Assert-RepositoryIdentity
   Assert-LocalSupabaseConfig
+  $firebaseArguments = @()
+  if (-not [string]::IsNullOrWhiteSpace($env:VORTICE_NEXT_FIREBASE_CONFIG)) {
+    $firebasePath = [IO.Path]::GetFullPath($env:VORTICE_NEXT_FIREBASE_CONFIG)
+    $firebase = Get-Content -LiteralPath $firebasePath -Raw | ConvertFrom-Json
+    if ($firebase.FIREBASE_PROJECT_ID -ne 'vortice-next' -or
+        $firebase.FIREBASE_ANDROID_APP_ID -ne '1:256876964373:android:ba58553beed6145f033c1c' -or
+        $firebase.FIREBASE_MESSAGING_SENDER_ID -ne '256876964373' -or
+        [string]::IsNullOrWhiteSpace($firebase.FIREBASE_API_KEY)) {
+      throw 'Firebase configuration must identify the dedicated Vortice Next Android app.'
+    }
+    if ($null -eq (Get-Command flutter -ErrorAction SilentlyContinue) -and $env:OS -eq 'Windows_NT') {
+      $firebasePath = (& wsl.exe -e wslpath -u $firebasePath).Trim()
+      if ($LASTEXITCODE -ne 0) { throw 'Could not translate the Firebase config path.' }
+    }
+    $firebaseArguments = @("--dart-define-from-file=$firebasePath")
+  }
   # Check the values consumed by the app, not just the local JSON file.
   Invoke-ProjectCommand -Command 'flutter' -Arguments @(
     'test',
@@ -20,7 +36,7 @@ try {
     'apk',
     '--debug',
     (Get-FlutterConfigArgument)
-  ) + $FlutterArguments
+  ) + $firebaseArguments + $FlutterArguments
   Invoke-ProjectCommand -Command 'flutter' -Arguments $buildArguments
 
   $source = Join-Path $script:ProjectRoot 'build/app/outputs/flutter-apk/app-debug.apk'

@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:math';
+import 'package:vortice_app/core/account_storage.dart';
 
 import 'package:drift/drift.dart' show Value;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -32,8 +33,15 @@ class ChecklistRepository {
   ChecklistRepository(this._db);
 
   final AppDatabase _db;
+  void _checkAccount() {
+    if (_db.accountId != null &&
+        !_db.belongsTo(supabase.auth.currentUser?.id)) {
+      throw const AccountChangedException();
+    }
+  }
 
   Future<List<ChecklistTemplate>> listTemplates() async {
+    _checkAccount();
     final cached = (await _db.checklistsDao.getAllTemplates())
         .map(_templateFromRow)
         .toList();
@@ -42,7 +50,9 @@ class ChecklistRepository {
       final remote = await supabase
           .from(AppConstants.tChecklistTemplates)
           .select()
-          .order('name');
+          .order('name')
+          .timeout(const Duration(seconds: 6));
+      _checkAccount();
 
       final templates = (remote as List)
           .map((e) => ChecklistTemplate.fromJson(e as Map<String, dynamic>))
@@ -53,23 +63,31 @@ class ChecklistRepository {
       }
 
       return templates;
-    } catch (_) {
+    } catch (error) {
+      _checkAccount();
+      if (!isConnectionFailure(error) ||
+          !_db.belongsTo(supabase.auth.currentUser?.id)) {
+        rethrow;
+      }
       if (cached.isNotEmpty) return cached;
       rethrow;
     }
   }
 
   Future<List<ChecklistItem>> listItemsForTemplate(String templateId) async {
-    final cached = (await _db.checklistsDao.getItemsForTemplate(templateId))
-        .map(_itemFromRow)
-        .toList();
+    _checkAccount();
+    final cached = (await _db.checklistsDao.getItemsForTemplate(
+      templateId,
+    )).map(_itemFromRow).toList();
 
     try {
       final remote = await supabase
           .from(AppConstants.tChecklistItems)
           .select()
           .eq('template_id', templateId)
-          .order('sort_order');
+          .order('sort_order')
+          .timeout(const Duration(seconds: 6));
+      _checkAccount();
 
       final items = (remote as List)
           .map((e) => ChecklistItem.fromJson(e as Map<String, dynamic>))
@@ -81,7 +99,12 @@ class ChecklistRepository {
       }
 
       return items;
-    } catch (_) {
+    } catch (error) {
+      _checkAccount();
+      if (!isConnectionFailure(error) ||
+          !_db.belongsTo(supabase.auth.currentUser?.id)) {
+        rethrow;
+      }
       final allowedCached = cached.where(isAllowedChecklistItem).toList();
       if (allowedCached.isNotEmpty) return allowedCached;
       rethrow;
@@ -89,6 +112,7 @@ class ChecklistRepository {
   }
 
   Future<void> cacheSnapshot(WorkOrderChecklistSnapshot snapshot) async {
+    _checkAccount();
     await _db.checklistsDao.upsertTemplate(
       _templateToCompanion(snapshot.asTemplate()),
     );
@@ -100,17 +124,18 @@ class ChecklistRepository {
   Future<List<ChecklistResponse>> listResponsesForWorkOrder(
     String workOrderId,
   ) async {
+    _checkAccount();
     final cached = (await _db.checklistsDao.getResponsesForWorkOrder(
       workOrderId,
-    ))
-        .map(_responseFromRow)
-        .toList();
+    )).map(_responseFromRow).toList();
 
     try {
       final remote = await supabase
           .from(AppConstants.tChecklistResponses)
           .select()
-          .eq('work_order_id', workOrderId);
+          .eq('work_order_id', workOrderId)
+          .timeout(const Duration(seconds: 6));
+      _checkAccount();
 
       final responses = (remote as List)
           .map((e) => ChecklistResponse.fromJson(e as Map<String, dynamic>))
@@ -123,9 +148,9 @@ class ChecklistRepository {
 
       await _db.checklistsDao.upsertResponses(
         remoteChecklistResponsesSafeToUpsert(
-          remoteResponses: responses,
-          localUnsyncedByItem: localUnsyncedByItem,
-        )
+              remoteResponses: responses,
+              localUnsyncedByItem: localUnsyncedByItem,
+            )
             .map(
               (response) => _responseToCompanion(
                 response,
@@ -141,13 +166,19 @@ class ChecklistRepository {
         remoteResponses: responses,
         localResponses: cached,
       );
-    } catch (_) {
+    } catch (error) {
+      _checkAccount();
+      if (!isConnectionFailure(error) ||
+          !_db.belongsTo(supabase.auth.currentUser?.id)) {
+        rethrow;
+      }
       if (cached.isNotEmpty) return cached;
       rethrow;
     }
   }
 
   Future<bool> hasResponsesForWorkOrder(String workOrderId) async {
+    _checkAccount();
     if (await _db.checklistsDao.hasResponsesForWorkOrder(workOrderId)) {
       return true;
     }
@@ -172,6 +203,7 @@ class ChecklistRepository {
     Map<String, String?>? photoUrls,
     String? holdForSyncReason,
   }) async {
+    _checkAccount();
     final now = DateTime.now();
     final answered = responses.entries.where((e) => e.value != null).toList();
     if (answered.isEmpty) return;
@@ -246,9 +278,7 @@ class ChecklistRepository {
     } on TimeoutException catch (error) {
       await _markPendingResponsesWithError(pendingEntries, error);
       throw LocalChecklistPendingException(
-        ChecklistSubmissionSupport.pendingSyncMessage(
-          intentionalOffline: true,
-        ),
+        ChecklistSubmissionSupport.pendingSyncMessage(intentionalOffline: true),
       );
     } catch (error) {
       await _markPendingResponsesWithError(pendingEntries, error);
@@ -267,12 +297,11 @@ class ChecklistRepository {
   }
 
   Future<int> syncPendingResponsesForWorkOrder(String workOrderId) async {
-    final cached = (await _db.checklistsDao.getResponsesForWorkOrder(
-      workOrderId,
-    ))
-        .map(_responseFromRow)
-        .where((response) => response.syncStatus != SyncStatusValues.synced)
-        .toList();
+    final cached =
+        (await _db.checklistsDao.getResponsesForWorkOrder(workOrderId))
+            .map(_responseFromRow)
+            .where((response) => response.syncStatus != SyncStatusValues.synced)
+            .toList();
     if (cached.isEmpty) return 0;
 
     final rows = cached.map(checklistResponseToRemoteRow).toList();
@@ -331,11 +360,7 @@ class ChecklistRepository {
   ) async {
     await _db.checklistsDao.upsertResponses(
       entries
-          .map(
-            (entry) => entry.copyWith(
-              lastError: Value(error.toString()),
-            ),
-          )
+          .map((entry) => entry.copyWith(lastError: Value(error.toString())))
           .toList(),
     );
   }
@@ -360,33 +385,32 @@ ChecklistTemplate _templateFromRow(ChecklistTemplatesTableData row) =>
 
 ChecklistTemplatesTableCompanion _templateToCompanion(
   ChecklistTemplate template,
-) =>
-    ChecklistTemplatesTableCompanion(
-      id: Value(template.id),
-      assetTypeId: Value(template.assetTypeId),
-      checklistType: Value(template.checklistType),
-      intervalHours: Value(template.intervalHours),
-      intervalLabel: Value(template.intervalLabel),
-      name: Value(template.name),
-      description: Value(template.description),
-      version: Value(template.version),
-      isActive: Value(template.isActive),
-      sourceDocId: Value(template.sourceDocId),
-      createdBy: Value(template.createdBy),
-      createdAt: Value(template.createdAt),
-      updatedAt: Value(template.updatedAt),
-    );
+) => ChecklistTemplatesTableCompanion(
+  id: Value(template.id),
+  assetTypeId: Value(template.assetTypeId),
+  checklistType: Value(template.checklistType),
+  intervalHours: Value(template.intervalHours),
+  intervalLabel: Value(template.intervalLabel),
+  name: Value(template.name),
+  description: Value(template.description),
+  version: Value(template.version),
+  isActive: Value(template.isActive),
+  sourceDocId: Value(template.sourceDocId),
+  createdBy: Value(template.createdBy),
+  createdAt: Value(template.createdAt),
+  updatedAt: Value(template.updatedAt),
+);
 
 ChecklistItem _itemFromRow(ChecklistItemsTableData row) => ChecklistItem(
-      id: row.id,
-      templateId: row.templateId,
-      descriptionEn: row.descriptionEn,
-      descriptionEs: row.descriptionEs,
-      category: row.category,
-      requiresPhoto: row.requiresPhoto,
-      sortOrder: row.sortOrder,
-      createdAt: row.createdAt,
-    );
+  id: row.id,
+  templateId: row.templateId,
+  descriptionEn: row.descriptionEn,
+  descriptionEs: row.descriptionEs,
+  category: row.category,
+  requiresPhoto: row.requiresPhoto,
+  sortOrder: row.sortOrder,
+  createdAt: row.createdAt,
+);
 
 ChecklistItemsTableCompanion _itemToCompanion(ChecklistItem item) =>
     ChecklistItemsTableCompanion(
@@ -424,23 +448,22 @@ ChecklistResponsesTableCompanion _responseToCompanion(
   DateTime? updatedAt,
   DateTime? lastSyncedAt,
   String? lastError,
-}) =>
-    ChecklistResponsesTableCompanion(
-      id: Value(response.id),
-      workOrderId: Value(response.workOrderId),
-      checklistItemId: Value(response.checklistItemId),
-      completed: Value(response.completed),
-      notes: Value(response.notes),
-      photoUrl: Value(response.photoUrl),
-      responseStatus: Value(response.responseStatus),
-      completedBy: Value(response.completedBy),
-      completedAt: Value(response.completedAt),
-      createdAt: Value(response.createdAt),
-      syncStatus: Value(syncStatus),
-      updatedAt: Value(updatedAt ?? response.updatedAt),
-      lastSyncedAt: Value(lastSyncedAt ?? response.lastSyncedAt),
-      lastError: Value(lastError),
-    );
+}) => ChecklistResponsesTableCompanion(
+  id: Value(response.id),
+  workOrderId: Value(response.workOrderId),
+  checklistItemId: Value(response.checklistItemId),
+  completed: Value(response.completed),
+  notes: Value(response.notes),
+  photoUrl: Value(response.photoUrl),
+  responseStatus: Value(response.responseStatus),
+  completedBy: Value(response.completedBy),
+  completedAt: Value(response.completedAt),
+  createdAt: Value(response.createdAt),
+  syncStatus: Value(syncStatus),
+  updatedAt: Value(updatedAt ?? response.updatedAt),
+  lastSyncedAt: Value(lastSyncedAt ?? response.lastSyncedAt),
+  lastError: Value(lastError),
+);
 
 String _uuidV4() {
   final random = Random.secure();

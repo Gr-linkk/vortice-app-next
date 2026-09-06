@@ -8,6 +8,8 @@ import 'package:vortice_app/db/daos/parts_dao.dart';
 import 'package:vortice_app/db/daos/service_reports_dao.dart';
 import 'package:vortice_app/db/daos/work_orders_dao.dart';
 import 'package:vortice_app/sync/sync_status.dart';
+import 'package:vortice_app/core/account_storage.dart';
+import 'package:vortice_app/features/auth/auth_provider.dart';
 
 part 'database.g.dart';
 
@@ -328,62 +330,67 @@ class LocalAttachmentsTable extends Table {
 )
 class AppDatabase extends _$AppDatabase {
   AppDatabase([QueryExecutor? executor])
-      : super(executor ?? driftDatabase(name: 'vortice_db'));
+    : accountId = null,
+      super(executor ?? driftDatabase(name: 'vortice_db'));
+
+  AppDatabase.forAccount(String account, {QueryExecutor? executor})
+    : accountId = account,
+      super(executor ?? driftDatabase(name: accountDatabaseName(account)));
+
+  final String? accountId;
+  bool belongsTo(String? currentAccount) =>
+      accountId != null && accountId == currentAccount;
 
   @override
   int get schemaVersion => 6;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
-        onUpgrade: (m, from, to) async {
-          if (from < 4) {
-            await m.createTable(syncOperationsTable);
-            await m.createTable(localAttachmentsTable);
-          }
-          if (from < 5) {
-            await m.addColumn(
-              checklistResponsesTable,
-              checklistResponsesTable.responseStatus,
-            );
-            await m.addColumn(
-              checklistResponsesTable,
-              checklistResponsesTable.syncStatus,
-            );
-            await m.addColumn(
-              checklistResponsesTable,
-              checklistResponsesTable.updatedAt,
-            );
-            await m.addColumn(
-              checklistResponsesTable,
-              checklistResponsesTable.lastSyncedAt,
-            );
-            await m.addColumn(
-              checklistResponsesTable,
-              checklistResponsesTable.lastError,
-            );
-          }
-          if (from < 6) {
-            await m.addColumn(
-              serviceReportsTable,
-              serviceReportsTable.syncStatus,
-            );
-            await m.addColumn(
-              serviceReportsTable,
-              serviceReportsTable.lastSyncedAt,
-            );
-            await m.addColumn(
-              serviceReportsTable,
-              serviceReportsTable.lastError,
-            );
-          }
-        },
-      );
+    onUpgrade: (m, from, to) async {
+      if (from < 4) {
+        await m.createTable(syncOperationsTable);
+        await m.createTable(localAttachmentsTable);
+      }
+      if (from < 5) {
+        await m.addColumn(
+          checklistResponsesTable,
+          checklistResponsesTable.responseStatus,
+        );
+        await m.addColumn(
+          checklistResponsesTable,
+          checklistResponsesTable.syncStatus,
+        );
+        await m.addColumn(
+          checklistResponsesTable,
+          checklistResponsesTable.updatedAt,
+        );
+        await m.addColumn(
+          checklistResponsesTable,
+          checklistResponsesTable.lastSyncedAt,
+        );
+        await m.addColumn(
+          checklistResponsesTable,
+          checklistResponsesTable.lastError,
+        );
+      }
+      if (from < 6) {
+        await m.addColumn(serviceReportsTable, serviceReportsTable.syncStatus);
+        await m.addColumn(
+          serviceReportsTable,
+          serviceReportsTable.lastSyncedAt,
+        );
+        await m.addColumn(serviceReportsTable, serviceReportsTable.lastError);
+      }
+    },
+  );
 }
 
 // ── Provider ───────────────────────────────────────────────────────────────
 
 final databaseProvider = Provider<AppDatabase>((ref) {
-  final db = AppDatabase();
+  final account = ref.watch(sessionProvider)?.user.id;
+  // Preserve the old unattributed database without exposing it to a new account.
+  final db = AppDatabase.forAccount(account ?? 'signed_out');
   ref.onDispose(db.close);
   return db;
 });

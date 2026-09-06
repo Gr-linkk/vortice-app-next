@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:vortice_app/core/push_notifications.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -6,6 +7,7 @@ import 'package:vortice_app/core/constants.dart';
 import 'package:vortice_app/features/auth/auth_status_logic.dart';
 import 'package:vortice_app/core/supabase_client.dart';
 import 'package:vortice_app/models/profile.dart';
+import 'package:vortice_app/core/account_storage.dart';
 
 // ── Auth change stream ─────────────────────────────────────────────────────
 
@@ -30,14 +32,22 @@ final profileProvider = FutureProvider<Profile?>((ref) async {
   final session = ref.watch(sessionProvider);
   if (session == null) return null;
 
-  final data = await supabase
-      .from(AppConstants.tProfiles)
-      .select()
-      .eq('id', session.user.id)
-      .maybeSingle();
+  final cache = AccountJsonCache(
+    session.user.id,
+    () => supabase.auth.currentUser?.id,
+  );
+  final data = await cache.readThrough(
+    'profile',
+    () => supabase
+        .from(AppConstants.tProfiles)
+        .select()
+        .eq('id', session.user.id)
+        .maybeSingle()
+        .timeout(const Duration(seconds: 6)),
+  );
 
   if (data == null) return null;
-  return Profile.fromJson(data);
+  return Profile.fromJson(Map<String, dynamic>.from(data as Map));
 });
 
 // ── Unified auth status (used by the router) ───────────────────────────────
@@ -148,7 +158,10 @@ class AuthController extends StateNotifier<AsyncValue<void>> {
 
   Future<void> signOut() async {
     state = const AsyncLoading();
-    state = await AsyncValue.guard(() => supabase.auth.signOut());
+    state = await AsyncValue.guard(() async {
+      await PushNotifications.instance.detach();
+      await supabase.auth.signOut();
+    });
   }
 }
 

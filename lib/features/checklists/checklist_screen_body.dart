@@ -1,4 +1,5 @@
 import 'package:vortice_app/core/user_feedback.dart';
+import 'package:vortice_app/core/account_storage.dart';
 import 'dart:async';
 import 'dart:convert';
 
@@ -63,10 +64,12 @@ class _ChecklistScreenBodyState extends ConsumerState<ChecklistScreenBody> {
   DateTime _completedAt = DateTime.now();
   double? _currentHours;
   String? _generalNotes;
+  late final String _accountId;
 
   @override
   void initState() {
     super.initState();
+    _accountId = ref.read(sessionProvider)?.user.id ?? 'signed_out';
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       await _loadSavedChecklistState();
       if (widget.preSelectedTemplateId != null) {
@@ -78,8 +81,10 @@ class _ChecklistScreenBodyState extends ConsumerState<ChecklistScreenBody> {
   String get _checklistRunKey =>
       checklistRunKey(workOrderId: widget.workOrderId, assetId: widget.assetId);
 
-  String get _draftKey => checklistDraftKey(_checklistRunKey);
-  String get _photoCacheKey => checklistPhotoCacheKey(_checklistRunKey);
+  String get _draftKey =>
+      accountStorageKey(_accountId, checklistDraftKey(_checklistRunKey));
+  String get _photoCacheKey =>
+      accountStorageKey(_accountId, checklistPhotoCacheKey(_checklistRunKey));
 
   Future<void> _loadCachedPhotos(SharedPreferences prefs) async {
     final raw = prefs.getString(_photoCacheKey);

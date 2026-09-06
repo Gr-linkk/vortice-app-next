@@ -1,11 +1,15 @@
 import 'dart:convert';
 import 'dart:typed_data';
+import 'package:vortice_app/core/account_storage.dart';
+import 'package:vortice_app/sync/field_work_queue.dart';
+import 'package:vortice_app/sync/field_work_provider.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:uuid/uuid.dart';
 import 'package:vortice_app/core/supabase_client.dart';
 import 'package:vortice_app/features/auth/auth_provider.dart';
 import 'maintenance_models.dart';
+part 'maintenance_field_projection.dart';
 
 abstract class MaintenanceRepository {
   Future<List<MaintenanceJob>> jobs({String? jobId, String? assetId});
@@ -31,25 +35,45 @@ abstract class MaintenanceRepository {
 }
 
 class SupabaseMaintenanceRepository implements MaintenanceRepository {
-  SupabaseMaintenanceRepository(this.client);
+  SupabaseMaintenanceRepository(this.client, {this.cache, this.queue});
   final SupabaseClient client;
+  final AccountJsonCache? cache;
+  final FieldWorkQueue? queue;
   Future<dynamic> _rpc(String name, [Map<String, dynamic>? params]) =>
-      client.rpc(name, params: params).timeout(const Duration(seconds: 20));
+      client.rpc(name, params: params).timeout(const Duration(seconds: 6));
+  Future<dynamic> _read(String name, [Map<String, dynamic>? params]) =>
+      cache?.readThrough(
+        '$name:${jsonEncode(params)}',
+        () => _rpc(name, params),
+      ) ??
+      _rpc(name, params);
   @override
-  Future<List<MaintenanceJob>> jobs({String? jobId, String? assetId}) async =>
-      maintenanceRows(
-        await _rpc('maintenance_jobs', {
-          if (jobId != null) 'p_job': jobId,
-          if (assetId != null) 'p_asset': assetId,
-        }),
-      ).map(MaintenanceJob.new).toList();
+  Future<List<MaintenanceJob>> jobs({String? jobId, String? assetId}) async {
+    final rows = maintenanceRows(
+      await _read('maintenance_jobs', {
+        if (jobId != null) 'p_job': jobId,
+        if (assetId != null) 'p_asset': assetId,
+      }),
+    );
+    for (final row in rows) {
+      await cache?.save(
+        'maintenance_jobs:${jsonEncode({'p_job': row['id']})}',
+        [row],
+      );
+    }
+    final operations = await queue?.list() ?? [];
+    return rows
+        .map((row) => projectMaintenanceFieldWork(row, operations))
+        .toList();
+  }
+
   @override
   Future<Map<String, dynamic>> workspace() async =>
-      Map<String, dynamic>.from(await _rpc('maintenance_workspace') as Map);
+      Map<String, dynamic>.from(await _read('maintenance_workspace') as Map);
   @override
   Future<Map<String, dynamic>> assetContext(String assetId) async =>
       Map<String, dynamic>.from(
-        await _rpc('maintenance_asset_context', {'p_asset': assetId}) as Map,
+        await _read('maintenance_asset_context', {'p_asset': assetId}) as Map,
       );
   @override
   Future<String> create(String operationId, Map<String, dynamic> data) async =>
@@ -66,6 +90,50 @@ class SupabaseMaintenanceRepository implements MaintenanceRepository {
     String action,
     Map<String, dynamic> data,
   ) async {
+    if (queue != null &&
+        [
+          'start',
+          'pause',
+          'block',
+          'save_report',
+          'submit',
+          'add_part',
+          'remove_part',
+        ].contains(action)) {
+      await queue!.restoreEvidence(
+        (data['evidence_paths'] as List? ?? []).cast<String>(),
+      );
+      final previous = (await queue!.list())
+          .where((r) => r.id == operationId)
+          .firstOrNull;
+      final operation =
+          previous ??
+          FieldOperation(
+            id: operationId,
+            kind: 'apply_maintenance_field_action',
+            subject: jobId,
+            payload: {
+              'p_job': jobId,
+              'p_revision': revision,
+              'p_operation': operationId,
+              'p_action': action,
+              'p_data': {...data, '_actor': queue!.account},
+              'p_recorded_at': DateTime.now().toUtc().toIso8601String(),
+            },
+          );
+      await queue!.submit(operation);
+      return;
+    }
+    if (queue != null &&
+        (await queue!.list()).any(
+          (o) => o.subject == jobId && !o.synced && o.status != 'cancelled',
+        )) {
+      throw const PostgrestException(
+        message:
+            'Sync or resolve pending field changes before managing this job.',
+        code: 'P0001',
+      );
+    }
     await _rpc('change_maintenance_job', {
       'p_job': jobId,
       'p_revision': revision,
@@ -97,6 +165,22 @@ class SupabaseMaintenanceRepository implements MaintenanceRepository {
     Uint8List bytes,
     String contentType,
   ) async {
+    if (queue != null) {
+      await queue!.submit(
+        FieldOperation(
+          id: 'photo:$path',
+          kind: 'upload',
+          subject: path.split('/').first,
+          payload: {
+            'bucket': 'maintenance-evidence',
+            'path': path,
+            'bytes': base64Encode(bytes),
+            'contentType': contentType,
+          },
+        ),
+      );
+      return;
+    }
     try {
       await client.storage
           .from('maintenance-evidence')
@@ -130,17 +214,26 @@ class MaintenanceWrite {
   final Map<String, dynamic> data;
 }
 
-final maintenanceRepositoryProvider = Provider<MaintenanceRepository>(
-  (ref) => SupabaseMaintenanceRepository(supabase),
-);
+final maintenanceRepositoryProvider = Provider<MaintenanceRepository>((ref) {
+  final account = ref.watch(sessionProvider)?.user.id;
+  return SupabaseMaintenanceRepository(
+    supabase,
+    cache: account == null
+        ? null
+        : AccountJsonCache(account, () => supabase.auth.currentUser?.id),
+    queue: ref.watch(fieldWorkQueueProvider),
+  );
+});
 final maintenanceJobsProvider = FutureProvider.autoDispose
     .family<List<MaintenanceJob>, String?>((ref, assetId) async {
       if (await ref.watch(profileProvider.future) == null) return [];
+      ref.watch(fieldOperationsProvider);
       return ref.watch(maintenanceRepositoryProvider).jobs(assetId: assetId);
     });
 final maintenanceJobProvider = FutureProvider.autoDispose
     .family<MaintenanceJob?, String>((ref, id) async {
       if (await ref.watch(profileProvider.future) == null) return null;
+      ref.watch(fieldOperationsProvider);
       return (await ref.watch(maintenanceRepositoryProvider).jobs(jobId: id))
           .firstOrNull;
     });

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:vortice_app/sync/field_sync_status.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:vortice_app/core/app_navigation.dart';
@@ -95,7 +96,15 @@ class AppShell extends ConsumerWidget {
         return true;
       },
       child: Scaffold(
-        body: SafeArea(top: false, child: child),
+        body: SafeArea(
+          top: false,
+          child: Column(
+            children: [
+              const FieldSyncStatus(),
+              Expanded(child: child),
+            ],
+          ),
+        ),
         bottomNavigationBar: hideBottomNavigation
             ? null
             : Container(

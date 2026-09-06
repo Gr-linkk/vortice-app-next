@@ -1,0 +1,2 @@
+[functions.push-delivery]
+verify_jwt = false

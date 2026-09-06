@@ -1,4 +1,5 @@
 import 'package:vortice_app/core/user_feedback.dart';
+import 'package:vortice_app/features/auth/password_recovery.dart';
 import 'package:vortice_app/features/assurance/assurance_screen.dart';
 import 'package:vortice_app/features/coordination/asset_history_screen.dart';
 import 'package:vortice_app/features/coordination/discussion_screen.dart';
@@ -66,6 +67,11 @@ import 'package:vortice_app/models/client_capability.dart';
 class _RouterNotifier extends ChangeNotifier {
   _RouterNotifier(this._ref) {
     _authStatus = _ref.read(authStatusProvider);
+    _ref.listen(passwordRecoveryProvider, (_, __) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (hasListeners) notifyListeners();
+      });
+    });
     _ref.listen<AppAuthStatus>(authStatusProvider, (_, next) {
       _authStatus = next;
       // Defer refresh so GoRouter does not redirect while the shell tree is
@@ -103,6 +109,15 @@ final routerProvider = Provider<GoRouter>((ref) {
     initialLocation: '/login',
     refreshListenable: notifier,
     redirect: (context, state) {
+      final recovery = ref.read(passwordRecoveryProvider).phase;
+      if (recovery != RecoveryPhase.idle &&
+          state.matchedLocation != '/reset-password') {
+        return '/reset-password';
+      }
+      if (state.matchedLocation == '/forgot-password' ||
+          state.matchedLocation == '/reset-password') {
+        return null;
+      }
       return resolveAuthRedirect(
         authStatus: notifier.authStatus,
         location: state.matchedLocation,
@@ -111,6 +126,14 @@ final routerProvider = Provider<GoRouter>((ref) {
     routes: [
       // ── Unauthenticated ────────────────────────────────────────────────
       GoRoute(path: '/login', builder: (_, __) => const LoginScreen()),
+      GoRoute(
+        path: '/forgot-password',
+        builder: (_, __) => const PasswordRecoveryScreen(),
+      ),
+      GoRoute(
+        path: '/reset-password',
+        builder: (_, __) => const PasswordRecoveryScreen(reset: true),
+      ),
       GoRoute(path: '/register', builder: (_, __) => const RegisterScreen()),
 
       // Service report authoring is full-screen. Keeping it outside the tab

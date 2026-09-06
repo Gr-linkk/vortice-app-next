@@ -33,18 +33,24 @@ void main() {
         FlutterError.onError = (e) {
           h.issues.add(e.exceptionAsString());
           stdout.writeln('FRAMEWORK ${e.exceptionAsString()}');
+          stdout.writeln(e.stack);
         };
         try {
           await h.login('paradise@vortice.dev');
-          final repo = h.container.read(maintenanceRepositoryProvider),
-              fleet = SupabaseFleetRepository(supabase);
-          final workspace = await repo.workspace();
-          await repo.setup(const Uuid().v4(), 'asset', asset, 0, {
-            'name': name,
-            'location': '$marker Dock',
-            'asset_type_id': (workspace['asset_types'] as List).first['id'],
-          });
-          final context = await repo.assetContext(asset);
+          final fleet = SupabaseFleetRepository(supabase);
+          final workspace = await h.container
+              .read(maintenanceRepositoryProvider)
+              .workspace();
+          await h.container
+              .read(maintenanceRepositoryProvider)
+              .setup(const Uuid().v4(), 'asset', asset, 0, {
+                'name': name,
+                'location': '$marker Dock',
+                'asset_type_id': (workspace['asset_types'] as List).first['id'],
+              });
+          final context = await h.container
+              .read(maintenanceRepositoryProvider)
+              .assetContext(asset);
           final mechanic =
               (context['assignees'] as List).firstWhere(
                     (p) => p['role'] == 'client_mechanic',
@@ -59,7 +65,9 @@ void main() {
             );
             await h.select('Assigned to', mechanic['name'] as String);
             await h.tap(find.widgetWithText(FilledButton, 'Create job'));
-            final jobs = await repo.jobs(assetId: asset);
+            final jobs = await h.container
+                .read(maintenanceRepositoryProvider)
+                .jobs(assetId: asset);
             expect(jobs.length, 1);
             job = jobs.single.id;
             manifest['maintenance_job'] = job;
@@ -80,7 +88,14 @@ void main() {
                 '$marker Waiting for seal',
               );
               await h.tap(find.widgetWithText(FilledButton, 'Confirm'));
-              expect((await repo.jobs(jobId: job)).single.status, 'on_hold');
+              expect(
+                (await h.container
+                        .read(maintenanceRepositoryProvider)
+                        .jobs(jobId: job))
+                    .single
+                    .status,
+                'on_hold',
+              );
               await h.tap(find.text('Start labour'));
               await h.tap(find.widgetWithText(TextButton, 'Pause'));
               await h.tap(find.text('Add part'));
@@ -88,7 +103,11 @@ void main() {
               await h.fill(h.field('Quantity'), '2');
               await h.fill(h.field('Unit cost (USD)'), '12.50');
               await h.tap(find.widgetWithText(FilledButton, 'Confirm'));
-              final saved = (await repo.jobs(jobId: job)).single;
+              final saved =
+                  (await h.container
+                          .read(maintenanceRepositoryProvider)
+                          .jobs(jobId: job))
+                      .single;
               expect(saved.parts.length, 1);
               expect(saved.parts.single['quantity'], 2);
               expect(saved.labour.length, 2);
@@ -124,7 +143,11 @@ void main() {
                 find.widgetWithText(FilledButton, 'Submit for review'),
               );
               expect(
-                (await repo.jobs(jobId: job)).single.status,
+                (await h.container
+                        .read(maintenanceRepositoryProvider)
+                        .jobs(jobId: job))
+                    .single
+                    .status,
                 'pending_review',
               );
             },
@@ -149,7 +172,14 @@ void main() {
                 'Approve & complete',
                 '$marker Verified 100 psi and labour',
               );
-              expect((await repo.jobs(jobId: job)).single.status, 'closed');
+              expect(
+                (await h.container
+                        .read(maintenanceRepositoryProvider)
+                        .jobs(jobId: job))
+                    .single
+                    .status,
+                'closed',
+              );
             },
           );
           await h.step(

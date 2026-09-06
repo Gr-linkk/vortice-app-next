@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:vortice_app/features/operator/operator_evidence_photo.dart';
 import 'package:go_router/go_router.dart';
 import 'package:vortice_app/core/user_feedback.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -169,19 +170,26 @@ class _SavedChecklistCard extends StatelessWidget {
             _HeaderLine(label: 'General notes', value: row.generalNotes!),
           const SizedBox(height: 8),
           ...items.map(
-            (item) => ListTile(
-              dense: true,
-              contentPadding: EdgeInsets.zero,
-              title: Text(
-                (item['description_en'] ?? 'Checklist item').toString(),
-              ),
-              subtitle: ((item['note'] ?? '').toString().isNotEmpty)
-                  ? Text(item['note'].toString())
-                  : null,
-              trailing: Text(
-                (item['response'] ?? '').toString().toUpperCase(),
-                style: const TextStyle(fontWeight: FontWeight.w700),
-              ),
+            (item) => Column(
+              children: [
+                ListTile(
+                  dense: true,
+                  contentPadding: EdgeInsets.zero,
+                  title: Text(
+                    (item['description_en'] ?? 'Checklist item').toString(),
+                  ),
+                  subtitle: ((item['note'] ?? '').toString().isNotEmpty)
+                      ? Text(item['note'].toString())
+                      : null,
+                  trailing: Text(
+                    (item['response'] ?? '').toString().toUpperCase(),
+                    style: const TextStyle(fontWeight: FontWeight.w700),
+                  ),
+                ),
+                if (item['photo_url'] is String &&
+                    !(item['photo_url'] as String).startsWith('http'))
+                  OperatorEvidencePhoto(path: item['photo_url'] as String),
+              ],
             ),
           ),
         ],

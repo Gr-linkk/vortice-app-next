@@ -5,6 +5,26 @@ elsewhere, but every active task must be represented here with a stable ID.
 
 ## Now
 
+### NOW-011 — Trusted field work, notifications and account recovery
+
+Garrett authorized all six post-audit recommendations and free commits/pushes.
+Continue from verified audit commit `c6d42e0`: repair private request evidence and
+account-isolated offline data first; implement durable/retryable field submissions,
+complete operator checklist photos and atomic completion, real push delivery,
+password recovery and Android acceptance. Stages, access rules and verification:
+`docs/specs/NOW-011-field-reliability.md`. External service activation and actual
+device evidence must be reported separately from code and synthetic tests.
+
+Implemented in internal Build 13 (`1.6.0+13`). The four approved Next migrations,
+Firebase notification sender/worker schedule and recovery callback are active.
+Ten hosted SQL suites, four connected field-reliability steps, nine operations
+regressions and live synthetic recovery pass. Test assets and photos are removed.
+Open acceptance: customer SMTP/domain setup and physical Android testing. APK
+inspection passes; phone transfer is awaiting explicit approval. Full evidence
+and artifact hash are in the specification.
+Final guarded verification passes with clean analysis, 407 Flutter tests and 204
+existing skips; two notification-payload tests also pass.
+
 ### NOW-010 — Whole-app workflow audit
 
 Garrett requested end-to-end testing across the whole app to find broken or
@@ -24,9 +44,8 @@ labour/validation and direct-entry navigation defects are repaired locally.
 All 12 test assets and four synthetic uploads were removed.
 Guarded verification passed with clean analysis and 390 tests (204 existing skips).
 
-Next repair priorities remain open in the audit specification: P1 public
-service-request photos; P1 account ownership of offline work-order/asset caches;
-P2 transactional operator checklist retries and photo transport. Physical-device
+The audit's P1 request-photo privacy, P1 offline account ownership and P2 atomic
+operator checklist/photo transport findings are implemented under NOW-011. Physical-device
 and uncovered legacy save workflows must not be inferred from route coverage.
 
 ### NOW-009 — Asset custody and inspection renewals

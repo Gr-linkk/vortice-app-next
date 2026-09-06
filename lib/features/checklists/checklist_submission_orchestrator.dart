@@ -1,4 +1,9 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'dart:convert';
+import 'dart:typed_data';
+import 'package:uuid/uuid.dart';
+import 'package:vortice_app/sync/field_work_queue.dart';
+import 'package:vortice_app/sync/field_work_provider.dart';
 import 'package:vortice_app/core/supabase_client.dart';
 import 'package:vortice_app/features/checklists/checklist_provider.dart';
 import 'package:vortice_app/features/checklists/saved_checklist_history_writer.dart';
@@ -21,6 +26,52 @@ final maintenanceChecklistSubmissionProvider =
 final operationsChecklistSubmissionProvider =
     Provider<OperationsChecklistSubmission>((ref) {
       return OperationsChecklistSubmission(
+        atomicSubmit: (id, data, photos) async {
+          final queue = ref.read(fieldWorkQueueProvider);
+          if (queue == null) {
+            throw StateError('Sign in before saving a checklist');
+          }
+          final paths = <String, String>{};
+          await queue.db.transaction(() async {
+            for (final entry in photos.entries) {
+              final bytes = entry.value;
+              if (bytes == null) continue;
+              final ext = bytes.length > 4 && bytes[0] == 137 && bytes[1] == 80
+                  ? 'png'
+                  : bytes.length > 12 && bytes[0] == 82 && bytes[8] == 87
+                  ? 'webp'
+                  : 'jpg';
+              final path =
+                  '${data['asset_id']}/${queue.account}/$id/${entry.key}.$ext';
+              paths[entry.key] = path;
+              await queue.enqueue(
+                FieldOperation(
+                  id: 'photo:$path',
+                  kind: 'upload',
+                  subject: id,
+                  payload: {
+                    'bucket': 'operator-evidence',
+                    'path': path,
+                    'bytes': base64Encode(bytes),
+                    'contentType': ext == 'jpg' ? 'image/jpeg' : 'image/$ext',
+                  },
+                ),
+              );
+            }
+            await queue.enqueue(
+              FieldOperation(
+                id: id,
+                kind: 'submit_operations_checklist',
+                subject: id,
+                payload: {
+                  'p_operation': id,
+                  'p_data': {...data, 'photos': paths},
+                },
+              ),
+            );
+          });
+          await queue.flush();
+        },
         createRun: _createOperatorChecklistRun,
         insertResponses: _insertOperatorChecklistResponses,
         historyWriter: ref.watch(savedChecklistHistoryWriterProvider),
@@ -174,6 +225,7 @@ typedef InsertOperationsChecklistResponses =
 
 class OperationsChecklistSubmission {
   const OperationsChecklistSubmission({
+    this.atomicSubmit,
     required CreateOperationsChecklistRun createRun,
     required InsertOperationsChecklistResponses insertResponses,
     required SavedChecklistHistoryWriter historyWriter,
@@ -182,6 +234,12 @@ class OperationsChecklistSubmission {
        _historyWriter = historyWriter;
 
   final CreateOperationsChecklistRun _createRun;
+  final Future<void> Function(
+    String,
+    Map<String, dynamic>,
+    Map<String, Uint8List?>,
+  )?
+  atomicSubmit;
   final InsertOperationsChecklistResponses _insertResponses;
   final SavedChecklistHistoryWriter _historyWriter;
 
@@ -198,8 +256,30 @@ class OperationsChecklistSubmission {
     required DateTime submittedAt,
     required double? currentHours,
     required String? generalNotes,
+    String? operationId,
+    Map<String, Uint8List?> photos = const {},
   }) async {
-    validateOperationsChecklist(items, responses, notes, currentHours);
+    validateOperationsChecklist(
+      items,
+      responses,
+      notes,
+      currentHours,
+      photos: photos,
+    );
+    if (atomicSubmit != null) {
+      await atomicSubmit!(operationId ?? const Uuid().v4(), {
+        'asset_id': assetId,
+        'template_id': template.id,
+        'template_version': template.version,
+        'run_type': runType,
+        'completed_at': submittedAt.toUtc().toIso8601String(),
+        'responses': responses,
+        'notes': notes,
+        'current_hours': currentHours,
+        'general_notes': generalNotes,
+      }, photos);
+      return;
+    }
     final run = await _createRun(
       assetId: assetId,
       operatorId: operatorId,
@@ -232,8 +312,9 @@ void validateOperationsChecklist(
   List<ChecklistItem> items,
   Map<String, String?> responses,
   Map<String, String> notes,
-  double? currentHours,
-) {
+  double? currentHours, {
+  Map<String, Uint8List?> photos = const {},
+}) {
   if (items.isEmpty ||
       items.any(
         (item) => !const {
@@ -249,7 +330,9 @@ void validateOperationsChecklist(
   if (responses.keys.any((id) => !items.any((item) => item.id == id))) {
     throw const OperationsChecklistValidationException('answers');
   }
-  if (items.any((item) => item.requiresPhoto)) {
+  if (items.any(
+    (item) => item.requiresPhoto && (photos[item.id]?.isEmpty ?? true),
+  )) {
     throw const OperationsChecklistValidationException('photos');
   }
   if (items.any(
@@ -272,8 +355,8 @@ class OperationsChecklistValidationException implements Exception {
   String message(bool es) => switch (reason) {
     'photos' =>
       es
-          ? 'Las fotos de listas diarias aún no se pueden enviar. El borrador se conserva en este dispositivo.'
-          : 'Daily checklist photos cannot be submitted yet. Your draft is retained on this device.',
+          ? 'Añade las fotos requeridas antes de guardar. El borrador se conserva.'
+          : 'Add the required photos before saving. Your draft is retained.',
     'notes' =>
       es
           ? 'Agrega una nota a los elementos de seguimiento o acción.'

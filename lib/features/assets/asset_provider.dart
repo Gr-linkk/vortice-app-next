@@ -1,4 +1,5 @@
 import 'package:drift/drift.dart' show Value;
+import 'package:vortice_app/core/account_storage.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:vortice_app/core/constants.dart';
 import 'package:vortice_app/core/supabase_client.dart';
@@ -18,28 +19,32 @@ final assetsProvider = FutureProvider<List<Asset>>((ref) async {
   Future<List<Asset>> cachedAssets() async {
     final cached = await dao.getAll();
     return cached
-        .map((asset) => Asset(
-              id: asset.id,
-              clientId: asset.clientId,
-              assetTypeId: asset.assetTypeId,
-              name: asset.name,
-              make: asset.make,
-              model: asset.model,
-              year: asset.year,
-              serialNumber: asset.serialNumber,
-              location: asset.location,
-              notes: asset.notes,
-              telemetryEnabled: asset.telemetryEnabled,
-              telemetrySource: asset.telemetrySource,
-              createdAt: asset.createdAt,
-              updatedAt: asset.updatedAt,
-            ))
+        .map(
+          (asset) => Asset(
+            id: asset.id,
+            clientId: asset.clientId,
+            assetTypeId: asset.assetTypeId,
+            name: asset.name,
+            make: asset.make,
+            model: asset.model,
+            year: asset.year,
+            serialNumber: asset.serialNumber,
+            location: asset.location,
+            notes: asset.notes,
+            telemetryEnabled: asset.telemetryEnabled,
+            telemetrySource: asset.telemetrySource,
+            createdAt: asset.createdAt,
+            updatedAt: asset.updatedAt,
+          ),
+        )
         .toList();
   }
 
   try {
-    final remote =
-        await supabase.from(AppConstants.tAssets).select().order('name');
+    final remote = await supabase
+        .from(AppConstants.tAssets)
+        .select()
+        .order('name');
 
     final assets = (remote as List)
         .map((e) => Asset.fromJson(e as Map<String, dynamic>))
@@ -50,27 +55,34 @@ final assetsProvider = FutureProvider<List<Asset>>((ref) async {
     // can see stale assets from a previous account.
 
     // Persist to local cache
-    for (final asset in assets) {
-      await dao.upsert(AssetsTableCompanion(
-        id: Value(asset.id),
-        clientId: Value(asset.clientId),
-        assetTypeId: Value(asset.assetTypeId),
-        name: Value(asset.name),
-        make: Value(asset.make),
-        model: Value(asset.model),
-        year: Value(asset.year),
-        serialNumber: Value(asset.serialNumber),
-        location: Value(asset.location),
-        notes: Value(asset.notes),
-        telemetryEnabled: Value(asset.telemetryEnabled),
-        telemetrySource: Value(asset.telemetrySource),
-        createdAt: Value(asset.createdAt),
-        updatedAt: Value(asset.updatedAt),
-      ));
+    for (final asset
+        in db.belongsTo(supabase.auth.currentUser?.id) ? assets : <Asset>[]) {
+      await dao.upsert(
+        AssetsTableCompanion(
+          id: Value(asset.id),
+          clientId: Value(asset.clientId),
+          assetTypeId: Value(asset.assetTypeId),
+          name: Value(asset.name),
+          make: Value(asset.make),
+          model: Value(asset.model),
+          year: Value(asset.year),
+          serialNumber: Value(asset.serialNumber),
+          location: Value(asset.location),
+          notes: Value(asset.notes),
+          telemetryEnabled: Value(asset.telemetryEnabled),
+          telemetrySource: Value(asset.telemetrySource),
+          createdAt: Value(asset.createdAt),
+          updatedAt: Value(asset.updatedAt),
+        ),
+      );
     }
 
     return assets;
-  } catch (_) {
+  } catch (error) {
+    if (!db.belongsTo(supabase.auth.currentUser?.id) ||
+        !isConnectionFailure(error)) {
+      rethrow;
+    }
     final cached = await cachedAssets();
     if (cached.isNotEmpty) return cached;
     rethrow;
@@ -88,14 +100,14 @@ final visibleAssetsProvider = FutureProvider<List<Asset>>((ref) async {
 
   return switch (profile.role) {
     UserRole.owner ||
-    UserRole.employee =>
-      await ref.watch(assetsProvider.future),
+    UserRole.employee => await ref.watch(assetsProvider.future),
     UserRole.client ||
     UserRole.clientAdmin ||
     UserRole.clientMechanic ||
     UserRole.clientOperator ||
-    UserRole.operator =>
-      await ref.watch(currentClientFleetAssetsProvider.future),
+    UserRole.operator => await ref.watch(
+      currentClientFleetAssetsProvider.future,
+    ),
   };
 });
 
@@ -103,8 +115,9 @@ final visibleAssetsProvider = FutureProvider<List<Asset>>((ref) async {
 /// No org means no inherited fleet visibility.
 final operatorScopedAssetsProvider = currentClientFleetAssetsProvider;
 
-final assetAssignedProfilesProvider =
-    FutureProvider<Map<String, Profile>>((ref) async {
+final assetAssignedProfilesProvider = FutureProvider<Map<String, Profile>>((
+  ref,
+) async {
   if (await ref.watch(profileProvider.future) == null) return {};
   final data = await supabase
       .from(AppConstants.tProfiles)
@@ -117,8 +130,10 @@ final assetAssignedProfilesProvider =
   };
 });
 
-final assetByIdProvider =
-    FutureProvider.family<Asset?, String>((ref, id) async {
+final assetByIdProvider = FutureProvider.family<Asset?, String>((
+  ref,
+  id,
+) async {
   if (await ref.watch(profileProvider.future) == null) return null;
   final data = await supabase
       .from(AppConstants.tAssets)
@@ -176,5 +191,5 @@ class AssetController extends StateNotifier<AsyncValue<void>> {
 
 final assetControllerProvider =
     StateNotifierProvider<AssetController, AsyncValue<void>>((ref) {
-  return AssetController(ref);
-});
+      return AssetController(ref);
+    });

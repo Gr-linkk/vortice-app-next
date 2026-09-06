@@ -6,10 +6,10 @@ def cli(*args):
 assert cli('git','remote','get-url','origin').strip()=='https://github.com/Gr-linkk/vortice-app-next.git'
 assert (root/'supabase/.temp/project-ref').read_text().strip()=='hkjpojobdbbtjkhaudki'
 assets={}
-for pattern in ['NOW-010-fixture-*.json','NOW-010-custody-live-*.json']:
+for pattern in ['NOW-010-fixture-*.json','NOW-010-custody-live-*.json','NOW-011-fixture-*.json']:
     for file in (root/'outputs').glob(pattern):
         item=json.loads(file.read_text(encoding='utf-8-sig'))
-        assert item['marker'].startswith('E2E-010')
+        assert item['marker'].startswith(('E2E-010','E2E-011'))
         if item.get('asset'):
             assets[str(uuid.UUID(item['asset']))]=item.get('asset_name','E2E-010 Custody inspection crane')
 assert assets
@@ -22,9 +22,12 @@ sql=f"""select jsonb_build_object(
  'work_ids',(select jsonb_agg(id) from public.work_orders where asset_id in ({ids})),
  'request_ids',(select jsonb_agg(id) from public.service_requests where asset_id in ({ids})),
  'objects',(select jsonb_agg(jsonb_build_object('bucket_id',bucket_id,'name',name)) from storage.objects where
-  (bucket_id='inspection-evidence' and split_part(name,'/',1)=any(array[{','.join(repr(a) for a in sorted(assets))}])) or
+  (bucket_id in ('inspection-evidence','operator-evidence') and split_part(name,'/',1)=any(array[{','.join(repr(a) for a in sorted(assets))}])) or
+  (bucket_id='maintenance-evidence' and split_part(name,'/',1) in (select id::text from public.work_orders where asset_id in ({ids}))) or
   (bucket_id='service-request-photos' and split_part(name,'/',1) in (select id::text from public.service_requests where asset_id in ({ids})))),
  'unrelated_assets',(select count(*) from public.assets where id not in ({ids})),
+ 'unrelated_operator_runs',(select count(*) from public.operator_checklist_runs where asset_id not in ({ids})),
+ 'unrelated_operator_submissions',(select count(*) from public.operations_submissions where asset_id not in ({ids})),
  'unrelated_work',(select count(*) from public.work_orders where asset_id not in ({ids})),
  'unrelated_requests',(select count(*) from public.service_requests where asset_id is null or asset_id not in ({ids})),
  'unrelated_inspections',(select count(*) from public.asset_inspections where asset_id not in ({ids})),
@@ -48,8 +51,8 @@ if probe_file.exists():
 keys=json.loads(cli('supabase','projects','api-keys','--project-ref','hkjpojobdbbtjkhaudki','--output','json'))
 key=next(k['api_key'] for k in keys if k['name']=='service_role')
 for item in objects:
-    assert item['bucket_id'] in ['inspection-evidence','service-request-photos']
-    assert item['name'].split('/')[0] in assets or item['name'].split('/')[0] in (before['request_ids'] or [])
+    assert item['bucket_id'] in ['inspection-evidence','service-request-photos','operator-evidence','maintenance-evidence']
+    assert item['name'].split('/')[0] in assets or item['name'].split('/')[0] in (before['request_ids'] or []) or item['name'].split('/')[0] in (before['work_ids'] or [])
     request=urllib.request.Request('https://hkjpojobdbbtjkhaudki.supabase.co/storage/v1/object/'+item['bucket_id'],
       data=json.dumps({'prefixes':[item['name']]}).encode(),method='DELETE',
       headers={'apikey':key,'Authorization':'Bearer '+key,'Content-Type':'application/json'})
@@ -62,6 +65,10 @@ cleanup=f"""begin;
 do $$ begin
  if exists(select 1 from public.assets where {guard}) then raise exception 'Fixture identity mismatch'; end if;
 end $$;
+delete from public.notifications where asset_id in ({ids});
+delete from public.operator_checklist_responses where run_id in(select id from public.operator_checklist_runs where asset_id in ({ids}));
+delete from public.operator_checklist_runs where asset_id in ({ids});
+delete from public.operations_submissions where asset_id in ({ids});
 delete from public.coordination_mentions where post_id in ({posts});
 delete from public.coordination_acknowledgements where post_id in ({posts});
 delete from public.coordination_posts where asset_id in ({ids});
@@ -87,4 +94,4 @@ assert not after['assets'] and not after['objects'] and not after['work_ids'] an
 for name in before:
     if name.startswith('unrelated_'): assert before[name]==after[name],name
 (root/'outputs/NOW-010-cleanup.json').write_text(json.dumps({'assets':assets,'removed_objects':objects,'before':before,'after':after},indent=2))
-print(f'PASS cleanup: {len(assets)} exact E2E-010 assets, {len(objects)} evidence objects; unrelated counts preserved')
+print(f'PASS cleanup: {len(assets)} exact E2E-010/011 assets, {len(objects)} evidence objects; unrelated counts preserved')

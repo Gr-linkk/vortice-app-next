@@ -32,6 +32,7 @@ class ServiceReportScreenState extends ConsumerState<ServiceReportScreen> {
   void initState() {
     super.initState();
     _draft = ServiceReportDraftController(
+      accountId: ref.read(sessionProvider)?.user.id ?? 'signed_out',
       initialWorkOrderId: widget.initialWorkOrderId,
       complaintController: _complaintCtrl,
       causeController: _causeCtrl,
@@ -124,8 +125,9 @@ class ServiceReportScreenState extends ConsumerState<ServiceReportScreen> {
   Widget build(BuildContext context) {
     final isLoading = ref.watch(serviceReportControllerProvider).isLoading;
     final profile = ref.watch(profileProvider).valueOrNull;
-    final canSubmit =
-        ServiceReportWorkflow.canCreateOrUpdateReport(profile?.role);
+    final canSubmit = ServiceReportWorkflow.canCreateOrUpdateReport(
+      profile?.role,
+    );
 
     return Scaffold(
       resizeToAvoidBottomInset: true,

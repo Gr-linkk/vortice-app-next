@@ -1,4 +1,5 @@
 import 'package:drift/drift.dart' show Value;
+import 'package:vortice_app/core/account_storage.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:vortice_app/core/constants.dart';
 import 'package:vortice_app/core/supabase_client.dart';
@@ -20,11 +21,19 @@ final currentClientFleetOwnerIdProvider = FutureProvider<String?>((ref) async {
 
   final orgId = profile.orgId;
   if (orgId != null && orgId.isNotEmpty) {
-    final orgRow = await supabase
-        .from(AppConstants.tClientOrgs)
-        .select('owner_profile_id')
-        .eq('id', orgId)
-        .maybeSingle();
+    final orgRow =
+        await AccountJsonCache(
+          profile.id,
+          () => supabase.auth.currentUser?.id,
+        ).readThrough(
+          'fleet_owner:$orgId',
+          () => supabase
+              .from(AppConstants.tClientOrgs)
+              .select('owner_profile_id')
+              .eq('id', orgId)
+              .maybeSingle()
+              .timeout(const Duration(seconds: 6)),
+        );
 
     return orgRow?['owner_profile_id'] as String?;
   }
@@ -33,8 +42,7 @@ final currentClientFleetOwnerIdProvider = FutureProvider<String?>((ref) async {
     UserRole.client || UserRole.clientAdmin => profile.id,
     UserRole.clientMechanic ||
     UserRole.clientOperator ||
-    UserRole.operator =>
-      null,
+    UserRole.operator => null,
     UserRole.owner || UserRole.employee => null,
   };
 });
@@ -42,12 +50,14 @@ final currentClientFleetOwnerIdProvider = FutureProvider<String?>((ref) async {
 /// Assets visible to the current client-side team context.
 ///
 /// This is the shared seam for operator/mechanic/client-admin asset pickers.
-final currentClientFleetAssetsProvider =
-    FutureProvider<List<Asset>>((ref) async {
+final currentClientFleetAssetsProvider = FutureProvider<List<Asset>>((
+  ref,
+) async {
   final ownerId = await ref.watch(currentClientFleetOwnerIdProvider.future);
   if (ownerId == null || ownerId.isEmpty) return [];
 
   final db = ref.watch(databaseProvider);
+  final account = ref.watch(sessionProvider)?.user.id;
 
   Future<List<Asset>> cachedFleet() async {
     final cached = await db.assetsDao.getAll();
@@ -86,6 +96,9 @@ final currentClientFleetAssetsProvider =
         .toList();
 
     for (final asset in assets) {
+      if (!db.belongsTo(account) || supabase.auth.currentUser?.id != account) {
+        throw const AccountChangedException();
+      }
       await db.assetsDao.upsert(
         AssetsTableCompanion(
           id: Value(asset.id),
@@ -107,7 +120,12 @@ final currentClientFleetAssetsProvider =
     }
 
     return assets;
-  } catch (_) {
+  } catch (error) {
+    if (!isConnectionFailure(error) ||
+        !db.belongsTo(account) ||
+        supabase.auth.currentUser?.id != account) {
+      rethrow;
+    }
     final cached = await cachedFleet();
     if (cached.isNotEmpty) return cached;
     rethrow;
@@ -115,12 +133,12 @@ final currentClientFleetAssetsProvider =
 });
 
 Map<String, dynamic> clientTeamAssetRow(Asset asset) => {
-      'id': asset.id,
-      'client_id': asset.clientId,
-      'name': asset.name,
-      'make': asset.make,
-      'model': asset.model,
-    };
+  'id': asset.id,
+  'client_id': asset.clientId,
+  'name': asset.name,
+  'make': asset.make,
+  'model': asset.model,
+};
 
 bool _isVorticeStaffRole(UserRole role) =>
     role == UserRole.owner || role == UserRole.employee;

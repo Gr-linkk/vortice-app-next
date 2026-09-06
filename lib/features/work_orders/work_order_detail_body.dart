@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:vortice_app/features/service_requests/service_request_evidence.dart';
 import 'package:vortice_app/features/coordination/coordination_entry.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
@@ -34,20 +35,23 @@ class WorkOrderDetailBody extends ConsumerWidget {
     final l10n = AppLocalizations.of(context);
     final isOwner = profile?.role == UserRole.owner;
     final isOwnerOrEmployee = isOwner || profile?.role == UserRole.employee;
-    final assignmentLabel =
-        isOwnerOrEmployee ? 'Assigned Techs' : 'Assigned Team';
+    final assignmentLabel = isOwnerOrEmployee
+        ? 'Assigned Techs'
+        : 'Assigned Team';
 
     final assetNameAsync = ref.watch(assetNameProvider(workOrder.assetId));
     final techNameAsync = workOrder.assignedTo != null
         ? ref.watch(profileNameProvider(workOrder.assignedTo!))
         : null;
-    final assignmentNamesAsync =
-        ref.watch(workOrderAssignmentNamesProvider(workOrder.id));
+    final assignmentNamesAsync = ref.watch(
+      workOrderAssignmentNamesProvider(workOrder.id),
+    );
 
     final routePrefix = workOrderRoutePrefixForRole(profile?.role);
 
-    final checklistDoneAsync =
-        ref.watch(checklistHasResponsesProvider(workOrder.id));
+    final checklistDoneAsync = ref.watch(
+      checklistHasResponsesProvider(workOrder.id),
+    );
     final checklistDone = checklistDoneAsync.valueOrNull ?? false;
 
     final dateFmt = DateFormat.yMMMd();
@@ -55,34 +59,53 @@ class WorkOrderDetailBody extends ConsumerWidget {
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
-        WorkOrderFaultCard(workOrderId: workOrder.id, assetId: workOrder.assetId),
-        CoordinationEntry(assetId: workOrder.assetId, kind: 'job', subjectId: workOrder.id),
+        WorkRequestEvidence(workOrderId: workOrder.id),
+        WorkOrderFaultCard(
+          workOrderId: workOrder.id,
+          assetId: workOrder.assetId,
+        ),
+        CoordinationEntry(
+          assetId: workOrder.assetId,
+          kind: 'job',
+          subjectId: workOrder.id,
+        ),
         // ── Status banner ──────────────────────────────────────────
         Container(
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: workOrderStatusColor(workOrder.status).withValues(alpha: 0.1),
+            color: workOrderStatusColor(
+              workOrder.status,
+            ).withValues(alpha: 0.1),
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: workOrderStatusColor(workOrder.status).withValues(alpha: 0.4)),
+            border: Border.all(
+              color: workOrderStatusColor(
+                workOrder.status,
+              ).withValues(alpha: 0.4),
+            ),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(workOrder.title,
-                  style: Theme.of(context).textTheme.titleMedium),
+              Text(
+                workOrder.title,
+                style: Theme.of(context).textTheme.titleMedium,
+              ),
               const SizedBox(height: 4),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                 decoration: BoxDecoration(
-                  color: workOrderStatusColor(workOrder.status).withValues(alpha: 0.2),
+                  color: workOrderStatusColor(
+                    workOrder.status,
+                  ).withValues(alpha: 0.2),
                   borderRadius: BorderRadius.circular(4),
                 ),
                 child: Text(
                   workOrder.status.name,
                   style: TextStyle(
-                      color: workOrderStatusColor(workOrder.status),
-                      fontSize: 11,
-                      fontWeight: FontWeight.bold),
+                    color: workOrderStatusColor(workOrder.status),
+                    fontSize: 11,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
               ),
             ],
@@ -92,11 +115,13 @@ class WorkOrderDetailBody extends ConsumerWidget {
 
         // ── Description ────────────────────────────────────────────
         if (workOrder.description != null) ...[
-          Text(l10n.description,
-              style: Theme.of(context)
-                  .textTheme
-                  .labelSmall
-                  ?.copyWith(color: AppColors.primary, letterSpacing: 1.2)),
+          Text(
+            l10n.description,
+            style: Theme.of(context).textTheme.labelSmall?.copyWith(
+              color: AppColors.primary,
+              letterSpacing: 1.2,
+            ),
+          ),
           const SizedBox(height: 6),
           Text(workOrder.description!),
           const SizedBox(height: 16),
@@ -105,25 +130,30 @@ class WorkOrderDetailBody extends ConsumerWidget {
         // ── Details section ────────────────────────────────────────
         Text(
           l10n.woDetailsSection.toUpperCase(),
-          style: Theme.of(context)
-              .textTheme
-              .labelSmall
-              ?.copyWith(color: AppColors.primary, letterSpacing: 1.2),
+          style: Theme.of(context).textTheme.labelSmall?.copyWith(
+            color: AppColors.primary,
+            letterSpacing: 1.2,
+          ),
         ),
         const SizedBox(height: 8),
 
         // Asset name
         assetNameAsync.when(
           loading: () => WorkOrderDetailInfoRow(
-              icon: Icons.directions_boat,
-              label: l10n.linkedAsset,
-              value: '...'),
+            icon: Icons.directions_boat,
+            label: l10n.linkedAsset,
+            value: '...',
+          ),
           error: (_, __) => WorkOrderDetailInfoRow(
-              icon: Icons.directions_boat, label: l10n.linkedAsset, value: '—'),
+            icon: Icons.directions_boat,
+            label: l10n.linkedAsset,
+            value: '—',
+          ),
           data: (name) => WorkOrderDetailInfoRow(
-              icon: Icons.directions_boat,
-              label: l10n.linkedAsset,
-              value: name ?? '—'),
+            icon: Icons.directions_boat,
+            label: l10n.linkedAsset,
+            value: name ?? '—',
+          ),
         ),
 
         // Job type
@@ -136,7 +166,10 @@ class WorkOrderDetailBody extends ConsumerWidget {
         // Assigned tech(s)
         assignmentNamesAsync.when(
           loading: () => WorkOrderDetailInfoRow(
-              icon: Icons.people_outline, label: assignmentLabel, value: '...'),
+            icon: Icons.people_outline,
+            label: assignmentLabel,
+            value: '...',
+          ),
           error: (_, __) {
             if (techNameAsync == null) {
               return WorkOrderDetailInfoRow(
@@ -148,17 +181,20 @@ class WorkOrderDetailBody extends ConsumerWidget {
 
             return techNameAsync.when(
               loading: () => WorkOrderDetailInfoRow(
-                  icon: Icons.person_outline,
-                  label: l10n.assignedTech,
-                  value: '...'),
+                icon: Icons.person_outline,
+                label: l10n.assignedTech,
+                value: '...',
+              ),
               error: (_, __) => WorkOrderDetailInfoRow(
-                  icon: Icons.person_outline,
-                  label: l10n.assignedTech,
-                  value: '—'),
+                icon: Icons.person_outline,
+                label: l10n.assignedTech,
+                value: '—',
+              ),
               data: (name) => WorkOrderDetailInfoRow(
-                  icon: Icons.person_outline,
-                  label: l10n.assignedTech,
-                  value: name ?? '—'),
+                icon: Icons.person_outline,
+                label: l10n.assignedTech,
+                value: name ?? '—',
+              ),
             );
           },
           data: (names) {
@@ -169,17 +205,20 @@ class WorkOrderDetailBody extends ConsumerWidget {
 
               return techNameAsync.when(
                 loading: () => WorkOrderDetailInfoRow(
-                    icon: Icons.person_outline,
-                    label: l10n.assignedTech,
-                    value: '...'),
+                  icon: Icons.person_outline,
+                  label: l10n.assignedTech,
+                  value: '...',
+                ),
                 error: (_, __) => WorkOrderDetailInfoRow(
-                    icon: Icons.person_outline,
-                    label: l10n.assignedTech,
-                    value: '—'),
+                  icon: Icons.person_outline,
+                  label: l10n.assignedTech,
+                  value: '—',
+                ),
                 data: (name) => WorkOrderDetailInfoRow(
-                    icon: Icons.person_outline,
-                    label: l10n.assignedTech,
-                    value: name ?? '—'),
+                  icon: Icons.person_outline,
+                  label: l10n.assignedTech,
+                  value: name ?? '—',
+                ),
               );
             }
 
@@ -228,10 +267,10 @@ class WorkOrderDetailBody extends ConsumerWidget {
           const SizedBox(height: 12),
           Text(
             l10n.internalNotes.toUpperCase(),
-            style: Theme.of(context)
-                .textTheme
-                .labelSmall
-                ?.copyWith(color: AppColors.warning, letterSpacing: 1.2),
+            style: Theme.of(context).textTheme.labelSmall?.copyWith(
+              color: AppColors.warning,
+              letterSpacing: 1.2,
+            ),
           ),
           const SizedBox(height: 4),
           Text(workOrder.notesInternal!, style: const TextStyle(fontSize: 13)),
@@ -291,7 +330,6 @@ class WorkOrderDetailBody extends ConsumerWidget {
           routePrefix: routePrefix,
           checklistDone: checklistDone,
         ),
-
       ],
     );
   }

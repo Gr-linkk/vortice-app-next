@@ -1,4 +1,5 @@
 import 'package:vortice_app/core/user_feedback.dart';
+import 'service_request_evidence.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -223,11 +224,9 @@ class _ServiceRequestCard extends ConsumerWidget {
                   separatorBuilder: (_, __) => const SizedBox(width: 8),
                   itemBuilder: (_, index) => ClipRRect(
                     borderRadius: BorderRadius.circular(8),
-                    child: Image.network(
-                      request.photoUrls[index],
-                      width: 76,
-                      height: 76,
-                      fit: BoxFit.cover,
+                    child: RequestEvidencePhoto(
+                      requestId: request.id,
+                      path: request.photoUrls[index],
                     ),
                   ),
                 ),
@@ -321,10 +320,7 @@ class _ServiceRequestCard extends ConsumerWidget {
     buffer.writeln(request.description.trim());
     if (request.photoUrls.isNotEmpty) {
       buffer.writeln();
-      buffer.writeln('Photos:');
-      for (final url in request.photoUrls) {
-        buffer.writeln(url);
-      }
+      buffer.writeln('Request evidence: ${request.photoUrls.length} photos.');
     }
     return buffer.toString().trim();
   }

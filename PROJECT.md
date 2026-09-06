@@ -39,6 +39,10 @@ from the internal build.
 
 Detailed client-access terminology and rules live in `CONTEXT.md`.
 
+Field reliability, private evidence, Android notification delivery and password
+recovery are specified in `docs/specs/NOW-011-field-reliability.md`, with durable
+ownership and delivery rules in `docs/decisions/0008-field-reliability.md`.
+
 ## Source authority
 
 When documents disagree, use this order:

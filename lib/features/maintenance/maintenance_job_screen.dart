@@ -1,4 +1,6 @@
 import 'package:vortice_app/core/app_dropdown_field.dart';
+import 'dart:convert';
+import 'package:vortice_app/sync/field_work_provider.dart';
 import 'package:vortice_app/features/coordination/coordination_entry.dart';
 import 'package:vortice_app/features/coordination/coordination_labels.dart';
 import 'package:flutter/material.dart';
@@ -141,7 +143,8 @@ class _MaintenanceJobScreenState extends ConsumerState<MaintenanceJobScreen> {
               ),
             );
           }
-          final disabled = _busy || _pending != null;
+          final disabled =
+              _busy || _pending != null || job.data['local_conflict'] == true;
           final userId = ref.watch(profileProvider).valueOrNull?.id;
           Widget info(String label, String? value) =>
               value == null || value.isEmpty
@@ -153,6 +156,15 @@ class _MaintenanceJobScreenState extends ConsumerState<MaintenanceJobScreen> {
           return ListView(
             padding: const EdgeInsets.all(20),
             children: [
+              if (job.data['local_pending'] == true)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 12),
+                  child: Text(
+                    es
+                        ? 'Guardado en este dispositivo. Revisa el estado de sincronización arriba.'
+                        : 'Saved on this device. Check upload status above.',
+                  ),
+                ),
               Text(job.title, style: Theme.of(context).textTheme.headlineSmall),
               CoordinationEntry(
                 assetId: job.assetId,
@@ -514,33 +526,55 @@ class _MaintenanceEvidenceState extends ConsumerState<MaintenanceEvidence> {
   }
 
   @override
-  Widget build(BuildContext context) => Padding(
-    padding: const EdgeInsets.symmetric(vertical: 8),
-    child: FutureBuilder<String>(
-      future: _url,
-      builder: (context, result) {
-        if (result.hasError) {
-          return TextButton(
-            onPressed: () => setState(
-              () => _url = ref
-                  .read(maintenanceRepositoryProvider)
-                  .evidenceUrl(widget.path),
+  Widget build(BuildContext context) {
+    final local = (ref.watch(fieldOperationsProvider).valueOrNull ?? [])
+        .where(
+          (r) =>
+              r.kind == 'upload' &&
+              r.payload['bucket'] == 'maintenance-evidence' &&
+              r.payload['path'] == widget.path,
+        )
+        .firstOrNull;
+    if (local != null) {
+      return Image.memory(
+        base64Decode(local.payload['bytes'] as String),
+        height: 220,
+        fit: BoxFit.contain,
+        errorBuilder: (_, __, ___) => Text(
+          isSpanish(context) ? 'Foto no disponible' : 'Photo unavailable',
+        ),
+      );
+    }
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      child: FutureBuilder<String>(
+        future: _url,
+        builder: (context, result) {
+          if (result.hasError) {
+            return TextButton(
+              onPressed: () => setState(
+                () => _url = ref
+                    .read(maintenanceRepositoryProvider)
+                    .evidenceUrl(widget.path),
+              ),
+              child: Text(
+                isSpanish(context) ? 'Reintentar foto' : 'Retry photo',
+              ),
+            );
+          }
+          if (!result.hasData) return const LinearProgressIndicator();
+          return Image.network(
+            result.data!,
+            height: 220,
+            fit: BoxFit.contain,
+            errorBuilder: (_, __, ___) => Text(
+              isSpanish(context) ? 'Foto no disponible' : 'Photo unavailable',
             ),
-            child: Text(isSpanish(context) ? 'Reintentar foto' : 'Retry photo'),
           );
-        }
-        if (!result.hasData) return const LinearProgressIndicator();
-        return Image.network(
-          result.data!,
-          height: 220,
-          fit: BoxFit.contain,
-          errorBuilder: (_, __, ___) => Text(
-            isSpanish(context) ? 'Foto no disponible' : 'Photo unavailable',
-          ),
-        );
-      },
-    ),
-  );
+        },
+      ),
+    );
+  }
 }
 
 class _JobActionDialog extends StatefulWidget {

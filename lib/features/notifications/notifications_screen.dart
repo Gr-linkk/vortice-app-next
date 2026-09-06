@@ -1,4 +1,5 @@
 import 'package:vortice_app/core/user_feedback.dart';
+import 'package:vortice_app/core/push_notifications.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -53,47 +54,56 @@ class NotificationsScreen extends ConsumerWidget {
           ),
         ],
       ),
-      body: notificationsAsync.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (err, _) => AppErrorState(
-          error: err,
-          onRetry: () => ref.invalidate(notificationsProvider),
-        ),
-        data: (notifications) {
-          if (notifications.isEmpty) {
-            return Center(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(
-                    Icons.notifications_none,
-                    size: 56,
-                    color: AppColors.textSecondary.withValues(alpha: 0.4),
-                  ),
-                  const SizedBox(height: 12),
-                  Text(
-                    l10n.noNotifications,
-                    style: const TextStyle(color: AppColors.textSecondary),
-                  ),
-                ],
+      body: Column(
+        children: [
+          const PushNotificationSettings(),
+          Expanded(
+            child: notificationsAsync.when(
+              loading: () => const Center(child: CircularProgressIndicator()),
+              error: (err, _) => AppErrorState(
+                error: err,
+                onRetry: () => ref.invalidate(notificationsProvider),
               ),
-            );
-          }
+              data: (notifications) {
+                if (notifications.isEmpty) {
+                  return Center(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          Icons.notifications_none,
+                          size: 56,
+                          color: AppColors.textSecondary.withValues(alpha: 0.4),
+                        ),
+                        const SizedBox(height: 12),
+                        Text(
+                          l10n.noNotifications,
+                          style: const TextStyle(
+                            color: AppColors.textSecondary,
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                }
 
-          final profile = ref.watch(profileProvider).valueOrNull;
-          final role = profile?.role ?? UserRole.client;
+                final profile = ref.watch(profileProvider).valueOrNull;
+                final role = profile?.role ?? UserRole.client;
 
-          return ListView.separated(
-            padding: const EdgeInsets.symmetric(vertical: 8),
-            itemCount: notifications.length,
-            separatorBuilder: (_, __) =>
-                const Divider(height: 1, color: AppColors.divider),
-            itemBuilder: (context, index) {
-              final n = notifications[index];
-              return _NotificationTile(notification: n, role: role);
-            },
-          );
-        },
+                return ListView.separated(
+                  padding: const EdgeInsets.symmetric(vertical: 8),
+                  itemCount: notifications.length,
+                  separatorBuilder: (_, __) =>
+                      const Divider(height: 1, color: AppColors.divider),
+                  itemBuilder: (context, index) {
+                    final n = notifications[index];
+                    return _NotificationTile(notification: n, role: role);
+                  },
+                );
+              },
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -142,6 +152,10 @@ class _NotificationTile extends ConsumerWidget {
       UserRole.clientOperator => '/client',
     };
     return switch (notification.type) {
+      'maintenance_assignment' ||
+      'maintenance_return' => '/maintenance/jobs/$ref',
+      'urgent_fault' => '/fleet/faults/$ref',
+      'inspection_due' => '/assurance/assets/$ref',
       'discussion_job' => '/discussion/job/$ref?post=${notification.id}',
       'discussion_fault' => '/discussion/fault/$ref?post=${notification.id}',
       'maintenance_flag' => '$prefix/assets/$ref/flags?name=Asset',

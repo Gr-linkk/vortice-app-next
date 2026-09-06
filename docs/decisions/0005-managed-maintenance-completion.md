@@ -34,6 +34,8 @@ Assigned mechanics execute; managers approve. History remains readable after
 capability disablement. A separate private storage bucket scopes evidence to
 the job and forbids replacement or deletion through authenticated clients.
 
+The connectivity limitation below is superseded by
+`0008-field-reliability.md` for mechanic execution and operator checklists.
 Connectivity is required to persist work. Saved report drafts and stable retries
 cover interrupted requests within the current form; durable offline queues,
 notifications, inventory movements and calendar scheduling remain later items.

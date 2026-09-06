@@ -12,15 +12,16 @@ the Next URL, anon key and the existing `DEV_LOGIN_PASSWORDS` JSON map. Tests
 refuse a different Supabase URL. Create ignored `outputs/` before the first run.
 
 ```sh
-flutter test tool/e2e/full_app_audit_test.dart --reporter expanded
-flutter test tool/e2e/saved_workflows_test.dart --reporter expanded
-flutter test tool/e2e/operations_workflows_test.dart --reporter expanded
-flutter test tool/e2e/custody_workflows_test.dart --reporter expanded
+flutter test tool/e2e/full_app_audit_test.dart --dart-define-from-file="$VORTICE_E2E_CONFIG" --reporter expanded
+flutter test tool/e2e/saved_workflows_test.dart --dart-define-from-file="$VORTICE_E2E_CONFIG" --reporter expanded
+flutter test tool/e2e/operations_workflows_test.dart --dart-define-from-file="$VORTICE_E2E_CONFIG" --reporter expanded
+flutter test tool/e2e/custody_workflows_test.dart --dart-define-from-file="$VORTICE_E2E_CONFIG" --reporter expanded
+flutter test tool/e2e/field_reliability_test.dart --dart-define-from-file="$VORTICE_E2E_CONFIG" --reporter expanded
 ```
 
 Run sequentially. Accounts are the existing owner, technician, company manager,
 company mechanic, operator and second-company development accounts. The saved
-journeys create synthetic `E2E-010` records and manifest files in `outputs/`.
+journeys create synthetic `E2E-010`/`E2E-011` records and manifest files in `outputs/`.
 Some steps continue after a failure to collect independent findings; each test
 still fails if any recorded step fails. Route results include redirects and
 visible labels, so inspect the report as well as the final test exit status.
@@ -30,6 +31,12 @@ an in-memory local database. Custody tests substitute only the photo picker with
 `fixtures/evidence.png`; its actual uploaded bytes and cross-company access are
 checked. This is not physical Android camera, permission, keyboard or share UI
 coverage. See the current audit specification for precise coverage and open bugs.
+
+The field reliability test uses account-owned SQLite files, closes/reopens them,
+and simulates lost connectivity and acknowledgements around the real production
+sender. It verifies live photo bytes, immutable replay, atomic operator history,
+Back/draft recovery and cross-company denial. `recovery_contract.py` separately
+exercises actual recovery with a disposable auth account, without sending email.
 
 After the tests, inspect the generated manifests and run the guarded cleanup
 with the already authenticated Supabase CLI available on PATH:

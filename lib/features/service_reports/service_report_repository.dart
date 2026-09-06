@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:math';
+import 'package:vortice_app/core/account_storage.dart';
 
 import 'package:drift/drift.dart' show Value;
 import 'package:supabase_flutter/supabase_flutter.dart' show SupabaseClient;
@@ -53,9 +54,18 @@ class ServiceReportRepository {
   final AppDatabase _db;
   final SupabaseClient _client;
   final bool _canAuthor;
+  void _checkAccount() {
+    if (_db.accountId != null && !_db.belongsTo(_client.auth.currentUser?.id)) {
+      throw const AccountChangedException();
+    }
+  }
+
   final _readableReportIds = <String>{};
 
-  List<ServiceReport> _readableCache(List<ServiceReport> reports) => _canAuthor
+  List<ServiceReport> _readableCache(List<ServiceReport> reports) =>
+      !_db.belongsTo(_client.auth.currentUser?.id)
+      ? []
+      : _canAuthor
       ? reports
       : reports
             .where(
@@ -75,7 +85,9 @@ class ServiceReportRepository {
           .rpc('provider_service_reports')
           .timeout(const Duration(seconds: 4));
       return _cacheAndMergeRemote(remote as List, cached);
-    } catch (_) {
+    } catch (error) {
+      _checkAccount();
+      if (!isConnectionFailure(error)) rethrow;
       final readable = _readableCache(cached);
       if (readable.isNotEmpty) return readable;
       rethrow;
@@ -90,6 +102,7 @@ class ServiceReportRepository {
       final rows = await _client
           .rpc('provider_service_reports', params: {'p_report': reportId})
           .timeout(const Duration(seconds: 4));
+      _checkAccount();
       if ((rows as List).isEmpty) {
         _readableReportIds.remove(reportId);
         return _canAuthor && cached?.syncStatus != SyncStatusValues.synced
@@ -114,7 +127,9 @@ class ServiceReportRepository {
         lastSyncedAt: DateTime.now(),
         lastError: null,
       );
-    } catch (_) {
+    } catch (error) {
+      _checkAccount();
+      if (!isConnectionFailure(error)) rethrow;
       if (cached != null && _readableCache([cached]).isNotEmpty) return cached;
       rethrow;
     }
@@ -133,7 +148,9 @@ class ServiceReportRepository {
           )
           .timeout(const Duration(seconds: 4));
       return _cacheAndMergeRemote(remote as List, cached);
-    } catch (_) {
+    } catch (error) {
+      _checkAccount();
+      if (!isConnectionFailure(error)) rethrow;
       final readable = _readableCache(cached);
       if (readable.isNotEmpty) return readable;
       rethrow;
@@ -150,7 +167,9 @@ class ServiceReportRepository {
           .rpc('provider_service_reports', params: {'p_asset': assetId})
           .timeout(const Duration(seconds: 4));
       return _cacheAndMergeRemote(remote as List, cached);
-    } catch (_) {
+    } catch (error) {
+      _checkAccount();
+      if (!isConnectionFailure(error)) rethrow;
       final readable = _readableCache(cached);
       if (readable.isNotEmpty) return readable;
       rethrow;
@@ -167,6 +186,7 @@ class ServiceReportRepository {
     String? comments,
     String? techSignatureUrl,
   }) async {
+    _checkAccount();
     final now = DateTime.now();
     final id = reportId ?? _uuidV4();
     final report = ServiceReport(
@@ -306,6 +326,7 @@ class ServiceReportRepository {
     String? reportId,
     String? workOrderId,
   }) async {
+    _checkAccount();
     if (!_canAuthor) return 0;
     final pendingRows = await _db.serviceReportsDao.listPendingSync();
     var syncedCount = 0;
@@ -314,10 +335,12 @@ class ServiceReportRepository {
       if (workOrderId != null && row.workOrderId != workOrderId) continue;
       final report = _fromRow(row);
       try {
+        _checkAccount();
         await _client
             .from(AppConstants.tServiceReports)
             .upsert(_toRemoteRow(report), onConflict: 'id')
             .timeout(const Duration(seconds: 4));
+        _checkAccount();
         await _db.serviceReportsDao.upsert(
           row
               .toCompanion(true)
@@ -329,6 +352,7 @@ class ServiceReportRepository {
         );
         syncedCount++;
       } catch (error) {
+        _checkAccount();
         await markPending(reportId: row.id, error: error);
       }
     }
@@ -339,6 +363,7 @@ class ServiceReportRepository {
     List remoteRaw,
     List<ServiceReport> cached,
   ) async {
+    _checkAccount();
     final remote = remoteRaw
         .map((e) => ServiceReport.fromJson(e as Map<String, dynamic>))
         .toList();

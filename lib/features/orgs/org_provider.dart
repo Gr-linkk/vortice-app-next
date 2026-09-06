@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:vortice_app/core/account_storage.dart';
 import 'package:vortice_app/core/constants.dart';
 import 'package:vortice_app/core/supabase_client.dart';
 import 'package:vortice_app/features/auth/auth_provider.dart';
@@ -19,8 +20,10 @@ final clientOrgsProvider = FutureProvider<List<ClientOrg>>((ref) async {
 
 // ── Fetch a single org by ID ─────────────────────────────────────────────────
 
-final orgByIdProvider =
-    FutureProvider.family<ClientOrg?, String>((ref, id) async {
+final orgByIdProvider = FutureProvider.family<ClientOrg?, String>((
+  ref,
+  id,
+) async {
   final data = await supabase
       .from(AppConstants.tClientOrgs)
       .select()
@@ -32,10 +35,14 @@ final orgByIdProvider =
 
 // ── Fetch all profiles belonging to an org ───────────────────────────────────
 
-final orgMembersProvider =
-    FutureProvider.family<List<Profile>, String>((ref, orgId) async {
-  final data =
-      await supabase.from(AppConstants.tProfiles).select().eq('org_id', orgId);
+final orgMembersProvider = FutureProvider.family<List<Profile>, String>((
+  ref,
+  orgId,
+) async {
+  final data = await supabase
+      .from(AppConstants.tProfiles)
+      .select()
+      .eq('org_id', orgId);
   return (data as List)
       .map((e) => Profile.fromJson(e as Map<String, dynamic>))
       .toList();
@@ -49,31 +56,41 @@ final currentUserOrgProvider = FutureProvider<ClientOrg?>((ref) async {
 
   final userId = supabase.auth.currentUser?.id;
   if (userId == null) return null;
+  final result =
+      await AccountJsonCache(
+        userId,
+        () => supabase.auth.currentUser?.id,
+      ).readThrough('current_org', () async {
+        // 1. Check if user owns an org
+        final owned = await supabase
+            .from(AppConstants.tClientOrgs)
+            .select()
+            .eq('owner_profile_id', userId)
+            .maybeSingle()
+            .timeout(const Duration(seconds: 6));
+        if (owned != null) return owned;
 
-  // 1. Check if user owns an org
-  final owned = await supabase
-      .from(AppConstants.tClientOrgs)
-      .select()
-      .eq('owner_profile_id', userId)
-      .maybeSingle();
-  if (owned != null) return ClientOrg.fromJson(owned);
+        // 2. Check if user's profile has an org_id
+        final profileRow = await supabase
+            .from(AppConstants.tProfiles)
+            .select('org_id')
+            .eq('id', userId)
+            .maybeSingle()
+            .timeout(const Duration(seconds: 6));
+        final orgId = profileRow?['org_id'] as String?;
+        if (orgId == null) return null;
 
-  // 2. Check if user's profile has an org_id
-  final profileRow = await supabase
-      .from(AppConstants.tProfiles)
-      .select('org_id')
-      .eq('id', userId)
-      .maybeSingle();
-  final orgId = profileRow?['org_id'] as String?;
-  if (orgId == null) return null;
-
-  final org = await supabase
-      .from(AppConstants.tClientOrgs)
-      .select()
-      .eq('id', orgId)
-      .maybeSingle();
-  if (org == null) return null;
-  return ClientOrg.fromJson(org);
+        final org = await supabase
+            .from(AppConstants.tClientOrgs)
+            .select()
+            .eq('id', orgId)
+            .maybeSingle()
+            .timeout(const Duration(seconds: 6));
+        return org;
+      });
+  return result == null
+      ? null
+      : ClientOrg.fromJson(Map<String, dynamic>.from(result as Map));
 });
 
 // ── Org controller ───────────────────────────────────────────────────────────
@@ -96,7 +113,8 @@ class OrgController extends StateNotifier<AsyncValue<void>> {
       // Link owner profile to the new org
       await supabase
           .from(AppConstants.tProfiles)
-          .update({'org_id': orgId}).eq('id', ownerProfileId);
+          .update({'org_id': orgId})
+          .eq('id', ownerProfileId);
       _ref.invalidate(clientOrgsProvider);
       _ref.invalidate(currentUserOrgProvider);
     });
@@ -110,7 +128,8 @@ class OrgController extends StateNotifier<AsyncValue<void>> {
     state = await AsyncValue.guard(() async {
       await supabase
           .from(AppConstants.tProfiles)
-          .update({'org_id': orgId}).eq('id', profileId);
+          .update({'org_id': orgId})
+          .eq('id', profileId);
       _ref.invalidate(orgMembersProvider(orgId));
       success = true;
     });
@@ -124,7 +143,8 @@ class OrgController extends StateNotifier<AsyncValue<void>> {
     state = await AsyncValue.guard(() async {
       await supabase
           .from(AppConstants.tProfiles)
-          .update({'org_id': null}).eq('id', profileId);
+          .update({'org_id': null})
+          .eq('id', profileId);
       if (orgId != null) _ref.invalidate(orgMembersProvider(orgId));
       success = true;
     });
@@ -138,7 +158,8 @@ class OrgController extends StateNotifier<AsyncValue<void>> {
     state = await AsyncValue.guard(() async {
       await supabase
           .from(AppConstants.tClientOrgs)
-          .update({'name': newName}).eq('id', orgId);
+          .update({'name': newName})
+          .eq('id', orgId);
       _ref.invalidate(clientOrgsProvider);
       _ref.invalidate(orgByIdProvider(orgId));
       success = true;
@@ -153,7 +174,8 @@ class OrgController extends StateNotifier<AsyncValue<void>> {
       // First, null out all members' org_id
       await supabase
           .from(AppConstants.tProfiles)
-          .update({'org_id': null}).eq('org_id', orgId);
+          .update({'org_id': null})
+          .eq('org_id', orgId);
       // Then delete the org
       await supabase.from(AppConstants.tClientOrgs).delete().eq('id', orgId);
       _ref.invalidate(clientOrgsProvider);
@@ -167,5 +189,5 @@ class OrgController extends StateNotifier<AsyncValue<void>> {
 
 final orgControllerProvider =
     StateNotifierProvider<OrgController, AsyncValue<void>>((ref) {
-  return OrgController(ref);
-});
+      return OrgController(ref);
+    });

@@ -1,12 +1,14 @@
 import 'package:vortice_app/core/app_dropdown_field.dart';
 import 'dart:convert';
+import 'dart:async';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:vortice_app/core/account_storage.dart';
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:uuid/uuid.dart';
-import 'package:vortice_app/core/unsaved_form_guard.dart';
 import 'package:vortice_app/core/user_feedback.dart';
 import 'package:vortice_app/features/auth/auth_provider.dart';
 import 'maintenance_models.dart';
@@ -30,10 +32,64 @@ class _MaintenanceReportScreenState
   String? _action;
   bool _saving = false, _uploading = false, _dirty = false;
   Object? _error;
+  late final String _account;
+  bool _draftReady = false, _draftCleared = false;
+  bool _leaving = false;
+  Future<void> _draftWrite = Future.value();
+  String get _draftKey =>
+      accountStorageKey(_account, 'maintenance_report:${widget.job.id}');
+  Future<void> _restoreLocal() async {
+    final prefs = await SharedPreferences.getInstance();
+    if (!mounted) return;
+    final raw = prefs.getString(_draftKey);
+    if (raw != null) {
+      try {
+        final data = jsonDecode(raw) as Map<String, dynamic>;
+        _diagnosis.text = data['diagnosis'] as String? ?? '';
+        _repair.text = data['repair'] as String? ?? '';
+        _notes.text = data['notes'] as String? ?? '';
+        _hours.text = data['hours'] as String? ?? '';
+        _answers
+          ..clear()
+          ..addAll(Map<String, dynamic>.from(data['answers'] as Map? ?? {}));
+        _evidence
+          ..clear()
+          ..addAll((data['evidence'] as List? ?? []).cast<String>());
+        _dirty = true;
+      } catch (_) {
+        /* Preserve malformed draft for recovery. */
+      }
+    }
+    setState(() => _draftReady = true);
+  }
+
+  void _saveLocal() {
+    if (!_draftReady || _draftCleared) return;
+    final raw = jsonEncode({
+      'diagnosis': _diagnosis.text,
+      'repair': _repair.text,
+      'notes': _notes.text,
+      'hours': _hours.text,
+      'answers': _answers,
+      'evidence': _evidence,
+    });
+    _draftWrite = _draftWrite.then((_) async {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(_draftKey, raw);
+    });
+  }
+
+  @override
+  void setState(VoidCallback fn) {
+    super.setState(fn);
+    _saveLocal();
+  }
+
   ({String path, Uint8List bytes, String type})? _photo;
   @override
   void initState() {
     super.initState();
+    _account = ref.read(sessionProvider)?.user.id ?? 'signed_out';
     _diagnosis = TextEditingController(
       text: widget.job.report['diagnosis'] as String? ?? '',
     );
@@ -49,6 +105,10 @@ class _MaintenanceReportScreenState
     _answers =
         jsonDecode(jsonEncode(widget.job.answers)) as Map<String, dynamic>;
     _evidence = [...widget.job.evidence];
+    for (final c in [_diagnosis, _repair, _notes, _hours]) {
+      c.addListener(_saveLocal);
+    }
+    unawaited(_restoreLocal());
   }
 
   @override
@@ -76,6 +136,12 @@ class _MaintenanceReportScreenState
       _error = null;
     });
     try {
+      _saveLocal();
+      await _draftWrite;
+      if (!mounted ||
+          (ref.read(sessionProvider)?.user.id ?? 'signed_out') != _account) {
+        throw const AccountChangedException();
+      }
       await ref
           .read(maintenanceRepositoryProvider)
           .change(
@@ -85,6 +151,9 @@ class _MaintenanceReportScreenState
             _action!,
             _pending!.data,
           );
+      _draftCleared = true;
+      await _draftWrite;
+      await (await SharedPreferences.getInstance()).remove(_draftKey);
       if (mounted) {
         refreshMaintenance(ref, jobId: widget.job.id);
         if (Navigator.of(context).canPop()) {
@@ -115,8 +184,29 @@ class _MaintenanceReportScreenState
     });
     try {
       if (_photo == null) {
+        final source = await showModalBottomSheet<ImageSource>(
+          context: context,
+          builder: (context) => SafeArea(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                ListTile(
+                  leading: const Icon(Icons.camera_alt),
+                  title: Text(isSpanish(context) ? 'Cámara' : 'Camera'),
+                  onTap: () => Navigator.pop(context, ImageSource.camera),
+                ),
+                ListTile(
+                  leading: const Icon(Icons.photo_library),
+                  title: Text(isSpanish(context) ? 'Galería' : 'Gallery'),
+                  onTap: () => Navigator.pop(context, ImageSource.gallery),
+                ),
+              ],
+            ),
+          ),
+        );
+        if (source == null) return;
         final file = await ImagePicker().pickImage(
-          source: ImageSource.gallery,
+          source: source,
           maxWidth: 2000,
           imageQuality: 85,
         );
@@ -154,7 +244,7 @@ class _MaintenanceReportScreenState
   @override
   Widget build(BuildContext context) {
     final es = isSpanish(context),
-        frozen = _saving || _uploading || _pending != null;
+        frozen = !_draftReady || _saving || _uploading || _pending != null;
     Widget textField(
       TextEditingController controller,
       String en,
@@ -174,11 +264,26 @@ class _MaintenanceReportScreenState
         decoration: InputDecoration(labelText: es ? spanish : en),
       ),
     );
-    return UnsavedFormGuard(
-      isDirty: () => _dirty || _pending != null,
-      controllers: [_diagnosis, _repair, _notes, _hours],
-      busy: _saving || _uploading,
-      fallbackRoute: '/maintenance/jobs/${widget.job.id}',
+    return PopScope(
+      canPop: _leaving,
+      onPopInvokedWithResult: (didPop, result) async {
+        if (didPop || _saving || _uploading || !_draftReady) return;
+        try {
+          _saveLocal();
+          await _draftWrite;
+          if (!mounted) return;
+          setState(() => _leaving = true);
+          await WidgetsBinding.instance.endOfFrame;
+          if (!context.mounted) return;
+          if (Navigator.of(context).canPop()) {
+            Navigator.of(context).pop(result);
+          } else {
+            context.go('/maintenance/jobs/${widget.job.id}');
+          }
+        } catch (error) {
+          if (mounted) setState(() => _error = error);
+        }
+      },
       child: Scaffold(
         appBar: AppBar(title: Text(es ? 'Informe del trabajo' : 'Job report')),
         body: ListView(
@@ -189,6 +294,12 @@ class _MaintenanceReportScreenState
               style: Theme.of(context).textTheme.titleLarge,
             ),
             Text(widget.job.assetName),
+            if (_dirty && _draftReady)
+              Text(
+                es
+                    ? 'El borrador se conserva en este dispositivo.'
+                    : 'Your draft stays on this device.',
+              ),
             const SizedBox(height: 20),
             textField(_diagnosis, 'Diagnosis', 'Diagnóstico'),
             textField(

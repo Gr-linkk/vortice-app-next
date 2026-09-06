@@ -2,11 +2,13 @@ import 'dart:async';
 import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
+import 'package:vortice_app/core/account_storage.dart';
 import 'package:vortice_app/features/service_reports/service_report_draft_manager.dart';
 
 class ServiceReportDraftController {
   ServiceReportDraftController({
     required this.initialWorkOrderId,
+    this.accountId = 'signed_out',
     required this.complaintController,
     required this.causeController,
     required this.correctionController,
@@ -16,6 +18,7 @@ class ServiceReportDraftController {
   }) : _draftManager = const ServiceReportDraftManager();
 
   final String? initialWorkOrderId;
+  final String accountId;
   final TextEditingController complaintController;
   final TextEditingController causeController;
   final TextEditingController correctionController;
@@ -33,9 +36,14 @@ class ServiceReportDraftController {
   bool signatureSaved = false;
   final List<Uint8List> photos = [];
 
-  String get draftKey => ServiceReportDraftKeys.draftKey(initialWorkOrderId);
-  String get draftMediaKey =>
-      ServiceReportDraftKeys.draftMediaKey(initialWorkOrderId);
+  String get draftKey => accountStorageKey(
+    accountId,
+    ServiceReportDraftKeys.draftKey(initialWorkOrderId),
+  );
+  String get draftMediaKey => accountStorageKey(
+    accountId,
+    ServiceReportDraftKeys.draftMediaKey(initialWorkOrderId),
+  );
 
   Iterable<TextEditingController> get _textControllers => [
     complaintController,

@@ -4,6 +4,7 @@ import 'package:vortice_app/core/constants.dart';
 import 'package:vortice_app/core/supabase_client.dart';
 import 'package:vortice_app/db/database.dart';
 import 'package:vortice_app/models/work_order.dart';
+import 'package:vortice_app/core/account_storage.dart';
 
 final workOrderRepositoryProvider = Provider<WorkOrderRepository>((ref) {
   final db = ref.watch(databaseProvider);
@@ -14,6 +15,7 @@ class WorkOrderRepository {
   WorkOrderRepository(this._db);
 
   final AppDatabase _db;
+  bool get _ownsCache => _db.belongsTo(supabase.auth.currentUser?.id);
 
   Future<List<WorkOrder>> listWorkOrders() async {
     final cached = (await _db.workOrdersDao.getAll()).map(_fromRow).toList();
@@ -28,13 +30,15 @@ class WorkOrderRepository {
           .map((e) => WorkOrder.fromJson(e as Map<String, dynamic>))
           .toList();
 
-      if (orders.isNotEmpty) {
+      if (orders.isNotEmpty && _ownsCache) {
         await _db.workOrdersDao.upsertAll(orders.map(_toCompanion).toList());
       }
 
       return orders;
-    } catch (_) {
-      if (cached.isNotEmpty) return cached;
+    } catch (error) {
+      if (_ownsCache && isConnectionFailure(error) && cached.isNotEmpty) {
+        return cached;
+      }
       rethrow;
     }
   }
@@ -53,41 +57,43 @@ class WorkOrderRepository {
       if (data == null) return null;
 
       final workOrder = WorkOrder.fromJson(data);
-      await _db.workOrdersDao.upsert(_toCompanion(workOrder));
+      if (_ownsCache) await _db.workOrdersDao.upsert(_toCompanion(workOrder));
       return workOrder;
-    } catch (_) {
-      if (cached != null) return cached;
+    } catch (error) {
+      if (_ownsCache && isConnectionFailure(error) && cached != null) {
+        return cached;
+      }
       rethrow;
     }
   }
 }
 
 WorkOrder _fromRow(WorkOrdersTableData row) => WorkOrder(
-      id: row.id,
-      assetId: row.assetId,
-      engineId: row.engineId,
-      clientId: row.clientId,
-      assignedTo: row.assignedTo,
-      createdBy: row.createdBy,
-      checklistTemplateId: row.checklistTemplateId,
-      checklistTemplateVersion: row.checklistTemplateVersion,
-      jobType: _parseJobType(row.jobType),
-      title: row.title,
-      description: row.description,
-      status: _parseStatus(row.status),
-      scheduledDate: row.scheduledDate,
-      startedAt: row.startedAt,
-      completedAt: row.completedAt,
-      hoursAtStart: row.hoursAtStart,
-      hoursAtEnd: row.hoursAtEnd,
-      labourHours: row.labourHours,
-      billableRate: row.billableRate,
-      wageRate: row.wageRate,
-      notesInternal: row.notesInternal,
-      onHoldReason: row.onHoldReason,
-      createdAt: row.createdAt,
-      updatedAt: row.updatedAt,
-    );
+  id: row.id,
+  assetId: row.assetId,
+  engineId: row.engineId,
+  clientId: row.clientId,
+  assignedTo: row.assignedTo,
+  createdBy: row.createdBy,
+  checklistTemplateId: row.checklistTemplateId,
+  checklistTemplateVersion: row.checklistTemplateVersion,
+  jobType: _parseJobType(row.jobType),
+  title: row.title,
+  description: row.description,
+  status: _parseStatus(row.status),
+  scheduledDate: row.scheduledDate,
+  startedAt: row.startedAt,
+  completedAt: row.completedAt,
+  hoursAtStart: row.hoursAtStart,
+  hoursAtEnd: row.hoursAtEnd,
+  labourHours: row.labourHours,
+  billableRate: row.billableRate,
+  wageRate: row.wageRate,
+  notesInternal: row.notesInternal,
+  onHoldReason: row.onHoldReason,
+  createdAt: row.createdAt,
+  updatedAt: row.updatedAt,
+);
 
 WorkOrdersTableCompanion _toCompanion(WorkOrder workOrder) =>
     WorkOrdersTableCompanion(

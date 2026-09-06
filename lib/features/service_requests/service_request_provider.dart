@@ -13,17 +13,15 @@ const _serviceRequestSelect =
     '*, asset:assets(name, location), client:profiles!service_requests_client_id_fkey(full_name, email)';
 
 class ServiceRequestSubmitResult {
-  const ServiceRequestSubmitResult({
-    required this.success,
-    this.warning,
-  });
+  const ServiceRequestSubmitResult({required this.success, this.warning});
 
   final bool success;
   final String? warning;
 }
 
-final clientServiceRequestsProvider =
-    FutureProvider<List<ServiceRequest>>((ref) async {
+final clientServiceRequestsProvider = FutureProvider<List<ServiceRequest>>((
+  ref,
+) async {
   final profile = await ref.watch(profileProvider.future);
   if (profile == null || !_canUseClientServiceRequests(profile.role)) {
     return [];
@@ -43,8 +41,9 @@ final clientServiceRequestsProvider =
       .toList();
 });
 
-final staffServiceRequestsProvider =
-    FutureProvider<List<ServiceRequest>>((ref) async {
+final staffServiceRequestsProvider = FutureProvider<List<ServiceRequest>>((
+  ref,
+) async {
   final profile = await ref.watch(profileProvider.future);
   if (profile == null || !_canUseStaffServiceRequests(profile.role)) {
     return [];
@@ -91,7 +90,8 @@ class ServiceRequestController extends StateNotifier<AsyncValue<void>> {
 
       if (!_canUseClientServiceRequests(profile.role)) {
         throw Exception(
-            'Service requests are available to client/admin users.');
+          'Service requests are available to client/admin users.',
+        );
       }
 
       final clientId = await _ref.read(currentClientIdProvider.future);
@@ -127,7 +127,8 @@ class ServiceRequestController extends StateNotifier<AsyncValue<void>> {
           );
           await supabase
               .from(AppConstants.tServiceRequests)
-              .update({'photo_urls': photoUrls}).eq('id', requestId);
+              .update({'photo_urls': photoUrls})
+              .eq('id', requestId);
         } catch (_) {
           warning = 'Request sent, but photos could not be attached.';
         }
@@ -157,11 +158,7 @@ class ServiceRequestController extends StateNotifier<AsyncValue<void>> {
             fileOptions: const FileOptions(contentType: 'image/jpeg'),
           )
           .timeout(const Duration(seconds: 6));
-      urls.add(
-        supabase.storage
-            .from(AppConstants.bucketServiceRequestPhotos)
-            .getPublicUrl(path),
-      );
+      urls.add(path);
     }
     return urls;
   }
@@ -176,12 +173,16 @@ class ServiceRequestController extends StateNotifier<AsyncValue<void>> {
         throw Exception('Cannot reset a request to new in this MVP.');
       }
 
-      await supabase.from(AppConstants.tServiceRequests).update({
-        'status':
-            status == ServiceRequestStatus.resolved ? 'resolved' : 'declined',
-        'handled_at': DateTime.now().toIso8601String(),
-        'handled_by': profile.id,
-      }).eq('id', id);
+      await supabase
+          .from(AppConstants.tServiceRequests)
+          .update({
+            'status': status == ServiceRequestStatus.resolved
+                ? 'resolved'
+                : 'declined',
+            'handled_at': DateTime.now().toIso8601String(),
+            'handled_by': profile.id,
+          })
+          .eq('id', id);
 
       _ref.invalidate(clientServiceRequestsProvider);
       _ref.invalidate(staffServiceRequestsProvider);
@@ -201,12 +202,15 @@ class ServiceRequestController extends StateNotifier<AsyncValue<void>> {
       final profile = await _ref.read(profileProvider.future);
       if (profile == null) throw Exception('Not authenticated');
 
-      await supabase.from(AppConstants.tServiceRequests).update({
-        'status': 'resolved',
-        'generated_work_order_id': workOrderId,
-        'handled_at': DateTime.now().toIso8601String(),
-        'handled_by': profile.id,
-      }).eq('id', id);
+      await supabase
+          .from(AppConstants.tServiceRequests)
+          .update({
+            'status': 'resolved',
+            'generated_work_order_id': workOrderId,
+            'handled_at': DateTime.now().toIso8601String(),
+            'handled_by': profile.id,
+          })
+          .eq('id', id);
 
       _ref.invalidate(clientServiceRequestsProvider);
       _ref.invalidate(staffServiceRequestsProvider);
@@ -219,8 +223,8 @@ class ServiceRequestController extends StateNotifier<AsyncValue<void>> {
 
 final serviceRequestControllerProvider =
     StateNotifierProvider<ServiceRequestController, AsyncValue<void>>((ref) {
-  return ServiceRequestController(ref);
-});
+      return ServiceRequestController(ref);
+    });
 
 String _requestTypeValue(String label) {
   switch (label.trim().toLowerCase()) {

@@ -1,4 +1,5 @@
 import 'package:vortice_app/features/auth/sign_out_button.dart';
+import 'package:vortice_app/sync/field_sync_status.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -41,6 +42,15 @@ class _MoreScreenState extends ConsumerState<MoreScreen> {
       body: ListView(
         padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
         children: [
+          ListTile(
+            leading: const Icon(Icons.cloud_upload_outlined),
+            title: Text(
+              es ? 'Guardado y sincronización' : 'Saved work and sync',
+            ),
+            onTap: () => Navigator.of(context).push(
+              MaterialPageRoute<void>(builder: (_) => const FieldQueueScreen()),
+            ),
+          ),
           TextField(
             controller: _search,
             onChanged: (_) => setState(() {}),
