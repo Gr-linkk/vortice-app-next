@@ -1,7 +1,9 @@
+import 'package:vortice_app/core/user_feedback.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:vortice_app/core/app_shell.dart';
+import 'package:vortice_app/core/more_screen.dart';
 import 'package:vortice_app/core/router_redirect.dart';
 import 'package:vortice_app/core/theme.dart';
 import 'package:vortice_app/features/fleet/fleet_screen.dart';
@@ -16,13 +18,11 @@ import 'package:vortice_app/features/auth/auth_provider.dart';
 import 'package:vortice_app/features/auth/login_screen.dart';
 import 'package:vortice_app/features/auth/register_screen.dart';
 import 'package:vortice_app/features/checklists/checklist_screen.dart';
-import 'package:vortice_app/features/dashboard/client_dashboard_free.dart';
+import 'package:vortice_app/features/dashboard/client_dashboard_router.dart';
 import 'package:vortice_app/features/dashboard/employee_dashboard.dart';
-import 'package:vortice_app/features/dashboard/operator_dashboard.dart';
 import 'package:vortice_app/features/dashboard/owner_dashboard.dart';
 import 'package:vortice_app/features/invoices/invoice_screen.dart';
 import 'package:vortice_app/features/invoices/invoice_detail_screen.dart';
-import 'package:vortice_app/features/operator/maintenance_flag_screen.dart';
 import 'package:vortice_app/features/operator/operator_checklist_screen.dart';
 import 'package:vortice_app/features/parts/parts_log_screen.dart';
 import 'package:vortice_app/features/parts/pm_kits_screen.dart';
@@ -38,7 +38,6 @@ import 'package:vortice_app/features/clients/client_screen.dart';
 import 'package:vortice_app/features/org_codes/org_code_screen.dart';
 import 'package:vortice_app/features/reminders/reminder_screen.dart';
 import 'package:vortice_app/features/clients/pre_trip_results_screen.dart';
-import 'package:vortice_app/features/clients/maintenance_flags_screen.dart';
 import 'package:vortice_app/features/clients/asset_checklist_history_screen.dart';
 import 'package:vortice_app/features/notifications/notifications_screen.dart';
 import 'package:vortice_app/features/service_reports/service_report_list_screen.dart';
@@ -137,9 +136,13 @@ final routerProvider = Provider<GoRouter>((ref) {
       // ── Authenticated shell ────────────────────────────────────────────
       ShellRoute(
         navigatorKey: _shellNavigatorKey,
-        builder: (context, state, child) =>
-            AppShell(location: state.matchedLocation, child: child),
+        builder: (context, state, child) => AppShell(
+          location: state.uri.path,
+          navigatorKey: _shellNavigatorKey,
+          child: child,
+        ),
         routes: [
+          GoRoute(path: '/more', builder: (_, __) => const MoreScreen()),
           GoRoute(
             path: '/fleet',
             builder: (_, state) => FleetScreen(
@@ -294,6 +297,15 @@ final routerProvider = Provider<GoRouter>((ref) {
 
           // Employee
           GoRoute(
+            path: '/employee/assets',
+            builder: (_, __) => const AssetListScreen(),
+          ),
+          GoRoute(
+            path: '/employee/assets/:id',
+            builder: (_, state) =>
+                AssetDetailScreen(assetId: state.pathParameters['id']!),
+          ),
+          GoRoute(
             path: '/employee/dashboard',
             builder: (_, __) => const EmployeeDashboard(),
           ),
@@ -361,7 +373,7 @@ final routerProvider = Provider<GoRouter>((ref) {
           ),
           GoRoute(
             path: '/client/service-requests',
-            redirect: (_, __) => '/client/service-requests/new',
+            builder: (_, __) => const ClientServiceRequestListScreen(),
           ),
           GoRoute(
             path: '/client/service-requests/new',
@@ -473,16 +485,14 @@ final routerProvider = Provider<GoRouter>((ref) {
           ),
           GoRoute(
             path: '/client/assets/:id/flags',
-            builder: (_, state) => MaintenanceFlagsScreen(
-              assetId: state.pathParameters['id']!,
-              assetName: state.uri.queryParameters['name'] ?? 'Asset',
-            ),
+            builder: (_, state) =>
+                FleetScreen(assetId: state.pathParameters['id']!),
           ),
 
           // Operator
           GoRoute(
             path: '/operator/dashboard',
-            builder: (_, __) => const OperatorDashboard(),
+            redirect: (_, __) => '/client/dashboard',
           ),
           GoRoute(
             path: '/operator/assets/:id/checklist-history',
@@ -501,7 +511,7 @@ final routerProvider = Provider<GoRouter>((ref) {
           ),
           GoRoute(
             path: '/operator/flags',
-            builder: (_, __) => const MaintenanceFlagScreen(),
+            builder: (_, __) => const FaultReportScreen(),
           ),
 
           // Org admin
@@ -568,8 +578,7 @@ class _OperatorChecklistCapabilityGate extends ConsumerWidget {
         body: Center(
           child: Padding(
             padding: const EdgeInsets.all(24),
-            child: Text(
-              assetAsync!.asError!.error.toString(),
+            child: Text(friendlyError(context, assetAsync!.asError!.error),
               style: const TextStyle(color: AppColors.error),
             ),
           ),

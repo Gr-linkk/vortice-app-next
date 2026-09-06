@@ -1,3 +1,4 @@
+import 'package:vortice_app/core/user_feedback.dart';
 import 'dart:async';
 import 'dart:convert';
 
@@ -249,7 +250,7 @@ class _ChecklistScreenBodyState extends ConsumerState<ChecklistScreenBody> {
       body: templatesAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (err, _) => Center(
-          child: Text(err.toString(),
+          child: Text(friendlyError(context, err),
               style: const TextStyle(color: AppColors.error)),
         ),
         data: (allTemplates) {

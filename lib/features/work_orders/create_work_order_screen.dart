@@ -1,3 +1,4 @@
+import 'package:vortice_app/core/unsaved_form_guard.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -17,10 +18,7 @@ import 'package:vortice_app/models/work_order.dart';
 class CreateWorkOrderScreen extends ConsumerStatefulWidget {
   final MaintenanceWorkOrderDraft? initialDraft;
 
-  const CreateWorkOrderScreen({
-    super.key,
-    this.initialDraft,
-  });
+  const CreateWorkOrderScreen({super.key, this.initialDraft});
 
   @override
   ConsumerState<CreateWorkOrderScreen> createState() =>
@@ -65,8 +63,9 @@ class _CreateWorkOrderScreenState extends ConsumerState<CreateWorkOrderScreen> {
     }
 
     try {
-      final parts =
-          await ref.read(pmPartsRequirementsProvider(templateId).future);
+      final parts = await ref.read(
+        pmPartsRequirementsProvider(templateId).future,
+      );
       if (!mounted) return;
       setState(() {
         _partsCtrl.text = formatPmPartsForWorkOrderNotes(parts);
@@ -199,7 +198,8 @@ class _CreateWorkOrderScreenState extends ConsumerState<CreateWorkOrderScreen> {
                           mainAxisSize: MainAxisSize.min,
                           children: employees.map((employee) {
                             final id = employee['id'] as String;
-                            final name = (employee['full_name'] as String?)
+                            final name =
+                                (employee['full_name'] as String?)
                                         ?.trim()
                                         .isNotEmpty ==
                                     true
@@ -254,40 +254,57 @@ class _CreateWorkOrderScreenState extends ConsumerState<CreateWorkOrderScreen> {
     final l10n = AppLocalizations.of(context);
     final isLoading = ref.watch(workOrderControllerProvider).isLoading;
 
-    return Scaffold(
-      appBar: AppBar(title: Text(l10n.createWorkOrder)),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
-        child: CreateWorkOrderForm(
-          formKey: _formKey,
-          titleCtrl: _titleCtrl,
-          descCtrl: _descCtrl,
-          hoursCtrl: _hoursCtrl,
-          partsCtrl: _partsCtrl,
-          jobType: _jobType,
-          selectedAssetId: _selectedAssetId,
-          selectedEngineId: _selectedEngineId,
-          selectedTechIds: _selectedTechIds,
-          selectedChecklistTemplateId: _selectedChecklistTemplateId,
-          scheduledDate: _scheduledDate,
-          isLoading: isLoading,
-          onJobTypeChanged: (v) => setState(() => _jobType = v),
-          onAssetChanged: (v) => setState(() {
-            _selectedAssetId = v;
-            _selectedEngineId = null;
-            _selectedChecklistTemplateId = null;
-            _selectedTechIds = const [];
-            _partsCtrl.clear();
-          }),
-          onEngineChanged: (v) => setState(() => _selectedEngineId = v),
-          onChecklistTemplateChanged: (v) {
-            setState(() => _selectedChecklistTemplateId = v);
-            _prefillPartsFromTemplate(v);
-          },
-          onPickScheduledDate: _pickScheduledDate,
-          onClearScheduledDate: () => setState(() => _scheduledDate = null),
-          onPickTechnicians: _pickTechnicians,
-          onSubmit: _submit,
+    return UnsavedFormGuard(
+      controllers: [_titleCtrl, _descCtrl, _hoursCtrl, _partsCtrl],
+      isDirty: () =>
+          _titleCtrl.text.isNotEmpty ||
+          _descCtrl.text.isNotEmpty ||
+          _hoursCtrl.text.isNotEmpty ||
+          _partsCtrl.text.isNotEmpty ||
+          _selectedAssetId != null ||
+          _scheduledDate != null ||
+          _selectedTechIds.isNotEmpty ||
+          _jobType != WorkOrderJobType.repair,
+      busy: isLoading,
+      fallbackRoute: '/more',
+      child: Scaffold(
+        appBar: AppBar(
+          leading: const FormBackButton(fallbackRoute: '/more'),
+          title: Text(l10n.createWorkOrder),
+        ),
+        body: SingleChildScrollView(
+          padding: const EdgeInsets.all(16),
+          child: CreateWorkOrderForm(
+            formKey: _formKey,
+            titleCtrl: _titleCtrl,
+            descCtrl: _descCtrl,
+            hoursCtrl: _hoursCtrl,
+            partsCtrl: _partsCtrl,
+            jobType: _jobType,
+            selectedAssetId: _selectedAssetId,
+            selectedEngineId: _selectedEngineId,
+            selectedTechIds: _selectedTechIds,
+            selectedChecklistTemplateId: _selectedChecklistTemplateId,
+            scheduledDate: _scheduledDate,
+            isLoading: isLoading,
+            onJobTypeChanged: (v) => setState(() => _jobType = v),
+            onAssetChanged: (v) => setState(() {
+              _selectedAssetId = v;
+              _selectedEngineId = null;
+              _selectedChecklistTemplateId = null;
+              _selectedTechIds = const [];
+              _partsCtrl.clear();
+            }),
+            onEngineChanged: (v) => setState(() => _selectedEngineId = v),
+            onChecklistTemplateChanged: (v) {
+              setState(() => _selectedChecklistTemplateId = v);
+              _prefillPartsFromTemplate(v);
+            },
+            onPickScheduledDate: _pickScheduledDate,
+            onClearScheduledDate: () => setState(() => _scheduledDate = null),
+            onPickTechnicians: _pickTechnicians,
+            onSubmit: _submit,
+          ),
         ),
       ),
     );

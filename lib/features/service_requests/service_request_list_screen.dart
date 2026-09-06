@@ -1,3 +1,4 @@
+import 'package:vortice_app/core/user_feedback.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -22,7 +23,10 @@ class ClientServiceRequestListScreen extends ConsumerWidget {
         onRefresh: () async => ref.invalidate(clientServiceRequestsProvider),
         child: requestsAsync.when(
           loading: () => const Center(child: CircularProgressIndicator()),
-          error: (err, _) => _ErrorList(message: err.toString()),
+          error: (err, _) => AppErrorState(
+            error: err,
+            onRetry: () => ref.invalidate(clientServiceRequestsProvider),
+          ),
           data: (requests) => requests.isEmpty
               ? const _EmptyList(
                   icon: Icons.support_agent_outlined,
@@ -31,6 +35,7 @@ class ClientServiceRequestListScreen extends ConsumerWidget {
                       'Use Request Service when something needs attention.',
                 )
               : ListView.builder(
+                  physics: const AlwaysScrollableScrollPhysics(),
                   padding: const EdgeInsets.fromLTRB(16, 12, 16, 96),
                   itemCount: requests.length,
                   itemBuilder: (_, index) => _ServiceRequestCard(
@@ -68,7 +73,10 @@ class StaffServiceRequestListScreen extends ConsumerWidget {
         },
         child: requestsAsync.when(
           loading: () => const Center(child: CircularProgressIndicator()),
-          error: (err, _) => _ErrorList(message: err.toString()),
+          error: (err, _) => AppErrorState(
+            error: err,
+            onRetry: () => ref.invalidate(staffServiceRequestsProvider),
+          ),
           data: (requests) => requests.isEmpty
               ? const _EmptyList(
                   icon: Icons.inbox_outlined,
@@ -76,6 +84,7 @@ class StaffServiceRequestListScreen extends ConsumerWidget {
                   message: 'Client service requests will appear here.',
                 )
               : ListView.builder(
+                  physics: const AlwaysScrollableScrollPhysics(),
                   padding: const EdgeInsets.fromLTRB(16, 12, 16, 32),
                   itemCount: requests.length,
                   itemBuilder: (_, index) => _ServiceRequestCard(
@@ -107,10 +116,10 @@ class _ServiceRequestCard extends ConsumerWidget {
     final color = request.status == ServiceRequestStatus.declined
         ? AppColors.error
         : request.status == ServiceRequestStatus.resolved
-            ? AppColors.success
-            : isUrgent
-                ? AppColors.warning
-                : AppColors.primary;
+        ? AppColors.success
+        : isUrgent
+        ? AppColors.warning
+        : AppColors.primary;
 
     return Card(
       margin: const EdgeInsets.only(bottom: 10),
@@ -230,11 +239,8 @@ class _ServiceRequestCard extends ConsumerWidget {
                 children: [
                   Expanded(
                     child: OutlinedButton.icon(
-                      onPressed: () => _mark(
-                        context,
-                        ref,
-                        ServiceRequestStatus.declined,
-                      ),
+                      onPressed: () =>
+                          _mark(context, ref, ServiceRequestStatus.declined),
                       icon: const Icon(Icons.close),
                       label: const Text('Decline'),
                     ),
@@ -257,14 +263,13 @@ class _ServiceRequestCard extends ConsumerWidget {
   }
 
   String get _subtitle => [
-        if (!clientMode && request.clientName != null) request.clientName,
-        if (request.assetName != null || request.otherAssetName != null)
-          request.assetDisplayName,
-        if (request.assetLocation?.trim().isNotEmpty == true)
-          request.assetLocation,
-        request.createdLabel,
-        if (request.urgency == ServiceRequestUrgency.urgent) 'Urgent',
-      ].join(' • ');
+    if (!clientMode && request.clientName != null) request.clientName,
+    if (request.assetName != null || request.otherAssetName != null)
+      request.assetDisplayName,
+    if (request.assetLocation?.trim().isNotEmpty == true) request.assetLocation,
+    request.createdLabel,
+    if (request.urgency == ServiceRequestUrgency.urgent) 'Urgent',
+  ].join(' • ');
 
   void _generateWorkOrder(BuildContext context) {
     final staffPrefix = this.staffPrefix;
@@ -279,19 +284,18 @@ class _ServiceRequestCard extends ConsumerWidget {
       engineHours: request.engineHours,
     );
 
-    context.push(Uri(
-      path: '$staffPrefix/work-orders/create',
-      queryParameters: draft.toQueryParameters(),
-    ).toString());
+    context.push(
+      Uri(
+        path: '$staffPrefix/work-orders/create',
+        queryParameters: draft.toQueryParameters(),
+      ).toString(),
+    );
   }
 
   String get _workOrderTitle => [
-        request.kindLabel,
-        request.assetName ?? request.otherAssetName,
-      ]
-          .whereType<String>()
-          .where((value) => value.trim().isNotEmpty)
-          .join(' — ');
+    request.kindLabel,
+    request.assetName ?? request.otherAssetName,
+  ].whereType<String>().where((value) => value.trim().isNotEmpty).join(' — ');
 
   String get _workOrderDescription {
     final buffer = StringBuffer();
@@ -386,6 +390,7 @@ class _EmptyList extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ListView(
+      physics: const AlwaysScrollableScrollPhysics(),
       padding: const EdgeInsets.all(32),
       children: [
         const SizedBox(height: 96),
@@ -402,22 +407,6 @@ class _EmptyList extends StatelessWidget {
           textAlign: TextAlign.center,
           style: const TextStyle(color: AppColors.textSecondary),
         ),
-      ],
-    );
-  }
-}
-
-class _ErrorList extends StatelessWidget {
-  const _ErrorList({required this.message});
-
-  final String message;
-
-  @override
-  Widget build(BuildContext context) {
-    return ListView(
-      padding: const EdgeInsets.all(24),
-      children: [
-        Text(message, style: const TextStyle(color: AppColors.error)),
       ],
     );
   }

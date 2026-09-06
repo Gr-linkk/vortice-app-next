@@ -41,7 +41,8 @@ class AssetDetailBody extends ConsumerWidget {
             color: AppColors.surface,
             borderRadius: BorderRadius.circular(12),
             border: const Border.fromBorderSide(
-                BorderSide(color: AppColors.cardBorder)),
+              BorderSide(color: AppColors.cardBorder),
+            ),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -51,23 +52,31 @@ class AssetDetailBody extends ConsumerWidget {
                   CircleAvatar(
                     radius: 28,
                     backgroundColor: AppColors.primary.withValues(alpha: 0.15),
-                    child: Icon(assetIconFor(asset.assetTypeId),
-                        color: AppColors.primary, size: 30),
+                    child: Icon(
+                      assetIconFor(asset.assetTypeId),
+                      color: AppColors.primary,
+                      size: 30,
+                    ),
                   ),
                   const SizedBox(width: 16),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(asset.name,
-                            style: Theme.of(context).textTheme.titleLarge),
+                        Text(
+                          asset.name,
+                          style: Theme.of(context).textTheme.titleLarge,
+                        ),
                         if (asset.model != null || asset.make != null)
                           Text(
-                            [asset.make, asset.model]
-                                .whereType<String>()
-                                .join(' · '),
+                            [
+                              asset.make,
+                              asset.model,
+                            ].whereType<String>().join(' · '),
                             style: const TextStyle(
-                                color: AppColors.textSecondary, fontSize: 13),
+                              color: AppColors.textSecondary,
+                              fontSize: 13,
+                            ),
                           ),
                       ],
                     ),
@@ -77,13 +86,6 @@ class AssetDetailBody extends ConsumerWidget {
             ],
           ),
         ),
-        const SizedBox(height: 16),
-        AssetDetailSectionHeader(title: l10n.assetDetails),
-        AssetDetailRow(label: l10n.serialNumber, value: asset.serialNumber),
-        AssetDetailRow(label: l10n.year, value: asset.year?.toString()),
-        AssetDetailRow(label: l10n.location, value: asset.location),
-        if (AssetWorkflowPolicy.canManageAsset(role))
-          AssetClientAssignRow(asset: asset),
         const SizedBox(height: 16),
         AssetWorkflowSummaryCard(assetId: asset.id, role: role),
         const SizedBox(height: 16),
@@ -96,10 +98,8 @@ class AssetDetailBody extends ConsumerWidget {
             loadingBuilder: (_) => const SizedBox.shrink(),
             errorBuilder: (_, __) => const SizedBox.shrink(),
             blockedBuilder: (_) => const SizedBox.shrink(),
-            allowedBuilder: (_) => AssetStartChecklistCard(
-              asset: asset,
-              routePrefix: prefix,
-            ),
+            allowedBuilder: (_) =>
+                AssetStartChecklistCard(asset: asset, routePrefix: prefix),
           ),
         ],
         if (ServiceReportWorkflow.canViewReport(role)) ...[
@@ -131,6 +131,22 @@ class AssetDetailBody extends ConsumerWidget {
         ],
         const SizedBox(height: 16),
         AssetTelemetrySection(asset: asset),
+        Card(
+          child: ExpansionTile(
+            title: Text(l10n.assetDetails),
+            childrenPadding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
+            children: [
+              AssetDetailRow(
+                label: l10n.serialNumber,
+                value: asset.serialNumber,
+              ),
+              AssetDetailRow(label: l10n.year, value: asset.year?.toString()),
+              AssetDetailRow(label: l10n.location, value: asset.location),
+              if (AssetWorkflowPolicy.canManageAsset(role))
+                AssetClientAssignRow(asset: asset),
+            ],
+          ),
+        ),
         if (asset.notes != null) ...[
           const SizedBox(height: 8),
           AssetDetailSectionHeader(title: l10n.notes),

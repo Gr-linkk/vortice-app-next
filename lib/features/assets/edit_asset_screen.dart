@@ -1,3 +1,4 @@
+import 'package:vortice_app/core/user_feedback.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -99,7 +100,7 @@ class _EditAssetScreenState extends ConsumerState<EditAssetScreen> {
       final err = ref.read(assetControllerProvider).error;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(err.toString()),
+          content: Text(friendlyError(context, err)),
           backgroundColor: AppColors.error,
         ),
       );

@@ -1,3 +1,4 @@
+import 'package:vortice_app/core/user_feedback.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:vortice_app/core/theme.dart';
@@ -47,7 +48,7 @@ class VesselTelemetryLiveGaugesSection extends ConsumerWidget {
           ),
           error: (err, _) => Padding(
             padding: const EdgeInsets.all(16),
-            child: Text(err.toString(),
+            child: Text(friendlyError(context, err),
                 style: const TextStyle(color: AppColors.error)),
           ),
           data: (reading) {

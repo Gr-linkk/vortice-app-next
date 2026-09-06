@@ -1,3 +1,4 @@
+import 'package:vortice_app/core/user_feedback.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:vortice_app/core/theme.dart';
@@ -63,7 +64,7 @@ class _ServiceIntervalScreenState extends ConsumerState<ServiceIntervalScreen> {
               loading: () => const LinearProgressIndicator(),
               error: (err, _) => Padding(
                 padding: const EdgeInsets.all(16),
-                child: Text(err.toString(),
+                child: Text(friendlyError(context, err),
                     style: const TextStyle(color: AppColors.error)),
               ),
               data: (asset) => ServiceIntervalAssetHeader(asset: asset),
@@ -73,7 +74,7 @@ class _ServiceIntervalScreenState extends ConsumerState<ServiceIntervalScreen> {
               padding: const EdgeInsets.all(16),
               child: assetsAsync!.when(
                 loading: () => const LinearProgressIndicator(),
-                error: (err, _) => Text(err.toString(),
+                error: (err, _) => Text(friendlyError(context, err),
                     style: const TextStyle(color: AppColors.error)),
                 data: (assets) => DropdownButtonFormField<Asset>(
                   initialValue: _selectedAsset,

@@ -1,3 +1,4 @@
+import 'package:vortice_app/core/user_feedback.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:vortice_app/core/theme.dart';
@@ -69,8 +70,7 @@ class ClientCapabilityGate extends ConsumerWidget {
       error: (err, _) =>
           errorBuilder?.call(context, err) ??
           Center(
-            child: Text(
-              err.toString(),
+            child: Text(friendlyError(context, err),
               style: const TextStyle(color: AppColors.error),
             ),
           ),

@@ -14,11 +14,16 @@ parts, and invoices.
 
 ## Current direction
 
-The first user-facing build slice is fault-to-repair tracking and explicit
-asset availability, selected under Garrett's authorization to build two
-features autonomously. See `docs/specs/NOW-003-faults-and-availability.md`.
-The product identity remains a separate decision; preserve the current visual
-language while validating this internal Android build.
+The initial internal build implements fault-to-repair tracking and explicit
+asset availability, followed by a broad UX pass and standardized dashboards.
+Implementation and deployment limits are recorded in
+`docs/specs/NOW-003-faults-and-availability.md` and
+`docs/specs/NOW-005-ux-cohesion.md`.
+
+Garrett's next focus is the remaining 20 areas from the original 22-feature
+assessment. Use `docs/specs/NOW-006-feature-continuation.md` as the intake map
+and BACKLOG.md to select one concrete slice. Preserve the current visual
+language; product naming and production identity remain separate decisions.
 
 Detailed client-access terminology and rules live in `CONTEXT.md`.
 

@@ -38,12 +38,12 @@ class ServiceReportDraftController {
       ServiceReportDraftKeys.draftMediaKey(initialWorkOrderId);
 
   Iterable<TextEditingController> get _textControllers => [
-        complaintController,
-        causeController,
-        correctionController,
-        collateralController,
-        commentsController,
-      ];
+    complaintController,
+    causeController,
+    correctionController,
+    collateralController,
+    commentsController,
+  ];
 
   void bindTextSaveListeners() {
     for (final controller in _textControllers) {
@@ -52,7 +52,11 @@ class ServiceReportDraftController {
   }
 
   void dispose() {
+    final hasPendingText = _draftSaveDebounce?.isActive == true;
     _draftSaveDebounce?.cancel();
+    // Capture controller values before the screen disposes them. Otherwise a
+    // quick Back within the debounce window silently loses the last edit.
+    if (hasPendingText) unawaited(saveText());
     for (final controller in _textControllers) {
       controller.removeListener(scheduleTextSave);
     }
@@ -124,10 +128,13 @@ class ServiceReportDraftController {
     );
   }
 
-  Future<void> clear() => _draftManager.clear(
-        draftKey: draftKey,
-        draftMediaKey: draftMediaKey,
-      );
+  Future<void> clear() {
+    _draftSaveDebounce?.cancel();
+    return _draftManager.clear(
+      draftKey: draftKey,
+      draftMediaKey: draftMediaKey,
+    );
+  }
 
   void resetAfterSubmit() {
     selectedWorkOrderId = null;

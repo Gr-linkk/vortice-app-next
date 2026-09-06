@@ -43,3 +43,6 @@ supabase/.temp/
 /outputs/
 /work/
 /config/*.local.json
+
+# Private attachments supplied to a local Codex task
+/.codex-remote-attachments/

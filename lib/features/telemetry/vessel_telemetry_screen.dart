@@ -1,3 +1,4 @@
+import 'package:vortice_app/core/user_feedback.dart';
 import 'dart:async';
 
 import 'package:flutter/material.dart';
@@ -60,7 +61,7 @@ class _VesselTelemetryScreenState extends ConsumerState<VesselTelemetryScreen> {
       error: (err, _) => Scaffold(
         appBar: AppBar(title: const Text('Vessel Telemetry')),
         body: Center(
-          child: Text(err.toString(),
+          child: Text(friendlyError(context, err),
               style: const TextStyle(color: AppColors.error)),
         ),
       ),

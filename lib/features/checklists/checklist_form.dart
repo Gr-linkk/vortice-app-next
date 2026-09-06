@@ -1,3 +1,4 @@
+import 'package:vortice_app/core/user_feedback.dart';
 import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
@@ -221,7 +222,7 @@ class _ChecklistFormState extends ConsumerState<ChecklistForm> {
           child: itemsAsync.when(
             loading: () => const Center(child: CircularProgressIndicator()),
             error: (err, _) => Center(
-              child: Text(err.toString(),
+              child: Text(friendlyError(context, err),
                   style: const TextStyle(color: AppColors.error)),
             ),
             data: (items) => ListView(

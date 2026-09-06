@@ -1,3 +1,4 @@
+import 'package:vortice_app/core/user_feedback.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:vortice_app/l10n/app_localizations.dart';
@@ -51,7 +52,7 @@ class PreTripResultsScreen extends ConsumerWidget {
             child: runsAsync.when(
               loading: () => const Center(child: CircularProgressIndicator()),
               error: (err, _) => Center(
-                child: Text(err.toString(),
+                child: Text(friendlyError(context, err),
                     style: const TextStyle(color: AppColors.error)),
               ),
               data: (runs) {

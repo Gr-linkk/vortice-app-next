@@ -1,3 +1,4 @@
+import 'package:vortice_app/core/user_feedback.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:vortice_app/l10n/app_localizations.dart';
@@ -30,7 +31,7 @@ class HourLogScreen extends ConsumerWidget {
             children: [
               const Icon(Icons.error_outline, color: AppColors.error, size: 48),
               const SizedBox(height: 12),
-              Text(err.toString()),
+              Text(friendlyError(context, err)),
               const SizedBox(height: 12),
               ElevatedButton(
                 onPressed: () =>

@@ -1,3 +1,4 @@
+import 'package:vortice_app/core/user_feedback.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:vortice_app/core/theme.dart';
@@ -39,7 +40,7 @@ class TelemetryHistoryReadingsTab extends ConsumerWidget {
     return readingsAsync.when(
       loading: () => const Center(child: CircularProgressIndicator()),
       error: (err, _) => Center(
-        child: Text(err.toString(),
+        child: Text(friendlyError(context, err),
             style: const TextStyle(color: AppColors.error)),
       ),
       data: (readings) {

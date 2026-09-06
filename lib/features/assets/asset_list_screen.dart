@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:vortice_app/core/app_navigation.dart';
+import 'package:vortice_app/core/user_feedback.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:vortice_app/l10n/app_localizations.dart';
@@ -17,7 +19,13 @@ class AssetListScreen extends ConsumerStatefulWidget {
 }
 
 class _AssetListScreenState extends ConsumerState<AssetListScreen> {
+  final _search = TextEditingController();
   String _searchQuery = '';
+  @override
+  void dispose() {
+    _search.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -25,15 +33,9 @@ class _AssetListScreenState extends ConsumerState<AssetListScreen> {
     final assetsAsync = ref.watch(visibleAssetsProvider);
     final assignedProfilesAsync = ref.watch(assetAssignedProfilesProvider);
     final profile = ref.watch(profileProvider).valueOrNull;
-    final canAdd =
-        profile?.role == UserRole.owner || profile?.role == UserRole.employee;
-    final showAssignedClient = canAdd;
-
-    final prefix = switch (profile?.role) {
-      UserRole.owner => '/owner',
-      UserRole.client => '/client',
-      _ => '/owner',
-    };
+    final canAdd = profile?.role == UserRole.owner;
+    final showAssignedClient = canAdd || profile?.role == UserRole.employee;
+    final prefix = roleRoutePrefix(profile?.role ?? UserRole.client);
 
     return Scaffold(
       appBar: AppBar(
@@ -43,12 +45,27 @@ class _AssetListScreenState extends ConsumerState<AssetListScreen> {
           child: Padding(
             padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
             child: TextField(
+              controller: _search,
               decoration: InputDecoration(
                 hintText: l10n.searchAssets,
                 prefixIcon: const Icon(Icons.search, size: 20),
+                suffixIcon: _searchQuery.isEmpty
+                    ? null
+                    : IconButton(
+                        tooltip: isSpanish(context)
+                            ? 'Borrar búsqueda'
+                            : 'Clear search',
+                        icon: const Icon(Icons.close),
+                        onPressed: () => setState(() {
+                          _search.clear();
+                          _searchQuery = '';
+                        }),
+                      ),
                 isDense: true,
-                contentPadding:
-                    const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 10,
+                ),
               ),
               onChanged: (v) => setState(() => _searchQuery = v),
             ),
@@ -57,28 +74,18 @@ class _AssetListScreenState extends ConsumerState<AssetListScreen> {
       ),
       body: assetsAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (err, _) => Center(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Icon(Icons.error_outline, color: AppColors.error, size: 48),
-              const SizedBox(height: 12),
-              Text(err.toString()),
-              const SizedBox(height: 12),
-              ElevatedButton(
-                onPressed: () => ref.invalidate(visibleAssetsProvider),
-                child: Text(l10n.retry),
-              ),
-            ],
-          ),
+        error: (err, _) => AppErrorState(
+          error: err,
+          onRetry: () => ref.invalidate(visibleAssetsProvider),
         ),
         data: (assets) {
           final assignedProfiles = assignedProfilesAsync.valueOrNull ?? {};
           final filtered = assets.where((a) {
             final assignedProfile = assignedProfiles[a.clientId];
             final assignedLabel = _assignedProfileLabel(assignedProfile);
-            final query = _searchQuery.toLowerCase();
-            final matchesQuery = _searchQuery.isEmpty ||
+            final query = _searchQuery.trim().toLowerCase();
+            final matchesQuery =
+                _searchQuery.isEmpty ||
                 a.name.toLowerCase().contains(query) ||
                 (a.model?.toLowerCase().contains(query) ?? false) ||
                 (a.serialNumber?.toLowerCase().contains(query) ?? false) ||
@@ -88,14 +95,21 @@ class _AssetListScreenState extends ConsumerState<AssetListScreen> {
 
           if (filtered.isEmpty) {
             return Center(
-              child: Text(l10n.noAssets,
-                  style: const TextStyle(color: AppColors.textSecondary)),
+              child: Text(
+                _searchQuery.trim().isNotEmpty
+                    ? (isSpanish(context)
+                          ? 'No hay coincidencias. Prueba otro nombre o borra la búsqueda.'
+                          : 'No matching assets. Try another name or clear the search.')
+                    : l10n.noAssets,
+                style: const TextStyle(color: AppColors.textSecondary),
+              ),
             );
           }
 
           return RefreshIndicator(
             onRefresh: () async => ref.invalidate(visibleAssetsProvider),
             child: ListView.builder(
+              physics: const AlwaysScrollableScrollPhysics(),
               itemCount: filtered.length,
               itemBuilder: (_, i) => _AssetListTile(
                 asset: filtered[i],
@@ -110,10 +124,11 @@ class _AssetListScreenState extends ConsumerState<AssetListScreen> {
         },
       ),
       floatingActionButton: canAdd
-          ? FloatingActionButton(
+          ? FloatingActionButton.extended(
               onPressed: () => context.push('$prefix/assets/add'),
               backgroundColor: AppColors.primary,
-              child: const Icon(Icons.add),
+              icon: const Icon(Icons.add),
+              label: Text(isSpanish(context) ? 'Añadir equipo' : 'Add asset'),
             )
           : null,
     );
@@ -139,8 +154,11 @@ class _AssignedClientLine extends StatelessWidget {
       padding: const EdgeInsets.only(top: 2, bottom: 2),
       child: Row(
         children: [
-          const Icon(Icons.business_outlined,
-              size: 12, color: AppColors.textSecondary),
+          const Icon(
+            Icons.business_outlined,
+            size: 12,
+            color: AppColors.textSecondary,
+          ),
           const SizedBox(width: 3),
           Flexible(
             child: Text(
@@ -178,8 +196,11 @@ class _AssetListTile extends StatelessWidget {
       child: ListTile(
         leading: CircleAvatar(
           backgroundColor: AppColors.primary.withValues(alpha: 0.15),
-          child: Icon(assetIconFor(asset.assetTypeId),
-              color: AppColors.primary, size: 22),
+          child: Icon(
+            assetIconFor(asset.assetTypeId),
+            color: AppColors.primary,
+            size: 22,
+          ),
         ),
         title: Text(asset.name),
         subtitle: Column(
@@ -191,25 +212,36 @@ class _AssetListTile extends StatelessWidget {
               Text(
                 [asset.make, asset.model].whereType<String>().join(' · '),
                 style: const TextStyle(
-                    color: AppColors.textSecondary, fontSize: 12),
+                  color: AppColors.textSecondary,
+                  fontSize: 12,
+                ),
               ),
             if (asset.location != null)
               Row(
                 children: [
-                  const Icon(Icons.location_on_outlined,
-                      size: 12, color: AppColors.textSecondary),
+                  const Icon(
+                    Icons.location_on_outlined,
+                    size: 12,
+                    color: AppColors.textSecondary,
+                  ),
                   const SizedBox(width: 2),
-                  Text(
-                    asset.location!,
-                    style: const TextStyle(
-                        color: AppColors.textSecondary, fontSize: 11),
+                  Flexible(
+                    child: Text(
+                      asset.location!,
+                      style: const TextStyle(
+                        color: AppColors.textSecondary,
+                        fontSize: 11,
+                      ),
+                    ),
                   ),
                 ],
               ),
           ],
         ),
-        trailing:
-            const Icon(Icons.chevron_right, color: AppColors.textSecondary),
+        trailing: const Icon(
+          Icons.chevron_right,
+          color: AppColors.textSecondary,
+        ),
         onTap: onTap,
         isThreeLine: showAssignedClient || asset.location != null,
       ),

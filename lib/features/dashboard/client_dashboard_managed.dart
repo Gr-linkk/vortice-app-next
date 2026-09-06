@@ -1,14 +1,13 @@
+import 'package:vortice_app/features/dashboard/dashboard_layout.dart';
 import 'package:flutter/material.dart';
+import 'package:vortice_app/core/user_feedback.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:vortice_app/core/theme.dart';
-import 'package:vortice_app/features/fleet/fleet_entry_card.dart';
 import 'package:vortice_app/features/assets/asset_provider.dart';
 import 'package:vortice_app/features/operator/operator_runs_provider.dart';
-import 'package:vortice_app/features/auth/auth_provider.dart';
 import 'package:vortice_app/features/invoices/invoice_provider.dart';
-import 'package:vortice_app/features/notifications/notification_provider.dart';
 import 'package:vortice_app/features/service_reports/service_report_provider.dart';
 import 'package:vortice_app/models/asset.dart';
 import 'package:vortice_app/models/invoice.dart';
@@ -20,118 +19,22 @@ class ClientDashboardManaged extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final profile = ref.watch(profileProvider).valueOrNull;
     final assetsAsync = ref.watch(visibleAssetsProvider);
     final invoicesAsync = ref.watch(invoicesProvider);
     final reportsAsync = ref.watch(clientServiceReportsProvider);
     final flagsAsync = ref.watch(clientFlaggedIssuesProvider);
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('My Dashboard'),
-        actions: [
-          const _MBellButton(route: '/client/notifications'),
-          IconButton(
-            icon: const Icon(Icons.logout),
-            onPressed: () =>
-                ref.read(authControllerProvider.notifier).signOut(),
-          ),
-        ],
-      ),
-      body: RefreshIndicator(
+      appBar: const DashboardAppBar(),
+      body: DashboardRefresh(
         onRefresh: () async {
           ref.invalidate(visibleAssetsProvider);
           ref.invalidate(invoicesProvider);
           ref.invalidate(clientServiceReportsProvider);
           ref.invalidate(clientFlaggedIssuesProvider);
         },
-        child: ListView(
-          padding: const EdgeInsets.only(bottom: 32),
+        child: DashboardList(
           children: [
-            const FleetEntryCard(),
-            // ── Greeting ────────────────────────────────────────────────
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 20, 16, 4),
-              child: Text(
-                'Welcome back${profile?.fullName.isNotEmpty == true ? ', ${profile!.fullName.split(' ').first}' : ''}!',
-                style: Theme.of(context).textTheme.headlineMedium,
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
-              child: Text(
-                DateFormat('EEEE, MMMM d').format(DateTime.now()),
-                style: const TextStyle(
-                    color: AppColors.textSecondary, fontSize: 13),
-              ),
-            ),
-
-            // ── Scheduled Maintenance ────────────────────────────────────
-            const _SectionHeader(title: 'Scheduled Maintenance'),
-            const _MEmptyStateTile(
-              icon: Icons.event_available_outlined,
-              message:
-                  'Your Vórtice team will contact you to schedule upcoming work.',
-            ),
-
-            // ── Recent Service ───────────────────────────────────────────
-            const _SectionHeader(title: 'Recent Service'),
-            reportsAsync.when(
-              loading: () => const _MLoadingTile(),
-              error: (_, __) => const SizedBox.shrink(),
-              data: (reports) {
-                final thirtyDaysAgo =
-                    DateTime.now().subtract(const Duration(days: 30));
-                final recent = reports.where((r) {
-                  final createdAt = r['created_at'] != null
-                      ? DateTime.tryParse(r['created_at'] as String)
-                      : null;
-                  return createdAt != null && createdAt.isAfter(thirtyDaysAgo);
-                }).toList();
-                if (recent.isEmpty) {
-                  return const _MEmptyStateTile(
-                    icon: Icons.history_outlined,
-                    message: 'No service in the last 30 days.',
-                  );
-                }
-                return Column(
-                  children: recent.take(5).map((r) {
-                    final assetName =
-                        ((r['work_orders'] as Map<String, dynamic>?)?['assets']
-                            as Map<String, dynamic>?)?['name'] as String?;
-                    final createdAt = r['created_at'] != null
-                        ? DateTime.tryParse(r['created_at'] as String)
-                        : null;
-                    return ListTile(
-                      onTap: () =>
-                          context.push('/client/service-reports/${r['id']}'),
-                      leading: const CircleAvatar(
-                        backgroundColor: AppColors.surfaceVariant,
-                        child: Icon(Icons.build_outlined,
-                            size: 18, color: AppColors.textSecondary),
-                      ),
-                      title: Text(
-                        r['correction'] as String? ??
-                            r['comments'] as String? ??
-                            'Service completed',
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      subtitle: Text(
-                        [
-                          if (assetName != null) assetName,
-                          if (createdAt != null)
-                            DateFormat('MMM d, yyyy').format(createdAt),
-                        ].join(' • '),
-                        style: const TextStyle(
-                            color: AppColors.textSecondary, fontSize: 12),
-                      ),
-                    );
-                  }).toList(),
-                );
-              },
-            ),
-
             // ── Flagged Issues ───────────────────────────────────────────
             flagsAsync.when(
               loading: () => const SizedBox.shrink(),
@@ -141,19 +44,24 @@ class ClientDashboardManaged extends ConsumerWidget {
                 return Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    _SectionHeader(
-                      title: 'Flagged Issues (${flags.length})',
+                    DashboardSection(
+                      title: 'Open faults (${flags.length})',
                       color: AppColors.warning,
                     ),
                     ...flags.map((flag) {
-                      final assetName = (flag['assets']
-                              as Map<String, dynamic>?)?['name'] as String? ??
-                          'Unknown vessel';
+                      final assetName =
+                          (flag['assets'] as Map<String, dynamic>?)?['name']
+                              as String? ??
+                          'Unknown asset';
                       final isUrgent = flag['severity'] == 'urgent';
                       return Card(
                         margin: const EdgeInsets.symmetric(
-                            horizontal: 16, vertical: 4),
+                          horizontal: 16,
+                          vertical: 4,
+                        ),
                         child: ListTile(
+                          onTap: () =>
+                              context.push('/fleet/faults/${flag['id']}'),
                           leading: CircleAvatar(
                             backgroundColor:
                                 (isUrgent ? AppColors.error : AppColors.warning)
@@ -175,23 +83,29 @@ class ClientDashboardManaged extends ConsumerWidget {
                           subtitle: Text(
                             assetName,
                             style: const TextStyle(
-                                color: AppColors.textSecondary, fontSize: 12),
+                              color: AppColors.textSecondary,
+                              fontSize: 12,
+                            ),
                           ),
                           trailing: isUrgent
                               ? Container(
                                   padding: const EdgeInsets.symmetric(
-                                      horizontal: 8, vertical: 4),
+                                    horizontal: 8,
+                                    vertical: 4,
+                                  ),
                                   decoration: BoxDecoration(
-                                    color:
-                                        AppColors.error.withValues(alpha: 0.15),
+                                    color: AppColors.error.withValues(
+                                      alpha: 0.15,
+                                    ),
                                     borderRadius: BorderRadius.circular(6),
                                   ),
                                   child: const Text(
                                     'URGENT',
                                     style: TextStyle(
-                                        color: AppColors.error,
-                                        fontSize: 10,
-                                        fontWeight: FontWeight.bold),
+                                      color: AppColors.error,
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.bold,
+                                    ),
                                   ),
                                 )
                               : null,
@@ -204,30 +118,82 @@ class ClientDashboardManaged extends ConsumerWidget {
               },
             ),
 
-            // ── Service Request Intake ──────────────────────────────────
-            const _SectionHeader(title: 'Need Service?'),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-              child: ElevatedButton.icon(
-                onPressed: () => context.push('/client/service-requests/new'),
-                icon: const Icon(Icons.support_agent_outlined),
-                label: const Text('Request Service'),
-                style: ElevatedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(vertical: 14),
-                ),
-              ),
+            // ── Recent Service ───────────────────────────────────────────
+            const DashboardSection(title: 'Recent Service'),
+            reportsAsync.when(
+              loading: () => const _MLoadingTile(),
+              error: (_, __) => const SizedBox.shrink(),
+              data: (reports) {
+                final thirtyDaysAgo = DateTime.now().subtract(
+                  const Duration(days: 30),
+                );
+                final recent = reports.where((r) {
+                  final createdAt = r['created_at'] != null
+                      ? DateTime.tryParse(r['created_at'] as String)
+                      : null;
+                  return createdAt != null && createdAt.isAfter(thirtyDaysAgo);
+                }).toList();
+                if (recent.isEmpty) {
+                  return const _MEmptyStateTile(
+                    icon: Icons.history_outlined,
+                    message: 'No service in the last 30 days.',
+                  );
+                }
+                return Column(
+                  children: recent.take(5).map((r) {
+                    final assetName =
+                        ((r['work_orders'] as Map<String, dynamic>?)?['assets']
+                                as Map<String, dynamic>?)?['name']
+                            as String?;
+                    final createdAt = r['created_at'] != null
+                        ? DateTime.tryParse(r['created_at'] as String)
+                        : null;
+                    return ListTile(
+                      onTap: () =>
+                          context.push('/client/service-reports/${r['id']}'),
+                      leading: const CircleAvatar(
+                        backgroundColor: AppColors.surfaceVariant,
+                        child: Icon(
+                          Icons.build_outlined,
+                          size: 18,
+                          color: AppColors.textSecondary,
+                        ),
+                      ),
+                      title: Text(
+                        r['correction'] as String? ??
+                            r['comments'] as String? ??
+                            'Service completed',
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      subtitle: Text(
+                        [
+                          if (assetName != null) assetName,
+                          if (createdAt != null)
+                            DateFormat('MMM d, yyyy').format(createdAt),
+                        ].join(' • '),
+                        style: const TextStyle(
+                          color: AppColors.textSecondary,
+                          fontSize: 12,
+                        ),
+                      ),
+                    );
+                  }).toList(),
+                );
+              },
             ),
 
             // ── My Vessels ───────────────────────────────────────────────
-            const _SectionHeader(title: 'My Vessels'),
+            const DashboardSection(title: 'My Assets'),
             assetsAsync.when(
               loading: () => const _MLoadingTile(),
-              error: (err, _) => _MErrorTile(message: err.toString()),
+              error: (err, _) =>
+                  _MErrorTile(message: friendlyError(context, err)),
               data: (assets) {
                 if (assets.isEmpty) {
                   return const _MEmptyStateTile(
                     icon: Icons.directions_boat_outlined,
-                    message: 'No vessels yet. Contact Vórtice to get started.',
+                    message: 'No assets yet. Contact Vórtice to get started.',
                   );
                 }
                 return Column(
@@ -237,10 +203,11 @@ class ClientDashboardManaged extends ConsumerWidget {
             ),
 
             // ── Invoices ─────────────────────────────────────────────────
-            const _SectionHeader(title: 'Invoices'),
+            const DashboardSection(title: 'Invoices'),
             invoicesAsync.when(
               loading: () => const _MLoadingTile(),
-              error: (err, _) => _MErrorTile(message: err.toString()),
+              error: (err, _) =>
+                  _MErrorTile(message: friendlyError(context, err)),
               data: (invoices) {
                 if (invoices.isEmpty) {
                   return const _MEmptyStateTile(
@@ -258,7 +225,7 @@ class ClientDashboardManaged extends ConsumerWidget {
             ),
 
             // ── Service Reports ───────────────────────────────────────────
-            const _SectionHeader(title: 'Service Reports'),
+            const DashboardSection(title: 'Service Reports'),
             reportsAsync.when(
               loading: () => const _MLoadingTile(),
               error: (_, __) => const SizedBox.shrink(),
@@ -273,7 +240,8 @@ class ClientDashboardManaged extends ConsumerWidget {
                   children: reports.take(5).map((r) {
                     final assetName =
                         ((r['work_orders'] as Map<String, dynamic>?)?['assets']
-                            as Map<String, dynamic>?)?['name'] as String?;
+                                as Map<String, dynamic>?)?['name']
+                            as String?;
                     final createdAt = r['created_at'] != null
                         ? DateTime.tryParse(r['created_at'] as String)
                         : null;
@@ -282,8 +250,11 @@ class ClientDashboardManaged extends ConsumerWidget {
                           context.push('/client/service-reports/${r['id']}'),
                       leading: const CircleAvatar(
                         backgroundColor: AppColors.surfaceVariant,
-                        child: Icon(Icons.assignment_outlined,
-                            size: 18, color: AppColors.textSecondary),
+                        child: Icon(
+                          Icons.assignment_outlined,
+                          size: 18,
+                          color: AppColors.textSecondary,
+                        ),
                       ),
                       title: Text(
                         r['correction'] as String? ??
@@ -299,7 +270,9 @@ class ClientDashboardManaged extends ConsumerWidget {
                             DateFormat('MMM d, yyyy').format(createdAt),
                         ].join(' • '),
                         style: const TextStyle(
-                            color: AppColors.textSecondary, fontSize: 12),
+                          color: AppColors.textSecondary,
+                          fontSize: 12,
+                        ),
                       ),
                     );
                   }).toList(),
@@ -315,32 +288,15 @@ class ClientDashboardManaged extends ConsumerWidget {
 
 // ── Section header ─────────────────────────────────────────────────────────────
 
-class _SectionHeader extends StatelessWidget {
-  final String title;
-  final Color? color;
-  const _SectionHeader({required this.title, this.color});
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 24, 16, 8),
-      child: Text(
-        title,
-        style: Theme.of(context).textTheme.titleMedium?.copyWith(color: color),
-      ),
-    );
-  }
-}
-
 // ── Loading / error / empty ────────────────────────────────────────────────────
 
 class _MLoadingTile extends StatelessWidget {
   const _MLoadingTile();
   @override
   Widget build(BuildContext context) => const Padding(
-        padding: EdgeInsets.all(16),
-        child: Center(child: CircularProgressIndicator(strokeWidth: 2)),
-      );
+    padding: EdgeInsets.all(16),
+    child: Center(child: CircularProgressIndicator(strokeWidth: 2)),
+  );
 }
 
 class _MErrorTile extends StatelessWidget {
@@ -348,10 +304,12 @@ class _MErrorTile extends StatelessWidget {
   const _MErrorTile({required this.message});
   @override
   Widget build(BuildContext context) => Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        child: Text(message,
-            style: const TextStyle(color: AppColors.error, fontSize: 13)),
-      );
+    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+    child: Text(
+      message,
+      style: const TextStyle(color: AppColors.error, fontSize: 13),
+    ),
+  );
 }
 
 class _MEmptyStateTile extends StatelessWidget {
@@ -360,62 +318,26 @@ class _MEmptyStateTile extends StatelessWidget {
   const _MEmptyStateTile({required this.icon, required this.message});
   @override
   Widget build(BuildContext context) => Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-        child: Row(
-          children: [
-            Icon(icon, size: 18, color: AppColors.textSecondary),
-            const SizedBox(width: 10),
-            Expanded(
-              child: Text(message,
-                  style: const TextStyle(
-                      color: AppColors.textSecondary, fontSize: 13)),
+    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+    child: Row(
+      children: [
+        Icon(icon, size: 18, color: AppColors.textSecondary),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Text(
+            message,
+            style: const TextStyle(
+              color: AppColors.textSecondary,
+              fontSize: 13,
             ),
-          ],
+          ),
         ),
-      );
+      ],
+    ),
+  );
 }
 
 // ── Bell button ────────────────────────────────────────────────────────────────
-
-class _MBellButton extends ConsumerWidget {
-  final String route;
-  const _MBellButton({required this.route});
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final unread = ref.watch(unreadCountProvider);
-    return Stack(
-      children: [
-        IconButton(
-          icon: const Icon(Icons.notifications_outlined),
-          onPressed: () => context.push(route),
-        ),
-        if (unread > 0)
-          Positioned(
-            right: 6,
-            top: 6,
-            child: Container(
-              width: 16,
-              height: 16,
-              decoration: const BoxDecoration(
-                color: AppColors.error,
-                shape: BoxShape.circle,
-              ),
-              child: Center(
-                child: Text(
-                  unread > 9 ? '9+' : '$unread',
-                  style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 9,
-                      fontWeight: FontWeight.bold),
-                ),
-              ),
-            ),
-          ),
-      ],
-    );
-  }
-}
 
 // ── Asset tile ─────────────────────────────────────────────────────────────────
 
@@ -430,19 +352,27 @@ class _MAssetTile extends StatelessWidget {
       child: ListTile(
         leading: const CircleAvatar(
           backgroundColor: AppColors.surfaceVariant,
-          child: Icon(Icons.directions_boat_outlined,
-              size: 20, color: AppColors.primary),
+          child: Icon(
+            Icons.directions_boat_outlined,
+            size: 20,
+            color: AppColors.primary,
+          ),
         ),
         title: Text(asset.name),
         subtitle: asset.make != null || asset.model != null
             ? Text(
                 [asset.make, asset.model].whereType<String>().join(' '),
                 style: const TextStyle(
-                    color: AppColors.textSecondary, fontSize: 12),
+                  color: AppColors.textSecondary,
+                  fontSize: 12,
+                ),
               )
             : null,
-        trailing: const Icon(Icons.chevron_right,
-            color: AppColors.textSecondary, size: 18),
+        trailing: const Icon(
+          Icons.chevron_right,
+          color: AppColors.textSecondary,
+          size: 18,
+        ),
         onTap: () => context.push('/client/assets/${asset.id}'),
       ),
     );
@@ -484,7 +414,10 @@ class _MInvoiceTile extends StatelessWidget {
           child: Text(
             isPaid ? 'PAID' : invoice.status.name.toUpperCase(),
             style: TextStyle(
-                color: color, fontSize: 10, fontWeight: FontWeight.bold),
+              color: color,
+              fontSize: 10,
+              fontWeight: FontWeight.bold,
+            ),
           ),
         ),
         onTap: () => context.push('/client/invoices/${invoice.id}'),

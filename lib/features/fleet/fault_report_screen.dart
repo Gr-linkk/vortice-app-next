@@ -1,3 +1,4 @@
+import 'package:vortice_app/core/unsaved_form_guard.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -62,10 +63,17 @@ class _FaultReportScreenState extends ConsumerState<FaultReportScreen> {
   Widget build(BuildContext context) {
     final es = fleetSpanish(context);
     final assets = ref.watch(fleetAssetsProvider);
-    return PopScope(
-      canPop: !_saving,
+    return UnsavedFormGuard(
+      controllers: [_description],
+      isDirty: () =>
+          _description.text.isNotEmpty || _urgent || _assetId != widget.assetId,
+      busy: _saving,
+      fallbackRoute: '/fleet',
       child: Scaffold(
-        appBar: AppBar(title: Text(es ? 'Reportar falla' : 'Report a fault')),
+        appBar: AppBar(
+          leading: const FormBackButton(fallbackRoute: '/fleet'),
+          title: Text(es ? 'Reportar falla' : 'Report a fault'),
+        ),
         body: SafeArea(
           child: assets.when(
             loading: () => const Center(child: CircularProgressIndicator()),

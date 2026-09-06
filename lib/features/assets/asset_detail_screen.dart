@@ -1,3 +1,4 @@
+import 'package:vortice_app/core/user_feedback.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -93,10 +94,7 @@ class AssetDetailScreen extends ConsumerWidget {
       ),
       body: assetAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (err, _) => Center(
-          child: Text(err.toString(),
-              style: const TextStyle(color: AppColors.error)),
-        ),
+        error: (err, _) => AppErrorState(error: err, onRetry: () => ref.invalidate(assetByIdProvider(assetId))),
         data: (asset) {
           if (asset == null) {
             return Center(child: Text(l10n.assetNotFound));

@@ -1,3 +1,4 @@
+import 'package:vortice_app/core/user_feedback.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:vortice_app/core/constants.dart';
@@ -136,7 +137,7 @@ class PmKitsScreen extends ConsumerWidget {
     return kitsAsync.when(
       loading: () => const Center(child: CircularProgressIndicator()),
       error: (err, _) => Center(
-          child: Text(err.toString(),
+          child: Text(friendlyError(context, err),
               style: const TextStyle(color: AppColors.error))),
       data: (clients) {
         if (clients.isEmpty) {

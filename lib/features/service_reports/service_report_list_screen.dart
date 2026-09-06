@@ -1,3 +1,4 @@
+import 'package:vortice_app/core/user_feedback.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -49,27 +50,24 @@ class ServiceReportListScreen extends ConsumerWidget {
       UserRole.employee => '/employee',
       UserRole.client ||
       UserRole.clientAdmin ||
-      UserRole.clientMechanic =>
-        '/client',
+      UserRole.clientMechanic => '/client',
       _ => '/owner',
     };
 
     final reportsAsync = initialWorkOrderId != null
         ? ref.watch(serviceReportsByWorkOrderProvider(initialWorkOrderId!))
         : initialAssetId != null
-            ? ref.watch(serviceReportsForAssetProvider(initialAssetId!))
-            : ref.watch(serviceReportsProvider);
+        ? ref.watch(serviceReportsForAssetProvider(initialAssetId!))
+        : ref.watch(serviceReportsProvider);
 
     final title = initialWorkOrderId != null
         ? 'Work Order Service Reports'
         : initialAssetId != null
-            ? 'Asset Service Reports'
-            : l10n.serviceReportListTitle;
+        ? 'Asset Service Reports'
+        : l10n.serviceReportListTitle;
 
     return Scaffold(
-      appBar: AppBar(
-        title: Text(title),
-      ),
+      appBar: AppBar(title: Text(title)),
       floatingActionButton: canCreateForWorkOrder
           ? FloatingActionButton.extended(
               onPressed: () {
@@ -83,9 +81,19 @@ class ServiceReportListScreen extends ConsumerWidget {
           : null,
       body: reportsAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (err, _) => Center(
-          child: Text(err.toString(),
-              style: const TextStyle(color: AppColors.error)),
+        error: (err, _) => AppErrorState(
+          error: err,
+          onRetry: () {
+            if (initialWorkOrderId != null) {
+              ref.invalidate(
+                serviceReportsByWorkOrderProvider(initialWorkOrderId!),
+              );
+            } else if (initialAssetId != null) {
+              ref.invalidate(serviceReportsForAssetProvider(initialAssetId!));
+            } else {
+              ref.invalidate(serviceReportsProvider);
+            }
+          },
         ),
         data: (reports) {
           if (reports.isEmpty) {
@@ -93,9 +101,11 @@ class ServiceReportListScreen extends ConsumerWidget {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(Icons.description_outlined,
-                      size: 56,
-                      color: AppColors.textSecondary.withValues(alpha: 0.4)),
+                  Icon(
+                    Icons.description_outlined,
+                    size: 56,
+                    color: AppColors.textSecondary.withValues(alpha: 0.4),
+                  ),
                   const SizedBox(height: 12),
                   Text(
                     l10n.noServiceReports,
@@ -122,7 +132,8 @@ class ServiceReportListScreen extends ConsumerWidget {
             onRefresh: () async {
               if (initialWorkOrderId != null) {
                 ref.invalidate(
-                    serviceReportsByWorkOrderProvider(initialWorkOrderId!));
+                  serviceReportsByWorkOrderProvider(initialWorkOrderId!),
+                );
                 return;
               }
               if (initialAssetId != null) {
@@ -183,8 +194,11 @@ class _ReportCard extends StatelessWidget {
                 color: AppColors.primary.withValues(alpha: 0.1),
                 shape: BoxShape.circle,
               ),
-              child: const Icon(Icons.description_outlined,
-                  color: AppColors.primary, size: 20),
+              child: const Icon(
+                Icons.description_outlined,
+                color: AppColors.primary,
+                size: 20,
+              ),
             ),
             const SizedBox(width: 12),
             Expanded(
@@ -210,7 +224,9 @@ class _ReportCard extends StatelessWidget {
                       if (hasSig)
                         Container(
                           padding: const EdgeInsets.symmetric(
-                              horizontal: 7, vertical: 2),
+                            horizontal: 7,
+                            vertical: 2,
+                          ),
                           decoration: BoxDecoration(
                             color: AppColors.success.withValues(alpha: 0.12),
                             borderRadius: BorderRadius.circular(20),
@@ -218,8 +234,11 @@ class _ReportCard extends StatelessWidget {
                           child: const Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              Icon(Icons.draw_outlined,
-                                  size: 10, color: AppColors.success),
+                              Icon(
+                                Icons.draw_outlined,
+                                size: 10,
+                                color: AppColors.success,
+                              ),
                               SizedBox(width: 3),
                               Text(
                                 'Signed',
@@ -248,8 +267,11 @@ class _ReportCard extends StatelessWidget {
                   const SizedBox(height: 4),
                   Row(
                     children: [
-                      const Icon(Icons.calendar_today_outlined,
-                          size: 11, color: AppColors.textSecondary),
+                      const Icon(
+                        Icons.calendar_today_outlined,
+                        size: 11,
+                        color: AppColors.textSecondary,
+                      ),
                       const SizedBox(width: 4),
                       Text(
                         date,
@@ -264,8 +286,11 @@ class _ReportCard extends StatelessWidget {
               ),
             ),
             const SizedBox(width: 8),
-            const Icon(Icons.chevron_right,
-                color: AppColors.textSecondary, size: 20),
+            const Icon(
+              Icons.chevron_right,
+              color: AppColors.textSecondary,
+              size: 20,
+            ),
           ],
         ),
       ),
@@ -280,7 +305,8 @@ class _ReportSyncChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isFailed = syncStatus == SyncStatusValues.failed ||
+    final isFailed =
+        syncStatus == SyncStatusValues.failed ||
         syncStatus == SyncStatusValues.conflict;
     final color = isFailed ? AppColors.error : AppColors.warning;
     final label = isFailed ? 'Sync failed' : 'Pending sync';

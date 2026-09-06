@@ -1,3 +1,4 @@
+import 'package:vortice_app/core/user_feedback.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -40,7 +41,7 @@ class NotificationsScreen extends ConsumerWidget {
       body: notificationsAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (err, _) => Center(
-          child: Text(err.toString(),
+          child: Text(friendlyError(context, err),
               style: const TextStyle(color: AppColors.error)),
         ),
         data: (notifications) {

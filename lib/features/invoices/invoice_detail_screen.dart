@@ -1,3 +1,4 @@
+import 'package:vortice_app/core/user_feedback.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:vortice_app/l10n/app_localizations.dart';
@@ -216,10 +217,7 @@ class _InvoiceDetailScreenState extends ConsumerState<InvoiceDetailScreen> {
       ),
       body: invoiceAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (err, _) => Center(
-          child: Text(err.toString(),
-              style: const TextStyle(color: AppColors.error)),
-        ),
+        error: (err, _) => AppErrorState(error: err, onRetry: () => ref.invalidate(invoiceByIdProvider(widget.invoiceId))),
         data: (invoice) {
           if (invoice == null) {
             return Center(child: Text(l10n.notFound));

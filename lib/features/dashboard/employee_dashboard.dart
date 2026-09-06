@@ -1,10 +1,11 @@
+import 'package:vortice_app/features/dashboard/dashboard_layout.dart';
+import 'package:vortice_app/core/user_feedback.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:vortice_app/l10n/app_localizations.dart';
 import 'package:vortice_app/core/theme.dart';
-import 'package:vortice_app/features/fleet/fleet_entry_card.dart';
 import 'package:vortice_app/features/auth/auth_provider.dart';
 import 'package:vortice_app/features/work_orders/work_order_provider.dart';
 import 'package:vortice_app/features/service_reports/service_report_provider.dart';
@@ -19,298 +20,248 @@ class EmployeeDashboard extends ConsumerWidget {
     final l10n = AppLocalizations.of(context);
     final profile = ref.watch(profileProvider).valueOrNull;
     final workOrdersAsync = ref.watch(workOrdersProvider);
-    final reportsAsync = ref.watch(serviceReportsProvider);
-    final newServiceRequestCount = ref.watch(newServiceRequestCountProvider);
-
-    final today = DateFormat('EEEE, MMMM d').format(DateTime.now());
 
     return Scaffold(
-      appBar: AppBar(
-        title: Text(l10n.employeeDashboardTitle),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.logout),
-            onPressed: () =>
-                ref.read(authControllerProvider.notifier).signOut(),
-          ),
-        ],
-      ),
-      body: RefreshIndicator(
+      appBar: const DashboardAppBar(),
+      body: DashboardRefresh(
         onRefresh: () async {
           ref.invalidate(workOrdersProvider);
           ref.invalidate(serviceReportsProvider);
           ref.invalidate(newServiceRequestCountProvider);
         },
-        child: workOrdersAsync.when(
-          loading: () => const Center(child: CircularProgressIndicator()),
-          error: (err, _) => Center(
-            child: Text(err.toString(),
-                style: const TextStyle(color: AppColors.error)),
-          ),
-          data: (allOrders) {
-            final myId = profile?.id;
+        child: DashboardList(
+          children: [
+            workOrdersAsync.when(
+              loading: () => const Padding(
+                padding: EdgeInsets.all(24),
+                child: Center(child: CircularProgressIndicator()),
+              ),
+              error: (err, _) => AppErrorState(
+                error: err,
+                onRetry: () => ref.invalidate(workOrdersProvider),
+              ),
+              data: (allOrders) {
+                final myId = profile?.id;
 
-            final activeOrders = allOrders
-                .where((w) =>
-                    w.status != WorkOrderStatus.closed &&
-                    w.status != WorkOrderStatus.invoiced)
-                .toList()
-              ..sort((a, b) =>
-                  _priorityRank(a.status).compareTo(_priorityRank(b.status)));
+                final activeOrders =
+                    allOrders
+                        .where(
+                          (w) =>
+                              w.status != WorkOrderStatus.closed &&
+                              w.status != WorkOrderStatus.invoiced,
+                        )
+                        .toList()
+                      ..sort(
+                        (a, b) => _priorityRank(
+                          a.status,
+                        ).compareTo(_priorityRank(b.status)),
+                      );
 
-            final myActive =
-                activeOrders.where((w) => w.assignedTo == myId).toList();
+                final myActive = activeOrders
+                    .where((w) => w.assignedTo == myId)
+                    .toList();
 
-            final shopQueue =
-                activeOrders.where((w) => w.assignedTo != myId).toList();
+                final shopQueue = activeOrders
+                    .where((w) => w.assignedTo != myId)
+                    .toList();
 
-            final activeInProgress = activeOrders
-                .where((w) => w.status == WorkOrderStatus.inProgress)
-                .length;
-            final assignedToMe = myActive.length;
-            final openWorkOrders = activeOrders.length;
-            final myDraft =
-                myActive.where((w) => w.status == WorkOrderStatus.draft).length;
+                final myDraft = myActive
+                    .where((w) => w.status == WorkOrderStatus.draft)
+                    .length;
 
-            final reportCount = reportsAsync.valueOrNull?.length ?? 0;
-
-            return ListView(
-              padding: const EdgeInsets.only(bottom: 32),
-              children: [
-                const FleetEntryCard(),
-                // ── Greeting + date ────────────────────────────────
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 20, 16, 4),
-                  child: Text(
-                    l10n.greeting(profile?.fullName.split(' ').first ?? ''),
-                    style: Theme.of(context).textTheme.headlineMedium,
-                  ),
-                ),
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 20),
-                  child: Text(
-                    today,
-                    style: const TextStyle(
-                        color: AppColors.textSecondary, fontSize: 13),
-                  ),
-                ),
-
-                // ── KPI row ────────────────────────────────────────
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 20),
-                  child: Row(
-                    children: [
-                      _KpiCard(
-                        label: 'In Progress',
-                        value: '$activeInProgress',
-                        color: AppColors.primary,
-                        icon: Icons.play_circle_outline,
-                        onTap: () => context.push('/employee/work-orders'),
-                      ),
-                      const SizedBox(width: 10),
-                      _KpiCard(
-                        label: 'Assigned Me',
-                        value: '$assignedToMe',
-                        color: AppColors.warning,
-                        icon: Icons.assignment_outlined,
-                        onTap: () => context.push('/employee/work-orders'),
-                      ),
-                      const SizedBox(width: 10),
-                      _KpiCard(
-                        label: 'Open WOs',
-                        value: '$openWorkOrders',
-                        color: AppColors.success,
-                        icon: Icons.list_alt_outlined,
-                        onTap: () => context.push('/employee/work-orders'),
-                      ),
-                      const SizedBox(width: 10),
-                      _KpiCard(
-                        label: 'Reports',
-                        value: '$reportCount',
-                        color: AppColors.success,
-                        icon: Icons.description_outlined,
-                        onTap: () => context.push('/employee/service-reports'),
-                      ),
-                    ],
-                  ),
-                ),
-
-                // ── Quick actions ──────────────────────────────────
-                const Padding(
-                  padding: EdgeInsets.fromLTRB(16, 0, 16, 8),
-                  child: _SectionHeader(title: 'QUICK ACTIONS'),
-                ),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  child: Row(
-                    children: [
-                      _QuickAction(
-                        icon: Icons.support_agent_outlined,
-                        label: newServiceRequestCount.valueOrNull == null ||
-                                newServiceRequestCount.valueOrNull == 0
-                            ? 'Requests'
-                            : 'Requests (${newServiceRequestCount.valueOrNull})',
-                        onTap: () => context.push('/employee/service-requests'),
-                      ),
-                      const SizedBox(width: 10),
-                      _QuickAction(
-                        icon: Icons.settings_outlined,
-                        label: 'Parts Log',
-                        onTap: () => context.push('/employee/parts'),
-                      ),
-                      const SizedBox(width: 10),
-                      _QuickAction(
-                        icon: Icons.list_alt_outlined,
-                        label: 'All WOs',
-                        onTap: () => context.push('/employee/work-orders'),
-                      ),
-                    ],
-                  ),
-                ),
-
-                const SizedBox(height: 24),
-
-                // ── My work queue ──────────────────────────────────
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      _SectionHeader(title: l10n.assignedToMe),
-                      if (myActive.isNotEmpty)
-                        TextButton(
-                          onPressed: () =>
-                              context.push('/employee/work-orders'),
-                          child: Text(l10n.viewAll,
-                              style: const TextStyle(
-                                  color: AppColors.primary, fontSize: 12)),
-                        ),
-                    ],
-                  ),
-                ),
-
-                if (myActive.isEmpty)
-                  Padding(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 16, vertical: 24),
-                    child: Center(
-                      child: Column(
-                        children: [
-                          Icon(Icons.check_circle_outline,
-                              size: 48,
-                              color: AppColors.success.withValues(alpha: 0.7)),
-                          const SizedBox(height: 10),
-                          Text(
-                            l10n.noAssignedWorkOrders,
-                            style:
-                                const TextStyle(color: AppColors.textSecondary),
-                          ),
-                        ],
-                      ),
-                    ),
-                  )
-                else
-                  ...myActive.take(5).map((wo) => _WorkOrderCard(
-                        workOrder: wo,
-                        onTap: () =>
-                            context.push('/employee/work-orders/${wo.id}'),
-                      )),
-
-                if (myActive.length > 5) ...[
-                  const SizedBox(height: 4),
-                  Center(
-                    child: TextButton(
-                      onPressed: () => context.push('/employee/work-orders'),
-                      child: Text(
-                        '+${myActive.length - 5} more',
-                        style: const TextStyle(color: AppColors.primary),
-                      ),
-                    ),
-                  ),
-                ],
-
-                const SizedBox(height: 24),
-
-                // ── Shop work queue ────────────────────────────────
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      const _SectionHeader(title: 'OPEN WORK ORDERS'),
-                      if (shopQueue.isNotEmpty)
-                        TextButton(
-                          onPressed: () =>
-                              context.push('/employee/work-orders'),
-                          child: Text(l10n.viewAll,
-                              style: const TextStyle(
-                                  color: AppColors.primary, fontSize: 12)),
-                        ),
-                    ],
-                  ),
-                ),
-
-                if (shopQueue.isEmpty)
-                  const Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-                    child: Text(
-                      'No other active work orders.',
-                      style: TextStyle(color: AppColors.textSecondary),
-                    ),
-                  )
-                else
-                  ...shopQueue.take(5).map((wo) => _WorkOrderCard(
-                        workOrder: wo,
-                        onTap: () =>
-                            context.push('/employee/work-orders/${wo.id}'),
-                      )),
-
-                if (shopQueue.length > 5) ...[
-                  const SizedBox(height: 4),
-                  Center(
-                    child: TextButton(
-                      onPressed: () => context.push('/employee/work-orders'),
-                      child: Text(
-                        '+${shopQueue.length - 5} more',
-                        style: const TextStyle(color: AppColors.primary),
-                      ),
-                    ),
-                  ),
-                ],
-
-                // ── Draft WOs reminder ─────────────────────────────
-                if (myDraft > 0) ...[
-                  const SizedBox(height: 8),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    child: Container(
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: AppColors.warning.withValues(alpha: 0.08),
-                        borderRadius: BorderRadius.circular(10),
-                        border: Border.all(
-                            color: AppColors.warning.withValues(alpha: 0.3)),
-                      ),
+                return Column(
+                  children: [
+                    // ── My work queue ──────────────────────────────────
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
                       child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          const Icon(Icons.info_outline,
-                              color: AppColors.warning, size: 18),
-                          const SizedBox(width: 10),
                           Expanded(
-                            child: Text(
-                              '$myDraft draft work order${myDraft > 1 ? 's' : ''} waiting to be started.',
-                              style: const TextStyle(
-                                  color: AppColors.warning, fontSize: 13),
+                            child: DashboardSection(
+                              inset: false,
+                              title: l10n.assignedToMe,
                             ),
                           ),
+                          if (myActive.isNotEmpty)
+                            TextButton(
+                              onPressed: () =>
+                                  context.push('/employee/work-orders'),
+                              child: Text(
+                                l10n.viewAll,
+                                style: const TextStyle(
+                                  color: AppColors.primary,
+                                  fontSize: 12,
+                                ),
+                              ),
+                            ),
                         ],
                       ),
                     ),
-                  ),
-                ],
-              ],
-            );
-          },
+
+                    if (myActive.isEmpty)
+                      Padding(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 24,
+                        ),
+                        child: Center(
+                          child: Column(
+                            children: [
+                              Icon(
+                                Icons.check_circle_outline,
+                                size: 48,
+                                color: AppColors.success.withValues(alpha: 0.7),
+                              ),
+                              const SizedBox(height: 10),
+                              Text(
+                                l10n.noAssignedWorkOrders,
+                                style: const TextStyle(
+                                  color: AppColors.textSecondary,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      )
+                    else
+                      ...myActive
+                          .take(5)
+                          .map(
+                            (wo) => _WorkOrderCard(
+                              workOrder: wo,
+                              onTap: () => context.push(
+                                '/employee/work-orders/${wo.id}',
+                              ),
+                            ),
+                          ),
+
+                    if (myActive.length > 5) ...[
+                      const SizedBox(height: 4),
+                      Center(
+                        child: TextButton(
+                          onPressed: () =>
+                              context.push('/employee/work-orders'),
+                          child: Text(
+                            '+${myActive.length - 5} more',
+                            style: const TextStyle(color: AppColors.primary),
+                          ),
+                        ),
+                      ),
+                    ],
+
+                    const SizedBox(height: 24),
+
+                    // ── Shop work queue ────────────────────────────────
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Expanded(
+                            child: DashboardSection(
+                              inset: false,
+                              title: dashboardText(
+                                context,
+                                'Other work orders',
+                                'Otras órdenes de trabajo',
+                              ),
+                            ),
+                          ),
+                          if (shopQueue.isNotEmpty)
+                            TextButton(
+                              onPressed: () =>
+                                  context.push('/employee/work-orders'),
+                              child: Text(
+                                l10n.viewAll,
+                                style: const TextStyle(
+                                  color: AppColors.primary,
+                                  fontSize: 12,
+                                ),
+                              ),
+                            ),
+                        ],
+                      ),
+                    ),
+
+                    if (shopQueue.isEmpty)
+                      const Padding(
+                        padding: EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 16,
+                        ),
+                        child: Text(
+                          'No other active work orders.',
+                          style: TextStyle(color: AppColors.textSecondary),
+                        ),
+                      )
+                    else
+                      ...shopQueue
+                          .take(5)
+                          .map(
+                            (wo) => _WorkOrderCard(
+                              workOrder: wo,
+                              onTap: () => context.push(
+                                '/employee/work-orders/${wo.id}',
+                              ),
+                            ),
+                          ),
+
+                    if (shopQueue.length > 5) ...[
+                      const SizedBox(height: 4),
+                      Center(
+                        child: TextButton(
+                          onPressed: () =>
+                              context.push('/employee/work-orders'),
+                          child: Text(
+                            '+${shopQueue.length - 5} more',
+                            style: const TextStyle(color: AppColors.primary),
+                          ),
+                        ),
+                      ),
+                    ],
+
+                    // ── Draft WOs reminder ─────────────────────────────
+                    if (myDraft > 0) ...[
+                      const SizedBox(height: 8),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                        child: Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: AppColors.warning.withValues(alpha: 0.08),
+                            borderRadius: BorderRadius.circular(10),
+                            border: Border.all(
+                              color: AppColors.warning.withValues(alpha: 0.3),
+                            ),
+                          ),
+                          child: Row(
+                            children: [
+                              const Icon(
+                                Icons.info_outline,
+                                color: AppColors.warning,
+                                size: 18,
+                              ),
+                              const SizedBox(width: 10),
+                              Expanded(
+                                child: Text(
+                                  '$myDraft draft work order${myDraft > 1 ? 's' : ''} waiting to be started.',
+                                  style: const TextStyle(
+                                    color: AppColors.warning,
+                                    fontSize: 13,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
+                  ],
+                );
+              },
+            ),
+          ],
         ),
       ),
     );
@@ -318,132 +269,18 @@ class EmployeeDashboard extends ConsumerWidget {
 
   // In-progress first, then assigned, then draft
   int _priorityRank(WorkOrderStatus status) => switch (status) {
-        WorkOrderStatus.inProgress => 0,
-        WorkOrderStatus.assigned => 1,
-        WorkOrderStatus.draft => 2,
-        _ => 3,
-      };
+    WorkOrderStatus.inProgress => 0,
+    WorkOrderStatus.assigned => 1,
+    WorkOrderStatus.draft => 2,
+    _ => 3,
+  };
 }
 
 // ── KPI card ─────────────────────────────────────────────────────────────────
 
-class _KpiCard extends StatelessWidget {
-  final String label;
-  final String value;
-  final Color color;
-  final IconData icon;
-  final VoidCallback onTap;
-
-  const _KpiCard({
-    required this.label,
-    required this.value,
-    required this.color,
-    required this.icon,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Expanded(
-      child: GestureDetector(
-        onTap: onTap,
-        child: Container(
-          padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 12),
-          decoration: BoxDecoration(
-            color: AppColors.surface,
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: AppColors.cardBorder),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Icon(icon, color: color, size: 20),
-              const SizedBox(height: 8),
-              Text(
-                value,
-                style: TextStyle(
-                  color: color,
-                  fontSize: 22,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              const SizedBox(height: 2),
-              Text(
-                label,
-                style: const TextStyle(
-                  color: AppColors.textSecondary,
-                  fontSize: 11,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
 // ── Quick action button ───────────────────────────────────────────────────────
 
-class _QuickAction extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final VoidCallback onTap;
-
-  const _QuickAction({
-    required this.icon,
-    required this.label,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Expanded(
-      child: GestureDetector(
-        onTap: onTap,
-        child: Container(
-          padding: const EdgeInsets.symmetric(vertical: 14),
-          decoration: BoxDecoration(
-            color: AppColors.surfaceVariant,
-            borderRadius: BorderRadius.circular(10),
-            border: Border.all(color: AppColors.cardBorder),
-          ),
-          child: Column(
-            children: [
-              Icon(icon, color: AppColors.primary, size: 22),
-              const SizedBox(height: 6),
-              Text(
-                label,
-                style: const TextStyle(
-                  color: AppColors.textSecondary,
-                  fontSize: 11,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
 // ── Section header ────────────────────────────────────────────────────────────
-
-class _SectionHeader extends StatelessWidget {
-  final String title;
-  const _SectionHeader({required this.title});
-
-  @override
-  Widget build(BuildContext context) {
-    return Text(
-      title,
-      style: Theme.of(context).textTheme.labelSmall?.copyWith(
-            color: AppColors.primary,
-            letterSpacing: 1.2,
-          ),
-    );
-  }
-}
 
 // ── Work order card ───────────────────────────────────────────────────────────
 
@@ -454,21 +291,21 @@ class _WorkOrderCard extends StatelessWidget {
   const _WorkOrderCard({required this.workOrder, required this.onTap});
 
   Color _statusColor() => switch (workOrder.status) {
-        WorkOrderStatus.inProgress => AppColors.primary,
-        WorkOrderStatus.assigned => AppColors.warning,
-        WorkOrderStatus.draft => AppColors.textSecondary,
-        WorkOrderStatus.onHold => AppColors.error,
-        _ => AppColors.textSecondary,
-      };
+    WorkOrderStatus.inProgress => AppColors.primary,
+    WorkOrderStatus.assigned => AppColors.warning,
+    WorkOrderStatus.draft => AppColors.textSecondary,
+    WorkOrderStatus.onHold => AppColors.error,
+    _ => AppColors.textSecondary,
+  };
 
   String _statusLabel() => switch (workOrder.status) {
-        WorkOrderStatus.inProgress => 'In Progress',
-        WorkOrderStatus.assigned => 'Assigned',
-        WorkOrderStatus.draft => 'Draft',
-        WorkOrderStatus.onHold => 'On Hold',
-        WorkOrderStatus.closed => 'Closed',
-        _ => workOrder.status.name,
-      };
+    WorkOrderStatus.inProgress => 'In Progress',
+    WorkOrderStatus.assigned => 'Assigned',
+    WorkOrderStatus.draft => 'Draft',
+    WorkOrderStatus.onHold => 'On Hold',
+    WorkOrderStatus.closed => 'Closed',
+    _ => workOrder.status.name,
+  };
 
   @override
   Widget build(BuildContext context) {
@@ -508,9 +345,7 @@ class _WorkOrderCard extends StatelessWidget {
                         Expanded(
                           child: Text(
                             workOrder.title,
-                            style: Theme.of(context)
-                                .textTheme
-                                .titleSmall
+                            style: Theme.of(context).textTheme.titleSmall
                                 ?.copyWith(fontWeight: FontWeight.w600),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
@@ -518,7 +353,9 @@ class _WorkOrderCard extends StatelessWidget {
                         ),
                         Container(
                           padding: const EdgeInsets.symmetric(
-                              horizontal: 8, vertical: 3),
+                            horizontal: 8,
+                            vertical: 3,
+                          ),
                           decoration: BoxDecoration(
                             color: color.withValues(alpha: 0.12),
                             borderRadius: BorderRadius.circular(20),
@@ -550,12 +387,16 @@ class _WorkOrderCard extends StatelessWidget {
                       const SizedBox(height: 4),
                       Row(
                         children: [
-                          const Icon(Icons.calendar_today_outlined,
-                              size: 11, color: AppColors.textSecondary),
+                          const Icon(
+                            Icons.calendar_today_outlined,
+                            size: 11,
+                            color: AppColors.textSecondary,
+                          ),
                           const SizedBox(width: 4),
                           Text(
-                            DateFormat('MMM d')
-                                .format(workOrder.scheduledDate!),
+                            DateFormat(
+                              'MMM d',
+                            ).format(workOrder.scheduledDate!),
                             style: const TextStyle(
                               color: AppColors.textSecondary,
                               fontSize: 11,
@@ -568,8 +409,11 @@ class _WorkOrderCard extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: 8),
-              const Icon(Icons.chevron_right,
-                  color: AppColors.textSecondary, size: 20),
+              const Icon(
+                Icons.chevron_right,
+                color: AppColors.textSecondary,
+                size: 20,
+              ),
             ],
           ),
         ),

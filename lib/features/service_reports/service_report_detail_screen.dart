@@ -1,3 +1,4 @@
+import 'package:vortice_app/core/user_feedback.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -45,10 +46,7 @@ class ServiceReportDetailScreen extends ConsumerWidget {
       appBar: AppBar(title: const Text('Service Report Detail')),
       body: reportAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (err, _) => Center(
-          child: Text(err.toString(),
-              style: const TextStyle(color: AppColors.error)),
-        ),
+        error: (err, _) => AppErrorState(error: err, onRetry: () => ref.invalidate(serviceReportByIdProvider(reportId))),
         data: (report) {
           if (report == null) {
             return Center(child: Text(l10n.notFound));

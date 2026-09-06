@@ -5,14 +5,43 @@ elsewhere, but every active task must be represented here with a stable ID.
 
 ## Now
 
-### NOW-004 — Restore internal dev persona login
+### NOW-006 — Continue the remaining feature areas
 
-Outcome: the login logo's dev panel fills both email and the corresponding
-Next mock-account password in the internal Android APK. Load passwords from
-ignored local build configuration only, gate them to debug builds targeting
-Next, verify all six accounts through the app's runtime configuration, and
-deliver build 1.1.2+4 to the phone. This includes correcting the inherited
-placeholder API-key constant and checking config wiring before every APK build.
+Outcome: choose and deliver the next useful end-to-end feature from the 20
+remaining areas in the original 22-item assessment. Garrett requested a new
+project task for this continuation after the initial two features and UX work.
+Inventory, existing foundations and proposed next discussion:
+`docs/specs/NOW-006-feature-continuation.md`.
+
+Resolve recorded deployment/device follow-ups, then agree one focused slice.
+Do not treat the whole inventory as a single implementation task.
+
+### NOW-005 — Make the whole app easier to navigate and use
+
+Outcome: existing and new workflows feel like one app for less technical users.
+Garrett authorized a broad UX pass, including removal of unnecessary duplication.
+Specification: `docs/specs/NOW-005-ux-cohesion.md`.
+
+Implementation is verified for internal build `1.2.2+7`: clean analysis and
+328 passing tests (204 existing skipped walkthrough checks). Awaiting Garrett's
+device review; findings and evidence are recorded in the specification.
+Build 7 is ready locally; phone delivery is waiting for its connection.
+
+Follow-up: restore Sign out at the top right of every profile's home dashboard
+while retaining it in More. Both entry points share the same confirmation.
+
+Completed follow-up: standardized every dashboard around a shared Home header,
+greeting, fleet status, action cards, and section headings. Keep role-specific
+work and capability gates while removing redundant shortcut layouts.
+
+- Consistent role-aware navigation exposes the main work and a searchable tools
+  directory without losing existing functionality or bypassing capability rules.
+- Fix misleading routes, duplicate dashboards and inert controls; use plain
+  language, actionable errors and recoverable empty/search states.
+- Asset, fault, checklist, work-order, report, invoice and request journeys keep
+  clear context and protect entered work from accidental navigation.
+- Verify role routing and changed interactions, render phone/large-text states,
+  run prescribed checks, and deliver an internal APK for review.
 
 ### NOW-003 — Fault-to-repair tracking and asset availability
 

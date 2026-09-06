@@ -1,3 +1,4 @@
+import 'package:vortice_app/core/user_feedback.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -199,7 +200,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     if (authState.hasError && mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(authState.error.toString()),
+          content: Text(friendlyError(context, authState.error)),
           backgroundColor: AppColors.error,
         ),
       );
@@ -408,7 +409,25 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     Align(
                       alignment: Alignment.centerRight,
                       child: TextButton(
-                        onPressed: () {},
+                        onPressed: () => showDialog<void>(
+                          context: context,
+                          builder: (ctx) => AlertDialog(
+                            title: Text(l10n.forgotPassword),
+                            content: Text(
+                              isSpanish(context)
+                                  ? 'Pide a tu administrador que te ayude a recuperar el acceso. Ten a mano el correo que usas para iniciar sesión.'
+                                  : 'Ask your administrator to help restore access. Have the email you use to sign in ready.',
+                            ),
+                            actions: [
+                              TextButton(
+                                onPressed: () => Navigator.pop(ctx),
+                                child: Text(
+                                  isSpanish(context) ? 'Entendido' : 'Got it',
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
                         child: Text(l10n.forgotPassword),
                       ),
                     ),
