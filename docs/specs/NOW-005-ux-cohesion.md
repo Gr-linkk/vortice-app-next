@@ -115,3 +115,17 @@ shortcuts, and usable loading/error states. Existing route checks now also
 verify all dashboard destinations. Phone-sized screenshots are saved under
 `outputs/screenshots/dashboard-*.png`; final verification and APK delivery
 are recorded in `outputs/NOW-005-dashboard-build-notes.md`.
+
+## First-principles follow-up
+
+Garrett requested a deletion-first review before starting NOW-006. Removed the
+operator dashboard's redundant asset-to-map provider and used the existing typed,
+company-scoped fleet provider directly. Pull-to-refresh now invalidates that
+source instead of rebuilding a map from cached assets. Checklist navigation and
+presentation are unchanged. The refresh regression failed before the change
+(one fleet load instead of two) and passed afterward; all 35 dashboard/navigation
+checks passed. No APK rebuild or hosted deployment was performed for this cleanup.
+
+Kept shared dashboard components, capability gates, and transactional fault
+checks: they own repeated presentation, access decisions, and duplicate/stale-save
+protection respectively. No broader replacement was justified by this review.

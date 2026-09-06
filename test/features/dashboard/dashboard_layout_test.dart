@@ -63,6 +63,7 @@ Future<GoRouter> pumpDashboard(
   bool telemetry = false,
   bool checks = true,
   Future<List<WorkOrder>> Function()? loadOrders,
+  Future<List<Asset>> Function()? loadFleet,
 }) async {
   tester.view.physicalSize = Size(width, 844);
   tester.view.devicePixelRatio = 1;
@@ -131,7 +132,9 @@ Future<GoRouter> pumpDashboard(
         notificationsProvider.overrideWith((_) async => []),
         assetsProvider.overrideWith((_) async => [asset]),
         visibleAssetsProvider.overrideWith((_) async => [asset]),
-        currentClientFleetAssetsProvider.overrideWith((_) async => [asset]),
+        currentClientFleetAssetsProvider.overrideWith(
+          (_) => loadFleet?.call() ?? Future.value([asset]),
+        ),
         checklistTemplatesProvider.overrideWith(
           (_) async => [
             const ChecklistTemplate(
@@ -169,11 +172,6 @@ Future<GoRouter> pumpDashboard(
           ),
         ),
         remindersProvider.overrideWith((_) async => []),
-        clientOperatorAssignedAssetsProvider.overrideWith(
-          (_) async => [
-            {'id': 'pump', 'name': asset.name},
-          ],
-        ),
         clientOperatorRecentRunsProvider.overrideWith((_) async => []),
         myChecklistAssignmentsProvider.overrideWith((_) async => []),
       ],
@@ -301,6 +299,26 @@ void main() {
       find.text('Opened /operator/checklist?assetId=pump'),
       findsOneWidget,
     );
+  });
+  testWidgets('operator refresh reloads the fleet behind checklist cards', (
+    tester,
+  ) async {
+    var loads = 0;
+    await pumpDashboard(
+      tester,
+      UserRole.operator,
+      loadFleet: () async => ++loads == 1 ? [asset] : [],
+    );
+    await tester.pumpAndSettle();
+    await tester.drag(find.byType(DashboardList), const Offset(0, 400));
+    await tester.pumpAndSettle();
+    expect(loads, 2);
+    await tester.scrollUntilVisible(
+      find.text('No assets assigned.'),
+      250,
+      scrollable: find.byType(Scrollable).first,
+    );
+    expect(find.text(asset.name), findsNothing);
   });
   testWidgets('mechanic checklist keeps its asset and template context', (
     tester,

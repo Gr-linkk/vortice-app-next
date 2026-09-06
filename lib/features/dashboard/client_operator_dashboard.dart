@@ -10,15 +10,8 @@ import 'package:vortice_app/core/theme.dart';
 import 'package:vortice_app/features/assets/client_team_asset_access.dart';
 import 'package:vortice_app/features/checklists/checklist_assignment_provider.dart';
 import 'package:vortice_app/features/clients/client_capability_gate.dart';
+import 'package:vortice_app/models/asset.dart';
 import 'package:vortice_app/models/client_capability.dart';
-
-// ── Provider: assets assigned to this client_operator's org ─────────────────
-
-final clientOperatorAssignedAssetsProvider =
-    FutureProvider<List<Map<String, dynamic>>>((ref) async {
-      final assets = await ref.watch(currentClientFleetAssetsProvider.future);
-      return assets.map(clientTeamAssetRow).toList();
-    });
 
 // ── Provider: recent pre-departure checklist runs for this operator ──────────
 
@@ -44,7 +37,7 @@ class ClientOperatorDashboard extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final assetsAsync = ref.watch(clientOperatorAssignedAssetsProvider);
+    final assetsAsync = ref.watch(currentClientFleetAssetsProvider);
     final runsAsync = ref.watch(clientOperatorRecentRunsProvider);
     final operationalChecklistsAllowedAsync = ref.watch(
       clientCapabilityGateProvider((
@@ -62,7 +55,7 @@ class ClientOperatorDashboard extends ConsumerWidget {
       appBar: const DashboardAppBar(),
       body: DashboardRefresh(
         onRefresh: () async {
-          ref.invalidate(clientOperatorAssignedAssetsProvider);
+          ref.invalidate(currentClientFleetAssetsProvider);
           ref.invalidate(clientOperatorRecentRunsProvider);
           ref.invalidate(myChecklistAssignmentsProvider);
           ref.invalidate(
@@ -250,7 +243,7 @@ class ClientOperatorDashboard extends ConsumerWidget {
 // ── Asset Checklist Card ──────────────────────────────────────────────────────
 
 class _AssetChecklistCard extends StatelessWidget {
-  final Map<String, dynamic> asset;
+  final Asset asset;
   const _AssetChecklistCard({required this.asset});
 
   @override
@@ -259,12 +252,12 @@ class _AssetChecklistCard extends StatelessWidget {
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
       child: ListTile(
         leading: const Icon(Icons.checklist, color: AppColors.primaryLight),
-        title: Text(asset['name'] as String? ?? '—'),
+        title: Text(asset.name),
         subtitle: Text(
           dashboardText(context, 'Start checklist', 'Iniciar revisión'),
         ),
         trailing: const Icon(Icons.chevron_right),
-        onTap: () => context.push('/operator/checklist?assetId=${asset['id']}'),
+        onTap: () => context.push('/operator/checklist?assetId=${asset.id}'),
       ),
     );
   }
