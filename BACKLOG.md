@@ -21,9 +21,11 @@ The Build 7 device review remains open; it does not block this authorized work.
 
 Items 1, 4 and 5 are implemented and verified for internal build `1.3.0+8`:
 clean analysis, 337 passing tests, 204 existing skips, all three isolated SQL
-contract suites, and English/Spanish rendered maintenance screens. Hosted
-activation of the new maintenance migration and physical-device review remain
-open. Evidence and limits are recorded in the company-maintenance specification.
+contract suites, and English/Spanish rendered maintenance screens. Garrett
+approved hosted activation; the maintenance migration deployed to Next on
+2026-09-06 UTC. All three hosted SQL suites and six persona HTTP checks passed.
+Physical-device review remains open. Evidence and limits are recorded in the
+company-maintenance specification.
 
 ### NOW-005 — Make the whole app easier to navigate and use
 

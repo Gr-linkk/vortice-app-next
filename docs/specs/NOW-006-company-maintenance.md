@@ -82,7 +82,25 @@ transactions (12), invoice redesign, or production release.
   approval transaction; see decision 0005.
 
 Internal build: `1.3.0+8`. Local evidence is under `outputs/NOW-006-*` and
-`outputs/screenshots/maintenance-*`. Hosted activation and physical-device
-workflow review are still pending; no new migration has been deployed in this
-build task. Connectivity is required for server saves; the separate durable
-offline workflow remains item 7.
+`outputs/screenshots/maintenance-*`. Connectivity is required for server saves;
+the separate durable offline workflow remains item 7.
+
+## Hosted activation, 2026-09-06 UTC
+
+After Garrett explicitly approved the migration, the guarded deployment helper
+applied `20260906010000_company_maintenance.sql` to Vortice Next
+(`hkjpojobdbbtjkhaudki`). It was the only pending migration. Repository root,
+branch, all remotes and the linked project ref were verified before deployment.
+Windows line endings initially prevented the shell helper from starting; it was
+normalized, and shell helpers now have an explicit LF checkout rule.
+
+All three hosted SQL contract suites passed in rollback transactions. Six
+existing internal personas passed authenticated HTTP checks for jobs, workspace
+and asset context, including operator exclusion from internal jobs and manager
+permission checks. The migration ledger and private evidence bucket were
+confirmed. Zero synthetic users, jobs or evidence objects remained afterward.
+
+Evidence: `outputs/NOW-006-hosted-*.log`. Build 8 already contains the matching
+client; no rebuild is needed for activation. Phone transfer and physical-device
+workflow review remain pending. HTTP verification covered authenticated reads;
+the hosted SQL contracts exercised mutations, approval and storage policies.

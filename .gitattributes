@@ -1,2 +1,2 @@
-# The isolated SQL test runner executes in WSL from the Windows checkout.
-scripts/test-database.sh text eol=lf
+# Shell helpers execute in WSL from the Windows checkout.
+scripts/*.sh text eol=lf
