@@ -7,6 +7,15 @@ without creating a new backlog item.
 
 ## Now
 
+### NOW-021 — Populate the existing app for a demo
+
+Garrett requested a populated demonstration that retains the Ellicott dredge and
+uses local manuals where available. Hosted demo data is populated and 130 role
+and route checks pass. The existing Ellicott identity, components and history are
+retained. Source-manual enrichment remains pending: the specific Ellicott manual
+was not located in the searched Lenovo document folders. Scope, saved evidence
+and demo entrypoints: `docs/specs/NOW-021-demo-population.md`.
+
 ### NOW-020 — Simplify existing code without losing behavior
 
 Garrett requested a whole-code simplification pass, verification, push and a new
