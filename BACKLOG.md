@@ -14,7 +14,9 @@ Apply native light/dark themes, saved System/Light/Dark settings, fine offline
 equipment art, work-first Home, schedule-first Planning and form/navigation
 refinements. Preserve the concurrent NOW-016 workflow fixes. Scope and acceptance:
 `docs/specs/NOW-017-field-notes-ui.md`; accepted decision 0013.
-Implementation and verification are in progress; device acceptance is separate.
+Native UI verification passes: clean analysis, 499 tests and 204 existing skips.
+Light/dark native renders include Spanish and enlarged text. Combined packaging
+with NOW-016 is pending; physical device acceptance is separate.
 
 ### NOW-015 — Checklist builder and connected PM/pre-operation workflows
 

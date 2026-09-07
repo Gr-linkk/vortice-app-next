@@ -26,6 +26,19 @@ direction. Work is isolated from the concurrent NOW-016 workflow stabilization.
 
 ## Verification
 
-Implementation and verification in progress. Final evidence will record guarded
-analysis/tests, representative native light/dark screenshots and the packaged
-APK. Physical phone appearance and interaction remain a separate acceptance step.
+Native implementation is committed on `codex/now-017-field-notes-ui`.
+The guarded verification passes with clean analysis, 499 passing Flutter tests
+and 204 existing skips (`work/verify-ui-final.txt`). It includes startup appearance
+restoration, persistence failure, platform mode changes, actual selected chip
+text, equipment mapping/fallback, role navigation, and real save/retry behavior.
+
+Native screenshots use actual Roboto and Material icons. Representative Home,
+Settings, equipment, checklist and form renders are in `outputs/ui-field-notes/`;
+Planning day/week/month and Spanish large-text renders are in
+`outputs/planning-ui/`. The final rendered subset passes 45 tests. Review corrected
+selected filter contrast, status-message contrast, the Spanish operator headings
+and a truncated part-number label. Form tests expand optional fields and scroll
+lazy controls before asserting the existing save, validation and stale-edit rules.
+
+APK packaging follows integration of the concurrent NOW-016 workflow checkpoint.
+Physical phone appearance and interaction remain a separate acceptance step.
