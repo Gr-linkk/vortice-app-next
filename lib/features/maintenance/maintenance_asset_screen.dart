@@ -149,6 +149,18 @@ class MaintenanceAssetScreen extends ConsumerWidget {
                   if (asset['location'] != null)
                     Text(asset['location'] as String),
                   const SizedBox(height: 16),
+                  if (planManager) ...[
+                    FilledButton.icon(
+                      onPressed: () => context.push(
+                        '/maintenance/planning?assetId=$assetId',
+                      ),
+                      icon: const Icon(Icons.calendar_month_outlined),
+                      label: Text(
+                        es ? 'Planificar mantenimiento' : 'Plan maintenance',
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                  ],
                   Wrap(
                     spacing: 8,
                     runSpacing: 8,
@@ -305,7 +317,7 @@ class MaintenanceAssetScreen extends ConsumerWidget {
                                     plan['is_active'] == true)
                                   FilledButton(
                                     onPressed: () => context.push(
-                                      '/maintenance/new?assetId=$assetId&planId=${plan['id']}',
+                                      '/maintenance/new?assetId=$assetId&planId=${plan['id']}&planning=true',
                                     ),
                                     child: Text(
                                       es

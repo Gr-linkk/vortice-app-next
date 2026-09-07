@@ -5,6 +5,7 @@ import 'package:vortice_app/features/coordination/asset_history_screen.dart';
 import 'package:vortice_app/features/coordination/discussion_screen.dart';
 import 'package:vortice_app/features/coordination/fleet_overview_screen.dart';
 import 'package:vortice_app/features/maintenance/maintenance_list_screen.dart';
+import 'package:vortice_app/features/maintenance/planning/maintenance_planning_screen.dart';
 import 'package:vortice_app/features/maintenance/maintenance_create_screen.dart';
 import 'package:vortice_app/features/maintenance/maintenance_job_screen.dart';
 import 'package:vortice_app/features/maintenance/maintenance_asset_screen.dart';
@@ -227,10 +228,18 @@ final routerProvider = Provider<GoRouter>((ref) {
             ),
           ),
           GoRoute(
+            path: '/maintenance/planning',
+            builder: (_, state) => MaintenancePlanningScreen(
+              assetId: state.uri.queryParameters['assetId'],
+              jobId: state.uri.queryParameters['jobId'],
+            ),
+          ),
+          GoRoute(
             path: '/maintenance/new',
             builder: (_, state) => MaintenanceCreateScreen(
               assetId: state.uri.queryParameters['assetId'],
               planId: state.uri.queryParameters['planId'],
+              planning: state.uri.queryParameters['planning'] == 'true',
               parentJobId: state.uri.queryParameters['parentJobId'],
               faultId: state.uri.queryParameters['faultId'],
             ),

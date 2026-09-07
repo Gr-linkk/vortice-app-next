@@ -1,6 +1,9 @@
 import 'package:vortice_app/core/app_dropdown_field.dart';
 import 'package:vortice_app/core/user_feedback.dart';
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
+import 'package:vortice_app/features/auth/auth_provider.dart';
+import 'package:vortice_app/features/maintenance/maintenance_models.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:vortice_app/core/theme.dart';
 import 'package:vortice_app/features/assets/asset_provider.dart';
@@ -96,6 +99,29 @@ class _ServiceIntervalScreenState extends ConsumerState<ServiceIntervalScreen> {
                       )
                       .toList(),
                   onChanged: (a) => setState(() => _selectedAsset = a),
+                ),
+              ),
+            ),
+          if (canUseMaintenance(ref.watch(profileProvider).valueOrNull?.role))
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              child: Card(
+                child: ListTile(
+                  leading: const Icon(Icons.calendar_month_outlined),
+                  title: Text(
+                    isSpanish(context)
+                        ? 'Planificar próximos trabajos'
+                        : 'Plan upcoming work',
+                  ),
+                  subtitle: Text(
+                    isSpanish(context)
+                        ? 'Programa estos servicios y organiza al equipo.'
+                        : 'Schedule these services and organize the team.',
+                  ),
+                  trailing: const Icon(Icons.chevron_right),
+                  onTap: () => context.push(
+                    '/maintenance/planning${activeAssetId == null ? '' : '?assetId=$activeAssetId'}',
+                  ),
                 ),
               ),
             ),

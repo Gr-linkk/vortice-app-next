@@ -7,6 +7,23 @@ without creating a new backlog item.
 
 ## Now
 
+### NOW-013 — Forward maintenance planning
+
+Garrett authorized a substantial planning slice built around the existing
+Maintenance Plan/service-interval section, with free commits and pushes.
+Make planning prominent: week/month/day views, unscheduled and attention queues,
+existing service plans, mechanic booked hours, assignment and conflict-aware
+scheduling. Preserve component-specific completion, billing, role boundaries
+and offline execution. Scope and acceptance: `docs/specs/NOW-013-maintenance-planning.md`.
+Bookings and deadlines are distinct; an overlap requires an explicit reason.
+Hosted activation and physical-device acceptance are reported separately.
+
+Implemented in Build 16 (`1.7.0+16`). The Next planning migration is active;
+12 local and 12 hosted SQL suites plus all seven connected planning/execution
+steps pass. Guarded verification has clean analysis and 446 Flutter tests
+(204 existing skips). Marked fixtures are removed. Physical-device acceptance
+remains separate; artifact details and review evidence are in the specification.
+
 ### NOW-012 — Direct workflows and fewer competing actions
 
 Garrett requested a simpler fault screen that clearly leads into work orders,
@@ -22,6 +39,10 @@ asset action hierarchy, direct service-report entry, and one scoped Work list
 with distinct maintenance/service routes. Continue this slice on the current
 branch; preserve billing, role access and field queues. The Build 14 migration
 is active; subsequent UI verification and connected results belong in NOW-012.
+
+Build 15 closeout is committed as `742abfe` and included in the NOW-013 branch.
+Fresh baseline verification passed with clean analysis and 428 Flutter tests
+(204 existing skips); the full current slice is verified again under NOW-013.
 
 ### NOW-011 — Trusted field work, notifications and account recovery
 

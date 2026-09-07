@@ -39,11 +39,11 @@ List<AppDestination> primaryDestinations(
       '$prefix/assets',
     ),
     if (canUseMaintenance(role))
-      const AppDestination(
-        'Work',
-        'Trabajo',
-        Icons.build_outlined,
-        '/maintenance',
+      AppDestination(
+        isMaintenanceManager(role) ? 'Planning' : 'My schedule',
+        isMaintenanceManager(role) ? 'Planificación' : 'Mi programación',
+        Icons.calendar_month_outlined,
+        '/maintenance/planning',
       ),
     if ((role == UserRole.operator || role == UserRole.clientOperator) &&
         operationalChecklistsEnabled)
@@ -84,6 +84,15 @@ List<AppDestination> toolDestinations(UserRole role) {
         '/fleet/overview',
         description: 'Act on overdue service, faults and waiting work',
         descriptionEs: 'Atender servicios vencidos, fallas y trabajo pendiente',
+      ),
+    if (canUseMaintenance(role))
+      const AppDestination(
+        'All work',
+        'Todo el trabajo',
+        Icons.build_outlined,
+        '/maintenance',
+        description: 'Find active work, reports and completed jobs',
+        descriptionEs: 'Consultar trabajos activos, informes e historial',
       ),
     if (canUseMaintenance(role))
       const AppDestination(
@@ -195,6 +204,12 @@ List<AppDestination> toolDestinations(UserRole role) {
 
 int selectedDestination(List<AppDestination> items, String location) {
   final path = Uri.parse(location).path;
+  if (path == '/maintenance' || path.startsWith('/maintenance/')) {
+    final planning = items.indexWhere(
+      (item) => item.route == '/maintenance/planning',
+    );
+    if (planning >= 0) return planning;
+  }
   for (var i = 0; i < items.length; i++) {
     if (path == items[i].route || path.startsWith('${items[i].route}/')) {
       return i;

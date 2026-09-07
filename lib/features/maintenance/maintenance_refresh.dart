@@ -6,6 +6,8 @@ import 'package:vortice_app/features/checklists/saved_checklists_provider.dart';
 import 'package:vortice_app/features/fleet/fleet_providers.dart';
 import 'package:vortice_app/features/reminders/reminder_provider.dart';
 import 'maintenance_repository.dart';
+import 'planning/planning_repository.dart';
+import 'package:vortice_app/features/service_intervals/service_interval_provider.dart';
 
 void refreshMaintenance(
   WidgetRef ref, {
@@ -13,6 +15,9 @@ void refreshMaintenance(
   bool assetsChanged = false,
 }) {
   ref.invalidate(maintenanceJobsProvider);
+  ref.invalidate(maintenancePlanningProvider);
+  ref.invalidate(serviceIntervalsProvider);
+  ref.invalidate(serviceIntervalSummariesProvider);
   ref.invalidate(fleetFaultsProvider);
   ref.invalidate(fleetFaultProvider);
   ref.invalidate(faultEventsProvider);

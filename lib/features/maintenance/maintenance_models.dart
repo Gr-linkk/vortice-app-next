@@ -33,6 +33,9 @@ String maintenancePriority(String value, bool es) => switch (value) {
 };
 String maintenanceEvent(String value, bool es) => switch (value) {
   'created' => es ? 'Trabajo creado' : 'Job created',
+  'schedule' => es ? 'Planificación actualizada' : 'Schedule updated',
+  'schedule_previous' =>
+    es ? 'Planificación anterior registrada' : 'Previous schedule recorded',
   'assign' => es ? 'Responsable actualizado' : 'Assignment updated',
   'start' => es ? 'Trabajo iniciado' : 'Labour started',
   'pause' => es ? 'Trabajo pausado' : 'Labour paused',

@@ -211,6 +211,17 @@ List<AppDestination> dashboardActions(
   final staff = role == UserRole.owner || role == UserRole.employee;
   final admin = role == UserRole.client || role == UserRole.clientAdmin;
   return [
+    if (staff || admin || role == UserRole.clientMechanic)
+      AppDestination(
+        role == UserRole.owner || admin
+            ? 'Maintenance planning'
+            : 'My schedule',
+        role == UserRole.owner || admin
+            ? 'Planificación de mantenimiento'
+            : 'Mi programación',
+        Icons.calendar_month_outlined,
+        '/maintenance/planning',
+      ),
     const AppDestination(
       'Report a fault',
       'Reportar una falla',

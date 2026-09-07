@@ -258,6 +258,32 @@ class _MaintenanceJobScreenState extends ConsumerState<MaintenanceJobScreen> {
                 job.data['assignee_name'] as String? ??
                     (es ? 'Sin asignar' : 'Unassigned'),
               ),
+              if (job.data['planned_start'] != null)
+                info(
+                  es ? 'Inicio programado' : 'Booked start',
+                  maintenanceDate(job.data['planned_start'] as String, es),
+                ),
+              if (job.data['estimated_minutes'] != null)
+                info(
+                  es ? 'Duración estimada' : 'Estimated duration',
+                  '${job.data['estimated_minutes']} min',
+                ),
+              if (job.data['can_schedule'] == true &&
+                  !['closed', 'pending_review'].contains(job.status))
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: OutlinedButton.icon(
+                    onPressed: disabled
+                        ? null
+                        : () => context.push(
+                            '/maintenance/planning?jobId=${job.id}',
+                          ),
+                    icon: const Icon(Icons.edit_calendar_outlined),
+                    label: Text(
+                      es ? 'Revisar planificación' : 'Review schedule',
+                    ),
+                  ),
+                ),
               if (job.dueDate != null)
                 info(
                   es ? 'Fecha límite' : 'Due date',

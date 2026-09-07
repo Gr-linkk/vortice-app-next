@@ -185,19 +185,25 @@ class ConnectedHarness {
 
   Future<void> reveal(Finder target) async {
     await settle(3);
+    final scrollable = find.byType(ListView).evaluate().isNotEmpty
+        ? find
+              .descendant(
+                of: find.byType(ListView).last,
+                matching: find.byType(Scrollable),
+              )
+              .first
+        : find.byType(Scrollable).first;
     if (target.evaluate().isEmpty &&
         find.byType(Scrollable).evaluate().isNotEmpty) {
       // A preceding action can leave a lazily built control above the viewport.
       // Return to the start before searching downward through this scroll view.
-      final scroll = tester.state<ScrollableState>(
-        find.byType(Scrollable).last,
-      );
+      final scroll = tester.state<ScrollableState>(scrollable);
       scroll.position.jumpTo(scroll.position.minScrollExtent);
       await tester.pump(const Duration(milliseconds: 300));
       await tester.scrollUntilVisible(
         target,
         240,
-        scrollable: find.byType(Scrollable).last,
+        scrollable: scrollable,
         maxScrolls: 30,
       );
     }

@@ -340,6 +340,15 @@ void main() {
       250,
       scrollable: find.byType(Scrollable).first,
     );
+    await Scrollable.ensureVisible(
+      tester.element(find.text('Pump maintenance inspection')),
+      alignment: 0.5,
+    );
+    await tester.pumpAndSettle();
+    expect(
+      find.text('Pump maintenance inspection').hitTestable(),
+      findsOneWidget,
+    );
     await tester.tap(find.text('Pump maintenance inspection'));
     await tester.pumpAndSettle();
     final expected = Uri(

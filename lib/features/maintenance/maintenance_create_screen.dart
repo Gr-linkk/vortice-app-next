@@ -17,8 +17,10 @@ class MaintenanceCreateScreen extends ConsumerStatefulWidget {
     this.planId,
     this.parentJobId,
     this.faultId,
+    this.planning = false,
   });
   final String? assetId, planId, parentJobId, faultId;
+  final bool planning;
   @override
   ConsumerState<MaintenanceCreateScreen> createState() =>
       _MaintenanceCreateScreenState();
@@ -35,7 +37,10 @@ class _MaintenanceCreateScreenState
   DateTime? _due;
   MaintenanceWrite? _pending;
   Object? _error;
-  bool _saving = false, _faultPrefilled = false, _linkExisting = false;
+  bool _saving = false,
+      _faultPrefilled = false,
+      _linkExisting = false,
+      _planPrefilled = false;
   String? _existingJob;
   int? _pendingRevision;
   @override
@@ -98,7 +103,11 @@ class _MaintenanceCreateScreenState
             );
       if (!mounted) return;
       refreshMaintenance(ref);
-      context.go('/maintenance/jobs/$id');
+      context.go(
+        widget.planning
+            ? '/maintenance/planning?jobId=$id'
+            : '/maintenance/jobs/$id',
+      );
     } catch (error) {
       if (mounted) {
         setState(() {
@@ -197,6 +206,19 @@ class _MaintenanceCreateScreenState
         ? null
         : ref.watch(maintenanceAssetProvider(_asset!));
     final data = catalog?.valueOrNull;
+    if (!_planPrefilled && widget.planId != null && data != null) {
+      final selected = maintenanceRows(
+        data['plans'],
+      ).where((p) => p['id'] == widget.planId).firstOrNull;
+      if (selected != null) {
+        if (_title.text.isEmpty) {
+          final title =
+              '${selected['interval_label'] ?? '${selected['interval_hours']} h service'}';
+          _title.text = title.length > 200 ? title.substring(0, 200) : title;
+        }
+        _planPrefilled = true;
+      }
+    }
     final frozen = _saving || _pending != null;
     return UnsavedFormGuard(
       isDirty: () =>
@@ -578,7 +600,8 @@ class _MaintenanceCreateScreenState
                     onPressed:
                         _saving ||
                             data['can_execute'] != true ||
-                            (_plan != null && data['can_plan'] != true)
+                            ((widget.planning || _plan != null) &&
+                                data['can_plan'] != true)
                         ? null
                         : _save,
                     child: Text(

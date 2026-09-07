@@ -14,6 +14,12 @@ parts, and invoices.
 
 ## Current direction
 
+Maintenance planning is a prominent forward-facing workflow. Existing service
+intervals and component plans define upcoming maintenance; the schedule organizes
+when and by whom it will be performed. NOW-013 connects these foundations to
+work execution without replacing their completion rules or billing workflows.
+See `docs/specs/NOW-013-maintenance-planning.md` and decision 0010.
+
 The initial internal build implements fault-to-repair tracking and explicit
 asset availability, followed by a broad UX pass and standardized dashboards.
 Implementation and deployment limits are recorded in

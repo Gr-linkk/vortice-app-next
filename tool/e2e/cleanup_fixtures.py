@@ -6,10 +6,10 @@ def cli(*args):
 assert cli('git','remote','get-url','origin').strip()=='https://github.com/Gr-linkk/vortice-app-next.git'
 assert (root/'supabase/.temp/project-ref').read_text().strip()=='hkjpojobdbbtjkhaudki'
 assets={}
-for pattern in ['NOW-010-fixture-*.json','NOW-010-custody-live-*.json','NOW-011-fixture-*.json','NOW-012-fixture-*.json']:
+for pattern in ['NOW-010-fixture-*.json','NOW-010-custody-live-*.json','NOW-011-fixture-*.json','NOW-012-fixture-*.json','NOW-013-fixture-*.json']:
     for file in (root/'outputs').glob(pattern):
         item=json.loads(file.read_text(encoding='utf-8-sig'))
-        assert item['marker'].startswith(('E2E-010','E2E-011','E2E-012'))
+        assert item['marker'].startswith(('E2E-010','E2E-011','E2E-012','E2E-013'))
         if item.get('asset'):
             assets[str(uuid.UUID(item['asset']))]=item.get('asset_name','E2E-010 Custody inspection crane')
 assert assets
