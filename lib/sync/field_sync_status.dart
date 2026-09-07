@@ -39,8 +39,8 @@ String _operationDetails(FieldOperation row, bool es) {
     details.add(
       row.needsAttention
           ? (es
-                ? 'El servidor rechazó este cambio. Revisa los datos antes de reintentar.'
-                : 'The server rejected this change. Review it before retrying.')
+                ? 'Este cambio no se pudo guardar. Revisa los datos antes de reintentar.'
+                : 'This change could not be saved. Review it before retrying.')
           : (es
                 ? 'La carga se reintentará cuando haya conexión.'
                 : 'Upload will retry when a connection is available.'),
@@ -239,13 +239,13 @@ class FieldQueueScreen extends ConsumerWidget {
                           builder: (context) => AlertDialog(
                             title: Text(
                               es
-                                  ? '¿Archivar cambios rechazados?'
-                                  : 'Archive rejected changes?',
+                                  ? '¿Apartar los cambios sin enviar?'
+                                  : 'Set aside unsent changes?',
                             ),
                             content: Text(
                               es
-                                  ? 'Se archivarán todos los cambios sin enviar de este registro. El texto permanece aquí para copiarlo. Abre de nuevo el registro para corregirlo.'
-                                  : 'This archives all unsent changes for this record. Their text stays here to copy. Reopen the record to make corrected changes.',
+                                  ? 'Todos los cambios sin enviar de este registro dejarán de reintentarse. El texto permanecerá aquí para copiarlo. Abre de nuevo el registro para guardar los cambios corregidos.'
+                                  : 'All unsent changes for this record will stop retrying. Their text will stay here to copy. Reopen the record to save corrected changes.',
                             ),
                             actions: [
                               TextButton(
@@ -254,7 +254,7 @@ class FieldQueueScreen extends ConsumerWidget {
                               ),
                               TextButton(
                                 onPressed: () => Navigator.pop(context, true),
-                                child: Text(es ? 'Archivar' : 'Archive'),
+                                child: Text(es ? 'Apartar cambios' : 'Set aside'),
                               ),
                             ],
                           ),
@@ -342,7 +342,7 @@ class FieldQueueScreen extends ConsumerWidget {
                         }
                       },
                       child: Text(
-                        es ? 'Archivar para corregir' : 'Archive to correct',
+                        es ? 'Apartar cambios sin enviar' : 'Set aside unsent changes',
                       ),
                     ),
                 ],
