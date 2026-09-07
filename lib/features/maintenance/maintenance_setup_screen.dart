@@ -17,10 +17,12 @@ class MaintenanceSetupScreen extends ConsumerStatefulWidget {
     this.initial = const {},
     this.catalog = const {},
     this.reviewedSave,
+    this.reviewContext,
   });
   final String kind;
   final String? assetId;
   final Map<String, dynamic> initial, catalog;
+  final Widget? reviewContext;
   final Future<void> Function(String operation, Map<String, dynamic> data)?
   reviewedSave;
   @override
@@ -131,6 +133,25 @@ class _MaintenanceSetupScreenState
   @override
   Widget build(BuildContext context) {
     final es = isSpanish(context), frozen = _busy || _pending != null;
+    final reviewBaseline = num.tryParse(_text['last_service_hours']!.text);
+    final reviewInterval = num.tryParse(_text['interval_hours']!.text);
+    final reviewCurrent =
+        maintenanceRows(widget.catalog['components'])
+                .where((e) => e['id'] == _values['engine_id'])
+                .firstOrNull?['current_hours']
+            as num?;
+    final previewDue =
+        reviewBaseline != null &&
+            reviewBaseline.isFinite &&
+            reviewBaseline >= 0 &&
+            reviewInterval != null &&
+            reviewInterval.isFinite &&
+            reviewInterval > 0 &&
+            reviewInterval == reviewInterval.roundToDouble() &&
+            reviewCurrent != null &&
+            reviewBaseline <= reviewCurrent
+        ? reviewBaseline + reviewInterval
+        : null;
     final workspace = ref.watch(maintenanceWorkspaceProvider);
     final custody = widget.kind == 'asset' && widget.initial['id'] != null
         ? ref.watch(assuranceContextProvider(widget.initial['id'] as String))
@@ -229,6 +250,7 @@ class _MaintenanceSetupScreenState
           child: ListView(
             padding: const EdgeInsets.all(20),
             children: [
+              if (widget.reviewContext != null) widget.reviewContext!,
               if (widget.kind == 'asset') ...[
                 field(
                   'name',
@@ -359,7 +381,35 @@ class _MaintenanceSetupScreenState
                   padding: const EdgeInsets.only(bottom: 16),
                   child: Text(maintenanceError(_error!, es)),
                 ),
-              if (widget.reviewedSave != null)
+              if (widget.reviewedSave != null) ...[
+                Card(
+                  child: Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          es
+                              ? 'Vista previa de tus cambios'
+                              : 'Preview your changes',
+                          style: Theme.of(context).textTheme.titleSmall,
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          previewDue == null
+                              ? (es
+                                    ? 'Confirma la base del último servicio y un intervalo válido para calcular el próximo servicio.'
+                                    : 'Confirm the last-service baseline and a valid interval to calculate the next service.')
+                              : '${es ? 'Próximo servicio' : 'Next service'}: $previewDue h',
+                        ),
+                        if (previewDue != null && reviewCurrent != null)
+                          Text(
+                            '${previewDue - reviewCurrent} h ${es ? 'respecto al medidor actual' : 'relative to the current meter'}',
+                          ),
+                      ],
+                    ),
+                  ),
+                ),
                 CheckboxListTile(
                   contentPadding: EdgeInsets.zero,
                   controlAffinity: ListTileControlAffinity.leading,
@@ -373,6 +423,7 @@ class _MaintenanceSetupScreenState
                         : 'I verified the manual, current hours and this task’s service history.',
                   ),
                 ),
+              ],
               FilledButton(
                 onPressed:
                     _busy || (widget.reviewedSave != null && !_reviewedReadings)

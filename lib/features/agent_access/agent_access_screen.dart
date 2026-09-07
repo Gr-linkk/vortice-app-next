@@ -322,7 +322,7 @@ class _AgentAccessPanelState extends State<AgentAccessPanel> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(t('Agents', 'Agentes')),
+        title: Text(t('Connections', 'Conexiones')),
         actions: [
           IconButton(
             tooltip: t('Refresh', 'Actualizar'),

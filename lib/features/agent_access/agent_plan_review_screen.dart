@@ -7,7 +7,7 @@ import 'package:vortice_app/core/user_feedback.dart';
 import 'package:vortice_app/features/auth/auth_provider.dart';
 import 'package:vortice_app/features/checklist_builder/checklist_builder_repository.dart';
 import 'package:vortice_app/features/maintenance/maintenance_setup_screen.dart';
-import 'maintenance_documents_screen.dart';
+import 'agent_review_evidence.dart';
 
 class AgentPlanRepository {
   AgentPlanRepository(this.client, this.actor);
@@ -34,30 +34,16 @@ class AgentPlanRepository {
     return answer;
   }
 
-  Future<Map<String, dynamic>> load(String id) async {
-    final proposal = await _guard(
-      () => client.from('agent_plan_drafts').select().eq('id', id).single(),
-    );
-    final catalog = await _guard(
-      () => client.rpc(
-        'maintenance_asset_context',
-        params: {'p_asset': proposal['asset_id']},
-      ),
-    );
-    final checklist = proposal['draft']['checklist_procedure_id'] as String?;
-    Map<String, dynamic>? procedure;
-    if (checklist != null) {
-      procedure = await _guard(
-        () => client
-            .from('checklist_procedures')
-            .select('published_template_id,archived')
-            .eq('id', checklist)
-            .single(),
+  Future<Map<String, dynamic>> load(String id) async =>
+      Map<String, dynamic>.from(
+        await _guard(
+              () => client.rpc(
+                'agent_plan_review_context',
+                params: {'p_draft': id},
+              ),
+            )
+            as Map,
       );
-    }
-    return {'proposal': proposal, 'catalog': catalog, 'procedure': procedure};
-  }
-
   Future<void> apply(
     String id,
     String operation,
@@ -84,190 +70,261 @@ final agentPlanReviewProvider = FutureProvider.autoDispose
 class AgentPlanReviewScreen extends ConsumerWidget {
   const AgentPlanReviewScreen({super.key, required this.id});
   final String id;
+
+  Future<void> _edit(
+    BuildContext context,
+    WidgetRef ref,
+    AgentReviewEvidence e,
+  ) async {
+    final actor = ref.read(sessionProvider)?.user.id;
+    final repository = ref.read(agentPlanRepositoryProvider);
+    final procedure = e.data['procedure'] as Map?;
+    await Navigator.push(
+      context,
+      MaterialPageRoute<bool>(
+        builder: (_) => Consumer(
+          builder: (context, ref, _) {
+            if (ref.watch(sessionProvider)?.user.id != actor) {
+              return const Scaffold(body: SizedBox());
+            }
+            return MaintenanceSetupScreen(
+              kind: 'plan',
+              assetId: e.proposal['asset_id'] as String,
+              catalog: e.catalog,
+              initial: {
+                ...?e.plan,
+                'interval_label': e.draft['interval_label'],
+                'interval_hours': e.draft['interval_hours'],
+                'engine_id': e.draft['engine_id'],
+                'last_service_hours': e.baseline?.toString() ?? '',
+                if (procedure?['published_template_id'] != null)
+                  'checklist_template_id': procedure!['published_template_id'],
+              },
+              reviewContext: ExpansionTile(
+                title: Text(
+                  isSpanish(context)
+                      ? 'Consultar fuente e historial'
+                      : 'Refer to source and history',
+                ),
+                tilePadding: EdgeInsets.zero,
+                children: [
+                  AgentEquipmentEvidence(evidence: e),
+                  AgentSourceEvidence(evidence: e),
+                  AgentServiceEvidence(evidence: e),
+                ],
+              ),
+              reviewedSave: (operation, data) =>
+                  repository.apply(id, operation, data),
+            );
+          },
+        ),
+      ),
+    );
+    if (context.mounted) ref.invalidate(agentPlanReviewProvider(id));
+  }
+
+  Widget _action(BuildContext context, WidgetRef ref, AgentReviewEvidence e) {
+    final es = isSpanish(context);
+    if (e.applied) {
+      return FilledButton.icon(
+        onPressed: () =>
+            context.push('/maintenance/assets/${e.proposal['asset_id']}'),
+        icon: const Icon(Icons.task_alt),
+        label: Text(es ? 'Ver plan guardado' : 'View saved plan'),
+      );
+    }
+    if (!e.checklistReady) {
+      return FilledButton.icon(
+        onPressed: () async {
+          ref.invalidate(checklistLibraryProvider);
+          await context.push('/checklist-library');
+          if (context.mounted) ref.invalidate(agentPlanReviewProvider(id));
+        },
+        icon: const Icon(Icons.checklist),
+        label: Text(
+          es
+              ? 'Revisar y publicar la lista primero'
+              : 'Review and publish the checklist first',
+        ),
+      );
+    }
+    return FilledButton.icon(
+      onPressed: e.canEdit ? () => _edit(context, ref, e) : null,
+      icon: const Icon(Icons.edit_outlined),
+      label: Text(es ? 'Revisar y editar' : 'Review and edit'),
+    );
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final es = isSpanish(context);
+    final state = ref.watch(agentPlanReviewProvider(id));
+    final value = state.asData?.value;
     return Scaffold(
       appBar: AppBar(
-        title: Text(es ? 'Revisar plan propuesto' : 'Review proposed plan'),
+        title: Text(es ? 'Revisar plan' : 'Plan review'),
+        actions: [
+          IconButton(
+            tooltip: es ? 'Actualizar' : 'Refresh',
+            onPressed: state.isLoading
+                ? null
+                : () => ref.invalidate(agentPlanReviewProvider(id)),
+            icon: const Icon(Icons.refresh),
+          ),
+        ],
       ),
-      body: ref
-          .watch(agentPlanReviewProvider(id))
-          .when(
-            loading: () => const Center(child: CircularProgressIndicator()),
-            error: (_, __) => Center(
-              child: TextButton(
-                onPressed: () => ref.invalidate(agentPlanReviewProvider(id)),
-                child: Text(
+      body: state.when(
+        loading: () => const Center(child: CircularProgressIndicator()),
+        error: (_, __) => Center(
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(Icons.cloud_off_outlined, size: 40),
+                const SizedBox(height: 16),
+                Text(
                   es
-                      ? 'No se pudo cargar. Reintentar.'
-                      : 'Could not load. Retry.',
+                      ? 'No pudimos cargar la evidencia del plan.'
+                      : 'We couldn’t load this plan’s evidence.',
+                  textAlign: TextAlign.center,
                 ),
-              ),
+                TextButton(
+                  onPressed: () => ref.invalidate(agentPlanReviewProvider(id)),
+                  child: Text(
+                    es
+                        ? 'No se pudo cargar. Reintentar.'
+                        : 'Could not load. Retry.',
+                  ),
+                ),
+              ],
             ),
-            data: (data) {
-              final proposal = Map<String, dynamic>.from(
-                data['proposal'] as Map,
+          ),
+        ),
+        data: (data) {
+          final e = AgentReviewEvidence(data);
+          return LayoutBuilder(
+            builder: (context, constraints) {
+              final wide =
+                  constraints.maxWidth >= 840 &&
+                  MediaQuery.textScalerOf(context).scale(1) < 1.6;
+              final source = Column(
+                children: [
+                  AgentSourceEvidence(evidence: e),
+                  AgentServiceEvidence(evidence: e),
+                ],
               );
-              final draft = Map<String, dynamic>.from(proposal['draft'] as Map);
-              final catalog = Map<String, dynamic>.from(data['catalog'] as Map);
-              final procedure = data['procedure'] as Map?;
-              final component = (catalog['components'] as List)
-                  .cast<Map>()
-                  .where((e) => e['id'] == draft['engine_id'])
-                  .firstOrNull;
-              final existingPlan = (catalog['plans'] as List? ?? [])
-                  .cast<Map>()
-                  .where((p) => p['id'] == draft['existing_plan_id'])
-                  .firstOrNull;
-              final baseline = existingPlan?['last_service_hours'] as num?;
-              final current = component?['current_hours'] as num?;
-              final due = baseline == null
-                  ? null
-                  : baseline + (draft['interval_hours'] as num);
-              final checklistReady =
-                  !draft.containsKey('checklist_procedure_id') ||
-                  (procedure?['published_template_id'] != null &&
-                      procedure?['archived'] != true);
+              final proposal = Column(
+                children: [
+                  AgentProposalSummary(evidence: e),
+                  AgentEquipmentEvidence(evidence: e),
+                ],
+              );
               return ListView(
                 padding: const EdgeInsets.all(20),
                 children: [
-                  Text(
-                    draft['interval_label'] as String,
-                    style: Theme.of(context).textTheme.headlineSmall,
-                  ),
-                  Text(catalog['asset']['name'] as String),
-                  const SizedBox(height: 12),
-                  Text(
-                    '${es ? 'Intervalo propuesto' : 'Proposed interval'}: ${draft['interval_hours']} h',
-                  ),
-                  Text(
-                    '${es ? 'Horas actuales registradas' : 'Recorded current hours'}: ${current == null ? (es ? 'Desconocidas' : 'Unknown') : '$current h'}',
-                  ),
-                  Text(
-                    '${es ? 'Último servicio de esta tarea' : 'Last service for this task'}: ${baseline == null ? (es ? 'Por confirmar' : 'Needs confirmation') : '$baseline h'}',
-                  ),
-                  if (due != null)
-                    Text(
-                      '${es ? 'Próximo servicio propuesto' : 'Proposed next service'}: $due h${current == null ? '' : ' · ${due - current} h ${es ? 'restantes' : 'remaining'}'}',
-                    ),
-                  Text(
-                    es
-                        ? 'Verifica las páginas, advertencias y condiciones del manual. El plan automático solo programa por horas; las condiciones de calendario requieren seguimiento aparte.'
-                        : 'Verify the manual pages, warnings and conditions. Automatic intervals use hours; calendar conditions require separate tracking.',
-                  ),
-                  if ((draft['notes'] as String? ?? '').isNotEmpty)
-                    Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 12),
-                      child: Text(draft['notes'] as String),
-                    ),
-                  Text(
-                    '${es ? 'Cita sin verificar' : 'Unverified source quote'}: ${draft['source_quote']}',
-                  ),
-                  TextButton.icon(
-                    onPressed: () => Navigator.push(
-                      context,
-                      MaterialPageRoute<void>(
-                        builder: (_) => MaintenanceSourcePageScreen(
-                          document: proposal['document_id'] as String,
-                          page: draft['source_page'] as int,
-                        ),
-                      ),
-                    ),
-                    icon: const Icon(Icons.description_outlined),
-                    label: Text(
-                      '${es ? 'Ver página' : 'View source page'} ${draft['source_page']}',
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  if (!checklistReady)
-                    TextButton(
-                      onPressed: () {
-                        ref.invalidate(checklistLibraryProvider);
-                        context.push('/checklist-library');
-                      },
-                      child: Text(
-                        es
-                            ? 'Revisar y publicar la lista primero'
-                            : 'Review and publish the checklist first',
-                      ),
-                    ),
-                  if (proposal['applied_plan_id'] == null)
-                    FilledButton(
-                      onPressed:
-                          !checklistReady ||
-                              (draft['existing_plan_id'] != null &&
-                                  existingPlan == null)
-                          ? null
-                          : () async {
-                              final actor = ref.read(sessionProvider)?.user.id;
-                              final repository = ref.read(
-                                agentPlanRepositoryProvider,
-                              );
-                              await Navigator.push(
-                                context,
-                                MaterialPageRoute<bool>(
-                                  builder: (_) => Consumer(
-                                    builder: (context, ref, _) {
-                                      if (ref.watch(sessionProvider)?.user.id !=
-                                          actor) {
-                                        return const Scaffold(body: SizedBox());
-                                      }
-                                      return MaintenanceSetupScreen(
-                                        kind: 'plan',
-                                        assetId: proposal['asset_id'] as String,
-                                        catalog: catalog,
-                                        initial: {
-                                          ...?existingPlan,
-                                          'interval_label':
-                                              draft['interval_label'],
-                                          'interval_hours':
-                                              draft['interval_hours'],
-                                          'engine_id': draft['engine_id'],
-                                          'last_service_hours':
-                                              baseline?.toString() ?? '',
-                                          if (procedure?['published_template_id'] !=
-                                              null)
-                                            'checklist_template_id':
-                                                procedure!['published_template_id'],
-                                        },
-                                        reviewedSave: (operation, data) =>
-                                            repository.apply(
-                                              id,
-                                              operation,
-                                              data,
-                                            ),
-                                      );
-                                    },
+                  Center(
+                    child: ConstrainedBox(
+                      constraints: const BoxConstraints(maxWidth: 1120),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            e.catalog['asset']['name'] as String,
+                            style: Theme.of(context).textTheme.labelLarge
+                                ?.copyWith(
+                                  color: Theme.of(context).colorScheme.primary,
+                                ),
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            e.draft['interval_label'] as String,
+                            style: Theme.of(context).textTheme.headlineMedium,
+                          ),
+                          const SizedBox(height: 12),
+                          Wrap(
+                            spacing: 8,
+                            runSpacing: 8,
+                            children: [
+                              Chip(
+                                avatar: Icon(
+                                  e.applied
+                                      ? Icons.check_circle_outline
+                                      : Icons.rate_review_outlined,
+                                  size: 18,
+                                ),
+                                label: Text(
+                                  e.applied
+                                      ? (es ? 'Plan guardado' : 'Plan saved')
+                                      : (es ? 'Por revisar' : 'Review needed'),
+                                ),
+                              ),
+                              if (!e.applied && e.baseline == null)
+                                Padding(
+                                  padding: const EdgeInsets.symmetric(
+                                    vertical: 8,
+                                  ),
+                                  child: Text(
+                                    es
+                                        ? 'Falta confirmar historial'
+                                        : 'History needs confirmation',
+                                    style: Theme.of(
+                                      context,
+                                    ).textTheme.bodySmall,
                                   ),
                                 ),
-                              );
-                              if (context.mounted) {
-                                ref.invalidate(agentPlanReviewProvider(id));
-                              }
-                            },
-                      child: Text(
-                        es
-                            ? 'Editar y guardar plan revisado'
-                            : 'Edit and save reviewed plan',
+                            ],
+                          ),
+                          const SizedBox(height: 12),
+                          if (e.missingPlan ||
+                              e.component.isEmpty ||
+                              e.catalog['can_plan'] == false)
+                            Padding(
+                              padding: const EdgeInsets.only(bottom: 16),
+                              child: Text(
+                                es
+                                    ? 'El equipo, plan o permiso de planificación ya no está disponible. Actualiza antes de continuar.'
+                                    : 'The equipment, plan or planning permission is no longer available. Refresh before continuing.',
+                                style: TextStyle(
+                                  color: Theme.of(context).colorScheme.error,
+                                ),
+                              ),
+                            ),
+                          if (wide)
+                            Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Expanded(child: proposal),
+                                const SizedBox(width: 20),
+                                Expanded(child: source),
+                              ],
+                            )
+                          else ...[
+                            proposal,
+                            source,
+                          ],
+                        ],
                       ),
-                    )
-                  else
-                    FilledButton(
-                      onPressed: () => context.push(
-                        '/maintenance/assets/${proposal['asset_id']}',
-                      ),
-                      child: Text(es ? 'Ver plan guardado' : 'View saved plan'),
                     ),
-                  TextButton(
-                    onPressed: () =>
-                        ref.invalidate(agentPlanReviewProvider(id)),
-                    child: Text(es ? 'Actualizar' : 'Refresh'),
                   ),
                 ],
               );
             },
-          ),
+          );
+        },
+      ),
+      bottomNavigationBar: value == null
+          ? null
+          : SafeArea(
+              top: false,
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(20, 12, 20, 16),
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 1120),
+                  child: _action(context, ref, AgentReviewEvidence(value)),
+                ),
+              ),
+            ),
     );
   }
 }

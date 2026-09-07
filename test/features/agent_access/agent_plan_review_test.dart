@@ -56,7 +56,9 @@ Widget app(
   double scale = 1,
 }) => ProviderScope(
   overrides: [
-    sessionProvider.overrideWithValue(Session.fromJson(jsonDecode(jsonEncode(session('actor'))))),
+    sessionProvider.overrideWithValue(
+      Session.fromJson(jsonDecode(jsonEncode(session('actor')))),
+    ),
     agentPlanRepositoryProvider.overrideWithValue(repository),
     maintenanceWorkspaceProvider.overrideWith((ref) async => {}),
   ],
@@ -82,7 +84,10 @@ Widget app(
 void main() {
   late SupabaseClient client;
   setUpAll(() async {
-    client = SupabaseClient('https://hkjpojobdbbtjkhaudki.supabase.co', 'fixture');
+    client = SupabaseClient(
+      'https://hkjpojobdbbtjkhaudki.supabase.co',
+      'fixture',
+    );
     await loadFleetScreenshotFonts();
     final icons = FontLoader('MaterialIcons')
       ..addFont(rootBundle.load('fonts/MaterialIcons-Regular.otf'));
@@ -95,12 +100,9 @@ void main() {
       final repository = FixturePlan(client);
       await tester.pumpWidget(app(repository));
       await tester.pumpAndSettle();
-      expect(
-        find.textContaining('Last service for this task: Needs confirmation'),
-        findsOneWidget,
-      );
-      await tester.ensureVisible(find.text('Edit and save reviewed plan'));
-      await tester.tap(find.text('Edit and save reviewed plan'));
+      expect(find.textContaining('History needs confirmation'), findsOneWidget);
+      await tester.ensureVisible(find.text('Review and edit'));
+      await tester.tap(find.text('Review and edit'));
       await tester.pumpAndSettle();
       // Inspect the controller to prove that unknown history was not set to zero.
       final baseline = find.byWidgetPredicate(
@@ -108,13 +110,32 @@ void main() {
             w is TextField && w.decoration?.labelText == 'Last service meter',
       );
       expect(tester.widget<TextField>(baseline).controller!.text, '');
-      await tester.ensureVisible(find.byType(CheckboxListTile));
+      await tester.scrollUntilVisible(
+        find.byType(CheckboxListTile),
+        250,
+        scrollable: find
+            .descendant(
+              of: find.byType(ListView),
+              matching: find.byType(Scrollable),
+            )
+            .first,
+      );
       await tester.tap(find.byType(CheckboxListTile));
       await tester.pumpAndSettle();
       await tester.ensureVisible(find.text('Save'));
       await tester.tap(find.text('Save'));
       await tester.pumpAndSettle();
       expect(repository.applied, isNull);
+      await tester.scrollUntilVisible(
+        baseline,
+        -250,
+        scrollable: find
+            .descendant(
+              of: find.byType(ListView),
+              matching: find.byType(Scrollable),
+            )
+            .first,
+      );
       await tester.enterText(baseline, '100');
       final interval = find.byWidgetPredicate(
         (w) =>
@@ -122,7 +143,16 @@ void main() {
             w.decoration?.labelText == 'Service every (hours)',
       );
       await tester.enterText(interval, '300');
-      await tester.ensureVisible(find.byType(CheckboxListTile));
+      await tester.scrollUntilVisible(
+        find.byType(CheckboxListTile),
+        250,
+        scrollable: find
+            .descendant(
+              of: find.byType(ListView),
+              matching: find.byType(Scrollable),
+            )
+            .first,
+      );
       await tester.tap(find.byType(CheckboxListTile));
       await tester.pumpAndSettle();
       await tester.ensureVisible(find.text('Save'));

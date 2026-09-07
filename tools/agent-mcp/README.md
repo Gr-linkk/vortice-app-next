@@ -7,7 +7,7 @@ Next project. A vision-capable host is required to read scanned page images.
 
 Deploy the migrations and `agent-document-page` function following
 `docs/specs/NOW-019-agent-access.md`, then install a build containing this work.
-In More > Agent access select the fleet, name the connection and choose separate
+In More > Agent workspace > Connections select the fleet, name the connection and choose separate
 permissions for work-order drafts, document/plan drafts and work management.
 Owners verify an authenticator. Save the one-time key in the trusted MCP host's
 secret configuration and run `node` with the absolute path to `server.mjs`.

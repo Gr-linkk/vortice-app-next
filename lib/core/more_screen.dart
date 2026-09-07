@@ -8,7 +8,7 @@ import 'package:vortice_app/core/app_navigation.dart';
 import 'package:vortice_app/core/constants.dart';
 import 'package:vortice_app/core/user_feedback.dart';
 import 'package:vortice_app/features/auth/auth_provider.dart';
-import 'package:vortice_app/features/agent_access/agent_access_screen.dart';
+import 'package:vortice_app/features/agent_access/agent_workspace_screen.dart';
 import 'package:vortice_app/models/profile.dart';
 
 class MoreScreen extends ConsumerStatefulWidget {
@@ -157,16 +157,18 @@ class _MoreScreenState extends ConsumerState<MoreScreen> {
                   ].contains(profile.role))
                     ListTile(
                       leading: const Icon(Icons.smart_toy_outlined),
-                      title: Text(es ? 'Acceso de agentes' : 'Agent access'),
+                      title: Text(
+                        es ? 'Espacio de agentes' : 'Agent workspace',
+                      ),
                       subtitle: Text(
                         es
-                            ? 'Conexiones, permisos y actividad'
-                            : 'Connections, permissions and activity',
+                            ? 'Manuales, planes y revisión'
+                            : 'Manuals, plans and review',
                       ),
                       trailing: const Icon(Icons.chevron_right),
                       onTap: () => Navigator.of(context).push(
                         MaterialPageRoute<void>(
-                          builder: (_) => const AgentAccessScreen(),
+                          builder: (_) => const AgentWorkspaceScreen(),
                         ),
                       ),
                     ),

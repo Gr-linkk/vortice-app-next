@@ -5,7 +5,7 @@ worktree while equipment/UI and stress-test tasks use other checkouts.
 
 ## User workflow
 
-Owners, clients and client admins select one fleet in More > Agent access.
+Owners, clients and client admins select one fleet in More > Agent workspace.
 Connections default to maintenance reads, with separate opt-ins for work-order
 creation, document/maintenance drafts, and work management. Owners verify TOTP.
 Keys are shown once, expire after seven days and can be disconnected in the app.
@@ -121,3 +121,30 @@ recovery declarations and all 19 artwork files pass inspection. Evidence:
 `outputs/build23-build-verified.json` and `outputs/agent23-phone-checksum.txt`.
 Installation was not performed. All worktree branch tips are ancestors of the
 integration branch; worktrees remain available. No remote push was performed.
+
+## Evidence workspace refinement (2026-09-07)
+
+Garrett requested building the proposed agent interface. Continue NOW-019 in the
+accepted Field Notes design: a fleet-scoped workspace opens on pending reviews;
+connection-key administration stays in Connections. Plan review presents the
+current/proposed interval, component meter and date, task baseline, due arithmetic,
+source quote/page and bounded approved service history. Other tasks' services
+remain explicitly distinct and never become an inferred baseline. The same
+evidence remains available while editing. Refresh, missing-source/history,
+permission-loss, empty/loading/error and successful activation states must work
+in English/Spanish, both themes, narrow screens and large text.
+
+The only backend addition is an authenticated read-only review-context RPC using
+existing live fleet/asset access checks. Plan publication/activation, capability,
+revision, meter and retry rules stay authoritative. No embedded chat, automatic
+agent enrollment or model-generated rationale is simulated. The interface shows
+actual proposals and recorded evidence; calendar scheduling is still separate.
+
+The refinement is packaged as Build 24, version 1.12.1+24. Navigation is More >
+Agent workspace; connection administration remains under Connections. Native
+phone/wide and English/Spanish light/dark renders are in
+`outputs/agent-workspace-screens/`; inline source-page renders use a clearly
+marked synthetic manual. Visual inspection corrected clipped large-text status
+labels and added image decoding/error feedback. Service dates include the year.
+The read-only review RPC is deployed to Next. Its hosted rollback-only contract
+passes and the fixture cleanup check returns zero retained users/documents.

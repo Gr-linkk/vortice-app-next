@@ -78,6 +78,7 @@ select pg_temp.ok((select value->'data'->>'status'='draft' from results where na
 select pg_temp.ok(public.agent_execute(pg_temp.token('docs'),'create_plan_draft',(select value from results where name='plan_input'),'a0200000-0000-4000-8000-000000000075')->'data'->>'replayed'='true','plan proposal exact retry');
 select pg_temp.ok(public.agent_execute(pg_temp.token('docs'),'create_plan_draft',(select value||'{"last_service_hours":0}' from results where name='plan_input'),gen_random_uuid())->>'error'='Invalid input','agent cannot invent baseline');
 select pg_temp.denied($q$select public.apply_agent_plan_draft((select (value->'data'->>'plan_draft_id')::uuid from results where name='plan'),gen_random_uuid(),'{}')$q$);
+select pg_temp.denied($q$select public.agent_plan_review_context((select (value->'data'->>'plan_draft_id')::uuid from results where name='plan'))$q$);
 reset role;
 select pg_temp.ok((select count(*)=0 from public.asset_service_intervals where source_agent_plan_id is not null),'proposal does not activate an interval');
 select pg_temp.ok((select count(*)=1 from public.checklist_procedures where client_id='a0200000-0000-4000-8000-000000000001' and published_template_id is null),'one private unpublised draft');
@@ -89,6 +90,10 @@ select set_config('request.jwt.claim.sub','a0200000-0000-4000-8000-000000000001'
 select public.save_checklist_procedure(gen_random_uuid(),(select (value->'data'->>'procedure_id')::uuid from results where name='checklist'),1,'publish','{}');
 select pg_temp.ok((select count(*)=1 from public.checklist_items where definition->>'source_document_id'='a0200000-0000-4000-8000-000000000040'),'publication retains source in immutable step');
 select pg_temp.denied($q$select public.apply_agent_plan_draft((select (value->'data'->>'plan_draft_id')::uuid from results where name='plan'),gen_random_uuid(),'{"last_service_hours":""}')$q$);
+insert into results values('review_context',public.agent_plan_review_context((select (value->'data'->>'plan_draft_id')::uuid from results where name='plan')));
+select pg_temp.ok((select value->'document'->>'title'='Maintenance manual rev 1'
+ and value->'catalog'->'asset'->>'id'='a0200000-0000-4000-8000-000000000021'
+ and jsonb_array_length(value->'approved_services')=0 from results where name='review_context'),'review returns real source and equipment without inventing history');
 insert into results values('review_input','{"engine_id":"a0200000-0000-4000-8000-000000000041","interval_label":"Reviewed cooling service","interval_hours":"300","last_service_hours":"100","is_active":true,"source_reviewed":true,"review_current_hours":250}');
 select pg_temp.denied($q$select public.apply_agent_plan_draft((select (value->'data'->>'plan_draft_id')::uuid from results where name='plan'),gen_random_uuid(),(select value||'{"review_current_hours":200}' from results where name='review_input'))$q$);
 select pg_temp.denied($q$select public.apply_agent_plan_draft((select (value->'data'->>'plan_draft_id')::uuid from results where name='plan'),gen_random_uuid(),(select value||'{"last_service_hours":300}' from results where name='review_input'))$q$);
@@ -102,6 +107,7 @@ select pg_temp.ok((select count(*)=1 from public.asset_service_intervals where s
 set local role authenticated;
 select set_config('request.jwt.claim.sub','a0200000-0000-4000-8000-000000000002',true);
 select pg_temp.ok((select count(*)=0 from public.agent_plan_drafts),'other company cannot read proposed plans');
+select pg_temp.denied($q$select public.agent_plan_review_context((select (value->'data'->>'plan_draft_id')::uuid from results where name='plan'))$q$);
 select set_config('request.jwt.claim.sub','a0200000-0000-4000-8000-000000000001',true);
 set local role anon;
 insert into results values('existing_proposal',public.agent_execute(pg_temp.token('docs'),'create_plan_draft',
@@ -116,6 +122,19 @@ reset role;
 select pg_temp.ok((select count(*)=1 from public.asset_service_intervals where asset_id='a0200000-0000-4000-8000-000000000021')
  and (select interval_hours=200 and last_service_hours=100 and next_due_hours=300 from public.asset_service_intervals where id=(select (value#>>'{}')::uuid from results where name='applied')),'review updates existing plan without duplicating or replacing history');
 set local role authenticated;
+-- Review history distinguishes the matching service plan from other component work.
+reset role;
+update public.work_orders set engine_id='a0200000-0000-4000-8000-000000000041',hours_at_end=100
+ where id='a0200000-0000-4000-8000-000000000030';
+update public.maintenance_job_records set service_applied_at=now(),service_interval_id=(select (value#>>'{}')::uuid from results where name='applied')
+ where id='a0200000-0000-4000-8000-000000000030';
+set local role authenticated;
+select pg_temp.ok(public.agent_plan_review_context((select (value->'data'->>'plan_draft_id')::uuid from results where name='existing_proposal'))->'approved_services'->0->>'matches_task'='true','review links approved service to matching task');
+select pg_temp.ok(public.agent_plan_review_context((select (value->'data'->>'plan_draft_id')::uuid from results where name='plan'))->'approved_services'->0->>'matches_task'='true','saved new proposal links to its applied plan');
+set local role anon;
+insert into results values('unapplied_new',public.agent_execute(pg_temp.token('docs'),'create_plan_draft',(select value from results where name='plan_input'),gen_random_uuid()));
+set local role authenticated;
+select pg_temp.ok(public.agent_plan_review_context((select (value->'data'->>'plan_draft_id')::uuid from results where name='unapplied_new'))->'approved_services'->0->>'matches_task'='false','unapplied new proposal does not infer matching service history');
 select public.revoke_agent_connections((select (value->>'id')::uuid from results where name='manage'));
 set local role anon;
 select pg_temp.ok(public.agent_execute(pg_temp.token('manage'),'work_order_context','{"asset_id":"a0200000-0000-4000-8000-000000000021"}')->>'error'='Access denied','revocation blocks workflow');

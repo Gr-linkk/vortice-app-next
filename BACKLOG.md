@@ -42,6 +42,8 @@ integrated below. Real agent/device acceptance remains separate.
 Integrated with all completed worktrees for Build 23 (`1.12.0+23`). Owner keys
 require MFA. Next agent migrations/proxy are active; 561 Flutter tests pass
 without skips. Real agent/device acceptance remains; see the spec.
+Follow-up Build 24 adds the agent workspace, source/equipment/service evidence,
+before-and-after interval review and a live preview while editing.
 
 ### NOW-017 — Field Notes UI and saved appearance
 
