@@ -148,3 +148,16 @@ marked synthetic manual. Visual inspection corrected clipped large-text status
 labels and added image decoding/error feedback. Service dates include the year.
 The read-only review RPC is deployed to Next. Its hosted rollback-only contract
 passes and the fixture cleanup check returns zero retained users/documents.
+Build 24 verification: clean analysis, 571 Flutter tests, zero skips; all 20 local
+SQL suites pass, including source/fleet restrictions and matching-vs-other-task
+service evidence. The updated agent workflow contract also passes on hosted Next
+with transaction rollback and zero retained fixture users/documents. Phone and
+wide native render checks passed; source previews were inspected after decoding.
+APK inspection confirms the Next package, expected signing certificate, ARM64,
+backend/Firebase configuration, recovery/notification declarations and all artwork.
+
+Build 24 was transferred to the S24 Downloads folder as
+`INSTALL-Vortice-Next-Build-24.apk`; the device SHA-256 matches the inspected
+local APK: `56f2ab776006351fa9fb6fc90df2ebe9b32ad7fe6e683c48c3149d4e3dba36b0`.
+It was not installed. Physical acceptance with a real manual, external agent,
+source-page loading and plan review/save remains outstanding.
