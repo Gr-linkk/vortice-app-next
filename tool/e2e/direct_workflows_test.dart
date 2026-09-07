@@ -3,6 +3,7 @@ import 'dart:io';
 import 'audit_output.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:vortice_app/features/fleet/fault_action_sheet.dart';
 import 'package:uuid/uuid.dart';
 import 'package:vortice_app/core/supabase_client.dart';
 import 'package:vortice_app/features/maintenance/maintenance_repository.dart';
@@ -192,6 +193,19 @@ void main() {
                 (await fleet.faults(faultId: fault)).single.status,
                 FaultStatus.resolved,
               );
+              // The server can commit before the save response dismisses the
+              // sheet. Wait for that UI outcome, then reveal the lazy list row.
+              for (
+                var attempt = 0;
+                attempt < 50 &&
+                    find.byType(FaultActionSheet).evaluate().isNotEmpty;
+                attempt++
+              ) {
+                await tester.pump(const Duration(milliseconds: 100));
+                await Future<void>.delayed(const Duration(milliseconds: 100));
+              }
+              expect(find.byType(FaultActionSheet), findsNothing);
+              await h.reveal(find.text('Review asset availability'));
               expect(find.text('Review asset availability'), findsOneWidget);
               await h.screenshot('direct012-resolved');
             },

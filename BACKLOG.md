@@ -21,6 +21,11 @@ retained. Clean analysis and 583 Flutter tests pass with zero skips. Build 25
 inspection and delivery evidence are in the specification. Installation and
 physical-device acceptance remain separate.
 
+Connected follow-up passes all eight journeys (48 workflow steps plus seven
+custody checks) and 260 role/route checks across both themes, English/Spanish and
+200% text. A test-only save/dismissal timing correction passed its rerun; Build 25
+app code is unchanged. Exact fixture cleanup and coverage limits are in the spec.
+
 September 7 stress-audit corrections to NOW-016/NOW-017 are integrated into
 Build 23 from `codex/stress-audit-fixes`. Scope and verification:
 `docs/specs/2026-09-07-stress-audit-fixes.md`.

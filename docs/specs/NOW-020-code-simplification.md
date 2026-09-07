@@ -59,3 +59,37 @@ that automated verification proves physical-device acceptance.
   installed; physical-device acceptance remains separate.
 - Implementation and delivery documentation are pushed to the independent Next
   repository on `codex/code-simplification`.
+
+## Connected E2E follow-up — September 7
+
+Garrett requested connected end-to-end regression checks after delivery. All
+eight journey files pass against hosted Next: 48 saved-workflow steps plus seven
+custody/inspection checks. This covers asset/component saves, requests, provider
+reporting and invoice issue/void/correction/payment, maintenance and faults,
+handover/history, private evidence, offline SQLite restart/retry/account isolation,
+planning/conflicts, internal orders and checklist publication/versioning.
+
+The route audit passes 130 entries across six roles in each configuration:
+English/light/100% text and Spanish/dark/200% text. All 260 entries have zero
+error labels, framework/provider failures or unfinished loaders, and all requested
+destinations were reached. Representative invoice, fault and dashboard screenshots
+were inspected, including the large-text dark dashboard.
+
+One initial direct-workflow assertion ran after server persistence but before the
+save sheet closed. The failure screenshot showed the still-open sheet; the fault
+was already resolved in hosted persistence. The test now waits a bounded time for
+sheet dismissal and reveals the lazy list row before asserting the next action.
+All six original steps pass on retry, and the resolved screenshot shows the
+availability action. Focused Dart analysis passes. Application code and Build 25
+are unchanged; no replacement APK is needed.
+
+Both attempts were cleaned separately before proceeding. Complete receipts verify
+removal of nine synthetic assets, three procedures and 26 evidence objects, with
+all 11 unrelated-count categories preserved. No app regression was found in this
+coverage. Physical APK installation, camera/permission dialogs, OS process kills,
+native file sharing/downloading and actual notification receipt/taps remain
+separate device checks.
+
+Evidence: `outputs/build25-e2e-report.md`, `outputs/build25-e2e-summary.json` and
+the full logs/screenshots/manifests under `outputs/e2e/build25-sktdg36v` and
+`outputs/e2e/build25-z5hj5zbd`.
