@@ -58,5 +58,21 @@ ink strength was corrected after the initial renders were too faint; the final
 filter preserves the neutral-paper threshold and all transparent-background
 checks pass. Original atlas drawings remain unchanged.
 
-Build 21 is `1.11.0+21`. Hosted activation and device delivery are pending while
-the other task completes its connected tests against the existing catalog.
+Build 21 (`1.11.0+21`) is packaged from `c422f12`. Inspection verifies the Next
+package, signing certificate, Supabase/Firebase targets, notification service,
+recovery link and exact bytes of all 17 artwork files. Source/APK evidence:
+`outputs/NOW-018-build-verified.json`. SHA-256:
+`9522e72e13d0989a17ea9aa06f899e1294da5feb31bb731a1cb852ad21ca1427`.
+
+Delivered to verified Samsung `SM-S928W` Downloads as
+`INSTALL-Vortice-Next-Build-21.apk`; the final phone SHA-256 matches. Installation
+and physical-device acceptance were not performed. Delivery evidence:
+`outputs/NOW018/phone-delivery.json`.
+
+After the stress-test task completed its frozen-snapshot run and fixture cleanup,
+migration `20260907130000_equipment_catalog.sql` was activated on Vortice Next.
+Hosted verification finds all 32 types, confirms all 13 original rows unchanged,
+and passes the new authenticated/anonymous access contract. Evidence:
+`outputs/NOW018/catalog-verified.json`, `catalog-after.json`, `deploy.log` and
+`hosted-contract.json`. The primary checkout includes this catalog checkpoint;
+the concurrent agent-access work remains separate.

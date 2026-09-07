@@ -16,7 +16,9 @@ catalog and acceptance: `docs/specs/NOW-018-equipment-catalog.md`.
 Implemented 19 additions (32 standard types total), including distinct marine,
 mobile and tower cranes plus davits. Clean analysis, 519 Flutter tests (204
 existing skips), 18 local SQL suites and native artwork/form checks pass.
-Build 21 and hosted activation are tracked separately in the spec.
+The catalog is active on Vortice Next; hosted checks confirm all 32 choices and
+preservation of the original 13 rows. Build 21 is delivered to S24 Downloads with
+matching SHA-256. Physical-device acceptance remains separate; see the spec.
 
 ### NOW-017 — Field Notes UI and saved appearance
 
