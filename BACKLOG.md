@@ -18,7 +18,8 @@ Integrated NOW-016 and packaged Build 20 (`1.10.0+20`). Combined verification
 passes: clean analysis, 506 tests and 204 existing skips. Connected audits pass
 130 role/routes in each appearance. Native renders include Spanish and enlarged
 text. APK identity, signature and Next services are verified; physical device
-acceptance is separate. Garrett subsequently requested Build 20 in S24 Downloads.
+acceptance is separate. Build 20 was delivered to S24 Downloads at Garrett's
+request, with matching source/phone SHA-256; installation was not performed.
 
 ### NOW-016 — Existing workflow closeout
 

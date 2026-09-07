@@ -64,4 +64,10 @@ art, notification service and password-recovery link. Evidence:
 `outputs/NOW-017-build-verified.json`. SHA-256:
 `e13e8c827745162207ef42c5baee232b729d517a64889296fbdadf9e4dca8136`.
 
-Physical phone appearance and interaction remain a separate acceptance step.
+Delivered on 2026-09-07 to verified Samsung `SM-S928W` at
+`/storage/emulated/0/Download/INSTALL-Vortice-Next-Build-20.apk`; final phone
+SHA-256 matches the inspected APK above. This later explicit request authorizes
+delivery of the combined build, superseding NOW-016's Build 19 no-transfer scope.
+The primary checkout was fast-forwarded to the tested integration `05f0837`.
+No installation was performed. Physical phone appearance and interaction remain
+a separate acceptance step.
