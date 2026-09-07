@@ -48,4 +48,14 @@ that automated verification proves physical-device acceptance.
   path-provider platform interface a direct test dependency; no version upgrades.
 - Backend/service code and deployed migrations are unchanged; no service
   deployment or database mutation is required for this refactor.
-- Build 25 (`1.12.2+25`) packaging, APK inspection and S24 delivery are in progress.
+- Build 25 (`1.12.2+25`) is built from `e4c5560`. Inspection verifies the existing
+  Next application ID and signing certificate, ARM64, Next backend/Firebase,
+  notification service and recovery link, and all 19 bundled artwork files.
+  Reports: `outputs/build25-build-verified.json`, `outputs/build25-signature.txt`.
+- Delivered to S24 (`SM-S928W`) Downloads on September 7 as
+  `INSTALL-Vortice-Next-Build-25.apk` (129,211,021 bytes). Both local and phone
+  SHA-256 are `84b73dfe73bf3c148273bbafd0047019a3c6cbed8970e0854ef3989443b0d723`.
+  Receipt: `outputs/build25-phone-delivery.json`. The APK was copied, not
+  installed; physical-device acceptance remains separate.
+- Implementation and delivery documentation are pushed to the independent Next
+  repository on `codex/code-simplification`.

@@ -17,7 +17,9 @@ role checks and recovery behavior. Scope and results:
 
 Implemented: 729 net production Dart lines removed, with all existing workflows
 retained. Clean analysis and 583 Flutter tests pass with zero skips. Build 25
-packaging and S24 delivery are tracked in the specification.
+(`1.12.2+25`) is pushed and delivered to S24 Downloads with a matching checksum;
+inspection and delivery evidence are in the specification. Installation and
+physical-device acceptance remain separate.
 
 September 7 stress-audit corrections to NOW-016/NOW-017 are integrated into
 Build 23 from `codex/stress-audit-fixes`. Scope and verification:
