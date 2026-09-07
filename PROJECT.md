@@ -33,6 +33,10 @@ Asset custody/site transfers and inspection renewals (original areas 19 and 20)
 are selected under `docs/specs/NOW-009-custody-inspections.md`. Their recorded
 states, versioning and access rules are in `docs/decisions/0007-custody-inspections.md`.
 The other 12 areas remain intake in `docs/specs/NOW-006-feature-continuation.md`.
+
+The direct fault-to-work-order workflow and adjacent simplification audit are
+tracked in `docs/specs/NOW-012-direct-workflows.md`; repair ownership and explicit
+fault verification are recorded in `docs/decisions/0009-fault-work-order-workflow.md`.
 Preserve the current visual language; naming and production identity remain
 separate decisions. Hosted activation and device review are tracked separately
 from the internal build.
@@ -60,8 +64,10 @@ documents with links rather than rewriting history.
 
 ## Working agreements
 
-- Start each change from current `main` on a short-lived branch.
-- Give each task one backlog ID and one clear outcome.
+- Continue authorized work on its verified branch; start independent new work
+  on a short-lived `codex/` branch from the agreed current base.
+- Give substantive product/implementation tasks one backlog ID and a clear
+  outcome. Incidental mechanical fixes may reference existing scope without a new item.
 - Keep schema changes in new files under `supabase/migrations/`; never edit a
   migration that has been deployed.
 - Run `scripts/verify.ps1` before opening a pull request.

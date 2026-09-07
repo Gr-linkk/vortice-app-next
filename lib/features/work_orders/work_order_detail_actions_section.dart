@@ -36,14 +36,18 @@ class WorkOrderDetailActionsSection extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context);
+    final es = Localizations.localeOf(context).languageCode == 'es';
     final isLoading = ref.watch(workOrderControllerProvider).isLoading;
     final invoiceState = ref.watch(invoiceControllerProvider);
-    final assignedAsync =
-        ref.watch(currentUserAssignedToWorkOrderProvider(workOrder.id));
-    final pmChecklistsAllowedAsync = ref.watch(clientCapabilityGateProvider((
-      clientId: null,
-      capability: ClientCapability.pmChecklists,
-    )));
+    final assignedAsync = ref.watch(
+      currentUserAssignedToWorkOrderProvider(workOrder.id),
+    );
+    final pmChecklistsAllowedAsync = ref.watch(
+      clientCapabilityGateProvider((
+        clientId: null,
+        capability: ClientCapability.pmChecklists,
+      )),
+    );
     final isAssignedContributor = assignedAsync.valueOrNull ?? false;
     final pmChecklistsAllowed =
         isOwnerOrEmployee || (pmChecklistsAllowedAsync.valueOrNull ?? false);
@@ -53,12 +57,13 @@ class WorkOrderDetailActionsSection extends ConsumerWidget {
       pmChecklistsAllowed: pmChecklistsAllowed,
     );
     final canManageStatus = isOwnerOrEmployee;
-    final reportsAsync =
-        ref.watch(serviceReportsByWorkOrderProvider(workOrder.id));
+    final reportsAsync = ref.watch(
+      serviceReportsByWorkOrderProvider(workOrder.id),
+    );
     final hasSubmittedServiceReport =
         WorkOrderCompletionPolicy.workOrderHasSubmittedServiceReport(
-      reportsAsync.valueOrNull ?? const [],
-    );
+          reportsAsync.valueOrNull ?? const [],
+        );
     final canOpenChecklist = WorkOrderDetailActionsPolicy.canOpenChecklist(
       canUseChecklist: canUseChecklist,
       checklistTemplateId: workOrder.checklistTemplateId,
@@ -78,9 +83,9 @@ class WorkOrderDetailActionsSection extends ConsumerWidget {
         Text(
           l10n.actions.toUpperCase(),
           style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                color: AppColors.primary,
-                letterSpacing: 1.2,
-              ),
+            color: AppColors.primary,
+            letterSpacing: 1.2,
+          ),
         ),
         const SizedBox(height: 12),
         if (WorkOrderDetailActionsPolicy.canStartWorkOrder(
@@ -93,10 +98,7 @@ class WorkOrderDetailActionsSection extends ConsumerWidget {
                 : () async {
                     final success = await ref
                         .read(workOrderControllerProvider.notifier)
-                        .updateStatus(
-                          workOrder.id,
-                          WorkOrderStatus.inProgress,
-                        );
+                        .updateStatus(workOrder.id, WorkOrderStatus.inProgress);
                     if (!success && context.mounted) {
                       showWorkOrderActionFailedSnackBar(context);
                     }
@@ -120,7 +122,7 @@ class WorkOrderDetailActionsSection extends ConsumerWidget {
             label: Text(
               checklistDone
                   ? '${l10n.viewChecklist} • ${l10n.statusCompleted}'
-                  : 'Continue checklist',
+                  : (es ? 'Continuar lista de revisión' : 'Continue checklist'),
             ),
             style: checklistDone
                 ? OutlinedButton.styleFrom(
@@ -136,7 +138,8 @@ class WorkOrderDetailActionsSection extends ConsumerWidget {
         )) ...[
           const SizedBox(height: 8),
           ElevatedButton.icon(
-            onPressed: isLoading
+            onPressed:
+                isLoading || reportsAsync.isLoading || reportsAsync.hasError
                 ? null
                 : () async {
                     if (WorkOrderCompletionPolicy.shouldExplainMissingServiceReport(
@@ -144,16 +147,6 @@ class WorkOrderDetailActionsSection extends ConsumerWidget {
                       hasSubmittedServiceReport: hasSubmittedServiceReport,
                     )) {
                       if (!context.mounted) return;
-                      ScaffoldMessenger.of(context)
-                        ..hideCurrentSnackBar()
-                        ..showSnackBar(
-                          const SnackBar(
-                            content: Text(
-                              'Submit a service report before marking this work order completed.',
-                            ),
-                            backgroundColor: AppColors.warning,
-                          ),
-                        );
                       context.push(
                         '$routePrefix/service-reports/new?workOrderId=${Uri.encodeComponent(workOrder.id)}',
                       );
@@ -167,10 +160,7 @@ class WorkOrderDetailActionsSection extends ConsumerWidget {
                     }
                     final success = await ref
                         .read(workOrderControllerProvider.notifier)
-                        .updateStatus(
-                          workOrder.id,
-                          WorkOrderStatus.closed,
-                        );
+                        .updateStatus(workOrder.id, WorkOrderStatus.closed);
                     if (!context.mounted) return;
                     if (success) {
                       if (context.canPop()) {
@@ -182,12 +172,33 @@ class WorkOrderDetailActionsSection extends ConsumerWidget {
                       showWorkOrderActionFailedSnackBar(context);
                     }
                   },
-            icon: const Icon(Icons.check),
-            label: Text(l10n.completeWorkOrder),
+            icon: Icon(
+              hasSubmittedServiceReport
+                  ? Icons.check
+                  : Icons.description_outlined,
+            ),
+            label: Text(
+              hasSubmittedServiceReport
+                  ? l10n.completeWorkOrder
+                  : (es
+                        ? 'Continuar informe de servicio'
+                        : 'Continue service report'),
+            ),
             style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.success,
+              backgroundColor: hasSubmittedServiceReport
+                  ? AppColors.success
+                  : AppColors.primary,
             ),
           ),
+          if (reportsAsync.hasError)
+            TextButton(
+              onPressed: () => ref.invalidate(
+                serviceReportsByWorkOrderProvider(workOrder.id),
+              ),
+              child: Text(
+                es ? 'Reintentar carga de informes' : 'Retry loading reports',
+              ),
+            ),
           if (profile?.role == UserRole.employee) ...[
             const SizedBox(height: 8),
             OutlinedButton.icon(

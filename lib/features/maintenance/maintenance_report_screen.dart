@@ -441,6 +441,28 @@ class _MaintenanceReportScreenState
                 child: Text(maintenanceError(_error!, es)),
               ),
             const SizedBox(height: 16),
+            if (widget.job.hasRunningLabour) ...[
+              Text(
+                es
+                    ? 'Pausa el tiempo de trabajo antes de enviar a revisión. Tu borrador se conserva.'
+                    : 'Pause labour before submitting for review. Your draft is kept.',
+              ),
+              TextButton.icon(
+                onPressed: frozen
+                    ? null
+                    : () {
+                        if (Navigator.of(context).canPop()) {
+                          Navigator.pop(context);
+                        } else {
+                          context.go('/maintenance/jobs/${widget.job.id}');
+                        }
+                      },
+                icon: const Icon(Icons.timer_outlined),
+                label: Text(
+                  es ? 'Abrir tiempo de trabajo' : 'Open labour timer',
+                ),
+              ),
+            ],
             if (_pending != null)
               FilledButton(
                 onPressed: _saving || _uploading ? null : () => _save(_action!),
@@ -456,7 +478,8 @@ class _MaintenanceReportScreenState
                 child: Text(es ? 'Guardar borrador' : 'Save draft'),
               ),
               FilledButton(
-                onPressed: frozen || _photo != null
+                onPressed:
+                    frozen || _photo != null || widget.job.hasRunningLabour
                     ? null
                     : () => _save('submit'),
                 child: Text(es ? 'Enviar a revisión' : 'Submit for review'),

@@ -39,12 +39,15 @@ was separated from `https://github.com/Gr-linkk/vortice-app` at commit
 
 ## Development
 
-- Work from short-lived branches based on this repository's `main` branch.
+- Continue an existing authorized task on its verified branch. For independent
+  new work, use a short-lived `codex/` branch from the agreed current base; do not
+  reset or switch an active checkout merely to satisfy a startup ritual.
 - Keep the original repository's history and contributor attribution intact.
 - Record any intentional transfer between projects in the commit or pull
   request that performs it.
-- At the start of a task, read `PROJECT.md`, then `BACKLOG.md`, then any linked
-  current decision or specification that applies to the task.
+- For product behavior changes, read `PROJECT.md`, the relevant `BACKLOG.md`
+  item, and applicable current decisions/specifications. For narrow mechanical
+  changes, read affected files and applicable guards; reuse current context.
 - Treat `PROJECT.md` as the product and document-authority map, `BACKLOG.md` as
   the only live priority list, and `docs/decisions/` as the record of durable
   technical and product decisions. Dated plans and archived documents are

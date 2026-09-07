@@ -147,7 +147,10 @@ void main() {
                   )
                   .first;
               await h.tap(
-                find.descendant(of: card, matching: find.text('Accept + WO')),
+                find.descendant(
+                  of: card,
+                  matching: find.text('Create work order'),
+                ),
               );
               await h.tap(find.text('Assign technicians'));
               final tech = await supabase
@@ -190,7 +193,16 @@ void main() {
                 throw StateError('Provider creation did not complete');
               }
               await h.login('tech@vortice.dev');
-              await h.go('/employee/work-orders/$providerJob');
+              await h.go('/maintenance');
+              await h.fill(h.field('Search job or asset'), marker);
+              final orderTitle =
+                  (await supabase
+                          .from('work_orders')
+                          .select('title')
+                          .eq('id', providerJob!)
+                          .single())['title']
+                      as String;
+              await h.tap(find.text(orderTitle));
               await h.tap(
                 find.widgetWithText(ElevatedButton, 'Start Work Order'),
               );
@@ -206,8 +218,8 @@ void main() {
                     .single())['labour_hours'],
                 2,
               );
-              await h.go(
-                '/employee/service-reports/new?workOrderId=$providerJob',
+              await h.tap(
+                find.widgetWithText(ElevatedButton, 'Continue service report'),
               );
               final en = AppLocalizationsEn();
               for (final hint in [

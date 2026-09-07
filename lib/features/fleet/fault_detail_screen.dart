@@ -4,11 +4,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:vortice_app/core/theme.dart';
 import 'package:vortice_app/features/auth/auth_provider.dart';
-import 'package:vortice_app/features/fleet/fault_action_sheet.dart';
-import 'package:vortice_app/features/fleet/fleet_policy.dart';
 import 'package:vortice_app/features/fleet/fleet_providers.dart';
 import 'package:vortice_app/features/fleet/fleet_widgets.dart';
-import 'package:vortice_app/models/profile.dart';
+import 'fault_next_step.dart';
 
 class FaultDetailScreen extends ConsumerWidget {
   const FaultDetailScreen({super.key, required this.faultId});
@@ -45,11 +43,6 @@ class FaultDetailScreen extends ConsumerWidget {
                   : 'It does not exist or is outside your fleet.',
             );
           }
-          final actions = availableFaultActions(
-            fault: fault,
-            role: profile?.role,
-            userId: profile?.id,
-          );
           return RefreshIndicator(
             onRefresh: () async {
               refreshFleet(ref, faultId: fault.id, assetId: fault.assetId);
@@ -59,11 +52,6 @@ class FaultDetailScreen extends ConsumerWidget {
               physics: const AlwaysScrollableScrollPhysics(),
               padding: const EdgeInsets.all(20),
               children: [
-                CoordinationEntry(
-                  assetId: fault.assetId,
-                  kind: 'fault',
-                  subjectId: fault.id,
-                ),
                 InkWell(
                   onTap: () => context.push('/fleet/assets/${fault.assetId}'),
                   child: Padding(
@@ -123,36 +111,6 @@ class FaultDetailScreen extends ConsumerWidget {
                   label: es ? 'Fecha del reporte' : 'Reported',
                   value: fleetDate(context, fault.createdAt),
                 ),
-                if (fault.workOrderId != null) ...[
-                  const SizedBox(height: 12),
-                  Card(
-                    margin: EdgeInsets.zero,
-                    child: ListTile(
-                      leading: const Icon(
-                        Icons.build_outlined,
-                        color: AppColors.primaryLight,
-                      ),
-                      title: Text(
-                        es
-                            ? 'Orden de reparación vinculada'
-                            : 'Linked repair work order',
-                      ),
-                      subtitle: Text(_jobLabel(fault.workOrderStatus, es)),
-                      trailing:
-                          profile?.role == UserRole.owner ||
-                              profile?.role == UserRole.employee
-                          ? const Icon(Icons.open_in_new)
-                          : null,
-                      onTap:
-                          profile?.role == UserRole.owner ||
-                              profile?.role == UserRole.employee
-                          ? () => context.push(
-                              '/${profile?.role == UserRole.owner ? 'owner' : 'employee'}/work-orders/${fault.workOrderId}',
-                            )
-                          : null,
-                    ),
-                  ),
-                ],
                 if (fault.resolutionNote != null) ...[
                   const SizedBox(height: 20),
                   Text(
@@ -162,58 +120,15 @@ class FaultDetailScreen extends ConsumerWidget {
                   const SizedBox(height: 8),
                   Text(fault.resolutionNote!),
                   const SizedBox(height: 12),
-                  OutlinedButton.icon(
-                    onPressed: () =>
-                        context.push('/fleet/assets/${fault.assetId}'),
-                    icon: const Icon(Icons.fact_check_outlined),
-                    label: Text(
-                      es
-                          ? 'Revisar disponibilidad'
-                          : 'Review asset availability',
-                    ),
-                  ),
                 ],
-                if (actions.isNotEmpty) ...[
-                  const SizedBox(height: 24),
-                  Text(
-                    es ? 'Siguiente paso' : 'Next step',
-                    style: Theme.of(context).textTheme.titleMedium,
-                  ),
-                  const SizedBox(height: 12),
-                  ...actions.map(
-                    (action) => Padding(
-                      padding: const EdgeInsets.only(bottom: 8),
-                      child: _FaultActionButton(
-                        primary: action == actions.first,
-                        onPressed: () async {
-                          await showModalBottomSheet<bool>(
-                            context: context,
-                            isScrollControlled: true,
-                            isDismissible: false,
-                            enableDrag: false,
-                            useSafeArea: true,
-                            builder: (_) =>
-                                FaultActionSheet(fault: fault, action: action),
-                          );
-                          if (context.mounted) {
-                            refreshFleet(
-                              ref,
-                              faultId: fault.id,
-                              assetId: fault.assetId,
-                            );
-                          }
-                        },
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(vertical: 4),
-                          child: Text(
-                            action.label(es),
-                            textAlign: TextAlign.center,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
+                const SizedBox(height: 24),
+                FaultNextStep(fault: fault, profile: profile, es: es),
+                CoordinationEntry(
+                  compact: true,
+                  assetId: fault.assetId,
+                  kind: 'fault',
+                  subjectId: fault.id,
+                ),
                 const SizedBox(height: 24),
                 Text(
                   es ? 'Historial' : 'Activity',
@@ -252,35 +167,6 @@ class FaultDetailScreen extends ConsumerWidget {
     );
   }
 }
-
-class _FaultActionButton extends StatelessWidget {
-  const _FaultActionButton({
-    required this.primary,
-    required this.onPressed,
-    required this.child,
-  });
-  final bool primary;
-  final VoidCallback onPressed;
-  final Widget child;
-  @override
-  Widget build(BuildContext context) => primary
-      ? FilledButton(onPressed: onPressed, child: child)
-      : OutlinedButton(onPressed: onPressed, child: child);
-}
-
-String _jobLabel(String? status, bool es) => switch (status) {
-  'draft' => es ? 'Borrador' : 'Draft',
-  'assigned' => es ? 'Asignada' : 'Assigned',
-  'in_progress' => es ? 'En curso' : 'In progress',
-  'on_hold' => es ? 'En espera' : 'On hold',
-  'pending_review' => es ? 'Pendiente de revisión' : 'Awaiting review',
-  'invoiced' => es ? 'Facturada' : 'Invoiced',
-  'closed' =>
-    es
-        ? 'Cerrada; verificar la falla por separado'
-        : 'Closed; verify the fault separately',
-  _ => es ? 'Estado no disponible' : 'Status unavailable',
-};
 
 class _Info extends StatelessWidget {
   const _Info({required this.label, required this.value});

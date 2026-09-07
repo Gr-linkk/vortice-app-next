@@ -232,6 +232,7 @@ final routerProvider = Provider<GoRouter>((ref) {
               assetId: state.uri.queryParameters['assetId'],
               planId: state.uri.queryParameters['planId'],
               parentJobId: state.uri.queryParameters['parentJobId'],
+              faultId: state.uri.queryParameters['faultId'],
             ),
           ),
           GoRoute(

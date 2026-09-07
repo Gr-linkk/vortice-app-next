@@ -115,6 +115,9 @@ class FleetFault {
     this.reporterName,
     this.workOrderId,
     this.workOrderStatus,
+    this.workOrderManaged = false,
+    this.canOpenWorkOrder = false,
+    this.canPlanRepair = false,
     this.createdAt,
     this.updatedAt,
     this.resolutionNote,
@@ -131,6 +134,7 @@ class FleetFault {
   final String? reporterName;
   final String? workOrderId;
   final String? workOrderStatus;
+  final bool workOrderManaged, canOpenWorkOrder, canPlanRepair;
   final DateTime? createdAt;
   final DateTime? updatedAt;
   final String? resolutionNote;
@@ -148,6 +152,9 @@ class FleetFault {
     reporterName: json['reporter_name'] as String?,
     workOrderId: json['converted_to_work_order_id'] as String?,
     workOrderStatus: json['work_order_status'] as String?,
+    workOrderManaged: json['work_order_managed'] == true,
+    canOpenWorkOrder: json['can_open_work_order'] == true,
+    canPlanRepair: json['can_plan_repair'] == true,
     createdAt: _date(json['created_at']),
     updatedAt: _date(json['updated_at']),
     resolutionNote: json['resolution_note'] as String?,

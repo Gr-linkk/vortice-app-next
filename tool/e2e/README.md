@@ -17,11 +17,12 @@ flutter test tool/e2e/saved_workflows_test.dart --dart-define-from-file="$VORTIC
 flutter test tool/e2e/operations_workflows_test.dart --dart-define-from-file="$VORTICE_E2E_CONFIG" --reporter expanded
 flutter test tool/e2e/custody_workflows_test.dart --dart-define-from-file="$VORTICE_E2E_CONFIG" --reporter expanded
 flutter test tool/e2e/field_reliability_test.dart --dart-define-from-file="$VORTICE_E2E_CONFIG" --reporter expanded
+flutter test tool/e2e/direct_workflows_test.dart --dart-define-from-file="$VORTICE_E2E_CONFIG" --reporter expanded
 ```
 
 Run sequentially. Accounts are the existing owner, technician, company manager,
 company mechanic, operator and second-company development accounts. The saved
-journeys create synthetic `E2E-010`/`E2E-011` records and manifest files in `outputs/`.
+journeys create synthetic `E2E-010`/`E2E-011`/`E2E-012` records and manifest files in `outputs/`.
 Some steps continue after a failure to collect independent findings; each test
 still fails if any recorded step fails. Route results include redirects and
 visible labels, so inspect the report as well as the final test exit status.
@@ -37,6 +38,13 @@ and simulates lost connectivity and acknowledgements around the real production
 sender. It verifies live photo bytes, immutable replay, atomic operator history,
 Back/draft recovery and cross-company denial. `recovery_contract.py` separately
 exercises actual recovery with a disposable auth account, without sending email.
+
+The direct-workflow journey exercises fault planning, asset-scoped work discovery,
+mechanic reporting, supervisor approval and explicit fault verification. The saved
+provider journey enters assigned service work through the combined Work list and
+uses Continue service report before completing and invoicing it. Run cleanup after
+a failed attempt before retrying: an interrupted journey can leave a synthetic
+labour timer active, and each mechanic may have only one running timer.
 
 After the tests, inspect the generated manifests and run the guarded cleanup
 with the already authenticated Supabase CLI available on PATH:

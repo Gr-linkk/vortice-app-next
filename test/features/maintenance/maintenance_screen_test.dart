@@ -10,6 +10,7 @@ import 'package:go_router/go_router.dart';
 import 'package:vortice_app/core/theme.dart';
 import 'package:vortice_app/features/auth/auth_provider.dart';
 import 'package:vortice_app/features/maintenance/maintenance_models.dart';
+import 'package:vortice_app/features/work_orders/work_order_provider.dart';
 import 'package:vortice_app/features/maintenance/maintenance_repository.dart';
 import 'package:vortice_app/features/maintenance/maintenance_create_screen.dart';
 import 'package:vortice_app/features/maintenance/maintenance_job_screen.dart';
@@ -20,6 +21,7 @@ import 'package:vortice_app/features/maintenance/maintenance_setup_screen.dart';
 import 'package:vortice_app/l10n/app_localizations.dart';
 import 'package:vortice_app/models/profile.dart';
 import '../fleet/fleet_test_support.dart';
+import 'package:vortice_app/features/fleet/fleet_providers.dart';
 
 Map<String, dynamic> jobData({
   bool manager = true,
@@ -166,6 +168,21 @@ class FixtureMaintenance extends MaintenanceRepository {
   }
 
   @override
+  Future<String> planFault(
+    String faultId,
+    int revision,
+    String operationId,
+    Map<String, dynamic> data,
+  ) async {
+    record(operationId, 'plan_fault', {
+      ...data,
+      'fault_id': faultId,
+      'revision': revision,
+    });
+    return 'job';
+  }
+
+  @override
   Future<void> change(
     String jobId,
     int revision,
@@ -207,6 +224,7 @@ Future<void> pumpMaintenance(
   double width = 390,
   double scale = 1,
   UserRole role = UserRole.clientAdmin,
+  FixtureFleetRepository? fleet,
   List<Override> overrides = const [],
 }) async {
   tester.view.physicalSize = Size(width, 844);
@@ -216,6 +234,33 @@ Future<void> pumpMaintenance(
   final router = GoRouter(
     routes: [
       GoRoute(path: '/', builder: (_, __) => screen),
+      GoRoute(
+        path: '/owner/work-orders/service',
+        builder: (_, state) =>
+            const Scaffold(body: Text('Service order service')),
+      ),
+      GoRoute(
+        path: '/owner/service-reports/new',
+        builder: (_, state) => Scaffold(
+          body: Text(
+            'Service report ${state.uri.queryParameters['workOrderId']}',
+          ),
+        ),
+      ),
+      GoRoute(
+        path: '/owner/work-orders/create',
+        builder: (_, state) => Scaffold(
+          body: Text(
+            'Request draft: ${state.uri.queryParameters['serviceRequestId']} / ${state.uri.queryParameters['assetId']}',
+          ),
+        ),
+      ),
+      GoRoute(
+        path: '/maintenance/new',
+        builder: (_, state) => MaintenanceCreateScreen(
+          faultId: state.uri.queryParameters['faultId'],
+        ),
+      ),
       GoRoute(
         path: '/maintenance/jobs/:id',
         builder: (_, __) => const Scaffold(body: Text('Job saved')),
@@ -230,8 +275,12 @@ Future<void> pumpMaintenance(
   await tester.pumpWidget(
     ProviderScope(
       overrides: [
+        workOrdersProvider.overrideWith((_) async => []),
         sessionProvider.overrideWithValue(null),
         fieldWorkQueueProvider.overrideWithValue(null),
+        fleetRepositoryProvider.overrideWithValue(
+          fleet ?? FixtureFleetRepository(),
+        ),
         maintenanceRepositoryProvider.overrideWithValue(repository),
         profileProvider.overrideWith(
           (_) async => Profile(
@@ -337,7 +386,12 @@ void main() {
         },
       ),
     );
-    await tester.ensureVisible(find.text('Approve & complete'));
+    await tester.scrollUntilVisible(
+      find.text('Approve & complete'),
+      200,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.pumpAndSettle();
     await tester.tap(find.text('Approve & complete'));
     await tester.pumpAndSettle();
     expect(
@@ -438,7 +492,7 @@ void main() {
         FixtureMaintenance(job: jobData(enabled: false)),
       );
       expect(find.text('Start labour'), findsNothing);
-      expect(find.text('Report & submit'), findsNothing);
+      expect(find.text('Continue repair report'), findsNothing);
       expect(
         find.text('History is available; execution is disabled.'),
         findsOneWidget,

@@ -48,12 +48,12 @@ class _WorkOrderListScreenState extends ConsumerState<WorkOrderListScreen>
       UserRole.clientAdmin ||
       UserRole.clientMechanic ||
       UserRole.clientOperator ||
-      UserRole.operator =>
-        '/client',
+      UserRole.operator => '/client',
       _ => '/owner',
     };
 
-    final title = canCreate ? l10n.workOrdersTitle : 'Assigned Work';
+    final es = Localizations.localeOf(context).languageCode == 'es';
+    final title = es ? 'Órdenes de servicio' : 'Service orders';
 
     return Scaffold(
       appBar: AppBar(
@@ -76,8 +76,10 @@ class _WorkOrderListScreenState extends ConsumerState<WorkOrderListScreen>
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Text(friendlyError(context, err),
-                  style: const TextStyle(color: AppColors.error)),
+              Text(
+                friendlyError(context, err),
+                style: const TextStyle(color: AppColors.error),
+              ),
               const SizedBox(height: 12),
               ElevatedButton(
                 onPressed: () => ref.invalidate(workOrdersProvider),
@@ -88,20 +90,26 @@ class _WorkOrderListScreenState extends ConsumerState<WorkOrderListScreen>
         ),
         data: (all) {
           final open = all
-              .where((w) =>
-                  w.status == WorkOrderStatus.draft ||
-                  w.status == WorkOrderStatus.assigned)
+              .where(
+                (w) =>
+                    w.status == WorkOrderStatus.draft ||
+                    w.status == WorkOrderStatus.assigned,
+              )
               .toList();
           final inProgress = all
-              .where((w) =>
-                  w.status == WorkOrderStatus.inProgress ||
-                  w.status == WorkOrderStatus.onHold ||
-                  w.status == WorkOrderStatus.pendingReview)
+              .where(
+                (w) =>
+                    w.status == WorkOrderStatus.inProgress ||
+                    w.status == WorkOrderStatus.onHold ||
+                    w.status == WorkOrderStatus.pendingReview,
+              )
               .toList();
           final completed = all
-              .where((w) =>
-                  w.status == WorkOrderStatus.invoiced ||
-                  w.status == WorkOrderStatus.closed)
+              .where(
+                (w) =>
+                    w.status == WorkOrderStatus.invoiced ||
+                    w.status == WorkOrderStatus.closed,
+              )
               .toList();
 
           return RefreshIndicator(
@@ -110,17 +118,20 @@ class _WorkOrderListScreenState extends ConsumerState<WorkOrderListScreen>
               controller: _tabCtrl,
               children: [
                 _WorkOrderTab(
-                    orders: open,
-                    prefix: prefix,
-                    emptyLabel: l10n.noWorkOrders),
+                  orders: open,
+                  prefix: prefix,
+                  emptyLabel: l10n.noWorkOrders,
+                ),
                 _WorkOrderTab(
-                    orders: inProgress,
-                    prefix: prefix,
-                    emptyLabel: l10n.noWorkOrders),
+                  orders: inProgress,
+                  prefix: prefix,
+                  emptyLabel: l10n.noWorkOrders,
+                ),
                 _WorkOrderTab(
-                    orders: completed,
-                    prefix: prefix,
-                    emptyLabel: l10n.noWorkOrders),
+                  orders: completed,
+                  prefix: prefix,
+                  emptyLabel: l10n.noWorkOrders,
+                ),
               ],
             ),
           );
@@ -152,8 +163,10 @@ class _WorkOrderTab extends StatelessWidget {
   Widget build(BuildContext context) {
     if (orders.isEmpty) {
       return Center(
-        child: Text(emptyLabel,
-            style: const TextStyle(color: AppColors.textSecondary)),
+        child: Text(
+          emptyLabel,
+          style: const TextStyle(color: AppColors.textSecondary),
+        ),
       );
     }
     return ListView.builder(
@@ -189,8 +202,10 @@ class _WorkOrderTile extends StatelessWidget {
           order.status.name,
           style: const TextStyle(color: AppColors.textSecondary, fontSize: 11),
         ),
-        trailing:
-            const Icon(Icons.chevron_right, color: AppColors.textSecondary),
+        trailing: const Icon(
+          Icons.chevron_right,
+          color: AppColors.textSecondary,
+        ),
         onTap: onTap,
       ),
     );

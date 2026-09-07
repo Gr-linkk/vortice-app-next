@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:vortice_app/core/unsaved_form_guard.dart';
 import 'package:vortice_app/core/user_feedback.dart';
 import 'package:vortice_app/features/auth/auth_provider.dart';
+import 'package:vortice_app/features/fleet/fleet_providers.dart';
 import 'maintenance_models.dart';
 import 'maintenance_repository.dart';
 import 'maintenance_refresh.dart';
@@ -15,8 +16,9 @@ class MaintenanceCreateScreen extends ConsumerStatefulWidget {
     this.assetId,
     this.planId,
     this.parentJobId,
+    this.faultId,
   });
-  final String? assetId, planId, parentJobId;
+  final String? assetId, planId, parentJobId, faultId;
   @override
   ConsumerState<MaintenanceCreateScreen> createState() =>
       _MaintenanceCreateScreenState();
@@ -33,7 +35,9 @@ class _MaintenanceCreateScreenState
   DateTime? _due;
   MaintenanceWrite? _pending;
   Object? _error;
-  bool _saving = false;
+  bool _saving = false, _faultPrefilled = false, _linkExisting = false;
+  String? _existingJob;
+  int? _pendingRevision;
   @override
   void initState() {
     super.initState();
@@ -51,26 +55,47 @@ class _MaintenanceCreateScreenState
 
   Future<void> _save() async {
     if (!_form.currentState!.validate() || _asset == null) return;
-    _pending ??= MaintenanceWrite({
-      'asset_id': _asset,
-      'title': _title.text.trim(),
-      'description': _instructions.text.trim(),
-      'assigned_to': _assignee,
-      'priority': _priority,
-      'service_interval_id': _plan,
-      'engine_id': _component,
-      'parent_job_id': widget.parentJobId,
-      'hourly_cost': double.tryParse(_cost.text) ?? 0,
-      'due_date': _due?.toIso8601String().split('T').first,
-    });
+    final fault = widget.faultId == null
+        ? null
+        : ref.read(fleetFaultProvider(widget.faultId!)).valueOrNull;
+    if (widget.faultId != null &&
+        (fault == null ||
+            !fault.canPlanRepair ||
+            fault.workOrderId != null ||
+            !fault.status.isActive)) {
+      return;
+    }
+    _pendingRevision ??= fault?.revision;
+    _pending ??= MaintenanceWrite(
+      _linkExisting
+          ? {'job_id': _existingJob, 'asset_id': _asset}
+          : {
+              'asset_id': _asset,
+              'title': _title.text.trim(),
+              'description': _instructions.text.trim(),
+              'assigned_to': _assignee,
+              'priority': _priority,
+              'service_interval_id': _plan,
+              'engine_id': _component,
+              'parent_job_id': widget.parentJobId,
+              'hourly_cost': double.tryParse(_cost.text) ?? 0,
+              'due_date': _due?.toIso8601String().split('T').first,
+            },
+    );
     setState(() {
       _saving = true;
       _error = null;
     });
     try {
-      final id = await ref
-          .read(maintenanceRepositoryProvider)
-          .create(_pending!.id, _pending!.data);
+      final repository = ref.read(maintenanceRepositoryProvider);
+      final id = fault == null
+          ? await repository.create(_pending!.id, _pending!.data)
+          : await repository.planFault(
+              fault.id,
+              _pendingRevision!,
+              _pending!.id,
+              _pending!.data,
+            );
       if (!mounted) return;
       refreshMaintenance(ref);
       context.go('/maintenance/jobs/$id');
@@ -78,7 +103,13 @@ class _MaintenanceCreateScreenState
       if (mounted) {
         setState(() {
           _error = error;
-          if (maintenanceWriteWasRejected(error)) _pending = null;
+          if (maintenanceWriteWasRejected(error)) {
+            _pending = null;
+            _pendingRevision = null;
+            if (widget.faultId != null) {
+              ref.invalidate(fleetFaultProvider(widget.faultId!));
+            }
+          }
         });
       }
     } finally {
@@ -101,6 +132,66 @@ class _MaintenanceCreateScreenState
         ),
       );
     }
+    final source = widget.faultId == null
+        ? null
+        : ref.watch(fleetFaultProvider(widget.faultId!));
+    final fault = source?.valueOrNull;
+    if (widget.faultId != null) {
+      if (source!.isLoading || fault == null || source.hasError) {
+        return Scaffold(
+          appBar: AppBar(title: Text(es ? 'Orden de trabajo' : 'Work order')),
+          body: source.isLoading
+              ? const Center(child: CircularProgressIndicator())
+              : Center(
+                  child: source.hasError
+                      ? _retry(
+                          source.error!,
+                          () => ref.invalidate(
+                            fleetFaultProvider(widget.faultId!),
+                          ),
+                        )
+                      : Text(
+                          es ? 'Falla no disponible.' : 'Fault unavailable.',
+                        ),
+                ),
+        );
+      }
+      if (fault.workOrderId != null ||
+          !fault.status.isActive ||
+          !fault.canPlanRepair) {
+        return Scaffold(
+          appBar: AppBar(title: Text(es ? 'Orden de trabajo' : 'Work order')),
+          body: Center(
+            child: Padding(
+              padding: const EdgeInsets.all(20),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    es
+                        ? 'Revisa el estado actual de la falla para continuar.'
+                        : 'Review the current fault status to continue.',
+                  ),
+                  TextButton(
+                    onPressed: () => context.go('/fleet/faults/${fault.id}'),
+                    child: Text(es ? 'Volver a la falla' : 'Return to fault'),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      }
+      if (!_faultPrefilled) {
+        _asset = fault.assetId;
+        _title.text = fault.description.length > 200
+            ? fault.description.substring(0, 200)
+            : fault.description;
+        _instructions.text = fault.description;
+        _priority = fault.urgent ? 'urgent' : 'normal';
+        _faultPrefilled = true;
+      }
+    }
     final workspace = ref.watch(maintenanceWorkspaceProvider);
     final catalog = _asset == null
         ? null
@@ -118,247 +209,391 @@ class _MaintenanceCreateScreenState
       child: Scaffold(
         appBar: AppBar(
           leading: const FormBackButton(fallbackRoute: '/maintenance'),
-          title: Text(es ? 'Crear trabajo' : 'New maintenance job'),
+          title: Text(
+            widget.faultId != null
+                ? (es ? 'Planificar reparación' : 'Plan repair')
+                : (es ? 'Crear trabajo' : 'New maintenance job'),
+          ),
         ),
         body: Form(
           key: _form,
           child: ListView(
             padding: const EdgeInsets.all(20),
             children: [
-              workspace.when(
-                loading: () => const LinearProgressIndicator(),
-                error: (e, _) => _retry(
-                  e,
-                  () => ref.invalidate(maintenanceWorkspaceProvider),
+              if (fault != null) ...[
+                Text(
+                  fault.assetName,
+                  style: Theme.of(context).textTheme.titleMedium,
                 ),
-                data: (w) => AppDropdownField<String>(
-                  initialValue: _asset,
-                  isExpanded: true,
-                  decoration: InputDecoration(
-                    labelText: es ? 'Equipo' : 'Asset',
-                  ),
-                  items: maintenanceRows(w['assets'])
-                      .map(
-                        (a) => DropdownMenuItem(
-                          value: a['id'] as String,
-                          child: Text(a['name'] as String),
-                        ),
-                      )
-                      .toList(),
-                  onChanged: frozen || widget.parentJobId != null
-                      ? null
-                      : (v) => setState(() {
-                          _asset = v;
-                          _plan = null;
-                          _assignee = null;
-                          _component = null;
-                        }),
-                  validator: (v) => v == null
-                      ? (es ? 'Selecciona un equipo' : 'Select an asset')
-                      : null,
-                ),
-              ),
-              const SizedBox(height: 16),
-              if (catalog?.isLoading == true) const LinearProgressIndicator(),
-              if (catalog?.hasError == true)
-                _retry(
-                  catalog!.error!,
-                  () => ref.invalidate(maintenanceAssetProvider(_asset!)),
-                ),
-              if (data != null) ...[
-                if (data['can_execute'] != true)
-                  Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 12),
-                    child: Text(
-                      es
-                          ? 'El mantenimiento interno no está habilitado para esta empresa.'
-                          : 'Internal maintenance is not enabled for this company.',
-                    ),
-                  ),
-                TextFormField(
-                  controller: _title,
-                  enabled: !frozen,
-                  maxLength: 200,
-                  decoration: InputDecoration(
-                    labelText: es ? 'Trabajo a realizar' : 'Work to do',
-                  ),
-                  validator: (v) => (v?.trim().length ?? 0) < 3
-                      ? (es ? 'Describe el trabajo' : 'Describe the job')
-                      : null,
+                const SizedBox(height: 8),
+                Text(
+                  es
+                      ? 'La orden llevará la asignación, el informe, las horas y los repuestos de esta reparación.'
+                      : 'The work order will hold the assignment, report, labour and parts for this repair.',
                 ),
                 const SizedBox(height: 16),
-                TextFormField(
-                  controller: _instructions,
-                  enabled: !frozen,
-                  minLines: 3,
-                  maxLines: 6,
+                AppDropdownField<bool>(
+                  initialValue: _linkExisting,
                   decoration: InputDecoration(
-                    labelText: es ? 'Instrucciones' : 'Instructions',
-                  ),
-                ),
-                const SizedBox(height: 16),
-                AppDropdownField<String>(
-                  key: ValueKey('plan-$_asset'),
-                  initialValue: _plan,
-                  isExpanded: true,
-                  decoration: InputDecoration(
-                    labelText: es
-                        ? 'Plan (opcional)'
-                        : 'Service plan (optional)',
+                    labelText: es ? 'Cómo continuar' : 'How to continue',
                   ),
                   items: [
-                    DropdownMenuItem<String>(
-                      value: '',
+                    DropdownMenuItem(
+                      value: false,
                       child: Text(
-                        es ? 'Reparación sin plan' : 'Repair without a plan',
+                        es ? 'Crear orden de trabajo' : 'Create work order',
                       ),
                     ),
-                    ...maintenanceRows(data['plans'])
-                        .where(
-                          (p) =>
-                              p['engine_id'] != null && p['is_active'] == true,
+                    DropdownMenuItem(
+                      value: true,
+                      child: Text(
+                        es
+                            ? 'Vincular orden existente'
+                            : 'Link existing work order',
+                      ),
+                    ),
+                  ],
+                  onChanged: frozen
+                      ? null
+                      : (value) => setState(() => _linkExisting = value!),
+                ),
+                const SizedBox(height: 16),
+              ],
+              if (_linkExisting) ...[
+                ref
+                    .watch(maintenanceJobsProvider(_asset))
+                    .when(
+                      loading: () => const LinearProgressIndicator(),
+                      error: (error, _) => _retry(
+                        error,
+                        () => ref.invalidate(maintenanceJobsProvider(_asset)),
+                      ),
+                      data: (jobs) {
+                        final eligible = jobs
+                            .where(
+                              (job) =>
+                                  job.assetId == _asset &&
+                                  [
+                                    'draft',
+                                    'assigned',
+                                    'in_progress',
+                                    'on_hold',
+                                  ].contains(job.status),
+                            )
+                            .toList();
+                        return Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            if (eligible.isEmpty)
+                              Text(
+                                es
+                                    ? 'No hay órdenes abiertas para este equipo. Crea una nueva.'
+                                    : 'No open work orders for this asset. Create a new one.',
+                              ),
+                            AppDropdownField<String>(
+                              key: ValueKey(
+                                eligible.map((j) => j.id).join(','),
+                              ),
+                              initialValue:
+                                  eligible.any((j) => j.id == _existingJob)
+                                  ? _existingJob
+                                  : null,
+                              isExpanded: true,
+                              decoration: InputDecoration(
+                                labelText: es
+                                    ? 'Orden abierta'
+                                    : 'Open work order',
+                              ),
+                              items: eligible
+                                  .map(
+                                    (job) => DropdownMenuItem(
+                                      value: job.id,
+                                      child: Text(
+                                        '${job.title} · ${maintenanceStatus(job.status, es)}',
+                                      ),
+                                    ),
+                                  )
+                                  .toList(),
+                              onChanged: frozen
+                                  ? null
+                                  : (value) {
+                                      setState(() => _existingJob = value);
+                                      _form.currentState?.validate();
+                                    },
+                              validator: (value) =>
+                                  !eligible.any((j) => j.id == value)
+                                  ? (es
+                                        ? 'Selecciona una orden'
+                                        : 'Choose a work order')
+                                  : null,
+                            ),
+                            if (_error != null)
+                              Text(maintenanceError(_error!, es)),
+                            const SizedBox(height: 20),
+                            FilledButton(
+                              onPressed: _saving || eligible.isEmpty
+                                  ? null
+                                  : _save,
+                              child: Text(
+                                _saving
+                                    ? (es ? 'Guardando…' : 'Saving…')
+                                    : _pending != null
+                                    ? (es ? 'Reintentar vínculo' : 'Retry link')
+                                    : (es
+                                          ? 'Vincular y abrir orden'
+                                          : 'Link & open work order'),
+                              ),
+                            ),
+                          ],
+                        );
+                      },
+                    ),
+              ] else ...[
+                workspace.when(
+                  loading: () => const LinearProgressIndicator(),
+                  error: (e, _) => _retry(
+                    e,
+                    () => ref.invalidate(maintenanceWorkspaceProvider),
+                  ),
+                  data: (w) => AppDropdownField<String>(
+                    initialValue: _asset,
+                    isExpanded: true,
+                    decoration: InputDecoration(
+                      labelText: es ? 'Equipo' : 'Asset',
+                    ),
+                    items: maintenanceRows(w['assets'])
+                        .map(
+                          (a) => DropdownMenuItem(
+                            value: a['id'] as String,
+                            child: Text(a['name'] as String),
+                          ),
                         )
+                        .toList(),
+                    onChanged:
+                        frozen ||
+                            widget.parentJobId != null ||
+                            widget.faultId != null
+                        ? null
+                        : (v) => setState(() {
+                            _asset = v;
+                            _plan = null;
+                            _assignee = null;
+                            _component = null;
+                          }),
+                    validator: (v) => v == null
+                        ? (es ? 'Selecciona un equipo' : 'Select an asset')
+                        : null,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                if (catalog?.isLoading == true) const LinearProgressIndicator(),
+                if (catalog?.hasError == true)
+                  _retry(
+                    catalog!.error!,
+                    () => ref.invalidate(maintenanceAssetProvider(_asset!)),
+                  ),
+                if (data != null) ...[
+                  if (data['can_execute'] != true)
+                    Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      child: Text(
+                        es
+                            ? 'El mantenimiento interno no está habilitado para esta empresa.'
+                            : 'Internal maintenance is not enabled for this company.',
+                      ),
+                    ),
+                  TextFormField(
+                    controller: _title,
+                    enabled: !frozen,
+                    maxLength: 200,
+                    decoration: InputDecoration(
+                      labelText: es ? 'Trabajo a realizar' : 'Work to do',
+                    ),
+                    validator: (v) => (v?.trim().length ?? 0) < 3
+                        ? (es ? 'Describe el trabajo' : 'Describe the job')
+                        : null,
+                  ),
+                  const SizedBox(height: 16),
+                  TextFormField(
+                    controller: _instructions,
+                    enabled: !frozen,
+                    minLines: 3,
+                    maxLines: 6,
+                    decoration: InputDecoration(
+                      labelText: es ? 'Instrucciones' : 'Instructions',
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  AppDropdownField<String>(
+                    key: ValueKey('plan-$_asset'),
+                    initialValue: _plan,
+                    isExpanded: true,
+                    decoration: InputDecoration(
+                      labelText: es
+                          ? 'Plan (opcional)'
+                          : 'Service plan (optional)',
+                    ),
+                    items: [
+                      DropdownMenuItem<String>(
+                        value: '',
+                        child: Text(
+                          es ? 'Reparación sin plan' : 'Repair without a plan',
+                        ),
+                      ),
+                      ...maintenanceRows(data['plans'])
+                          .where(
+                            (p) =>
+                                p['engine_id'] != null &&
+                                p['is_active'] == true,
+                          )
+                          .map(
+                            (p) => DropdownMenuItem(
+                              value: p['id'] as String,
+                              child: Text(
+                                '${p['interval_label'] ?? p['interval_hours']} · ${p['component_name']}',
+                              ),
+                            ),
+                          ),
+                    ],
+                    onChanged: frozen || data['can_plan'] != true
+                        ? null
+                        : (v) => setState(() => _plan = v == '' ? null : v),
+                  ),
+                  const SizedBox(height: 16),
+                  if (_plan == null) ...[
+                    AppDropdownField<String>(
+                      key: ValueKey('component-$_asset'),
+                      initialValue: _component,
+                      isExpanded: true,
+                      decoration: InputDecoration(
+                        labelText: es ? 'Componente' : 'Component (optional)',
+                      ),
+                      items: maintenanceRows(data['components'])
+                          .map(
+                            (e) => DropdownMenuItem(
+                              value: e['id'] as String,
+                              child: Text(e['label'] as String),
+                            ),
+                          )
+                          .toList(),
+                      onChanged: frozen
+                          ? null
+                          : (v) => setState(() => _component = v),
+                    ),
+                    const SizedBox(height: 16),
+                  ],
+                  AppDropdownField<String>(
+                    key: ValueKey('assignee-$_asset'),
+                    initialValue: _assignee,
+                    isExpanded: true,
+                    decoration: InputDecoration(
+                      labelText: es ? 'Responsable' : 'Assigned to',
+                    ),
+                    items: maintenanceRows(data['assignees'])
                         .map(
                           (p) => DropdownMenuItem(
                             value: p['id'] as String,
-                            child: Text(
-                              '${p['interval_label'] ?? p['interval_hours']} · ${p['component_name']}',
-                            ),
-                          ),
-                        ),
-                  ],
-                  onChanged: frozen || data['can_plan'] != true
-                      ? null
-                      : (v) => setState(() => _plan = v == '' ? null : v),
-                ),
-                const SizedBox(height: 16),
-                if (_plan == null) ...[
-                  AppDropdownField<String>(
-                    key: ValueKey('component-$_asset'),
-                    initialValue: _component,
-                    isExpanded: true,
-                    decoration: InputDecoration(
-                      labelText: es ? 'Componente' : 'Component (optional)',
-                    ),
-                    items: maintenanceRows(data['components'])
-                        .map(
-                          (e) => DropdownMenuItem(
-                            value: e['id'] as String,
-                            child: Text(e['label'] as String),
+                            child: Text(p['name'] as String),
                           ),
                         )
                         .toList(),
                     onChanged: frozen
                         ? null
-                        : (v) => setState(() => _component = v),
+                        : (v) => setState(() => _assignee = v),
                   ),
                   const SizedBox(height: 16),
-                ],
-                AppDropdownField<String>(
-                  key: ValueKey('assignee-$_asset'),
-                  initialValue: _assignee,
-                  isExpanded: true,
-                  decoration: InputDecoration(
-                    labelText: es ? 'Responsable' : 'Assigned to',
-                  ),
-                  items: maintenanceRows(data['assignees'])
-                      .map(
-                        (p) => DropdownMenuItem(
-                          value: p['id'] as String,
-                          child: Text(p['name'] as String),
+                  AppDropdownField<String>(
+                    initialValue: _priority,
+                    decoration: InputDecoration(
+                      labelText: es ? 'Prioridad' : 'Priority',
+                    ),
+                    items: [
+                      for (final p in ['low', 'normal', 'high', 'urgent'])
+                        DropdownMenuItem(
+                          value: p,
+                          child: Text(maintenancePriority(p, es)),
                         ),
-                      )
-                      .toList(),
-                  onChanged: frozen
-                      ? null
-                      : (v) => setState(() => _assignee = v),
-                ),
-                const SizedBox(height: 16),
-                AppDropdownField<String>(
-                  initialValue: _priority,
-                  decoration: InputDecoration(
-                    labelText: es ? 'Prioridad' : 'Priority',
+                    ],
+                    onChanged: frozen
+                        ? null
+                        : (v) => setState(() => _priority = v!),
                   ),
-                  items: [
-                    for (final p in ['low', 'normal', 'high', 'urgent'])
-                      DropdownMenuItem(
-                        value: p,
-                        child: Text(maintenancePriority(p, es)),
-                      ),
-                  ],
-                  onChanged: frozen
-                      ? null
-                      : (v) => setState(() => _priority = v!),
-                ),
-                const SizedBox(height: 16),
-                ListTile(
-                  contentPadding: EdgeInsets.zero,
-                  title: Text(es ? 'Fecha límite' : 'Due date'),
-                  subtitle: Text(
-                    _due?.toIso8601String().split('T').first ??
-                        (es ? 'Sin fecha' : 'Not set'),
+                  const SizedBox(height: 16),
+                  ListTile(
+                    contentPadding: EdgeInsets.zero,
+                    title: Text(es ? 'Fecha límite' : 'Due date'),
+                    subtitle: Text(
+                      _due?.toIso8601String().split('T').first ??
+                          (es ? 'Sin fecha' : 'Not set'),
+                    ),
+                    trailing: const Icon(Icons.calendar_today),
+                    onTap: frozen
+                        ? null
+                        : () async {
+                            final now = DateTime.now();
+                            final date = await showDatePicker(
+                              context: context,
+                              initialDate: _due ?? now,
+                              firstDate: DateTime(now.year - 1),
+                              lastDate: DateTime(now.year + 10),
+                            );
+                            if (mounted && date != null) {
+                              setState(() => _due = date);
+                            }
+                          },
                   ),
-                  trailing: const Icon(Icons.calendar_today),
-                  onTap: frozen
-                      ? null
-                      : () async {
-                          final now = DateTime.now();
-                          final date = await showDatePicker(
-                            context: context,
-                            initialDate: _due ?? now,
-                            firstDate: DateTime(now.year - 1),
-                            lastDate: DateTime(now.year + 10),
-                          );
-                          if (mounted && date != null) {
-                            setState(() => _due = date);
-                          }
-                        },
-                ),
-                const SizedBox(height: 16),
-                TextFormField(
-                  controller: _cost,
-                  enabled: !frozen,
-                  keyboardType: const TextInputType.numberWithOptions(
-                    decimal: true,
+                  const SizedBox(height: 16),
+                  TextFormField(
+                    controller: _cost,
+                    enabled: !frozen,
+                    keyboardType: const TextInputType.numberWithOptions(
+                      decimal: true,
+                    ),
+                    decoration: InputDecoration(
+                      labelText: es
+                          ? 'Costo/hora (USD)'
+                          : 'Internal hourly cost (USD)',
+                    ),
+                    validator: (v) =>
+                        double.tryParse(v ?? '')?.isFinite != true ||
+                            double.parse(v!) < 0
+                        ? (es
+                              ? 'Ingresa un costo válido'
+                              : 'Enter a valid cost')
+                        : null,
                   ),
-                  decoration: InputDecoration(
-                    labelText: es
-                        ? 'Costo/hora (USD)'
-                        : 'Internal hourly cost (USD)',
+                  const SizedBox(height: 12),
+                  Text(
+                    es
+                        ? 'Este trabajo no genera una factura.'
+                        : 'This job does not generate an invoice.',
                   ),
-                  validator: (v) =>
-                      double.tryParse(v ?? '')?.isFinite != true ||
-                          double.parse(v!) < 0
-                      ? (es ? 'Ingresa un costo válido' : 'Enter a valid cost')
-                      : null,
-                ),
-                const SizedBox(height: 12),
-                Text(
-                  es
-                      ? 'Este trabajo no genera una factura.'
-                      : 'This job does not generate an invoice.',
-                ),
-                if (_error != null)
-                  Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    child: Text(maintenanceError(_error!, es)),
+                  if (_error != null)
+                    Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      child: Text(maintenanceError(_error!, es)),
+                    ),
+                  const SizedBox(height: 20),
+                  FilledButton(
+                    onPressed:
+                        _saving ||
+                            data['can_execute'] != true ||
+                            (_plan != null && data['can_plan'] != true)
+                        ? null
+                        : _save,
+                    child: Text(
+                      _saving
+                          ? (es ? 'Guardando…' : 'Saving…')
+                          : _pending != null
+                          ? (es ? 'Reintentar guardado' : 'Retry save')
+                          : widget.faultId != null
+                          ? (es
+                                ? 'Crear y abrir orden'
+                                : 'Create & open work order')
+                          : (es ? 'Crear trabajo' : 'Create job'),
+                    ),
                   ),
-                const SizedBox(height: 20),
-                FilledButton(
-                  onPressed:
-                      _saving ||
-                          data['can_execute'] != true ||
-                          (_plan != null && data['can_plan'] != true)
-                      ? null
-                      : _save,
-                  child: Text(
-                    _saving
-                        ? (es ? 'Guardando…' : 'Saving…')
-                        : _pending != null
-                        ? (es ? 'Reintentar guardado' : 'Retry save')
-                        : (es ? 'Crear trabajo' : 'Create job'),
-                  ),
-                ),
+                ],
               ],
             ],
           ),

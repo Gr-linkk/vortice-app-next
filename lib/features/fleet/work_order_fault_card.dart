@@ -30,7 +30,11 @@ class WorkOrderFaultCard extends ConsumerWidget {
                     child: ListTile(
                       leading: const Icon(Icons.flag_outlined),
                       title: Text(
-                        fleetText(context, 'Linked fault', 'Falla vinculada'),
+                        fleetText(
+                          context,
+                          'Open linked fault',
+                          'Abrir falla vinculada',
+                        ),
                       ),
                       subtitle: Text(
                         fault.description,

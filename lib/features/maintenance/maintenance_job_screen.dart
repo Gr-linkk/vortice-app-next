@@ -8,6 +8,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:vortice_app/core/user_feedback.dart';
 import 'package:vortice_app/features/auth/auth_provider.dart';
+import 'package:vortice_app/features/fleet/work_order_fault_card.dart';
 import 'maintenance_models.dart';
 import 'maintenance_report_screen.dart';
 import 'maintenance_repository.dart';
@@ -153,6 +154,71 @@ class _MaintenanceJobScreenState extends ConsumerState<MaintenanceJobScreen> {
                   padding: const EdgeInsets.symmetric(vertical: 6),
                   child: Text('$label: $value'),
                 );
+          final report = <Widget>[
+            Text(
+              job.status == 'pending_review'
+                  ? (es
+                        ? 'Revisar informe de reparación'
+                        : 'Review repair report')
+                  : (es ? 'Informe guardado' : 'Saved report'),
+              style: Theme.of(context).textTheme.titleLarge,
+            ),
+            info(
+              es ? 'Diagnóstico' : 'Diagnosis',
+              job.report['diagnosis'] as String?,
+            ),
+            info(es ? 'Reparación' : 'Repair', job.report['repair'] as String?),
+            info(es ? 'Notas' : 'Notes', job.report['notes'] as String?),
+            info(
+              es ? 'Horas al finalizar' : 'Completion meter',
+              job.data['hours_at_end']?.toString(),
+            ),
+            for (final item in job.checklist)
+              ListTile(
+                contentPadding: EdgeInsets.zero,
+                title: Text(
+                  (es
+                          ? item['description_es'] ?? item['description_en']
+                          : item['description_en'])
+                      as String,
+                ),
+                subtitle: Text(switch ((job.answers[item['id']]
+                    as Map?)?['result']) {
+                  'pass' => es ? 'Correcto' : 'Pass',
+                  'fail' => es ? 'Falla' : 'Fail',
+                  'na' => es ? 'No aplica' : 'Not applicable',
+                  _ => es ? 'Sin responder' : 'Unanswered',
+                }),
+              ),
+            for (final path in job.evidence) MaintenanceEvidence(path: path),
+            if (job.canManage &&
+                job.canWork &&
+                job.status == 'pending_review') ...[
+              const SizedBox(height: 16),
+              FilledButton(
+                onPressed: disabled
+                    ? null
+                    : () => _formAction(
+                        job,
+                        'approve',
+                        es ? 'Aprobar y completar' : 'Approve & complete',
+                      ),
+                child: Text(es ? 'Aprobar y completar' : 'Approve & complete'),
+              ),
+              TextButton(
+                onPressed: disabled
+                    ? null
+                    : () => _formAction(
+                        job,
+                        'return',
+                        es ? 'Devolver para cambios' : 'Return for changes',
+                      ),
+                child: Text(
+                  es ? 'Devolver para cambios' : 'Return for changes',
+                ),
+              ),
+            ],
+          ];
           return ListView(
             padding: const EdgeInsets.all(20),
             children: [
@@ -166,17 +232,13 @@ class _MaintenanceJobScreenState extends ConsumerState<MaintenanceJobScreen> {
                   ),
                 ),
               Text(job.title, style: Theme.of(context).textTheme.headlineSmall),
-              CoordinationEntry(
-                assetId: job.assetId,
-                kind: 'job',
-                subjectId: job.id,
-              ),
               TextButton.icon(
                 onPressed: () =>
                     context.push('/maintenance/assets/${job.assetId}'),
                 icon: const Icon(Icons.precision_manufacturing_outlined),
                 label: Text(job.assetName),
               ),
+              WorkOrderFaultCard(workOrderId: job.id, assetId: job.assetId),
               Wrap(
                 spacing: 8,
                 runSpacing: 8,
@@ -245,135 +307,140 @@ class _MaintenanceJobScreenState extends ConsumerState<MaintenanceJobScreen> {
                   ),
                 ),
               if (_busy) const LinearProgressIndicator(),
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: [
-                  if (job.canWork &&
-                      [
-                        'draft',
-                        'assigned',
-                        'in_progress',
-                        'on_hold',
-                      ].contains(job.status) &&
-                      !job.labour.any(
-                        (s) =>
-                            s['actor_id'] == userId && s['stopped_at'] == null,
-                      ))
-                    FilledButton.icon(
-                      onPressed: disabled ? null : () => _act(job, 'start'),
-                      icon: const Icon(Icons.play_arrow),
-                      label: Text(es ? 'Iniciar tiempo' : 'Start labour'),
-                    ),
-                  if (job.canEdit)
-                    OutlinedButton(
-                      onPressed: disabled
-                          ? null
-                          : () async {
-                              await Navigator.push(
-                                context,
-                                MaterialPageRoute<bool>(
-                                  builder: (_) =>
-                                      MaintenanceReportScreen(job: job),
-                                ),
-                              );
-                              if (mounted) _refresh();
-                            },
-                      child: Text(
-                        es ? 'Informe y revisión' : 'Report & submit',
+              if (job.canManage && job.canWork && job.status == 'draft')
+                FilledButton.icon(
+                  onPressed: disabled
+                      ? null
+                      : () => _formAction(
+                          job,
+                          'assign',
+                          es ? 'Asignar orden de trabajo' : 'Assign work order',
+                        ),
+                  icon: const Icon(Icons.person_add_alt),
+                  label: Text(
+                    es ? 'Asignar orden de trabajo' : 'Assign work order',
+                  ),
+                ),
+              if (job.canWork && job.status == 'assigned') ...[
+                Text(
+                  es
+                      ? 'Inicia el tiempo de trabajo; después completa el informe de reparación.'
+                      : 'Start your labour timer, then complete the repair report.',
+                ),
+                const SizedBox(height: 8),
+                FilledButton.icon(
+                  onPressed: disabled ? null : () => _act(job, 'start'),
+                  icon: const Icon(Icons.play_arrow),
+                  label: Text(es ? 'Iniciar trabajo' : 'Start work'),
+                ),
+              ],
+              if (job.canEdit)
+                FilledButton.icon(
+                  onPressed: disabled
+                      ? null
+                      : () async {
+                          await Navigator.push(
+                            context,
+                            MaterialPageRoute<bool>(
+                              builder: (_) => MaintenanceReportScreen(job: job),
+                            ),
+                          );
+                          if (mounted) _refresh();
+                        },
+                  icon: const Icon(Icons.edit_note),
+                  label: Text(
+                    es
+                        ? 'Continuar informe de reparación'
+                        : 'Continue repair report',
+                  ),
+                ),
+              if (job.status == 'pending_review') ...report,
+              if (job.canWork &&
+                  (job.canManage ||
+                      ['assigned', 'in_progress'].contains(job.status)))
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: PopupMenuButton<String>(
+                    enabled: !disabled,
+                    tooltip: es ? 'Más acciones' : 'More actions',
+                    onSelected: (action) {
+                      if (action == 'follow_up') {
+                        context.push(
+                          '/maintenance/new?assetId=${job.assetId}&parentJobId=${job.id}',
+                        );
+                      } else {
+                        _formAction(job, action, switch (action) {
+                          'assign' => es ? 'Asignar trabajo' : 'Assign job',
+                          'block' => es ? 'Bloquear trabajo' : 'Block work',
+                          _ => es ? 'Reabrir trabajo' : 'Reopen job',
+                        });
+                      }
+                    },
+                    itemBuilder: (_) => [
+                      if (job.canManage &&
+                          ![
+                            'draft',
+                            'closed',
+                            'pending_review',
+                          ].contains(job.status))
+                        PopupMenuItem(
+                          value: 'assign',
+                          child: Text(es ? 'Asignar trabajo' : 'Assign job'),
+                        ),
+                      if (['assigned', 'in_progress'].contains(job.status))
+                        PopupMenuItem(
+                          value: 'block',
+                          child: Text(es ? 'Bloquear trabajo' : 'Block work'),
+                        ),
+                      if (job.canManage && job.status == 'closed')
+                        PopupMenuItem(
+                          value: 'reopen',
+                          child: Text(es ? 'Reabrir trabajo' : 'Reopen job'),
+                        ),
+                      if (job.canManage)
+                        PopupMenuItem(
+                          value: 'follow_up',
+                          child: Text(
+                            es ? 'Crear seguimiento' : 'Create follow-up job',
+                          ),
+                        ),
+                    ],
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(Icons.more_horiz),
+                          const SizedBox(width: 8),
+                          Flexible(
+                            child: Text(es ? 'Más acciones' : 'More actions'),
+                          ),
+                        ],
                       ),
                     ),
-                  if (job.canEdit)
-                    OutlinedButton(
-                      onPressed: disabled
-                          ? null
-                          : () => _formAction(
-                              job,
-                              'add_part',
-                              es ? 'Añadir repuesto' : 'Add part',
-                            ),
-                      child: Text(es ? 'Añadir repuesto' : 'Add part'),
-                    ),
-                  if (job.canWork &&
-                      ['assigned', 'in_progress'].contains(job.status))
-                    OutlinedButton(
-                      onPressed: disabled
-                          ? null
-                          : () => _formAction(
-                              job,
-                              'block',
-                              es ? 'Bloquear trabajo' : 'Block work',
-                            ),
-                      child: Text(es ? 'Bloquear' : 'Block'),
-                    ),
-                  if (job.canManage &&
-                      job.canWork &&
-                      !['closed', 'pending_review'].contains(job.status))
-                    OutlinedButton(
-                      onPressed: disabled
-                          ? null
-                          : () => _formAction(
-                              job,
-                              'assign',
-                              es ? 'Asignar trabajo' : 'Assign job',
-                            ),
-                      child: Text(es ? 'Asignar' : 'Assign'),
-                    ),
-                  if (job.canManage &&
-                      job.canWork &&
-                      job.status == 'pending_review') ...[
-                    FilledButton(
-                      onPressed: disabled
-                          ? null
-                          : () => _formAction(
-                              job,
-                              'approve',
-                              es ? 'Aprobar y completar' : 'Approve & complete',
-                            ),
-                      child: Text(
-                        es ? 'Aprobar y completar' : 'Approve & complete',
-                      ),
-                    ),
-                    OutlinedButton(
-                      onPressed: disabled
-                          ? null
-                          : () => _formAction(
-                              job,
-                              'return',
-                              es ? 'Devolver trabajo' : 'Return for changes',
-                            ),
-                      child: Text(es ? 'Devolver' : 'Return'),
-                    ),
-                  ],
-                  if (job.canManage && job.canWork && job.status == 'closed')
-                    OutlinedButton(
-                      onPressed: disabled
-                          ? null
-                          : () => _formAction(
-                              job,
-                              'reopen',
-                              es ? 'Reabrir trabajo' : 'Reopen job',
-                            ),
-                      child: Text(es ? 'Reabrir' : 'Reopen'),
-                    ),
-                  if (job.canManage && job.canWork)
-                    OutlinedButton(
-                      onPressed: disabled
-                          ? null
-                          : () => context.push(
-                              '/maintenance/new?assetId=${job.assetId}&parentJobId=${job.id}',
-                            ),
-                      child: Text(
-                        es ? 'Trabajo de seguimiento' : 'Follow-up job',
-                      ),
-                    ),
-                ],
-              ),
+                  ),
+                ),
               const SizedBox(height: 24),
+              CoordinationEntry(
+                compact: true,
+                assetId: job.assetId,
+                kind: 'job',
+                subjectId: job.id,
+              ),
               Text(
                 es ? 'Mano de obra' : 'Labour',
                 style: Theme.of(context).textTheme.titleLarge,
               ),
+              if (job.canWork &&
+                  ['in_progress', 'on_hold'].contains(job.status) &&
+                  !job.labour.any(
+                    (s) => s['actor_id'] == userId && s['stopped_at'] == null,
+                  ))
+                OutlinedButton.icon(
+                  onPressed: disabled ? null : () => _act(job, 'start'),
+                  icon: const Icon(Icons.play_arrow),
+                  label: Text(es ? 'Iniciar tiempo' : 'Start labour'),
+                ),
               for (final session in job.labour)
                 ListTile(
                   contentPadding: EdgeInsets.zero,
@@ -407,6 +474,17 @@ class _MaintenanceJobScreenState extends ConsumerState<MaintenanceJobScreen> {
                 es ? 'Repuestos utilizados' : 'Parts used',
                 style: Theme.of(context).textTheme.titleLarge,
               ),
+              if (job.canEdit)
+                OutlinedButton(
+                  onPressed: disabled
+                      ? null
+                      : () => _formAction(
+                          job,
+                          'add_part',
+                          es ? 'Añadir repuesto' : 'Add part',
+                        ),
+                  child: Text(es ? 'Añadir repuesto' : 'Add part'),
+                ),
               for (final part in job.parts)
                 ListTile(
                   contentPadding: EdgeInsets.zero,
@@ -436,41 +514,7 @@ class _MaintenanceJobScreenState extends ConsumerState<MaintenanceJobScreen> {
                     : 'Labour and parts; no customer billing.',
               ),
               const SizedBox(height: 24),
-              Text(
-                es ? 'Informe guardado' : 'Saved report',
-                style: Theme.of(context).textTheme.titleLarge,
-              ),
-              info(
-                es ? 'Diagnóstico' : 'Diagnosis',
-                job.report['diagnosis'] as String?,
-              ),
-              info(
-                es ? 'Reparación' : 'Repair',
-                job.report['repair'] as String?,
-              ),
-              info(es ? 'Notas' : 'Notes', job.report['notes'] as String?),
-              info(
-                es ? 'Horas al finalizar' : 'Completion meter',
-                job.data['hours_at_end']?.toString(),
-              ),
-              for (final item in job.checklist)
-                ListTile(
-                  contentPadding: EdgeInsets.zero,
-                  title: Text(
-                    (es
-                            ? item['description_es'] ?? item['description_en']
-                            : item['description_en'])
-                        as String,
-                  ),
-                  subtitle: Text(switch ((job.answers[item['id']]
-                      as Map?)?['result']) {
-                    'pass' => es ? 'Correcto' : 'Pass',
-                    'fail' => es ? 'Falla' : 'Fail',
-                    'na' => es ? 'No aplica' : 'Not applicable',
-                    _ => es ? 'Sin responder' : 'Unanswered',
-                  }),
-                ),
-              for (final path in job.evidence) MaintenanceEvidence(path: path),
+              if (job.status != 'pending_review') ...report,
               if (job.data['service_applied_at'] != null)
                 Padding(
                   padding: const EdgeInsets.symmetric(vertical: 12),

@@ -234,22 +234,25 @@ class _ServiceRequestCard extends ConsumerWidget {
             ],
             if (!clientMode && isNew) ...[
               const SizedBox(height: 14),
-              Row(
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  Expanded(
-                    child: OutlinedButton.icon(
-                      onPressed: () =>
-                          _mark(context, ref, ServiceRequestStatus.declined),
-                      icon: const Icon(Icons.close),
-                      label: const Text('Decline'),
+                  ElevatedButton.icon(
+                    onPressed: () => _generateWorkOrder(context),
+                    icon: const Icon(Icons.add_task_outlined),
+                    label: Text(
+                      Localizations.localeOf(context).languageCode == 'es'
+                          ? 'Crear orden de trabajo'
+                          : 'Create work order',
                     ),
                   ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: ElevatedButton.icon(
-                      onPressed: () => _generateWorkOrder(context),
-                      icon: const Icon(Icons.add_task_outlined),
-                      label: const Text('Accept + WO'),
+                  TextButton(
+                    onPressed: () =>
+                        _mark(context, ref, ServiceRequestStatus.declined),
+                    child: Text(
+                      Localizations.localeOf(context).languageCode == 'es'
+                          ? 'Rechazar solicitud'
+                          : 'Decline request',
                     ),
                   ),
                 ],

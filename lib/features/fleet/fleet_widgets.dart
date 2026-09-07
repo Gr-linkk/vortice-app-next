@@ -183,6 +183,7 @@ class FleetEventTile extends StatelessWidget {
         ? OperatingState.parse(event.toState).label(es)
         : FaultStatus.parse(event.toState).label(es);
     final action = switch (event.kind) {
+      'work_order_progress' => es ? 'Avance de la orden' : 'Work order progress',
       'reported' => es ? 'Falla reportada' : 'Fault reported',
       'assign' => es ? 'Responsable asignado' : 'Repair assigned',
       'note' => es ? 'Nota de progreso' : 'Progress note',

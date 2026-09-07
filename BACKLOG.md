@@ -1,9 +1,27 @@
 # Product Backlog
 
 This is the only live project priority list. Detailed specifications may live
-elsewhere, but every active task must be represented here with a stable ID.
+elsewhere, but substantive product/implementation tasks must be represented
+here with a stable ID. Incidental mechanical fixes may reference existing scope
+without creating a new backlog item.
 
 ## Now
+
+### NOW-012 — Direct workflows and fewer competing actions
+
+Garrett requested a simpler fault screen that clearly leads into work orders,
+followed by an audit for similar simplifications. Create or link a managed repair
+from a fault, show its progress and open the right workflow for company/provider
+teams, and keep fault verification and asset availability explicit. Simplify job
+action hierarchy and audit adjacent entry points. Scope, audit and verification:
+`docs/specs/NOW-012-direct-workflows.md`. New hosted activation is separate from
+local implementation and validation.
+
+Garrett approved the remaining audit simplifications and connected E2E testing:
+asset action hierarchy, direct service-report entry, and one scoped Work list
+with distinct maintenance/service routes. Continue this slice on the current
+branch; preserve billing, role access and field queues. The Build 14 migration
+is active; subsequent UI verification and connected results belong in NOW-012.
 
 ### NOW-011 — Trusted field work, notifications and account recovery
 

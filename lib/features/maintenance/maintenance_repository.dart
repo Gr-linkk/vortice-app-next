@@ -16,6 +16,12 @@ abstract class MaintenanceRepository {
   Future<Map<String, dynamic>> workspace();
   Future<Map<String, dynamic>> assetContext(String assetId);
   Future<String> create(String operationId, Map<String, dynamic> data);
+  Future<String> planFault(
+    String faultId,
+    int revision,
+    String operationId,
+    Map<String, dynamic> data,
+  );
   Future<void> change(
     String jobId,
     int revision,
@@ -78,6 +84,20 @@ class SupabaseMaintenanceRepository implements MaintenanceRepository {
   @override
   Future<String> create(String operationId, Map<String, dynamic> data) async =>
       await _rpc('create_maintenance_job', {
+            'p_request': operationId,
+            'p_data': data,
+          })
+          as String;
+  @override
+  Future<String> planFault(
+    String faultId,
+    int revision,
+    String operationId,
+    Map<String, dynamic> data,
+  ) async =>
+      await _rpc('plan_fault_work_order', {
+            'p_fault': faultId,
+            'p_revision': revision,
             'p_request': operationId,
             'p_data': data,
           })

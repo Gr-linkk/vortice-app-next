@@ -148,16 +148,11 @@ class MaintenanceAssetScreen extends ConsumerWidget {
                   ),
                   if (asset['location'] != null)
                     Text(asset['location'] as String),
-                  CoordinationEntry(assetId: assetId),
+                  const SizedBox(height: 16),
                   Wrap(
                     spacing: 8,
                     runSpacing: 8,
                     children: [
-                      if (manager)
-                        OutlinedButton(
-                          onPressed: () => edit('asset', asset),
-                          child: Text(es ? 'Editar equipo' : 'Edit asset'),
-                        ),
                       if (canUseMaintenance(
                         ref.watch(profileProvider).valueOrNull?.role,
                       ))
@@ -167,13 +162,29 @@ class MaintenanceAssetScreen extends ConsumerWidget {
                           child: Text(es ? 'Ver trabajos' : 'View work'),
                         ),
                       if (manager && catalog['can_execute'] == true)
-                        OutlinedButton(
+                        TextButton(
                           onPressed: () =>
                               context.push('/maintenance/new?assetId=$assetId'),
                           child: Text(es ? 'Crear reparación' : 'New repair'),
                         ),
+                      if (manager)
+                        PopupMenuButton<String>(
+                          tooltip: es ? 'Más acciones' : 'More actions',
+                          onSelected: (_) => edit('asset', asset),
+                          itemBuilder: (_) => [
+                            PopupMenuItem(
+                              value: 'edit',
+                              child: Text(es ? 'Editar equipo' : 'Edit asset'),
+                            ),
+                          ],
+                          child: Padding(
+                            padding: const EdgeInsets.all(12),
+                            child: Text(es ? 'Más acciones' : 'More actions'),
+                          ),
+                        ),
                     ],
                   ),
+                  CoordinationEntry(assetId: assetId, compact: true),
                   const SizedBox(height: 24),
                   Text(
                     es ? 'Componentes' : 'Components',

@@ -25,18 +25,26 @@ class WorkOrderServiceReportCard extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context);
     final canView = ServiceReportWorkflow.canViewReport(role);
-    final canAttach = ServiceReportWorkflow.canCreateOrUpdateReport(role) &&
+    final canAttach =
+        ServiceReportWorkflow.canCreateOrUpdateReport(role) &&
         ServiceReportWorkflow.canAttachReportToWorkOrder(workOrder.status);
     if (!canView && !canAttach) return const SizedBox.shrink();
 
-    final reportsAsync =
-        ref.watch(serviceReportsByWorkOrderProvider(workOrder.id));
+    final reportsAsync = ref.watch(
+      serviceReportsByWorkOrderProvider(workOrder.id),
+    );
 
     return reportsAsync.when(
       loading: () => const SizedBox.shrink(),
       error: (_, __) => const SizedBox.shrink(),
       data: (reports) {
         if (reports.isEmpty && !canAttach) return const SizedBox.shrink();
+        // The main next-step button opens the report during active work.
+        if (reports.isEmpty &&
+            canAttach &&
+            workOrder.status == WorkOrderStatus.inProgress) {
+          return const SizedBox.shrink();
+        }
 
         final hasReports = reports.isNotEmpty;
         final latest = hasReports ? reports.first : null;
@@ -51,10 +59,10 @@ class WorkOrderServiceReportCard extends ConsumerWidget {
         final subtitle = hasReports
             ? '${reports.length} report${reports.length == 1 ? '' : 's'} attached${latestDate == null ? '' : ' • latest $latestDate'}'
             : workOrder.status == WorkOrderStatus.invoiced
-                ? 'This work order is invoiced. Add an additional report anyway.'
-                : workOrder.status == WorkOrderStatus.closed
-                    ? 'This work order is closed. Add a report without reopening it.'
-                    : 'Attach a client-visible report to this work order.';
+            ? 'This work order is invoiced. Add an additional report anyway.'
+            : workOrder.status == WorkOrderStatus.closed
+            ? 'This work order is closed. Add a report without reopening it.'
+            : 'Attach a client-visible report to this work order.';
 
         return InkWell(
           borderRadius: BorderRadius.circular(12),

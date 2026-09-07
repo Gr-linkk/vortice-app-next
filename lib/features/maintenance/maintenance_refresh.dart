@@ -13,6 +13,9 @@ void refreshMaintenance(
   bool assetsChanged = false,
 }) {
   ref.invalidate(maintenanceJobsProvider);
+  ref.invalidate(fleetFaultsProvider);
+  ref.invalidate(fleetFaultProvider);
+  ref.invalidate(faultEventsProvider);
   ref.invalidate(fleetAttentionProvider);
   ref.invalidate(assetHistoryProvider);
   ref.invalidate(coordinationThreadProvider);

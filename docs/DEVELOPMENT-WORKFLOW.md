@@ -2,11 +2,11 @@
 
 ## Start a task
 
-1. Read `AGENTS.md`, `PROJECT.md`, and `BACKLOG.md`.
-2. Select one backlog item and confirm its outcome.
-3. Update local `main` with a fast-forward pull.
-4. Create a short-lived branch such as `feat/NOW-002-checklist-flow`.
-5. Read only the current decisions and specifications linked to that scope.
+1. Read `AGENTS.md`; verify root, remotes, branch, and working tree before mutations.
+2. Load product/backlog/decision documents only as needed for the requested scope.
+3. Continue an authorized existing task on its verified branch, preserving unrelated work.
+4. For independent new work, agree the base and use a short-lived `codex/` branch. Update `main` only when needed and safe; do not pull or switch merely for startup.
+5. Give substantive implementation work a backlog ID and outcome. Narrow mechanical fixes do not require a new ticket.
 
 ## Work locally
 
@@ -51,7 +51,9 @@ For pull-request migration immutability checks, provide the base ref:
 ./scripts/verify.cmd -BaseRef origin/main
 ```
 
-Open a pull request using the repository template. The PR should identify its
+For local-only work or review, finish with checks appropriate to the change.
+Before opening a requested pull request, run the full verification entry point
+above and use the repository template. The PR should identify its
 backlog item, observable behavior, tests, screenshots for UI changes, service
 targets, and intentionally deferred work.
 
@@ -63,6 +65,7 @@ the dedicated deployment helper and its explicit project-ref argument.
 
 ## Finish
 
-After CI passes and the PR is merged, delete the feature branch. Update the
-backlog and any affected decision/specification in the same change so the next
-task starts from current information.
+Finish the authorized scope with its results and remaining limits. Opening a
+pull request, merging it, and deleting a branch are distinct actions; perform
+them only within the user-authorized scope. Update affected backlog and durable
+decision/specification records when the substantive change requires it.

@@ -5,6 +5,8 @@ import 'package:vortice_app/core/user_feedback.dart';
 import 'package:vortice_app/features/auth/auth_provider.dart';
 import 'maintenance_models.dart';
 import 'maintenance_repository.dart';
+import 'work_list_provider.dart';
+import 'package:vortice_app/features/work_orders/work_order_provider.dart';
 
 class MaintenanceListScreen extends ConsumerStatefulWidget {
   const MaintenanceListScreen({super.key, this.assetId});
@@ -32,14 +34,16 @@ class _MaintenanceListScreenState extends ConsumerState<MaintenanceListScreen> {
         ),
       );
     }
-    final result = ref.watch(maintenanceJobsProvider(widget.assetId));
+    final result = ref.watch(workListProvider(widget.assetId));
+    void refresh() {
+      ref.invalidate(maintenanceJobsProvider(widget.assetId));
+      ref.invalidate(workOrdersProvider);
+      ref.invalidate(workListProvider(widget.assetId));
+    }
+
     return Scaffold(
       appBar: AppBar(
-        title: Text(
-          isMaintenanceManager(profile?.role)
-              ? (es ? 'Mantenimiento' : 'Maintenance work')
-              : (es ? 'Mi trabajo' : 'My Work'),
-        ),
+        title: Text(es ? 'Trabajo' : 'Work'),
         actions: [
           IconButton(
             tooltip: es ? 'Equipos y planes' : 'Assets & plans',
@@ -48,8 +52,7 @@ class _MaintenanceListScreenState extends ConsumerState<MaintenanceListScreen> {
           ),
           IconButton(
             tooltip: es ? 'Actualizar' : 'Refresh',
-            onPressed: () =>
-                ref.invalidate(maintenanceJobsProvider(widget.assetId)),
+            onPressed: refresh,
             icon: const Icon(Icons.refresh),
           ),
         ],
@@ -66,7 +69,7 @@ class _MaintenanceListScreenState extends ConsumerState<MaintenanceListScreen> {
                 ).toString(),
               ),
               icon: const Icon(Icons.add),
-              label: Text(es ? 'Crear trabajo' : 'New job'),
+              label: Text(es ? 'Crear mantenimiento' : 'New maintenance job'),
             ),
       body: Column(
         children: [
@@ -113,9 +116,7 @@ class _MaintenanceListScreenState extends ConsumerState<MaintenanceListScreen> {
                     children: [
                       Text(maintenanceError(error, es)),
                       TextButton(
-                        onPressed: () => ref.invalidate(
-                          maintenanceJobsProvider(widget.assetId),
-                        ),
+                        onPressed: refresh,
                         child: Text(es ? 'Reintentar' : 'Try again'),
                       ),
                     ],
@@ -124,25 +125,12 @@ class _MaintenanceListScreenState extends ConsumerState<MaintenanceListScreen> {
               ),
               data: (jobs) {
                 final visible = jobs
-                    .where(
-                      (j) =>
-                          (_filter == 'mine'
-                              ? j.data['assigned_to'] == profile?.id &&
-                                    j.status != 'closed'
-                              : _filter == 'open'
-                              ? j.status != 'closed'
-                              : j.status == _filter) &&
-                          '${j.title} ${j.assetName}'.toLowerCase().contains(
-                            _search,
-                          ),
-                    )
+                    .where((entry) => entry.matches(_filter, _search))
                     .toList();
                 return RefreshIndicator(
                   onRefresh: () async {
-                    ref.invalidate(maintenanceJobsProvider(widget.assetId));
-                    await ref.read(
-                      maintenanceJobsProvider(widget.assetId).future,
-                    );
+                    refresh();
+                    await ref.read(workListProvider(widget.assetId).future);
                   },
                   child: ListView(
                     physics: const AlwaysScrollableScrollPhysics(),
@@ -162,12 +150,11 @@ class _MaintenanceListScreenState extends ConsumerState<MaintenanceListScreen> {
                           child: ListTile(
                             title: Text(job.title),
                             subtitle: Text(
-                              '${job.assetName}\n${maintenanceStatus(job.status, es)} · ${maintenancePriority(job.priority, es)}${job.dueDate == null ? '' : ' · ${maintenanceDate(job.dueDate, es)}'}',
+                              '${job.assetName}\n${job.service ? (es ? 'Orden de servicio' : 'Service order') : (es ? 'Mantenimiento' : 'Maintenance')} · ${job.status == 'invoiced' ? (es ? 'Facturado' : 'Invoiced') : maintenanceStatus(job.status, es)}${job.priority == null ? '' : ' · ${maintenancePriority(job.priority!, es)}'}${job.dueDate == null ? '' : ' · ${maintenanceDate(job.dueDate, es)}'}',
                             ),
                             isThreeLine: true,
                             trailing: const Icon(Icons.chevron_right),
-                            onTap: () =>
-                                context.push('/maintenance/jobs/${job.id}'),
+                            onTap: () => context.push(job.route),
                           ),
                         ),
                     ],
