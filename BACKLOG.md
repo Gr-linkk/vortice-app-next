@@ -7,6 +7,20 @@ without creating a new backlog item.
 
 ## Now
 
+### NOW-014 — Company internal work orders
+
+Garrett approved giving each client company internal work orders modeled on the
+owner's workflow, including preventive maintenance, repairs, inspections and
+general work. Align creation, editable preparation, details, reports and planning
+while preserving company isolation, internal costs and checked completion.
+Scope and evidence: `docs/specs/NOW-014-internal-work-orders.md`; decision 0011.
+
+Implemented in Build 17 (`1.8.0+17`). The Next migration is active; all 13 local
+and 13 hosted SQL suites pass, alongside six connected internal-work-order steps
+and seven planning regression steps. Guarded verification has clean analysis and
+458 passing Flutter tests (204 existing skips). Exact fixtures were removed.
+Physical-device acceptance remains separate.
+
 ### NOW-013 — Forward maintenance planning
 
 Garrett authorized a substantial planning slice built around the existing

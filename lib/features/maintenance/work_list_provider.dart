@@ -20,11 +20,13 @@ class WorkListEntry {
     this.date,
     this.priority,
     this.dueDate,
+    this.workType,
   });
   final String id, title, assetName, status, route;
   final bool assignedToMe, service;
   final DateTime? date;
   final String? priority, dueDate;
+  final WorkOrderJobType? workType;
   bool get completed => status == 'closed' || status == 'invoiced';
 
   bool matches(String filter, String query) =>
@@ -65,6 +67,7 @@ final workListProvider = FutureProvider.autoDispose
             date: DateTime.tryParse(job.data['created_at']?.toString() ?? ''),
             priority: job.priority,
             dueDate: job.dueDate,
+            workType: job.workType,
           ),
       ];
       entries.addAll(
@@ -93,6 +96,7 @@ final workListProvider = FutureProvider.autoDispose
                   assignedToMe: assigned,
                   service: true,
                   date: order.createdAt,
+                  workType: order.jobType,
                 );
               }(),
         ]),

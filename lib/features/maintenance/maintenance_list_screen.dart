@@ -24,7 +24,7 @@ class _MaintenanceListScreenState extends ConsumerState<MaintenanceListScreen> {
     final profile = ref.watch(profileProvider).valueOrNull;
     if (!canUseMaintenance(profile?.role)) {
       return Scaffold(
-        appBar: AppBar(title: Text(es ? 'Trabajo' : 'Work')),
+        appBar: AppBar(title: Text(es ? 'Órdenes de trabajo' : 'Work orders')),
         body: Center(
           child: Text(
             es
@@ -43,7 +43,7 @@ class _MaintenanceListScreenState extends ConsumerState<MaintenanceListScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(es ? 'Trabajo' : 'Work'),
+        title: Text(es ? 'Órdenes de trabajo' : 'Work orders'),
         actions: [
           IconButton(
             tooltip: es ? 'Equipos y planes' : 'Assets & plans',
@@ -69,7 +69,7 @@ class _MaintenanceListScreenState extends ConsumerState<MaintenanceListScreen> {
                 ).toString(),
               ),
               icon: const Icon(Icons.add),
-              label: Text(es ? 'Crear mantenimiento' : 'New maintenance job'),
+              label: Text(es ? 'Nueva orden' : 'New work order'),
             ),
       body: Column(
         children: [
@@ -78,8 +78,8 @@ class _MaintenanceListScreenState extends ConsumerState<MaintenanceListScreen> {
             child: TextField(
               decoration: InputDecoration(
                 labelText: es
-                    ? 'Buscar trabajo o equipo'
-                    : 'Search job or asset',
+                    ? 'Buscar orden o equipo'
+                    : 'Search work order or asset',
                 prefixIcon: const Icon(Icons.search),
               ),
               onChanged: (value) =>
@@ -141,8 +141,8 @@ class _MaintenanceListScreenState extends ConsumerState<MaintenanceListScreen> {
                           padding: const EdgeInsets.all(24),
                           child: Text(
                             es
-                                ? 'No hay trabajos con este filtro.'
-                                : 'No jobs match this view.',
+                                ? 'No hay órdenes con este filtro.'
+                                : 'No work orders match this view.',
                           ),
                         ),
                       for (final job in visible)
@@ -150,7 +150,7 @@ class _MaintenanceListScreenState extends ConsumerState<MaintenanceListScreen> {
                           child: ListTile(
                             title: Text(job.title),
                             subtitle: Text(
-                              '${job.assetName}\n${job.service ? (es ? 'Orden de servicio' : 'Service order') : (es ? 'Mantenimiento' : 'Maintenance')} · ${job.status == 'invoiced' ? (es ? 'Facturado' : 'Invoiced') : maintenanceStatus(job.status, es)}${job.priority == null ? '' : ' · ${maintenancePriority(job.priority!, es)}'}${job.dueDate == null ? '' : ' · ${maintenanceDate(job.dueDate, es)}'}',
+                              '${job.assetName}\n${job.service ? (es ? 'Orden de servicio' : 'Service order') : (es ? 'Orden interna' : 'Internal work order')}${job.workType == null ? '' : ' · ${job.workType!.label(es)}'} · ${job.status == 'invoiced' ? (es ? 'Facturado' : 'Invoiced') : maintenanceStatus(job.status, es)}${job.priority == null ? '' : ' · ${maintenancePriority(job.priority!, es)}'}${job.dueDate == null ? '' : ' · ${maintenanceDate(job.dueDate, es)}'}',
                             ),
                             isThreeLine: true,
                             trailing: const Icon(Icons.chevron_right),

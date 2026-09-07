@@ -84,12 +84,17 @@ void main() {
               await h.go('/maintenance/planning?assetId=$asset');
               await h.tap(find.widgetWithText(ChoiceChip, 'Service plans'));
               await h.tap(find.widgetWithText(FilledButton, 'Plan service'));
-              await h.fill(h.field('Work to do'), '$marker Generator service');
+              await h.fill(
+                h.field('Work order title'),
+                '$marker Generator service',
+              );
               await h.fill(
                 h.field('Instructions'),
                 '$marker Replace filter and test under load',
               );
-              await h.tap(find.widgetWithText(FilledButton, 'Create job'));
+              await h.tap(
+                find.widgetWithText(FilledButton, 'Create work order'),
+              );
               final jobs = await repository().jobs(assetId: asset);
               expect(jobs, hasLength(1));
               job = jobs.single.id;
@@ -200,13 +205,13 @@ void main() {
               await h.tap(find.text('Continue work'));
               await h.tap(find.widgetWithText(FilledButton, 'Start work'));
               await h.tap(find.widgetWithText(TextButton, 'Pause'));
-              await h.tap(find.text('Continue repair report'));
+              await h.tap(find.text('Continue work report'));
               await h.fill(
-                h.field('Diagnosis'),
+                h.field('Findings'),
                 '$marker Planned generator service',
               );
               await h.fill(
-                h.field('Repair and test results'),
+                h.field('Work performed and results'),
                 '$marker Filter replaced and load test passed',
               );
               await h.fill(h.field('Component meter at completion'), '250');

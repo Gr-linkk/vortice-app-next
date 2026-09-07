@@ -131,10 +131,10 @@ void main() {
                 (await fleet.faults(faultId: fault)).single.status,
                 FaultStatus.inProgress,
               );
-              await h.tap(find.text('Continue repair report'));
-              await h.fill(h.field('Diagnosis'), '$marker Worn seal');
+              await h.tap(find.text('Continue work report'));
+              await h.fill(h.field('Findings'), '$marker Worn seal');
               await h.fill(
-                h.field('Repair and test results'),
+                h.field('Work performed and results'),
                 '$marker Replaced seal; pressure held at 100 psi',
               );
               final submit = find.widgetWithText(
@@ -145,9 +145,9 @@ void main() {
               expect(tester.widget<FilledButton>(submit).onPressed, isNull);
               await h.tap(find.text('Open labour timer'));
               await h.tap(find.widgetWithText(TextButton, 'Pause'));
-              await h.tap(find.text('Continue repair report'));
+              await h.tap(find.text('Continue work report'));
               expect(
-                tester.widget<TextField>(h.field('Diagnosis')).controller!.text,
+                tester.widget<TextField>(h.field('Findings')).controller!.text,
                 '$marker Worn seal',
               );
               await h.tap(

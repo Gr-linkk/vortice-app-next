@@ -160,7 +160,9 @@ class WorkOrderDetailBody extends ConsumerWidget {
         WorkOrderDetailInfoRow(
           icon: Icons.build_outlined,
           label: l10n.jobType,
-          value: workOrder.jobType.name,
+          value: workOrder.jobType.label(
+            Localizations.localeOf(context).languageCode == 'es',
+          ),
         ),
 
         // Assigned tech(s)

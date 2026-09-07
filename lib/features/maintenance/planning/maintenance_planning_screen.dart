@@ -601,6 +601,7 @@ class _MaintenancePlanningScreenState
             ),
           const SizedBox(height: 4),
           Text(job.title, style: Theme.of(context).textTheme.titleMedium),
+          if (!job.providerService) Text(job.workType.label(es)),
           Text(
             '${job.assetName}${job.data['component_name'] == null ? '' : ' · ${job.data['component_name']}'}',
           ),
@@ -675,7 +676,11 @@ class _MaintenancePlanningScreenState
                 : '${plan.remainingHours!.toStringAsFixed(0)} h ${es ? 'hasta el próximo servicio' : 'until next service'}',
           ),
           if (plan.hasJob)
-            Text(es ? 'Ya tiene trabajo abierto.' : 'Already has open work.'),
+            Text(
+              es
+                  ? 'Ya tiene una orden abierta.'
+                  : 'Already has an open work order.',
+            ),
           const SizedBox(height: 8),
           Wrap(
             spacing: 8,

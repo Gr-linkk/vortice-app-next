@@ -58,13 +58,13 @@ void main() {
                   as Map;
           await h.step('manager creates assigned maintenance job', () async {
             await h.go('/maintenance/new?assetId=$asset');
-            await h.fill(h.field('Work to do'), '$marker Repair pump');
+            await h.fill(h.field('Work order title'), '$marker Repair pump');
             await h.fill(
               h.field('Instructions'),
               '$marker Isolate, inspect and test pump',
             );
             await h.select('Assigned to', mechanic['name'] as String);
-            await h.tap(find.widgetWithText(FilledButton, 'Create job'));
+            await h.tap(find.widgetWithText(FilledButton, 'Create work order'));
             final jobs = await h.container
                 .read(maintenanceRepositoryProvider)
                 .jobs(assetId: asset);
@@ -116,9 +116,9 @@ void main() {
           Future<void> report(String suffix, String action) async {
             await h.go('/maintenance/jobs/$job');
             await h.tap(find.text('Report & submit'));
-            await h.fill(h.field('Diagnosis'), '$marker Worn seal $suffix');
+            await h.fill(h.field('Findings'), '$marker Worn seal $suffix');
             await h.fill(
-              h.field('Repair and test results'),
+              h.field('Work performed and results'),
               '$marker Replaced seal, pressure test passed $suffix',
             );
             await h.tap(
@@ -136,7 +136,7 @@ void main() {
               await h.go('/maintenance/jobs/$job');
               await h.tap(find.text('Report & submit'));
               expect(
-                tester.widget<TextField>(h.field('Diagnosis')).controller!.text,
+                tester.widget<TextField>(h.field('Findings')).controller!.text,
                 '$marker Worn seal draft',
               );
               await h.tap(

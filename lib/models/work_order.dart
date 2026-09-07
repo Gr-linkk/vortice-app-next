@@ -4,13 +4,20 @@ part 'work_order.freezed.dart';
 part 'work_order.g.dart';
 
 enum WorkOrderStatus {
-  @JsonValue('draft') draft,
-  @JsonValue('assigned') assigned,
-  @JsonValue('in_progress') inProgress,
-  @JsonValue('on_hold') onHold,
-  @JsonValue('pending_review') pendingReview,
-  @JsonValue('invoiced') invoiced,
-  @JsonValue('closed') closed;
+  @JsonValue('draft')
+  draft,
+  @JsonValue('assigned')
+  assigned,
+  @JsonValue('in_progress')
+  inProgress,
+  @JsonValue('on_hold')
+  onHold,
+  @JsonValue('pending_review')
+  pendingReview,
+  @JsonValue('invoiced')
+  invoiced,
+  @JsonValue('closed')
+  closed;
 
   // Returns the DB/API string value (snake_case)
   String get dbValue => switch (this) {
@@ -22,10 +29,26 @@ enum WorkOrderStatus {
 }
 
 enum WorkOrderJobType {
-  @JsonValue('preventative') preventative,
-  @JsonValue('repair') repair;
+  @JsonValue('preventative')
+  preventative,
+  @JsonValue('repair')
+  repair,
+  @JsonValue('inspection')
+  inspection,
+  @JsonValue('general')
+  general;
 
   String get dbValue => name;
+
+  String label(bool es) => switch (this) {
+    preventative => es ? 'Mantenimiento preventivo' : 'Preventive maintenance',
+    repair => es ? 'Reparación' : 'Repair',
+    inspection => es ? 'Inspección' : 'Inspection',
+    general => es ? 'Trabajo general' : 'General work',
+  };
+
+  static WorkOrderJobType fromValue(String? value) =>
+      values.where((type) => type.dbValue == value).firstOrNull ?? repair;
 }
 
 @freezed
@@ -40,7 +63,8 @@ abstract class WorkOrder with _$WorkOrder {
     @JsonKey(name: 'checklist_template_id') String? checklistTemplateId,
     @JsonKey(name: 'checklist_template_version') int? checklistTemplateVersion,
     @JsonKey(name: 'job_type') required WorkOrderJobType jobType,
-    @JsonKey(defaultValue: WorkOrderStatus.draft) required WorkOrderStatus status,
+    @JsonKey(defaultValue: WorkOrderStatus.draft)
+    required WorkOrderStatus status,
     required String title,
     String? description,
     @JsonKey(name: 'scheduled_date') DateTime? scheduledDate,
@@ -57,5 +81,6 @@ abstract class WorkOrder with _$WorkOrder {
     @JsonKey(name: 'updated_at') DateTime? updatedAt,
   }) = _WorkOrder;
 
-  factory WorkOrder.fromJson(Map<String, dynamic> json) => _$WorkOrderFromJson(json);
+  factory WorkOrder.fromJson(Map<String, dynamic> json) =>
+      _$WorkOrderFromJson(json);
 }

@@ -154,6 +154,15 @@ class SupabaseMaintenanceRepository implements MaintenanceRepository {
         code: 'P0001',
       );
     }
+    if (action == 'edit_details') {
+      await _rpc('update_internal_work_order', {
+        'p_job': jobId,
+        'p_revision': revision,
+        'p_operation': operationId,
+        'p_data': data,
+      });
+      return;
+    }
     await _rpc('change_maintenance_job', {
       'p_job': jobId,
       'p_revision': revision,

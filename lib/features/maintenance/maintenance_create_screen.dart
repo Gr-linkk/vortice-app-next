@@ -6,6 +6,7 @@ import 'package:vortice_app/core/unsaved_form_guard.dart';
 import 'package:vortice_app/core/user_feedback.dart';
 import 'package:vortice_app/features/auth/auth_provider.dart';
 import 'package:vortice_app/features/fleet/fleet_providers.dart';
+import 'package:vortice_app/models/work_order.dart';
 import 'maintenance_models.dart';
 import 'maintenance_repository.dart';
 import 'maintenance_refresh.dart';
@@ -31,8 +32,10 @@ class _MaintenanceCreateScreenState
   final _form = GlobalKey<FormState>();
   final _title = TextEditingController(),
       _instructions = TextEditingController(),
+      _materials = TextEditingController(),
       _cost = TextEditingController(text: '0');
-  String? _asset, _assignee, _plan, _component;
+  String? _asset, _assignee, _plan, _component, _checklist;
+  WorkOrderJobType _workType = WorkOrderJobType.general;
   String _priority = 'normal';
   DateTime? _due;
   MaintenanceWrite? _pending;
@@ -48,12 +51,18 @@ class _MaintenanceCreateScreenState
     super.initState();
     _asset = widget.assetId;
     _plan = widget.planId;
+    _workType = widget.planId != null
+        ? WorkOrderJobType.preventative
+        : widget.faultId != null
+        ? WorkOrderJobType.repair
+        : WorkOrderJobType.general;
   }
 
   @override
   void dispose() {
     _title.dispose();
     _instructions.dispose();
+    _materials.dispose();
     _cost.dispose();
     super.dispose();
   }
@@ -78,6 +87,9 @@ class _MaintenanceCreateScreenState
               'asset_id': _asset,
               'title': _title.text.trim(),
               'description': _instructions.text.trim(),
+              'job_type': _plan == null ? _workType.dbValue : 'preventative',
+              'expected_materials': _materials.text.trim(),
+              if (_plan == null) 'checklist_template_id': _checklist,
               'assigned_to': _assignee,
               'priority': _priority,
               'service_interval_id': _plan,
@@ -224,8 +236,9 @@ class _MaintenanceCreateScreenState
       isDirty: () =>
           _title.text.isNotEmpty ||
           _instructions.text.isNotEmpty ||
+          _materials.text.isNotEmpty ||
           _pending != null,
-      controllers: [_title, _instructions],
+      controllers: [_title, _instructions, _materials],
       busy: _saving,
       fallbackRoute: '/maintenance',
       child: Scaffold(
@@ -234,7 +247,7 @@ class _MaintenanceCreateScreenState
           title: Text(
             widget.faultId != null
                 ? (es ? 'Planificar reparación' : 'Plan repair')
-                : (es ? 'Crear trabajo' : 'New maintenance job'),
+                : (es ? 'Nueva orden' : 'New work order'),
           ),
         ),
         body: Form(
@@ -401,6 +414,7 @@ class _MaintenanceCreateScreenState
                             _plan = null;
                             _assignee = null;
                             _component = null;
+                            _checklist = null;
                           }),
                     validator: (v) => v == null
                         ? (es ? 'Selecciona un equipo' : 'Select an asset')
@@ -429,26 +443,55 @@ class _MaintenanceCreateScreenState
                     enabled: !frozen,
                     maxLength: 200,
                     decoration: InputDecoration(
-                      labelText: es ? 'Trabajo a realizar' : 'Work to do',
+                      labelText: es ? 'Título de la orden' : 'Work order title',
                     ),
                     validator: (v) => (v?.trim().length ?? 0) < 3
                         ? (es ? 'Describe el trabajo' : 'Describe the job')
                         : null,
                   ),
                   const SizedBox(height: 16),
+                  AppDropdownField<WorkOrderJobType>(
+                    key: ValueKey('work-type-$_plan'),
+                    initialValue: _plan == null
+                        ? _workType
+                        : WorkOrderJobType.preventative,
+                    isExpanded: true,
+                    decoration: InputDecoration(
+                      labelText: es ? 'Tipo de trabajo' : 'Work type',
+                    ),
+                    items: [
+                      for (final type in WorkOrderJobType.values)
+                        DropdownMenuItem(
+                          value: type,
+                          child: Text(type.label(es)),
+                        ),
+                    ],
+                    onChanged: frozen || _plan != null || widget.faultId != null
+                        ? null
+                        : (value) => setState(() => _workType = value!),
+                  ),
+                  if (_plan != null)
+                    Text(
+                      es
+                          ? 'El plan vinculado define este mantenimiento preventivo.'
+                          : 'The linked service plan defines this preventive maintenance.',
+                    ),
+                  const SizedBox(height: 16),
                   TextFormField(
                     controller: _instructions,
                     enabled: !frozen,
                     minLines: 3,
                     maxLines: 6,
+                    maxLength: 8000,
                     decoration: InputDecoration(
                       labelText: es ? 'Instrucciones' : 'Instructions',
+                      counterText: '',
                     ),
                   ),
                   const SizedBox(height: 16),
                   AppDropdownField<String>(
                     key: ValueKey('plan-$_asset'),
-                    initialValue: _plan,
+                    initialValue: _plan ?? '',
                     isExpanded: true,
                     decoration: InputDecoration(
                       labelText: es
@@ -459,7 +502,7 @@ class _MaintenanceCreateScreenState
                       DropdownMenuItem<String>(
                         value: '',
                         child: Text(
-                          es ? 'Reparación sin plan' : 'Repair without a plan',
+                          es ? 'Sin plan recurrente' : 'No recurring plan',
                         ),
                       ),
                       ...maintenanceRows(data['plans'])
@@ -479,49 +522,94 @@ class _MaintenanceCreateScreenState
                     ],
                     onChanged: frozen || data['can_plan'] != true
                         ? null
-                        : (v) => setState(() => _plan = v == '' ? null : v),
+                        : (v) => setState(() {
+                            _plan = v == '' ? null : v;
+                            if (_plan != null) {
+                              _workType = WorkOrderJobType.preventative;
+                            }
+                          }),
                   ),
                   const SizedBox(height: 16),
                   if (_plan == null) ...[
                     AppDropdownField<String>(
+                      key: ValueKey('checklist-$_asset'),
+                      initialValue: _checklist ?? '',
+                      isExpanded: true,
+                      decoration: InputDecoration(
+                        labelText: es
+                            ? 'Lista de revisión (opcional)'
+                            : 'Checklist (optional)',
+                      ),
+                      items: [
+                        DropdownMenuItem(
+                          value: '',
+                          child: Text(
+                            es ? 'Sin lista de revisión' : 'No checklist',
+                          ),
+                        ),
+                        for (final template in maintenanceRows(
+                          data['templates'],
+                        ))
+                          DropdownMenuItem(
+                            value: template['id'] as String,
+                            child: Text(template['name'] as String),
+                          ),
+                      ],
+                      onChanged: frozen
+                          ? null
+                          : (value) => setState(
+                              () => _checklist = value == '' ? null : value,
+                            ),
+                    ),
+                    const SizedBox(height: 16),
+                    AppDropdownField<String>(
                       key: ValueKey('component-$_asset'),
-                      initialValue: _component,
+                      initialValue: _component ?? '',
                       isExpanded: true,
                       decoration: InputDecoration(
                         labelText: es ? 'Componente' : 'Component (optional)',
                       ),
-                      items: maintenanceRows(data['components'])
-                          .map(
-                            (e) => DropdownMenuItem(
-                              value: e['id'] as String,
-                              child: Text(e['label'] as String),
-                            ),
-                          )
-                          .toList(),
+                      items: [
+                        DropdownMenuItem(
+                          value: '',
+                          child: Text(es ? 'Sin componente' : 'No component'),
+                        ),
+                        ...maintenanceRows(data['components']).map(
+                          (e) => DropdownMenuItem(
+                            value: e['id'] as String,
+                            child: Text(e['label'] as String),
+                          ),
+                        ),
+                      ],
                       onChanged: frozen
                           ? null
-                          : (v) => setState(() => _component = v),
+                          : (v) =>
+                                setState(() => _component = v == '' ? null : v),
                     ),
                     const SizedBox(height: 16),
                   ],
                   AppDropdownField<String>(
                     key: ValueKey('assignee-$_asset'),
-                    initialValue: _assignee,
+                    initialValue: _assignee ?? '',
                     isExpanded: true,
                     decoration: InputDecoration(
                       labelText: es ? 'Responsable' : 'Assigned to',
                     ),
-                    items: maintenanceRows(data['assignees'])
-                        .map(
-                          (p) => DropdownMenuItem(
-                            value: p['id'] as String,
-                            child: Text(p['name'] as String),
-                          ),
-                        )
-                        .toList(),
+                    items: [
+                      DropdownMenuItem(
+                        value: '',
+                        child: Text(es ? 'Sin asignar' : 'Unassigned'),
+                      ),
+                      ...maintenanceRows(data['assignees']).map(
+                        (p) => DropdownMenuItem(
+                          value: p['id'] as String,
+                          child: Text(p['name'] as String),
+                        ),
+                      ),
+                    ],
                     onChanged: frozen
                         ? null
-                        : (v) => setState(() => _assignee = v),
+                        : (v) => setState(() => _assignee = v == '' ? null : v),
                   ),
                   const SizedBox(height: 16),
                   AppDropdownField<String>(
@@ -585,6 +673,20 @@ class _MaintenanceCreateScreenState
                         : null,
                   ),
                   const SizedBox(height: 12),
+                  TextFormField(
+                    controller: _materials,
+                    enabled: !frozen,
+                    minLines: 2,
+                    maxLines: 4,
+                    maxLength: 4000,
+                    decoration: InputDecoration(
+                      labelText: es
+                          ? 'Repuestos y materiales previstos'
+                          : 'Expected parts / materials',
+                      counterText: '',
+                    ),
+                  ),
+                  const SizedBox(height: 12),
                   Text(
                     es
                         ? 'Este trabajo no genera una factura.'
@@ -613,7 +715,9 @@ class _MaintenanceCreateScreenState
                           ? (es
                                 ? 'Crear y abrir orden'
                                 : 'Create & open work order')
-                          : (es ? 'Crear trabajo' : 'Create job'),
+                          : (es
+                                ? 'Crear orden de trabajo'
+                                : 'Create work order'),
                     ),
                   ),
                 ],

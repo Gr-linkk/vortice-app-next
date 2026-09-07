@@ -195,13 +195,13 @@ void main() {
               await h.go('/maintenance/jobs/$job');
               await h.tap(find.text('Report & submit'));
               await h.fill(
-                h.field('Diagnosis'),
+                h.field('Findings'),
                 '$marker Unsaved local diagnosis',
               );
               await h.tap(find.byType(BackButton));
               await h.tap(find.text('Report & submit'));
               expect(
-                tester.widget<TextField>(h.field('Diagnosis')).controller!.text,
+                tester.widget<TextField>(h.field('Findings')).controller!.text,
                 '$marker Unsaved local diagnosis',
               );
               await h.screenshot('011-report-restored');

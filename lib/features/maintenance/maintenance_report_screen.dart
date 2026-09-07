@@ -285,7 +285,7 @@ class _MaintenanceReportScreenState
         }
       },
       child: Scaffold(
-        appBar: AppBar(title: Text(es ? 'Informe del trabajo' : 'Job report')),
+        appBar: AppBar(title: Text(es ? 'Informe de trabajo' : 'Work report')),
         body: ListView(
           padding: const EdgeInsets.all(20),
           children: [
@@ -301,11 +301,11 @@ class _MaintenanceReportScreenState
                     : 'Your draft stays on this device.',
               ),
             const SizedBox(height: 20),
-            textField(_diagnosis, 'Diagnosis', 'Diagnóstico'),
+            textField(_diagnosis, 'Findings', 'Hallazgos'),
             textField(
               _repair,
-              'Repair and test results',
-              'Reparación y pruebas',
+              'Work performed and results',
+              'Trabajo realizado y resultados',
             ),
             textField(_notes, 'Additional notes', 'Notas adicionales'),
             if (widget.job.isService)
@@ -317,7 +317,7 @@ class _MaintenanceReportScreenState
               ),
             if (widget.job.checklist.isNotEmpty)
               Text(
-                es ? 'Lista de revisión del trabajo' : 'Job checklist',
+                es ? 'Lista de revisión de la orden' : 'Work order checklist',
                 style: Theme.of(context).textTheme.titleMedium,
               ),
             for (final item in widget.job.checklist)
@@ -487,8 +487,8 @@ class _MaintenanceReportScreenState
             ],
             Text(
               es
-                  ? 'El servicio solo se completa después de la aprobación.'
-                  : 'Service is only completed after approval.',
+                  ? 'Las órdenes solo se completan después de la aprobación.'
+                  : 'Work orders are only completed after approval.',
             ),
           ],
         ),

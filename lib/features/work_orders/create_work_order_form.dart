@@ -99,9 +99,9 @@ class CreateWorkOrderForm extends ConsumerWidget {
                   (t) => DropdownMenuItem(
                     value: t,
                     child: Text(
-                      t == WorkOrderJobType.preventative
-                          ? 'Preventative Maintenance'
-                          : 'Repair / Troubleshooting',
+                      t.label(
+                        Localizations.localeOf(context).languageCode == 'es',
+                      ),
                     ),
                   ),
                 )

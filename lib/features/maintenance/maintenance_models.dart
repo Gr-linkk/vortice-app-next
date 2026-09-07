@@ -1,4 +1,5 @@
 import 'package:vortice_app/models/profile.dart';
+import 'package:vortice_app/models/work_order.dart';
 import 'package:intl/intl.dart';
 
 List<Map<String, dynamic>> maintenanceRows(dynamic value) =>
@@ -32,7 +33,10 @@ String maintenancePriority(String value, bool es) => switch (value) {
   _ => 'Normal',
 };
 String maintenanceEvent(String value, bool es) => switch (value) {
-  'created' => es ? 'Trabajo creado' : 'Job created',
+  'created' => es ? 'Orden creada' : 'Work order created',
+  'edit_details' => es ? 'Alcance actualizado' : 'Work order scope updated',
+  'scope_previous' =>
+    es ? 'Alcance anterior registrado' : 'Previous scope recorded',
   'schedule' => es ? 'Planificación actualizada' : 'Schedule updated',
   'schedule_previous' =>
     es ? 'Planificación anterior registrada' : 'Previous schedule recorded',
@@ -73,6 +77,16 @@ class MaintenanceJob {
   bool get canEdit =>
       canWork && (status == 'in_progress' || status == 'on_hold');
   bool get isService => data['service_interval_id'] != null;
+  WorkOrderJobType get workType => WorkOrderJobType.fromValue(
+    data['job_type'] as String? ?? (isService ? 'preventative' : 'repair'),
+  );
+  bool get canPrepare =>
+      canManage &&
+      canWork &&
+      ['draft', 'assigned'].contains(status) &&
+      data['started_at'] == null &&
+      labour.isEmpty;
+  String get expectedMaterials => data['expected_materials'] as String? ?? '';
   List<Map<String, dynamic>> get labour => maintenanceRows(data['labour']);
   List<Map<String, dynamic>> get parts => maintenanceRows(data['parts']);
   List<Map<String, dynamic>> get checklist =>
@@ -115,6 +129,6 @@ String maintenanceApprovalDescription(MaintenanceJob job, bool es) {
         : 'Completes this job and updates only its linked service plan.';
   }
   return es
-      ? 'Completa esta reparación. La disponibilidad del equipo y la resolución de fallas se revisan por separado.'
-      : 'Completes this repair. Asset availability and fault resolution are reviewed separately.';
+      ? 'Completa esta orden de trabajo. La disponibilidad del equipo y la resolución de fallas se revisan por separado.'
+      : 'Completes this work order. Asset availability and fault resolution are reviewed separately.';
 }

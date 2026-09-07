@@ -36,14 +36,17 @@ class MaintenanceWorkOrderDraft {
     String? checklistTemplateId,
     String? checklistTemplateName,
   }) {
-    final title = intervalLabel ??
+    final title =
+        intervalLabel ??
         checklistTemplateName ??
         '${intervalHours.toInt()}h Service';
     final description = StringBuffer(
-        'Preventative maintenance generated from Maintenance Plan.');
+      'Preventative maintenance generated from Maintenance Plan.',
+    );
     if (currentHours != null) {
-      description
-          .write(' Last known hours: ${currentHours.toStringAsFixed(0)}h.');
+      description.write(
+        ' Last known hours: ${currentHours.toStringAsFixed(0)}h.',
+      );
     }
     if (nextDueHours != null) {
       description.write(' Due: ${nextDueHours.toStringAsFixed(0)}h.');
@@ -62,11 +65,11 @@ class MaintenanceWorkOrderDraft {
     Map<String, String> params,
   ) {
     final checklistTemplateId = params[checklistTemplateIdParam];
-    final jobType =
-        params[jobTypeParam] == WorkOrderJobType.preventative.dbValue ||
-                checklistTemplateId != null
-            ? WorkOrderJobType.preventative
-            : WorkOrderJobType.repair;
+    final jobType = params[jobTypeParam] != null
+        ? WorkOrderJobType.fromValue(params[jobTypeParam])
+        : checklistTemplateId != null
+        ? WorkOrderJobType.preventative
+        : WorkOrderJobType.repair;
 
     return MaintenanceWorkOrderDraft(
       assetId: params[assetIdParam],
@@ -80,15 +83,15 @@ class MaintenanceWorkOrderDraft {
   }
 
   Map<String, String> toQueryParameters() => <String, String>{
-        if (assetId != null) assetIdParam: assetId!,
-        if (title.isNotEmpty) titleParam: title,
-        if (description.isNotEmpty) descriptionParam: description,
-        if (checklistTemplateId != null)
-          checklistTemplateIdParam: checklistTemplateId!,
-        if (serviceRequestId != null) serviceRequestIdParam: serviceRequestId!,
-        jobTypeParam: jobType.dbValue,
-        if (engineHours != null) engineHoursParam: engineHours!.toString(),
-      };
+    if (assetId != null) assetIdParam: assetId!,
+    if (title.isNotEmpty) titleParam: title,
+    if (description.isNotEmpty) descriptionParam: description,
+    if (checklistTemplateId != null)
+      checklistTemplateIdParam: checklistTemplateId!,
+    if (serviceRequestId != null) serviceRequestIdParam: serviceRequestId!,
+    jobTypeParam: jobType.dbValue,
+    if (engineHours != null) engineHoursParam: engineHours!.toString(),
+  };
 
   bool get isPreventative => jobType == WorkOrderJobType.preventative;
 }

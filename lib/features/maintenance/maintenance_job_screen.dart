@@ -13,6 +13,7 @@ import 'maintenance_models.dart';
 import 'maintenance_report_screen.dart';
 import 'maintenance_repository.dart';
 import 'maintenance_refresh.dart';
+import 'internal_work_order_edit_screen.dart';
 
 class MaintenanceJobScreen extends ConsumerStatefulWidget {
   const MaintenanceJobScreen({super.key, required this.jobId});
@@ -108,7 +109,7 @@ class _MaintenanceJobScreenState extends ConsumerState<MaintenanceJobScreen> {
     final result = ref.watch(maintenanceJobProvider(widget.jobId));
     return Scaffold(
       appBar: AppBar(
-        title: Text(es ? 'Detalle del trabajo' : 'Job details'),
+        title: Text(es ? 'Orden de trabajo' : 'Work order'),
         actions: [
           IconButton(
             tooltip: es ? 'Actualizar' : 'Refresh',
@@ -139,8 +140,8 @@ class _MaintenanceJobScreenState extends ConsumerState<MaintenanceJobScreen> {
             return Center(
               child: Text(
                 es
-                    ? 'Trabajo no disponible para tu cuenta.'
-                    : 'This job is unavailable to your account.',
+                    ? 'Orden no disponible para tu cuenta.'
+                    : 'This work order is unavailable to your account.',
               ),
             );
           }
@@ -157,17 +158,18 @@ class _MaintenanceJobScreenState extends ConsumerState<MaintenanceJobScreen> {
           final report = <Widget>[
             Text(
               job.status == 'pending_review'
-                  ? (es
-                        ? 'Revisar informe de reparación'
-                        : 'Review repair report')
+                  ? (es ? 'Revisar informe de trabajo' : 'Review work report')
                   : (es ? 'Informe guardado' : 'Saved report'),
               style: Theme.of(context).textTheme.titleLarge,
             ),
             info(
-              es ? 'Diagnóstico' : 'Diagnosis',
+              es ? 'Hallazgos' : 'Findings',
               job.report['diagnosis'] as String?,
             ),
-            info(es ? 'Reparación' : 'Repair', job.report['repair'] as String?),
+            info(
+              es ? 'Trabajo realizado' : 'Work performed',
+              job.report['repair'] as String?,
+            ),
             info(es ? 'Notas' : 'Notes', job.report['notes'] as String?),
             info(
               es ? 'Horas al finalizar' : 'Completion meter',
@@ -232,6 +234,7 @@ class _MaintenanceJobScreenState extends ConsumerState<MaintenanceJobScreen> {
                   ),
                 ),
               Text(job.title, style: Theme.of(context).textTheme.headlineSmall),
+              Text(es ? 'Orden de trabajo interna' : 'Internal work order'),
               TextButton.icon(
                 onPressed: () =>
                     context.push('/maintenance/assets/${job.assetId}'),
@@ -245,6 +248,7 @@ class _MaintenanceJobScreenState extends ConsumerState<MaintenanceJobScreen> {
                 children: [
                   Chip(label: Text(maintenanceStatus(job.status, es))),
                   Chip(label: Text(maintenancePriority(job.priority, es))),
+                  Chip(label: Text(job.workType.label(es))),
                   if (job.isService)
                     Chip(
                       label: Text(
@@ -298,6 +302,34 @@ class _MaintenanceJobScreenState extends ConsumerState<MaintenanceJobScreen> {
                 job.data['description'] as String?,
               ),
               info(
+                es
+                    ? 'Repuestos y materiales previstos'
+                    : 'Expected parts / materials',
+                job.expectedMaterials,
+              ),
+              if (job.canPrepare)
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: OutlinedButton.icon(
+                    onPressed: disabled
+                        ? null
+                        : () async {
+                            await Navigator.push(
+                              context,
+                              MaterialPageRoute<void>(
+                                builder: (_) =>
+                                    InternalWorkOrderEditScreen(job: job),
+                              ),
+                            );
+                            if (mounted) _refresh();
+                          },
+                    icon: const Icon(Icons.edit_outlined),
+                    label: Text(
+                      es ? 'Editar orden de trabajo' : 'Edit work order',
+                    ),
+                  ),
+                ),
+              info(
                 es ? 'Motivo del bloqueo' : 'Blocked reason',
                 job.data['on_hold_reason'] as String?,
               ),
@@ -350,8 +382,8 @@ class _MaintenanceJobScreenState extends ConsumerState<MaintenanceJobScreen> {
               if (job.canWork && job.status == 'assigned') ...[
                 Text(
                   es
-                      ? 'Inicia el tiempo de trabajo; después completa el informe de reparación.'
-                      : 'Start your labour timer, then complete the repair report.',
+                      ? 'Inicia el tiempo de trabajo; después completa el informe de trabajo.'
+                      : 'Start your labour timer, then complete the work report.',
                 ),
                 const SizedBox(height: 8),
                 FilledButton.icon(
@@ -376,8 +408,8 @@ class _MaintenanceJobScreenState extends ConsumerState<MaintenanceJobScreen> {
                   icon: const Icon(Icons.edit_note),
                   label: Text(
                     es
-                        ? 'Continuar informe de reparación'
-                        : 'Continue repair report',
+                        ? 'Continuar informe de trabajo'
+                        : 'Continue work report',
                   ),
                 ),
               if (job.status == 'pending_review') ...report,

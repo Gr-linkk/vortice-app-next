@@ -171,13 +171,15 @@ class MaintenanceAssetScreen extends ConsumerWidget {
                         FilledButton(
                           onPressed: () =>
                               context.push('/maintenance?assetId=$assetId'),
-                          child: Text(es ? 'Ver trabajos' : 'View work'),
+                          child: Text(es ? 'Ver órdenes' : 'Work orders'),
                         ),
                       if (manager && catalog['can_execute'] == true)
                         TextButton(
                           onPressed: () =>
                               context.push('/maintenance/new?assetId=$assetId'),
-                          child: Text(es ? 'Crear reparación' : 'New repair'),
+                          child: Text(
+                            es ? 'Nueva orden de trabajo' : 'New work order',
+                          ),
                         ),
                       if (manager)
                         PopupMenuButton<String>(
@@ -189,10 +191,6 @@ class MaintenanceAssetScreen extends ConsumerWidget {
                               child: Text(es ? 'Editar equipo' : 'Edit asset'),
                             ),
                           ],
-                          child: Padding(
-                            padding: const EdgeInsets.all(12),
-                            child: Text(es ? 'Más acciones' : 'More actions'),
-                          ),
                         ),
                     ],
                   ),

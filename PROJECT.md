@@ -14,6 +14,11 @@ parts, and invoices.
 
 ## Current direction
 
+Each client company manages its own internal work orders using the shared
+work-order vocabulary and familiar owner workflow. Repairs are one type of work;
+preventive maintenance, inspections and general work use the same lifecycle.
+See NOW-014 and decision 0011. Provider billing remains separate.
+
 Maintenance planning is a prominent forward-facing workflow. Existing service
 intervals and component plans define upcoming maintenance; the schedule organizes
 when and by whom it will be performed. NOW-013 connects these foundations to

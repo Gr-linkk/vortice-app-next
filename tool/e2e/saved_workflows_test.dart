@@ -194,7 +194,7 @@ void main() {
               }
               await h.login('tech@vortice.dev');
               await h.go('/maintenance');
-              await h.fill(h.field('Search job or asset'), marker);
+              await h.fill(h.field('Search work order or asset'), marker);
               final orderTitle =
                   (await supabase
                           .from('work_orders')

@@ -56,7 +56,7 @@ void main() {
       find.widgetWithText(FilledButton, 'Assign work order'),
       findsOneWidget,
     );
-    expect(find.text('Continue repair report'), findsNothing);
+    expect(find.text('Continue work report'), findsNothing);
     await tester.tap(find.text('Assign work order'));
     await tester.pumpAndSettle();
     expect(find.byType(AlertDialog), findsOneWidget);
@@ -137,6 +137,11 @@ void main() {
       expect(
         find.text('Hydraulic oil leaking from the main pump seal'),
         findsWidgets,
+      );
+      await tester.scrollUntilVisible(
+        find.text('Urgent'),
+        220,
+        scrollable: find.byType(Scrollable).first,
       );
       expect(find.text('Urgent'), findsOneWidget);
       await captureFleet(tester, 'direct-02-create-en');
@@ -277,8 +282,8 @@ void main() {
         repository,
       );
       await captureFleet(tester, 'direct-05-job-en');
-      await tester.ensureVisible(find.text('Continue repair report'));
-      await tester.tap(find.text('Continue repair report'));
+      await tester.ensureVisible(find.text('Continue work report'));
+      await tester.tap(find.text('Continue work report'));
       await tester.pumpAndSettle();
       expect(find.byType(MaintenanceReportScreen), findsOneWidget);
       await tester.pageBack();
@@ -338,12 +343,12 @@ void main() {
       repository,
     );
     await tester.scrollUntilVisible(
-      find.text('Review repair report'),
+      find.text('Review work report'),
       200,
       scrollable: find.byType(Scrollable).first,
     );
     await tester.pumpAndSettle();
-    expect(find.text('Continue repair report'), findsNothing);
+    expect(find.text('Continue work report'), findsNothing);
     await captureFleet(tester, 'direct-09-review-en');
     await tester.scrollUntilVisible(
       find.text('Return for changes'),

@@ -423,17 +423,20 @@ void main() {
       repository,
     );
     await tester.enterText(
-      find.widgetWithText(TextFormField, 'Work to do'),
+      find.widgetWithText(TextFormField, 'Work order title'),
       'Repair pump seal',
     );
+    await tester.pumpAndSettle();
+    FocusManager.instance.primaryFocus?.unfocus();
+    await tester.pumpAndSettle();
     await tester.scrollUntilVisible(
-      find.text('Create job'),
+      find.text('Create work order'),
       300,
       scrollable: find.byType(Scrollable).first,
     );
-    await tester.ensureVisible(find.text('Create job'));
+    await tester.ensureVisible(find.text('Create work order'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Create job'));
+    await tester.tap(find.text('Create work order'));
     await tester.pumpAndSettle();
     expect(repository.writes.length, 1);
     await tester.scrollUntilVisible(
@@ -492,7 +495,7 @@ void main() {
         FixtureMaintenance(job: jobData(enabled: false)),
       );
       expect(find.text('Start labour'), findsNothing);
-      expect(find.text('Continue repair report'), findsNothing);
+      expect(find.text('Continue work report'), findsNothing);
       expect(
         find.text('History is available; execution is disabled.'),
         findsOneWidget,

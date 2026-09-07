@@ -134,7 +134,7 @@ void main() {
         width: es ? 320 : 390,
         scale: es ? 1.5 : 1,
       );
-      final work = es ? 'Ver trabajos' : 'View work';
+      final work = es ? 'Ver órdenes' : 'Work orders';
       final edit = es ? 'Editar equipo' : 'Edit asset';
       expect(find.widgetWithText(FilledButton, work), findsOneWidget);
       expect(find.text(edit), findsNothing);
@@ -143,7 +143,7 @@ void main() {
         findsOneWidget,
       );
       await captureFleet(tester, 'simplify-asset-${es ? 'es-large' : 'en'}');
-      await tester.tap(find.text(es ? 'Más acciones' : 'More actions'));
+      await tester.tap(find.byTooltip(es ? 'Más acciones' : 'More actions'));
       await tester.pumpAndSettle();
       await tester.tap(find.text(edit));
       await tester.pumpAndSettle();
