@@ -7,6 +7,16 @@ without creating a new backlog item.
 
 ## Now
 
+### NOW-015 — Checklist builder and connected PM/pre-operation workflows
+
+Garrett requested a checklist investigation and complete builder workflow for
+client companies and the owner. The audited scope is in
+`docs/specs/NOW-015-checklist-builder.md`: company template ownership, drafts and
+immutable publications, PM integration, assigned pre-op completion, failed-check
+follow-up and retained evidence/history. Investigation is complete; implementation
+and connected acceptance remain outstanding. Shared owner starters with private
+client copies are a proposed default pending user preference.
+
 ### NOW-014 — Company internal work orders
 
 Garrett approved giving each client company internal work orders modeled on the
