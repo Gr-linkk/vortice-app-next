@@ -113,3 +113,11 @@ are under `outputs/integrated-*` and `outputs/agent23-*`. A real user's MFA setu
 valid-key document upload/read through a chosen MCP host, native camera/PDF and
 manual interpretation remain physical/end-to-end acceptance checks. The app does
 not automatically connect or enroll a third-party agent for the user.
+Build 23 was delivered to the verified Samsung SM-S928W Downloads as
+`INSTALL-Vortice-Next-Build-23.apk`. Local and final phone SHA-256 match:
+`68047a461a956ba8bf93b759f6f483ecee930737834284698218fdd531b18648`.
+APK identity, signing certificate, Next backend/Firebase, ARM64, notification/
+recovery declarations and all 19 artwork files pass inspection. Evidence:
+`outputs/build23-build-verified.json` and `outputs/agent23-phone-checksum.txt`.
+Installation was not performed. All worktree branch tips are ancestors of the
+integration branch; worktrees remain available. No remote push was performed.

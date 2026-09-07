@@ -7,8 +7,8 @@ without creating a new backlog item.
 
 ## Now
 
-September 7 stress-audit corrections to NOW-016/NOW-017 are isolated from the
-concurrent UI task on `codex/stress-audit-fixes`. Scope and verification:
+September 7 stress-audit corrections to NOW-016/NOW-017 are integrated into
+Build 23 from `codex/stress-audit-fixes`. Scope and verification:
 `docs/specs/2026-09-07-stress-audit-fixes.md`.
 
 ### NOW-018 — Broader equipment catalog and complete category artwork
@@ -36,8 +36,8 @@ review/publish/apply in the app. Separate permissions allow creating work drafts
 and assigning, scheduling or editing work. Preserve live role/capability checks,
 expiry, revocation and activity history.
 Scope and acceptance: `docs/specs/NOW-019-agent-access.md`; decision 0014.
-Implementation is isolated from concurrent equipment/UI and stress-test work.
-Hosted activation and real agent/device acceptance remain separate.
+Originally developed separately from equipment/UI and stress-test work; now
+integrated below. Real agent/device acceptance remains separate.
 
 Integrated with all completed worktrees for Build 23 (`1.12.0+23`). Owner keys
 require MFA. Next agent migrations/proxy are active; 561 Flutter tests pass
