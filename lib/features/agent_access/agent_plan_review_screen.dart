@@ -13,6 +13,16 @@ class AgentPlanRepository {
   AgentPlanRepository(this.client, this.actor);
   final SupabaseClient client;
   final String actor;
+  Future<List<Map<String, dynamic>>> pending(String fleet, int page) => _guard(
+    () => client
+        .from('agent_plan_drafts')
+        .select('id,draft,assets(name)')
+        .eq('client_id', fleet)
+        .isFilter('applied_plan_id', null)
+        .order('created_at')
+        .order('id')
+        .range(page * 25, page * 25 + 25),
+  );
   Future<T> _guard<T>(Future<T> Function() request) async {
     if (client.auth.currentUser?.id != actor) {
       throw StateError('Account changed');

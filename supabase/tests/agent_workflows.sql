@@ -120,7 +120,7 @@ select public.revoke_agent_connections((select (value->>'id')::uuid from results
 set local role anon;
 select pg_temp.ok(public.agent_execute(pg_temp.token('manage'),'work_order_context','{"asset_id":"a0200000-0000-4000-8000-000000000021"}')->>'error'='Access denied','revocation blocks workflow');
 reset role;
-insert into auth.mfa_factors(id,user_id,factor_type,status) values(gen_random_uuid(),'a0200000-0000-4000-8000-000000000003','totp','verified');
+insert into auth.mfa_factors(id,user_id,factor_type,status,created_at,updated_at) values(gen_random_uuid(),'a0200000-0000-4000-8000-000000000003','totp','verified',now(),now());
 set local role authenticated;
 select set_config('request.jwt.claim.sub','a0200000-0000-4000-8000-000000000003',true);
 select set_config('request.jwt.claims','{"aal":"aal2"}',true);

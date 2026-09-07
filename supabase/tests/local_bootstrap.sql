@@ -9,12 +9,13 @@ create schema auth;
 create schema storage;
 create schema extensions;
 create table auth.users (
- id uuid primary key, email text,
+ id uuid primary key, email text, banned_until timestamptz,
  raw_user_meta_data jsonb default '{}',raw_app_meta_data jsonb default '{}'
 );
 create table auth.mfa_factors (
  id uuid primary key, user_id uuid references auth.users(id),
- factor_type text, status text
+ factor_type text, status text,
+ created_at timestamptz not null, updated_at timestamptz not null
 );
 create function auth.uid() returns uuid language sql stable as $$
  select nullif(current_setting('request.jwt.claim.sub',true),'')::uuid

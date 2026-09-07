@@ -39,9 +39,9 @@ Scope and acceptance: `docs/specs/NOW-019-agent-access.md`; decision 0014.
 Implementation is isolated from concurrent equipment/UI and stress-test work.
 Hosted activation and real agent/device acceptance remain separate.
 
-Implemented locally on `codex/now-019-agent-access`; see the spec for current
-verification evidence. Owner key creation requires MFA. Integration with
-concurrent work, hosted activation and real agent/device acceptance are pending.
+Integrated with all completed worktrees for Build 23 (`1.12.0+23`). Owner keys
+require MFA. Next agent migrations/proxy are active; 561 Flutter tests pass
+without skips. Real agent/device acceptance remains; see the spec.
 
 ### NOW-017 — Field Notes UI and saved appearance
 

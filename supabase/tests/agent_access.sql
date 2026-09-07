@@ -22,8 +22,8 @@ insert into public.assets(id,client_id,asset_type_id,name) values
 insert into public.client_capabilities(client_id,capability_key,enabled)
  values('a0190000-0000-4000-8000-000000000001','pm_checklists',true);
 create temp table credentials(name text primary key,value jsonb);
-insert into auth.mfa_factors(id,user_id,factor_type,status) values
- ('a0190000-0000-4000-8000-000000000050','a0190000-0000-4000-8000-000000000003','totp','verified');
+insert into auth.mfa_factors(id,user_id,factor_type,status,created_at,updated_at) values
+ ('a0190000-0000-4000-8000-000000000050','a0190000-0000-4000-8000-000000000003','totp','verified',now(),now());
 grant all on credentials to authenticated,anon;
 create function pg_temp.token(n text) returns text language sql as $$ select value->>'token' from credentials where name=n $$;
 create function pg_temp.draft() returns jsonb language sql as $$
@@ -74,7 +74,6 @@ select pg_temp.assert_true(public.agent_execute(pg_temp.token('cap-1'),'maintena
 select pg_temp.assert_true(public.agent_execute(pg_temp.token('cap-1'),'maintenance_summary')->>'error'='Rate limit; retry later','minute limit enforced');
 reset role;
 select pg_temp.assert_true((select count(*)=60 from public.agent_activity where connection_id=(select (value->>'id')::uuid from credentials where name='cap-1')),'rate-limit rejection does not grow audit indefinitely');
-alter table auth.users add column if not exists banned_until timestamptz;
 update auth.users set banned_until=now()+interval '1 day' where id='a0190000-0000-4000-8000-000000000001';
 set local role anon;
 select pg_temp.assert_true(public.agent_execute(pg_temp.token('read'),'maintenance_summary')->>'error'='Access denied','account ban enforced');

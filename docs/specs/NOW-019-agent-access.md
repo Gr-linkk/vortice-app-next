@@ -76,7 +76,7 @@ current hours and task-specific service history, edit and activate a plan, and
 assign/schedule actual test work. Check replay and disconnect denial. Verify
 hosted MFA, Storage RLS and Edge deployment. Keep real keys out of evidence.
 
-This branch has not been merged, pushed, deployed or installed. Local validation
+At the isolated checkpoint this branch had not been merged or deployed. Local validation
 is not hosted or physical-device acceptance.
 
 Local results on 2026-09-07: guarded verification passed with clean analysis,
@@ -85,3 +85,31 @@ extended existing-plan baseline/revision scenario was rerun successfully.
 All 16 Node MCP/proxy tests passed. The concurrent retry/revocation harness
 passed. Direct review and representative EN/ES 320px, 200% light/dark screenshots
 were inspected; no independent reviewer or real manual/phone run was used.
+
+## Integrated Build 23 (2026-09-07)
+
+Garrett authorized merging all worktrees, fixing integration issues, activating
+necessary services, and building/delivering the APK to his S24. The integration
+branch `codex/integrated-agent-release` contains the field-reliability, Field Notes,
+equipment catalog (including road vehicles), stress fixes, and agent branches.
+No worktree was deleted and no original Vortice repository/service was used.
+
+Added a paginated Plans to review list, separate from the bounded activity feed,
+so unapplied proposals remain discoverable. It shows equipment and interval,
+opens the existing source/plan editor and refreshes after returning. Live session
+changes invalidate its actor-bound queries. Pagination and error retry are tested;
+English/light and Spanish/dark 320px/200% renders were inspected.
+
+Final guarded verification: clean analysis, 561 Flutter tests, zero skips. All
+20 combined local SQL suites passed; both agent suites passed again after local
+MFA fixtures were aligned with the hosted auth schema. Both rollback-only hosted
+agent suites pass without retained fixture data. Sixteen Node tests and the
+concurrent retry/revocation harness pass. The two agent migrations and document
+proxy are deployed to Next. Live HTTP checks verify invalid-key denial through
+both PostgREST and the Edge proxy.
+
+Build 23 is version 1.12.0+23, ARM64 internal debug. Build and verification evidence
+are under `outputs/integrated-*` and `outputs/agent23-*`. A real user's MFA setup,
+valid-key document upload/read through a chosen MCP host, native camera/PDF and
+manual interpretation remain physical/end-to-end acceptance checks. The app does
+not automatically connect or enroll a third-party agent for the user.

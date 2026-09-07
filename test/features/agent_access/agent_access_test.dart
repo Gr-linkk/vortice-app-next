@@ -113,7 +113,16 @@ Future<void> prepare(WidgetTester tester) async {
   await tester.tap(find.text('Harbour Marine').last);
   await tester.pumpAndSettle();
   await tester.enterText(find.byType(TextField), 'Maintenance helper');
-  await tester.ensureVisible(find.byType(CheckboxListTile));
+  await tester.scrollUntilVisible(
+    find.byType(CheckboxListTile),
+    250,
+    scrollable: find
+        .descendant(
+          of: find.byType(ListView),
+          matching: find.byType(Scrollable),
+        )
+        .first,
+  );
   await tester.pumpAndSettle();
   await tester.tap(find.byType(CheckboxListTile));
   await tester.pumpAndSettle();
@@ -198,6 +207,11 @@ void main() {
       await tester.drag(find.byType(ListView), const Offset(0, 1200));
       await tester.pumpAndSettle();
       expect(find.text('vna_test_key_shown_once'), findsOneWidget);
+      await Scrollable.ensureVisible(
+        tester.element(find.text('I saved the key')),
+        alignment: 0.5,
+      );
+      await tester.pumpAndSettle();
       await tester.tap(find.text('I saved the key'));
       await tester.pumpAndSettle();
       expect(find.text('vna_test_key_shown_once'), findsNothing);

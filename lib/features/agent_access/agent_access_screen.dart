@@ -7,6 +7,7 @@ import 'package:vortice_app/models/profile.dart';
 import 'agent_access_repository.dart';
 import 'maintenance_documents_screen.dart';
 import 'agent_plan_review_screen.dart';
+import 'agent_pending_plans_screen.dart';
 import 'package:vortice_app/features/checklist_builder/checklist_builder_repository.dart';
 
 class AgentAccessScreen extends ConsumerWidget {
@@ -523,6 +524,19 @@ class _AgentAccessPanelState extends State<AgentAccessPanel> {
                   'Escanear documentos de mantenimiento',
                 ),
               ),
+            ),
+          if (_fleet != null)
+            OutlinedButton.icon(
+              onPressed: _busy
+                  ? null
+                  : () => Navigator.push<void>(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => AgentPendingPlansScreen(fleet: _fleet!),
+                      ),
+                    ),
+              icon: const Icon(Icons.fact_check_outlined),
+              label: Text(t('Plans to review', 'Planes por revisar')),
             ),
           TextField(
             controller: _name,
