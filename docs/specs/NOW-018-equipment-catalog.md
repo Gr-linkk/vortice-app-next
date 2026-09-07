@@ -50,6 +50,13 @@ first reproduced the incorrect foreground in both themes. Native light/dark
 render checks passed. Evidence: `outputs/NOW018-followup/`. Device acceptance
 remains separate from these automated checks.
 
+Build 22 was delivered to the verified Samsung SM-S928W Downloads as
+`INSTALL-Vortice-Next-Build-22.apk`. Package, signature, Next services and exact
+bytes of all 19 artwork files were verified. Source and final phone SHA-256:
+`14441d251b4c7c0d534f12f5edefe2d20d2e8b0485e2da1ff048d5c927980af9`.
+Evidence: `outputs/NOW018-followup/build22-build-verified.json` and
+`phone-checksum.txt`. Installation was not performed.
+
 - Existing catalog rows and asset links are unchanged; applying the new seed
   again does not create duplicates or overwrite owner edits.
 - All 32 standard types have distinct mapped drawings, packaged in the app.
