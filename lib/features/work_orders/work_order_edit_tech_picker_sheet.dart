@@ -12,7 +12,7 @@ Future<List<String>?> showWorkOrderTechPickerSheet({
   return showModalBottomSheet<List<String>>(
     context: context,
     isScrollControlled: true,
-    backgroundColor: AppColors.surface,
+    backgroundColor: context.appColors.surface,
     shape: const RoundedRectangleBorder(
       borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
     ),

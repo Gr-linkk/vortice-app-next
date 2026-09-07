@@ -21,29 +21,40 @@ class PmKitPartRow extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
       child: Row(
         children: [
-          const Icon(Icons.circle, size: 6, color: AppColors.textSecondary),
+          Icon(Icons.circle, size: 6, color: context.appColors.textSecondary),
           const SizedBox(width: 10),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(part['description'] as String? ?? '—',
-                    style: const TextStyle(fontSize: 13)),
+                Text(
+                  part['description'] as String? ?? '—',
+                  style: const TextStyle(fontSize: 13),
+                ),
                 if (part['part_number'] != null)
-                  Text('PN: ${part['part_number']}',
-                      style: const TextStyle(
-                          color: AppColors.textSecondary, fontSize: 11)),
+                  Text(
+                    'PN: ${part['part_number']}',
+                    style: TextStyle(
+                      color: context.appColors.textSecondary,
+                      fontSize: 11,
+                    ),
+                  ),
               ],
             ),
           ),
           Text(
             formatPmKitPartQty(part['qty'], part['unit'] as String?),
-            style:
-                const TextStyle(color: AppColors.textSecondary, fontSize: 12),
+            style: TextStyle(
+              color: context.appColors.textSecondary,
+              fontSize: 12,
+            ),
           ),
           IconButton(
-            icon: const Icon(Icons.delete_outline,
-                size: 16, color: AppColors.error),
+            icon: Icon(
+              Icons.delete_outline,
+              size: 16,
+              color: context.appColors.error,
+            ),
             padding: EdgeInsets.zero,
             constraints: const BoxConstraints(),
             onPressed: () async {

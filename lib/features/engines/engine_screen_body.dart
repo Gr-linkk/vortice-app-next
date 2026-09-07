@@ -13,7 +13,8 @@ class EngineScreenBody extends ConsumerWidget {
   final String assetId;
   final List<AssetEngine> engines;
   final VoidCallback onRefresh;
-  final void Function(BuildContext context, AssetEngine? engine) onShowEngineSheet;
+  final void Function(BuildContext context, AssetEngine? engine)
+  onShowEngineSheet;
   final void Function(BuildContext context, AssetEngine engine) onConfirmDelete;
 
   const EngineScreenBody({
@@ -30,8 +31,10 @@ class EngineScreenBody extends ConsumerWidget {
     if (engines.isEmpty) {
       final l10n = AppLocalizations.of(context);
       return Center(
-        child: Text(l10n.noEngines,
-            style: const TextStyle(color: AppColors.textSecondary)),
+        child: Text(
+          l10n.noEngines,
+          style: TextStyle(color: context.appColors.textSecondary),
+        ),
       );
     }
 
@@ -45,10 +48,8 @@ class EngineScreenBody extends ConsumerWidget {
           onTap: () => Navigator.push(
             context,
             MaterialPageRoute(
-              builder: (_) => EngineDetailScreen(
-                assetId: assetId,
-                engine: engines[i],
-              ),
+              builder: (_) =>
+                  EngineDetailScreen(assetId: assetId, engine: engines[i]),
             ),
           ),
           onEdit: () => onShowEngineSheet(context, engines[i]),
@@ -67,14 +68,11 @@ void showEngineFormSheet(
   showModalBottomSheet(
     context: context,
     isScrollControlled: true,
-    backgroundColor: AppColors.surface,
+    backgroundColor: context.appColors.surface,
     shape: const RoundedRectangleBorder(
       borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
     ),
-    builder: (ctx) => EngineForm(
-      assetId: assetId,
-      engine: engine,
-    ),
+    builder: (ctx) => EngineForm(assetId: assetId, engine: engine),
   );
 }
 
@@ -88,18 +86,17 @@ Future<void> confirmEngineDelete(
   final confirmed = await showDialog<bool>(
     context: context,
     builder: (ctx) => AlertDialog(
-      backgroundColor: AppColors.surface,
+      backgroundColor: context.appColors.surface,
       title: Text(l10n.confirmDelete),
       content: Text(l10n.confirmDeleteMessage),
       actions: [
-        TextButton(
-          onPressed: () => ctx.pop(false),
-          child: Text(l10n.cancel),
-        ),
+        TextButton(onPressed: () => ctx.pop(false), child: Text(l10n.cancel)),
         TextButton(
           onPressed: () => ctx.pop(true),
-          child: Text(l10n.delete,
-              style: const TextStyle(color: AppColors.error)),
+          child: Text(
+            l10n.delete,
+            style: TextStyle(color: context.appColors.error),
+          ),
         ),
       ],
     ),

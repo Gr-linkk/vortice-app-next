@@ -2,7 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:vortice_app/core/theme.dart';
 import 'package:vortice_app/l10n/app_localizations.dart';
 
-class ServiceReportAppBar extends StatelessWidget implements PreferredSizeWidget {
+class ServiceReportAppBar extends StatelessWidget
+    implements PreferredSizeWidget {
   final bool signatureSaved;
   final bool isLoading;
   final bool canSubmit;
@@ -36,7 +37,7 @@ class ServiceReportAppBar extends StatelessWidget implements PreferredSizeWidget
             onPressed: onOpenSignature,
             icon: Icon(
               signatureSaved ? Icons.check_circle : Icons.draw_outlined,
-              color: signatureSaved ? AppColors.success : null,
+              color: signatureSaved ? context.appColors.success : null,
             ),
           ),
         ),

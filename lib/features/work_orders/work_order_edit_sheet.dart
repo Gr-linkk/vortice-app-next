@@ -10,7 +10,7 @@ void showEditWorkOrderSheet(BuildContext context, WorkOrder workOrder) {
   showModalBottomSheet(
     context: context,
     isScrollControlled: true,
-    backgroundColor: AppColors.surface,
+    backgroundColor: context.appColors.surface,
     shape: const RoundedRectangleBorder(
       borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
     ),
@@ -45,10 +45,12 @@ class _EditWorkOrderSheetState extends ConsumerState<EditWorkOrderSheet> {
     final wo = widget.workOrder;
     _titleCtrl = TextEditingController(text: wo.title);
     _descCtrl = TextEditingController(text: wo.description ?? '');
-    _hoursStartCtrl =
-        TextEditingController(text: wo.hoursAtStart?.toString() ?? '');
-    _hoursEndCtrl =
-        TextEditingController(text: wo.hoursAtEnd?.toString() ?? '');
+    _hoursStartCtrl = TextEditingController(
+      text: wo.hoursAtStart?.toString() ?? '',
+    );
+    _hoursEndCtrl = TextEditingController(
+      text: wo.hoursAtEnd?.toString() ?? '',
+    );
     _labourCtrl = TextEditingController(text: wo.labourHours?.toString() ?? '');
     _notesCtrl = TextEditingController(text: wo.notesInternal ?? '');
     _onHoldCtrl = TextEditingController(text: wo.onHoldReason ?? '');
@@ -83,12 +85,13 @@ class _EditWorkOrderSheetState extends ConsumerState<EditWorkOrderSheet> {
       onHoldReason: _onHoldCtrl.text,
     );
 
-    final success =
-        await ref.read(workOrderControllerProvider.notifier).updateWorkOrder(
-              widget.workOrder.id,
-              data,
-              assignedProfileIds: _assignedTechIds,
-            );
+    final success = await ref
+        .read(workOrderControllerProvider.notifier)
+        .updateWorkOrder(
+          widget.workOrder.id,
+          data,
+          assignedProfileIds: _assignedTechIds,
+        );
 
     if (success && mounted) {
       Navigator.pop(context);
@@ -97,8 +100,9 @@ class _EditWorkOrderSheetState extends ConsumerState<EditWorkOrderSheet> {
 
   @override
   Widget build(BuildContext context) {
-    final assignmentsAsync =
-        ref.watch(workOrderAssignmentsProvider(widget.workOrder.id));
+    final assignmentsAsync = ref.watch(
+      workOrderAssignmentsProvider(widget.workOrder.id),
+    );
 
     if (!_didSeedAssignments) {
       assignmentsAsync.whenData((assignments) {

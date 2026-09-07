@@ -19,14 +19,20 @@ class ClientCapabilitySwitchboardSection extends ConsumerWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
+        Text(
           'Service Switchboard',
-          style: TextStyle(color: AppColors.textSecondary, fontSize: 13),
+          style: TextStyle(
+            color: context.appColors.textSecondary,
+            fontSize: 13,
+          ),
         ),
         const SizedBox(height: 4),
-        const Text(
+        Text(
           'Controls access to new workflow areas. Turning a switch off hides the workflow; existing records are preserved.',
-          style: TextStyle(color: AppColors.textSecondary, fontSize: 11),
+          style: TextStyle(
+            color: context.appColors.textSecondary,
+            fontSize: 11,
+          ),
         ),
         const SizedBox(height: 10),
         Wrap(
@@ -36,10 +42,10 @@ class ClientCapabilitySwitchboardSection extends ConsumerWidget {
             return Chip(
               avatar: const Icon(Icons.lock_open, size: 14),
               label: Text(label),
-              backgroundColor: AppColors.surfaceVariant,
-              side: const BorderSide(color: AppColors.cardBorder),
-              labelStyle: const TextStyle(
-                color: AppColors.textSecondary,
+              backgroundColor: context.appColors.surfaceVariant,
+              side: BorderSide(color: context.appColors.cardBorder),
+              labelStyle: TextStyle(
+                color: context.appColors.textSecondary,
                 fontSize: 12,
               ),
             );
@@ -54,10 +60,13 @@ class ClientCapabilitySwitchboardSection extends ConsumerWidget {
           ),
           error: (_, __) => Row(
             children: [
-              const Expanded(
+              Expanded(
                 child: Text(
                   'Could not load service switches',
-                  style: TextStyle(color: AppColors.error, fontSize: 12),
+                  style: TextStyle(
+                    color: context.appColors.error,
+                    fontSize: 12,
+                  ),
                 ),
               ),
               TextButton(
@@ -73,9 +82,9 @@ class ClientCapabilitySwitchboardSection extends ConsumerWidget {
               return Container(
                 margin: const EdgeInsets.only(bottom: 8),
                 decoration: BoxDecoration(
-                  color: AppColors.surfaceVariant,
+                  color: context.appColors.surfaceVariant,
                   borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: AppColors.cardBorder),
+                  border: Border.all(color: context.appColors.cardBorder),
                 ),
                 child: SwitchListTile.adaptive(
                   value: enabled,
@@ -102,21 +111,21 @@ class ClientCapabilitySwitchboardSection extends ConsumerWidget {
                         },
                   title: Text(
                     capability.label,
-                    style: const TextStyle(
-                      color: AppColors.textPrimary,
+                    style: TextStyle(
+                      color: context.appColors.textPrimary,
                       fontSize: 13,
                       fontWeight: FontWeight.w500,
                     ),
                   ),
                   subtitle: Text(
                     capability.description,
-                    style: const TextStyle(
-                      color: AppColors.textSecondary,
+                    style: TextStyle(
+                      color: context.appColors.textSecondary,
                       fontSize: 11,
                     ),
                   ),
                   dense: true,
-                  activeThumbColor: AppColors.primary,
+                  activeThumbColor: context.appColors.primary,
                 ),
               );
             }).toList(),

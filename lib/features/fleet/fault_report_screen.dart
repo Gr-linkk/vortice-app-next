@@ -106,7 +106,7 @@ class _FaultReportScreenState extends ConsumerState<FaultReportScreen> {
                       es
                           ? 'Tu equipo puede seguir la reparación desde este reporte.'
                           : 'Your team can follow the repair from this report.',
-                      style: const TextStyle(color: AppColors.textSecondary),
+                      style: TextStyle(color: context.appColors.textSecondary),
                     ),
                     const SizedBox(height: 24),
                     AppDropdownField<String>(
@@ -181,7 +181,7 @@ class _FaultReportScreenState extends ConsumerState<FaultReportScreen> {
                           es
                               ? 'La disponibilidad se evalúa por separado. Informa también al responsable si el equipo no debe usarse.'
                               : 'Availability is assessed separately. Also contact the responsible manager if the equipment should not be used.',
-                          style: const TextStyle(color: AppColors.warning),
+                          style: TextStyle(color: context.appColors.warning),
                         ),
                       ),
                     if (_error != null)
@@ -189,7 +189,7 @@ class _FaultReportScreenState extends ConsumerState<FaultReportScreen> {
                         padding: const EdgeInsets.symmetric(vertical: 12),
                         child: Text(
                           fleetErrorMessage(_error!, es),
-                          style: const TextStyle(color: AppColors.warning),
+                          style: TextStyle(color: context.appColors.warning),
                         ),
                       ),
                     const SizedBox(height: 16),
@@ -214,9 +214,9 @@ class _FaultReportScreenState extends ConsumerState<FaultReportScreen> {
                           ? 'Se requiere conexión para confirmar el reporte.'
                           : 'A connection is required to confirm the report.',
                       textAlign: TextAlign.center,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 12,
-                        color: AppColors.textSecondary,
+                        color: context.appColors.textSecondary,
                       ),
                     ),
                   ],

@@ -7,27 +7,27 @@ import 'package:vortice_app/models/client_capability.dart';
 import 'package:vortice_app/models/invoice.dart';
 import 'package:vortice_app/models/profile.dart';
 
-Color orgAdminMemberRoleColor(UserRole role) => switch (role) {
-      UserRole.clientMechanic => AppColors.primary,
-      UserRole.clientOperator => AppColors.warning,
-      UserRole.clientAdmin => AppColors.success,
-      _ => AppColors.textSecondary,
+Color orgAdminMemberRoleColor(AppPalette colors, UserRole role) =>
+    switch (role) {
+      UserRole.clientMechanic => colors.primary,
+      UserRole.clientOperator => colors.warning,
+      UserRole.clientAdmin => colors.success,
+      _ => colors.textSecondary,
     };
 
 String orgAdminMemberRoleLabel(UserRole role) => switch (role) {
-      UserRole.clientMechanic => 'Mechanic',
-      UserRole.clientOperator => 'Operator',
-      UserRole.clientAdmin => 'Admin',
-      _ => role.name,
-    };
+  UserRole.clientMechanic => 'Mechanic',
+  UserRole.clientOperator => 'Operator',
+  UserRole.clientAdmin => 'Admin',
+  _ => role.name,
+};
 
 ClientCapability? orgAdminCapabilityForRole(UserRole role) => switch (role) {
-      UserRole.clientMechanic => ClientCapability.pmChecklists,
-      UserRole.clientOperator ||
-      UserRole.operator =>
-        ClientCapability.operationalChecklists,
-      _ => null,
-    };
+  UserRole.clientMechanic => ClientCapability.pmChecklists,
+  UserRole.clientOperator ||
+  UserRole.operator => ClientCapability.operationalChecklists,
+  _ => null,
+};
 
 bool isOrgMemberWorkflowDisabled({
   required UserRole role,
@@ -39,36 +39,39 @@ bool isOrgMemberWorkflowDisabled({
 
 ClientCapability requiredCapabilityForInviteRole(String role) =>
     role == 'client_mechanic'
-        ? ClientCapability.pmChecklists
-        : ClientCapability.operationalChecklists;
+    ? ClientCapability.pmChecklists
+    : ClientCapability.operationalChecklists;
 
-Color orgAdminInvoiceStatusColor(InvoiceStatus status) => switch (status) {
-      InvoiceStatus.paid => AppColors.success,
-      InvoiceStatus.sent => AppColors.warning,
-      InvoiceStatus.draft => AppColors.textSecondary,
-      InvoiceStatus.voided => AppColors.error,
+Color orgAdminInvoiceStatusColor(AppPalette colors, InvoiceStatus status) =>
+    switch (status) {
+      InvoiceStatus.paid => colors.success,
+      InvoiceStatus.sent => colors.warning,
+      InvoiceStatus.draft => colors.textSecondary,
+      InvoiceStatus.voided => colors.error,
     };
 
-Color orgAdminChecklistAssignmentStatusColor(String status) => switch (status) {
-      'completed' => AppColors.success,
-      'in_progress' => AppColors.warning,
-      'cancelled' => AppColors.textSecondary,
-      _ => AppColors.primary,
-    };
+Color orgAdminChecklistAssignmentStatusColor(
+  AppPalette colors,
+  String status,
+) => switch (status) {
+  'completed' => colors.success,
+  'in_progress' => colors.warning,
+  'cancelled' => colors.textSecondary,
+  _ => colors.primary,
+};
 
 bool isMemberEligibleForChecklistType(Profile member, String checklistType) =>
     checklistType == 'pm'
-        ? member.role == UserRole.clientMechanic
-        : member.role == UserRole.clientOperator ||
-            member.role == UserRole.operator;
+    ? member.role == UserRole.clientMechanic
+    : member.role == UserRole.clientOperator ||
+          member.role == UserRole.operator;
 
 List<Profile> filterMembersForChecklistType(
   List<Profile> members,
   String checklistType,
-) =>
-    members
-        .where((m) => isMemberEligibleForChecklistType(m, checklistType))
-        .toList();
+) => members
+    .where((m) => isMemberEligibleForChecklistType(m, checklistType))
+    .toList();
 
 void showCreateOrgDialog(BuildContext context, WidgetRef ref) {
   final nameCtrl = TextEditingController();
@@ -96,7 +99,9 @@ void showCreateOrgDialog(BuildContext context, WidgetRef ref) {
             final userId = supabase.auth.currentUser?.id;
             if (userId == null) return;
             Navigator.pop(ctx);
-            await ref.read(orgControllerProvider.notifier).createOrg(name, userId);
+            await ref
+                .read(orgControllerProvider.notifier)
+                .createOrg(name, userId);
             ref.invalidate(currentUserOrgProvider);
           },
           child: const Text('Create'),
@@ -105,4 +110,3 @@ void showCreateOrgDialog(BuildContext context, WidgetRef ref) {
     ),
   );
 }
-

@@ -161,12 +161,15 @@ class OwnerDashboard extends ConsumerWidget {
                   _ErrorTile(message: friendlyError(context, err)),
               data: (clients) {
                 if (clients.isEmpty) {
-                  return const Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  return Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 8,
+                    ),
                     child: Text(
                       'No clients yet.',
                       style: TextStyle(
-                        color: AppColors.textSecondary,
+                        color: context.appColors.textSecondary,
                         fontSize: 13,
                       ),
                     ),
@@ -192,14 +195,14 @@ class _WorkOrderTile extends StatelessWidget {
 
   const _WorkOrderTile({required this.workOrder});
 
-  Color _statusColor() => switch (workOrder.status) {
-    WorkOrderStatus.draft => AppColors.textSecondary,
-    WorkOrderStatus.assigned => AppColors.primary,
-    WorkOrderStatus.inProgress => AppColors.warning,
-    WorkOrderStatus.onHold => AppColors.error,
-    WorkOrderStatus.pendingReview => AppColors.primary,
-    WorkOrderStatus.invoiced => AppColors.success,
-    WorkOrderStatus.closed => AppColors.success,
+  Color _statusColor(BuildContext context) => switch (workOrder.status) {
+    WorkOrderStatus.draft => context.appColors.textSecondary,
+    WorkOrderStatus.assigned => context.appColors.primary,
+    WorkOrderStatus.inProgress => context.appColors.warning,
+    WorkOrderStatus.onHold => context.appColors.error,
+    WorkOrderStatus.pendingReview => context.appColors.primary,
+    WorkOrderStatus.invoiced => context.appColors.success,
+    WorkOrderStatus.closed => context.appColors.success,
   };
 
   String _statusLabel() => switch (workOrder.status) {
@@ -214,7 +217,7 @@ class _WorkOrderTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = _statusColor();
+    final color = _statusColor(context);
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
       child: InkWell(
@@ -223,9 +226,9 @@ class _WorkOrderTile extends StatelessWidget {
         child: Container(
           padding: const EdgeInsets.all(14),
           decoration: BoxDecoration(
-            color: AppColors.surface,
+            color: context.appColors.surface,
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: AppColors.cardBorder),
+            border: Border.all(color: context.appColors.cardBorder),
           ),
           child: Row(
             children: [
@@ -279,8 +282,8 @@ class _WorkOrderTile extends StatelessWidget {
                         workOrder.description!,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          color: AppColors.textSecondary,
+                        style: TextStyle(
+                          color: context.appColors.textSecondary,
                           fontSize: 12,
                         ),
                       ),
@@ -289,9 +292,9 @@ class _WorkOrderTile extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: 8),
-              const Icon(
+              Icon(
                 Icons.chevron_right,
-                color: AppColors.textSecondary,
+                color: context.appColors.textSecondary,
                 size: 20,
               ),
             ],
@@ -318,9 +321,9 @@ class _ClientSummaryCard extends StatelessWidget {
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
       child: ListTile(
-        leading: const Icon(
+        leading: Icon(
           Icons.business_outlined,
-          color: AppColors.primaryLight,
+          color: context.appColors.primaryLight,
         ),
         title: Text(client['name'] as String? ?? '—'),
         subtitle: Text(
@@ -345,7 +348,7 @@ class _ErrorTile extends StatelessWidget {
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.all(16),
-      child: Text(message, style: const TextStyle(color: AppColors.error)),
+      child: Text(message, style: TextStyle(color: context.appColors.error)),
     );
   }
 }
@@ -370,7 +373,7 @@ class _OwnerAlertsSection extends ConsumerWidget {
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
         child: Text(
           friendlyError(context, err),
-          style: const TextStyle(color: AppColors.error, fontSize: 13),
+          style: TextStyle(color: context.appColors.error, fontSize: 13),
         ),
       ),
       data: (alerts) {
@@ -380,24 +383,27 @@ class _OwnerAlertsSection extends ConsumerWidget {
             child: Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: AppColors.success.withValues(alpha: 0.08),
+                color: context.appColors.success.withValues(alpha: 0.08),
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(
-                  color: AppColors.success.withValues(alpha: 0.3),
+                  color: context.appColors.success.withValues(alpha: 0.3),
                 ),
               ),
-              child: const Row(
+              child: Row(
                 children: [
                   Icon(
                     Icons.check_circle_outline,
-                    color: AppColors.success,
+                    color: context.appColors.success,
                     size: 20,
                   ),
-                  SizedBox(width: 12),
+                  const SizedBox(width: 12),
                   Expanded(
                     child: Text(
                       'No active alerts',
-                      style: TextStyle(color: AppColors.success, fontSize: 13),
+                      style: TextStyle(
+                        color: context.appColors.success,
+                        fontSize: 13,
+                      ),
                     ),
                   ),
                 ],
@@ -422,15 +428,15 @@ class _OwnerAlertTile extends StatelessWidget {
 
   const _OwnerAlertTile({required this.alert});
 
-  Color get _severityColor => switch (alert.severity) {
-    AlertSeverity.critical => AppColors.error,
-    AlertSeverity.warning => AppColors.warning,
-    _ => AppColors.primary,
+  Color _severityColor(BuildContext context) => switch (alert.severity) {
+    AlertSeverity.critical => context.appColors.error,
+    AlertSeverity.warning => context.appColors.warning,
+    _ => context.appColors.primary,
   };
 
   @override
   Widget build(BuildContext context) {
-    final color = _severityColor;
+    final color = _severityColor(context);
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
       child: InkWell(
@@ -445,7 +451,7 @@ class _OwnerAlertTile extends StatelessWidget {
         child: Container(
           padding: const EdgeInsets.all(14),
           decoration: BoxDecoration(
-            color: AppColors.surface,
+            color: context.appColors.surface,
             borderRadius: BorderRadius.circular(12),
             border: Border.all(color: color.withValues(alpha: 0.35)),
           ),
@@ -472,8 +478,8 @@ class _OwnerAlertTile extends StatelessWidget {
                     if (alert.message != null)
                       Text(
                         alert.message!,
-                        style: const TextStyle(
-                          color: AppColors.textSecondary,
+                        style: TextStyle(
+                          color: context.appColors.textSecondary,
                           fontSize: 12,
                         ),
                         maxLines: 1,
@@ -493,15 +499,15 @@ class _OwnerAlertTile extends StatelessWidget {
               if (alert.createdAt != null)
                 Text(
                   DateFormat('MMM d HH:mm').format(alert.createdAt!),
-                  style: const TextStyle(
-                    color: AppColors.textSecondary,
+                  style: TextStyle(
+                    color: context.appColors.textSecondary,
                     fontSize: 11,
                   ),
                 ),
               const SizedBox(width: 4),
-              const Icon(
+              Icon(
                 Icons.chevron_right,
-                color: AppColors.textSecondary,
+                color: context.appColors.textSecondary,
                 size: 18,
               ),
             ],

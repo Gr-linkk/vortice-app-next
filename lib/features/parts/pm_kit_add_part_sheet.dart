@@ -10,7 +10,7 @@ void showPmKitAddPartSheet(
   showModalBottomSheet(
     context: context,
     isScrollControlled: true,
-    backgroundColor: AppColors.surface,
+    backgroundColor: context.appColors.surface,
     shape: const RoundedRectangleBorder(
       borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
     ),
@@ -54,13 +54,19 @@ class _PmKitAddPartSheetState extends State<PmKitAddPartSheet> {
   Widget build(BuildContext context) {
     return Padding(
       padding: EdgeInsets.fromLTRB(
-          16, 16, 16, MediaQuery.of(context).viewInsets.bottom + 24),
+        16,
+        16,
+        16,
+        MediaQuery.of(context).viewInsets.bottom + 24,
+      ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          const Text('Add Part to Kit',
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+          const Text(
+            'Add Part to Kit',
+            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+          ),
           const SizedBox(height: 16),
           TextField(
             controller: _descCtrl,
@@ -88,8 +94,9 @@ class _PmKitAddPartSheetState extends State<PmKitAddPartSheet> {
                 flex: 3,
                 child: TextField(
                   controller: _unitCtrl,
-                  decoration:
-                      const InputDecoration(labelText: 'Unit (ea, L, kg...)'),
+                  decoration: const InputDecoration(
+                    labelText: 'Unit (ea, L, kg...)',
+                  ),
                 ),
               ),
             ],
@@ -103,11 +110,14 @@ class _PmKitAddPartSheetState extends State<PmKitAddPartSheet> {
           ElevatedButton(
             onPressed: _saving || _descCtrl.text.trim().isEmpty ? null : _save,
             child: _saving
-                ? const SizedBox(
+                ? SizedBox(
                     height: 16,
                     width: 16,
                     child: CircularProgressIndicator(
-                        strokeWidth: 2, color: Colors.white))
+                      strokeWidth: 2,
+                      color: context.appColors.onPrimary,
+                    ),
+                  )
                 : const Text('Add Part'),
           ),
         ],
@@ -121,12 +131,14 @@ class _PmKitAddPartSheetState extends State<PmKitAddPartSheet> {
       await supabase.from('pm_parts_requirements').insert({
         'template_id': widget.templateId,
         'description': _descCtrl.text.trim(),
-        'part_number':
-            _pnCtrl.text.trim().isNotEmpty ? _pnCtrl.text.trim() : null,
+        'part_number': _pnCtrl.text.trim().isNotEmpty
+            ? _pnCtrl.text.trim()
+            : null,
         'qty': double.tryParse(_qtyCtrl.text.trim()) ?? 1,
         'unit': _unitCtrl.text.trim().isNotEmpty ? _unitCtrl.text.trim() : 'ea',
-        'notes':
-            _notesCtrl.text.trim().isNotEmpty ? _notesCtrl.text.trim() : null,
+        'notes': _notesCtrl.text.trim().isNotEmpty
+            ? _notesCtrl.text.trim()
+            : null,
       });
       widget.onSaved();
       if (mounted) Navigator.pop(context);

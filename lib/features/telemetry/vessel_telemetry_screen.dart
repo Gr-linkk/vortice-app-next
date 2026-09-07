@@ -61,8 +61,10 @@ class _VesselTelemetryScreenState extends ConsumerState<VesselTelemetryScreen> {
       error: (err, _) => Scaffold(
         appBar: AppBar(title: const Text('Vessel Telemetry')),
         body: Center(
-          child: Text(friendlyError(context, err),
-              style: const TextStyle(color: AppColors.error)),
+          child: Text(
+            friendlyError(context, err),
+            style: TextStyle(color: context.appColors.error),
+          ),
         ),
       ),
       data: (asset) {

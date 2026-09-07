@@ -65,9 +65,9 @@ class _WorkOrderListScreenState extends ConsumerState<WorkOrderListScreen>
             Tab(text: l10n.statusInProgress),
             Tab(text: l10n.statusCompleted),
           ],
-          labelColor: AppColors.primary,
-          unselectedLabelColor: AppColors.textSecondary,
-          indicatorColor: AppColors.primary,
+          labelColor: context.appColors.primary,
+          unselectedLabelColor: context.appColors.textSecondary,
+          indicatorColor: context.appColors.primary,
         ),
       ),
       body: workOrdersAsync.when(
@@ -78,7 +78,7 @@ class _WorkOrderListScreenState extends ConsumerState<WorkOrderListScreen>
             children: [
               Text(
                 friendlyError(context, err),
-                style: const TextStyle(color: AppColors.error),
+                style: TextStyle(color: context.appColors.error),
               ),
               const SizedBox(height: 12),
               ElevatedButton(
@@ -140,7 +140,7 @@ class _WorkOrderListScreenState extends ConsumerState<WorkOrderListScreen>
       floatingActionButton: canCreate
           ? FloatingActionButton(
               onPressed: () => context.push('$prefix/work-orders/create'),
-              backgroundColor: AppColors.primary,
+              backgroundColor: context.appColors.primary,
               child: const Icon(Icons.add),
             )
           : null,
@@ -165,7 +165,7 @@ class _WorkOrderTab extends StatelessWidget {
       return Center(
         child: Text(
           emptyLabel,
-          style: const TextStyle(color: AppColors.textSecondary),
+          style: TextStyle(color: context.appColors.textSecondary),
         ),
       );
     }
@@ -193,18 +193,21 @@ class _WorkOrderTile extends StatelessWidget {
           width: 4,
           height: 40,
           decoration: BoxDecoration(
-            color: AppColors.primary,
+            color: context.appColors.primary,
             borderRadius: BorderRadius.circular(2),
           ),
         ),
         title: Text(order.title, style: Theme.of(context).textTheme.titleSmall),
         subtitle: Text(
           order.status.name,
-          style: const TextStyle(color: AppColors.textSecondary, fontSize: 11),
+          style: TextStyle(
+            color: context.appColors.textSecondary,
+            fontSize: 11,
+          ),
         ),
-        trailing: const Icon(
+        trailing: Icon(
           Icons.chevron_right,
-          color: AppColors.textSecondary,
+          color: context.appColors.textSecondary,
         ),
         onTap: onTap,
       ),

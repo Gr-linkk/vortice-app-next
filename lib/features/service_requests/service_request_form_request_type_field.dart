@@ -27,17 +27,23 @@ class ServiceRequestFormRequestTypeField extends StatelessWidget {
               avatar: Icon(
                 serviceRequestKindIcon(kind),
                 size: 18,
-                color: kind == value ? Colors.white : AppColors.textSecondary,
+                color: kind == value
+                    ? context.appColors.onPrimary
+                    : context.appColors.textSecondary,
               ),
               onSelected: (_) => onChanged(kind),
-              selectedColor: AppColors.primary,
-              backgroundColor: AppColors.surfaceVariant,
+              selectedColor: context.appColors.primary,
+              backgroundColor: context.appColors.surfaceVariant,
               labelStyle: TextStyle(
-                color: kind == value ? Colors.white : AppColors.textPrimary,
+                color: kind == value
+                    ? context.appColors.onPrimary
+                    : context.appColors.textPrimary,
                 fontWeight: kind == value ? FontWeight.w700 : FontWeight.w500,
               ),
               side: BorderSide(
-                color: kind == value ? AppColors.primary : AppColors.cardBorder,
+                color: kind == value
+                    ? context.appColors.primary
+                    : context.appColors.cardBorder,
               ),
             ),
           )

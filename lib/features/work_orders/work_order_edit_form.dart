@@ -163,12 +163,12 @@ class WorkOrderEditForm extends ConsumerWidget {
               ElevatedButton(
                 onPressed: isLoading ? null : onSave,
                 child: isLoading
-                    ? const SizedBox(
+                    ? SizedBox(
                         width: 16,
                         height: 16,
                         child: CircularProgressIndicator(
                           strokeWidth: 2,
-                          color: Colors.white,
+                          color: context.appColors.onPrimary,
                         ),
                       )
                     : Text(l10n.save),
@@ -242,7 +242,7 @@ class _TechnicianAssignmentField extends ConsumerWidget {
                 child: Text(
                   'No technicians assigned',
                   style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: AppColors.textSecondary,
+                    color: context.appColors.textSecondary,
                   ),
                 ),
               ),

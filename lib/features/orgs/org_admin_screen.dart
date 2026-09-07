@@ -15,14 +15,14 @@ class OrgAdminScreen extends ConsumerWidget {
     final orgAsync = ref.watch(currentUserOrgProvider);
 
     return orgAsync.when(
-      loading: () => const Scaffold(
-        body: Center(child: CircularProgressIndicator()),
-      ),
+      loading: () =>
+          const Scaffold(body: Center(child: CircularProgressIndicator())),
       error: (err, _) => Scaffold(
         appBar: AppBar(title: const Text('Organization')),
         body: Center(
-          child: Text(friendlyError(context, err),
-            style: const TextStyle(color: AppColors.error),
+          child: Text(
+            friendlyError(context, err),
+            style: TextStyle(color: context.appColors.error),
           ),
         ),
       ),
@@ -45,17 +45,24 @@ class OrgAdminScreen extends ConsumerWidget {
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    const Icon(Icons.business_outlined,
-                        size: 56, color: AppColors.textSecondary),
+                    Icon(
+                      Icons.business_outlined,
+                      size: 56,
+                      color: context.appColors.textSecondary,
+                    ),
                     const SizedBox(height: 16),
-                    const Text('No organization found.',
-                        style: TextStyle(color: AppColors.textSecondary)),
+                    Text(
+                      'No organization found.',
+                      style: TextStyle(color: context.appColors.textSecondary),
+                    ),
                     const SizedBox(height: 8),
-                    const Text(
+                    Text(
                       'Create a team workspace to invite operators/mechanics and assign vessel checklists.',
                       textAlign: TextAlign.center,
                       style: TextStyle(
-                          color: AppColors.textSecondary, fontSize: 12),
+                        color: context.appColors.textSecondary,
+                        fontSize: 12,
+                      ),
                     ),
                     const SizedBox(height: 20),
                     ElevatedButton.icon(

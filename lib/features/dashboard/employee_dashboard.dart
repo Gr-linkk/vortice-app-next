@@ -71,88 +71,6 @@ class EmployeeDashboard extends ConsumerWidget {
 
                 return Column(
                   children: [
-                    // ── My work queue ──────────────────────────────────
-                    Padding(
-                      padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Expanded(
-                            child: DashboardSection(
-                              inset: false,
-                              title: l10n.assignedToMe,
-                            ),
-                          ),
-                          if (myActive.isNotEmpty)
-                            TextButton(
-                              onPressed: () =>
-                                  context.push('/employee/work-orders'),
-                              child: Text(
-                                l10n.viewAll,
-                                style: const TextStyle(
-                                  color: AppColors.primary,
-                                  fontSize: 12,
-                                ),
-                              ),
-                            ),
-                        ],
-                      ),
-                    ),
-
-                    if (myActive.isEmpty)
-                      Padding(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 16,
-                          vertical: 24,
-                        ),
-                        child: Center(
-                          child: Column(
-                            children: [
-                              Icon(
-                                Icons.check_circle_outline,
-                                size: 48,
-                                color: AppColors.success.withValues(alpha: 0.7),
-                              ),
-                              const SizedBox(height: 10),
-                              Text(
-                                l10n.noAssignedWorkOrders,
-                                style: const TextStyle(
-                                  color: AppColors.textSecondary,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      )
-                    else
-                      ...myActive
-                          .take(5)
-                          .map(
-                            (wo) => _WorkOrderCard(
-                              workOrder: wo,
-                              onTap: () => context.push(
-                                '/employee/work-orders/${wo.id}',
-                              ),
-                            ),
-                          ),
-
-                    if (myActive.length > 5) ...[
-                      const SizedBox(height: 4),
-                      Center(
-                        child: TextButton(
-                          onPressed: () =>
-                              context.push('/employee/work-orders'),
-                          child: Text(
-                            '+${myActive.length - 5} more',
-                            style: const TextStyle(color: AppColors.primary),
-                          ),
-                        ),
-                      ),
-                    ],
-
-                    const SizedBox(height: 24),
-
-                    // ── Shop work queue ────────────────────────────────
                     Padding(
                       padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
                       child: Row(
@@ -174,8 +92,8 @@ class EmployeeDashboard extends ConsumerWidget {
                                   context.push('/employee/work-orders'),
                               child: Text(
                                 l10n.viewAll,
-                                style: const TextStyle(
-                                  color: AppColors.primary,
+                                style: TextStyle(
+                                  color: context.appColors.primary,
                                   fontSize: 12,
                                 ),
                               ),
@@ -185,14 +103,16 @@ class EmployeeDashboard extends ConsumerWidget {
                     ),
 
                     if (shopQueue.isEmpty)
-                      const Padding(
-                        padding: EdgeInsets.symmetric(
+                      Padding(
+                        padding: const EdgeInsets.symmetric(
                           horizontal: 16,
                           vertical: 16,
                         ),
                         child: Text(
                           'No other active work orders.',
-                          style: TextStyle(color: AppColors.textSecondary),
+                          style: TextStyle(
+                            color: context.appColors.textSecondary,
+                          ),
                         ),
                       )
                     else
@@ -215,7 +135,7 @@ class EmployeeDashboard extends ConsumerWidget {
                               context.push('/employee/work-orders'),
                           child: Text(
                             '+${shopQueue.length - 5} more',
-                            style: const TextStyle(color: AppColors.primary),
+                            style: TextStyle(color: context.appColors.primary),
                           ),
                         ),
                       ),
@@ -229,25 +149,29 @@ class EmployeeDashboard extends ConsumerWidget {
                         child: Container(
                           padding: const EdgeInsets.all(12),
                           decoration: BoxDecoration(
-                            color: AppColors.warning.withValues(alpha: 0.08),
+                            color: context.appColors.warning.withValues(
+                              alpha: 0.08,
+                            ),
                             borderRadius: BorderRadius.circular(10),
                             border: Border.all(
-                              color: AppColors.warning.withValues(alpha: 0.3),
+                              color: context.appColors.warning.withValues(
+                                alpha: 0.3,
+                              ),
                             ),
                           ),
                           child: Row(
                             children: [
-                              const Icon(
+                              Icon(
                                 Icons.info_outline,
-                                color: AppColors.warning,
+                                color: context.appColors.warning,
                                 size: 18,
                               ),
                               const SizedBox(width: 10),
                               Expanded(
                                 child: Text(
                                   '$myDraft draft work order${myDraft > 1 ? 's' : ''} waiting to be started.',
-                                  style: const TextStyle(
-                                    color: AppColors.warning,
+                                  style: TextStyle(
+                                    color: context.appColors.warning,
                                     fontSize: 13,
                                   ),
                                 ),
@@ -290,12 +214,12 @@ class _WorkOrderCard extends StatelessWidget {
 
   const _WorkOrderCard({required this.workOrder, required this.onTap});
 
-  Color _statusColor() => switch (workOrder.status) {
-    WorkOrderStatus.inProgress => AppColors.primary,
-    WorkOrderStatus.assigned => AppColors.warning,
-    WorkOrderStatus.draft => AppColors.textSecondary,
-    WorkOrderStatus.onHold => AppColors.error,
-    _ => AppColors.textSecondary,
+  Color _statusColor(BuildContext context) => switch (workOrder.status) {
+    WorkOrderStatus.inProgress => context.appColors.primary,
+    WorkOrderStatus.assigned => context.appColors.warning,
+    WorkOrderStatus.draft => context.appColors.textSecondary,
+    WorkOrderStatus.onHold => context.appColors.error,
+    _ => context.appColors.textSecondary,
   };
 
   String _statusLabel() => switch (workOrder.status) {
@@ -309,7 +233,7 @@ class _WorkOrderCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = _statusColor();
+    final color = _statusColor(context);
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
@@ -319,9 +243,9 @@ class _WorkOrderCard extends StatelessWidget {
         child: Container(
           padding: const EdgeInsets.all(14),
           decoration: BoxDecoration(
-            color: AppColors.surface,
+            color: context.appColors.surface,
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: AppColors.cardBorder),
+            border: Border.all(color: context.appColors.cardBorder),
           ),
           child: Row(
             children: [
@@ -377,8 +301,8 @@ class _WorkOrderCard extends StatelessWidget {
                         workOrder.description!,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          color: AppColors.textSecondary,
+                        style: TextStyle(
+                          color: context.appColors.textSecondary,
                           fontSize: 12,
                         ),
                       ),
@@ -387,18 +311,18 @@ class _WorkOrderCard extends StatelessWidget {
                       const SizedBox(height: 4),
                       Row(
                         children: [
-                          const Icon(
+                          Icon(
                             Icons.calendar_today_outlined,
                             size: 11,
-                            color: AppColors.textSecondary,
+                            color: context.appColors.textSecondary,
                           ),
                           const SizedBox(width: 4),
                           Text(
                             DateFormat(
                               'MMM d',
                             ).format(workOrder.scheduledDate!),
-                            style: const TextStyle(
-                              color: AppColors.textSecondary,
+                            style: TextStyle(
+                              color: context.appColors.textSecondary,
                               fontSize: 11,
                             ),
                           ),
@@ -409,9 +333,9 @@ class _WorkOrderCard extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: 8),
-              const Icon(
+              Icon(
                 Icons.chevron_right,
-                color: AppColors.textSecondary,
+                color: context.appColors.textSecondary,
                 size: 20,
               ),
             ],

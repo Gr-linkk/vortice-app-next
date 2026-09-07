@@ -15,25 +15,32 @@ class ServiceIntervalAssetHeader extends StatelessWidget {
       margin: const EdgeInsets.fromLTRB(16, 16, 16, 8),
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: context.appColors.surface,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.cardBorder),
+        border: Border.all(color: context.appColors.cardBorder),
       ),
       child: Row(
         children: [
-          const Icon(Icons.directions_boat_outlined, color: AppColors.primary),
+          Icon(
+            Icons.directions_boat_outlined,
+            color: context.appColors.primary,
+          ),
           const SizedBox(width: 10),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(asset!.name,
-                    style: Theme.of(context).textTheme.titleSmall),
+                Text(
+                  asset!.name,
+                  style: Theme.of(context).textTheme.titleSmall,
+                ),
                 if (asset!.make != null || asset!.model != null)
                   Text(
                     [asset!.make, asset!.model].whereType<String>().join(' '),
-                    style: const TextStyle(
-                        color: AppColors.textSecondary, fontSize: 12),
+                    style: TextStyle(
+                      color: context.appColors.textSecondary,
+                      fontSize: 12,
+                    ),
                   ),
               ],
             ),

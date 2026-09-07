@@ -21,12 +21,12 @@ class WorkOrderDetailInfoRow extends StatelessWidget {
       padding: const EdgeInsets.symmetric(vertical: 4),
       child: Row(
         children: [
-          Icon(icon, size: 16, color: color ?? AppColors.textSecondary),
+          Icon(icon, size: 16, color: color ?? context.appColors.textSecondary),
           const SizedBox(width: 8),
           Text(
             '$label: ',
-            style: const TextStyle(
-              color: AppColors.textSecondary,
+            style: TextStyle(
+              color: context.appColors.textSecondary,
               fontSize: 13,
             ),
           ),
@@ -34,7 +34,7 @@ class WorkOrderDetailInfoRow extends StatelessWidget {
             child: Text(
               value,
               style: TextStyle(
-                color: color ?? AppColors.textPrimary,
+                color: color ?? context.appColors.textPrimary,
                 fontSize: 13,
               ),
             ),

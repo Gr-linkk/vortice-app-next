@@ -85,7 +85,7 @@ class _FaultActionSheetState extends ConsumerState<FaultActionSheet> {
                   const SizedBox(height: 8),
                   Text(
                     widget.fault.assetName,
-                    style: const TextStyle(color: AppColors.textSecondary),
+                    style: TextStyle(color: context.appColors.textSecondary),
                   ),
                   if (widget.action == FaultAction.assign) ...[
                     const SizedBox(height: 16),
@@ -176,7 +176,7 @@ class _FaultActionSheetState extends ConsumerState<FaultActionSheet> {
                       padding: const EdgeInsets.only(bottom: 12),
                       child: Text(
                         fleetErrorMessage(_error!, es),
-                        style: const TextStyle(color: AppColors.warning),
+                        style: TextStyle(color: context.appColors.warning),
                       ),
                     ),
                   FilledButton(

@@ -19,9 +19,12 @@ class ClientOrgSection extends ConsumerWidget {
       return Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
+          Text(
             'Organization',
-            style: TextStyle(color: AppColors.textSecondary, fontSize: 13),
+            style: TextStyle(
+              color: context.appColors.textSecondary,
+              fontSize: 13,
+            ),
           ),
           const SizedBox(height: 6),
           orgAsync.when(
@@ -30,29 +33,38 @@ class ClientOrgSection extends ConsumerWidget {
               width: 20,
               child: CircularProgressIndicator(strokeWidth: 2),
             ),
-            error: (_, __) => const Text('Could not load org',
-                style: TextStyle(color: AppColors.error, fontSize: 13)),
+            error: (_, __) => Text(
+              'Could not load org',
+              style: TextStyle(color: context.appColors.error, fontSize: 13),
+            ),
             data: (org) => Row(
               children: [
                 Expanded(
                   child: Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 8,
+                    ),
                     decoration: BoxDecoration(
-                      color: AppColors.surfaceVariant,
+                      color: context.appColors.surfaceVariant,
                       borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: AppColors.cardBorder),
+                      border: Border.all(color: context.appColors.cardBorder),
                     ),
                     child: Row(
                       children: [
-                        const Icon(Icons.business_outlined,
-                            size: 16, color: AppColors.primary),
+                        Icon(
+                          Icons.business_outlined,
+                          size: 16,
+                          color: context.appColors.primary,
+                        ),
                         const SizedBox(width: 8),
                         Expanded(
                           child: Text(
                             org?.name ?? 'Unknown',
-                            style: const TextStyle(
-                                color: AppColors.textPrimary, fontSize: 13),
+                            style: TextStyle(
+                              color: context.appColors.textPrimary,
+                              fontSize: 13,
+                            ),
                           ),
                         ),
                       ],
@@ -60,11 +72,18 @@ class ClientOrgSection extends ConsumerWidget {
                   ),
                 ),
                 IconButton(
-                  icon: const Icon(Icons.edit_outlined,
-                      size: 18, color: AppColors.textSecondary),
+                  icon: Icon(
+                    Icons.edit_outlined,
+                    size: 18,
+                    color: context.appColors.textSecondary,
+                  ),
                   tooltip: 'Rename',
                   onPressed: () => _showRenameOrgDialog(
-                      context, ref, orgId, org?.name ?? ''),
+                    context,
+                    ref,
+                    orgId,
+                    org?.name ?? '',
+                  ),
                 ),
               ],
             ),
@@ -76,9 +95,12 @@ class ClientOrgSection extends ConsumerWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
+        Text(
           'Organization',
-          style: TextStyle(color: AppColors.textSecondary, fontSize: 13),
+          style: TextStyle(
+            color: context.appColors.textSecondary,
+            fontSize: 13,
+          ),
         ),
         const SizedBox(height: 6),
         OutlinedButton.icon(
@@ -86,8 +108,8 @@ class ClientOrgSection extends ConsumerWidget {
           icon: const Icon(Icons.add, size: 16),
           label: const Text('Create Organization'),
           style: OutlinedButton.styleFrom(
-            foregroundColor: AppColors.primary,
-            side: const BorderSide(color: AppColors.primary),
+            foregroundColor: context.appColors.primary,
+            side: BorderSide(color: context.appColors.primary),
           ),
         ),
       ],
@@ -95,7 +117,11 @@ class ClientOrgSection extends ConsumerWidget {
   }
 
   void _showRenameOrgDialog(
-      BuildContext context, WidgetRef ref, String orgId, String currentName) {
+    BuildContext context,
+    WidgetRef ref,
+    String orgId,
+    String currentName,
+  ) {
     final nameCtrl = TextEditingController(text: currentName);
     showDialog(
       context: context,
@@ -161,10 +187,7 @@ class ClientOrgSection extends ConsumerWidget {
                 if (context.mounted) {
                   Navigator.pop(context);
                   ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text('Organization "$name" created'),
-                      backgroundColor: AppColors.success,
-                    ),
+                    SnackBar(content: Text('Organization "$name" created')),
                   );
                 }
               }

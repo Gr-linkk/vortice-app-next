@@ -58,21 +58,23 @@ class FaultDetailScreen extends ConsumerWidget {
                     padding: const EdgeInsets.symmetric(vertical: 8),
                     child: Row(
                       children: [
-                        const Icon(
+                        Icon(
                           Icons.precision_manufacturing_outlined,
-                          color: AppColors.primaryLight,
+                          color: context.appColors.primaryLight,
                         ),
                         const SizedBox(width: 10),
                         Expanded(
                           child: Text(
                             fault.assetName,
                             style: Theme.of(context).textTheme.titleMedium
-                                ?.copyWith(color: AppColors.primaryLight),
+                                ?.copyWith(
+                                  color: context.appColors.primaryLight,
+                                ),
                           ),
                         ),
-                        const Icon(
+                        Icon(
                           Icons.chevron_right,
-                          color: AppColors.primaryLight,
+                          color: context.appColors.primaryLight,
                         ),
                       ],
                     ),
@@ -92,7 +94,7 @@ class FaultDetailScreen extends ConsumerWidget {
                     if (fault.urgent)
                       FleetBadge(
                         label: es ? 'Urgente' : 'Urgent',
-                        color: AppColors.error,
+                        color: context.appColors.error,
                         icon: Icons.priority_high,
                       ),
                   ],
@@ -179,7 +181,10 @@ class _Info extends StatelessWidget {
       children: [
         Text(
           label,
-          style: const TextStyle(color: AppColors.textSecondary, fontSize: 12),
+          style: TextStyle(
+            color: context.appColors.textSecondary,
+            fontSize: 12,
+          ),
         ),
         const SizedBox(height: 3),
         Text(value),

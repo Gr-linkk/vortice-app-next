@@ -34,11 +34,11 @@ class ServiceReportDetailScreen extends ConsumerWidget {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
     if (!ServiceReportWorkflow.canViewReport(role)) {
-      return const Scaffold(
+      return Scaffold(
         body: Center(
           child: Text(
             'Service reports are not available for this role.',
-            style: TextStyle(color: AppColors.textSecondary),
+            style: TextStyle(color: context.appColors.textSecondary),
           ),
         ),
       );
@@ -86,14 +86,17 @@ class _ReportBody extends StatelessWidget {
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              gradient: const LinearGradient(
-                colors: [Color(0xFF1A2C45), Color(0xFF0F1722)],
+              gradient: LinearGradient(
+                colors: [
+                  context.appColors.surfaceVariant,
+                  context.appColors.surface,
+                ],
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
               ),
               borderRadius: BorderRadius.circular(14),
-              border: const Border.fromBorderSide(
-                BorderSide(color: AppColors.cardBorder),
+              border: Border.fromBorderSide(
+                BorderSide(color: context.appColors.cardBorder),
               ),
             ),
             child: Column(
@@ -101,16 +104,16 @@ class _ReportBody extends StatelessWidget {
               children: [
                 Row(
                   children: [
-                    const Icon(
+                    Icon(
                       Icons.description_outlined,
-                      color: AppColors.primary,
+                      color: context.appColors.primary,
                       size: 20,
                     ),
                     const SizedBox(width: 8),
-                    const Text(
+                    Text(
                       'SERVICE REPORT',
                       style: TextStyle(
-                        color: AppColors.primary,
+                        color: context.appColors.primary,
                         fontSize: 11,
                         fontWeight: FontWeight.bold,
                         letterSpacing: 1.2,
@@ -118,18 +121,18 @@ class _ReportBody extends StatelessWidget {
                     ),
                     const Spacer(),
                     if (report.techSignatureUrl != null)
-                      const Row(
+                      Row(
                         children: [
                           Icon(
                             Icons.draw_outlined,
                             size: 13,
-                            color: AppColors.success,
+                            color: context.appColors.success,
                           ),
-                          SizedBox(width: 4),
+                          const SizedBox(width: 4),
                           Text(
                             'Signed',
                             style: TextStyle(
-                              color: AppColors.success,
+                              color: context.appColors.success,
                               fontSize: 12,
                               fontWeight: FontWeight.w600,
                             ),
@@ -141,8 +144,8 @@ class _ReportBody extends StatelessWidget {
                 const SizedBox(height: 12),
                 Text(
                   'WO: ${report.workOrderId.substring(0, 8).toUpperCase()}',
-                  style: const TextStyle(
-                    color: AppColors.textPrimary,
+                  style: TextStyle(
+                    color: context.appColors.textPrimary,
                     fontSize: 16,
                     fontWeight: FontWeight.bold,
                   ),
@@ -150,16 +153,16 @@ class _ReportBody extends StatelessWidget {
                 const SizedBox(height: 4),
                 Row(
                   children: [
-                    const Icon(
+                    Icon(
                       Icons.calendar_today_outlined,
                       size: 12,
-                      color: AppColors.textSecondary,
+                      color: context.appColors.textSecondary,
                     ),
                     const SizedBox(width: 4),
                     Text(
                       date,
-                      style: const TextStyle(
-                        color: AppColors.textSecondary,
+                      style: TextStyle(
+                        color: context.appColors.textSecondary,
                         fontSize: 12,
                       ),
                     ),
@@ -174,35 +177,35 @@ class _ReportBody extends StatelessWidget {
               number: '1',
               label: l10n.srComplaint,
               content: report.complaint!,
-              color: AppColors.error,
+              color: context.appColors.error,
             ),
           if (report.cause != null)
             _Section(
               number: '2',
               label: l10n.srCause,
               content: report.cause!,
-              color: AppColors.warning,
+              color: context.appColors.warning,
             ),
           if (report.correction != null)
             _Section(
               number: '3',
               label: l10n.srCorrection,
               content: report.correction!,
-              color: AppColors.success,
+              color: context.appColors.success,
             ),
           if (report.collateral != null)
             _Section(
               number: '4',
               label: l10n.srSecondaryDamage,
               content: report.collateral!,
-              color: AppColors.primary,
+              color: context.appColors.primary,
             ),
           if (report.comments != null)
             _Section(
               number: '5',
               label: l10n.srComments,
               content: report.comments!,
-              color: AppColors.textSecondary,
+              color: context.appColors.textSecondary,
             ),
           if (report.techSignatureUrl != null) ...[
             const SizedBox(height: 8),
@@ -211,9 +214,9 @@ class _ReportBody extends StatelessWidget {
             Container(
               height: 120,
               decoration: BoxDecoration(
-                color: AppColors.surfaceVariant,
+                color: context.appColors.surfaceVariant,
                 borderRadius: BorderRadius.circular(10),
-                border: Border.all(color: AppColors.divider),
+                border: Border.all(color: context.appColors.divider),
               ),
               clipBehavior: Clip.hardEdge,
               child: ServiceReportImage(
@@ -226,8 +229,8 @@ class _ReportBody extends StatelessWidget {
               const SizedBox(height: 6),
               Text(
                 'Signed ${DateFormat('MMM d, yyyy · h:mm a').format(report.signedAt!.toLocal())}',
-                style: const TextStyle(
-                  color: AppColors.textSecondary,
+                style: TextStyle(
+                  color: context.appColors.textSecondary,
                   fontSize: 11,
                 ),
               ),
@@ -244,7 +247,7 @@ class _ReportBody extends StatelessWidget {
     return Text(
       title.toUpperCase(),
       style: Theme.of(context).textTheme.labelSmall?.copyWith(
-        color: AppColors.primary,
+        color: context.appColors.primary,
         letterSpacing: 1.2,
       ),
     );
@@ -272,7 +275,7 @@ class _ServiceReportPhotosSection extends ConsumerWidget {
             Text(
               'PHOTOS',
               style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                color: AppColors.primary,
+                color: context.appColors.primary,
                 letterSpacing: 1.2,
               ),
             ),
@@ -324,9 +327,9 @@ class _Section extends StatelessWidget {
       padding: const EdgeInsets.only(bottom: 12),
       child: Container(
         decoration: BoxDecoration(
-          color: AppColors.surface,
+          color: context.appColors.surface,
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: AppColors.cardBorder),
+          border: Border.all(color: context.appColors.cardBorder),
         ),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -370,8 +373,8 @@ class _Section extends StatelessWidget {
                     const SizedBox(height: 6),
                     Text(
                       content,
-                      style: const TextStyle(
-                        color: AppColors.textPrimary,
+                      style: TextStyle(
+                        color: context.appColors.textPrimary,
                         fontSize: 14,
                         height: 1.4,
                       ),

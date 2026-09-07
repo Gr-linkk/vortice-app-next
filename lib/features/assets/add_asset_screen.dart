@@ -61,7 +61,6 @@ class _AddAssetScreenState extends ConsumerState<AddAssetScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Please select the client this asset belongs to.'),
-          backgroundColor: AppColors.error,
         ),
       );
       return;
@@ -127,12 +126,9 @@ class _AddAssetScreenState extends ConsumerState<AddAssetScreen> {
     if (success && mounted) context.pop();
     if (!success && mounted) {
       final err = ref.read(assetControllerProvider).error;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(friendlyError(context, err)),
-          backgroundColor: AppColors.error,
-        ),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(friendlyError(context, err))));
     }
   }
 
@@ -163,7 +159,7 @@ class _AddAssetScreenState extends ConsumerState<AddAssetScreen> {
                     labelText: l10n.assetType,
                     prefixIcon: const Icon(Icons.category_outlined),
                   ),
-                  dropdownColor: AppColors.surfaceVariant,
+                  dropdownColor: context.appColors.surfaceVariant,
                   items: types
                       .map(
                         (t) =>
@@ -263,15 +259,15 @@ class _AddAssetScreenState extends ConsumerState<AddAssetScreen> {
               Text(
                 l10n.enginesTitle.toUpperCase(),
                 style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                  color: AppColors.primary,
+                  color: context.appColors.primary,
                   letterSpacing: 1.2,
                 ),
               ),
               const SizedBox(height: 4),
               Text(
                 l10n.addEngineHint,
-                style: const TextStyle(
-                  color: AppColors.textSecondary,
+                style: TextStyle(
+                  color: context.appColors.textSecondary,
                   fontSize: 12,
                 ),
               ),
@@ -282,7 +278,7 @@ class _AddAssetScreenState extends ConsumerState<AddAssetScreen> {
                   labelText: 'Title',
                   prefixIcon: Icon(Icons.engineering),
                 ),
-                dropdownColor: AppColors.surfaceVariant,
+                dropdownColor: context.appColors.surfaceVariant,
                 items: kEngineKindOptions
                     .map(
                       (option) => DropdownMenuItem(
@@ -325,11 +321,11 @@ class _AddAssetScreenState extends ConsumerState<AddAssetScreen> {
                     ),
                   ),
                   const SizedBox(width: 12),
-                  const Expanded(
+                  Expanded(
                     child: Text(
                       'Hours will come from the latest work order.',
                       style: TextStyle(
-                        color: AppColors.textSecondary,
+                        color: context.appColors.textSecondary,
                         fontSize: 12,
                       ),
                     ),
@@ -340,12 +336,12 @@ class _AddAssetScreenState extends ConsumerState<AddAssetScreen> {
               ElevatedButton(
                 onPressed: isLoading ? null : _submit,
                 child: isLoading
-                    ? const SizedBox(
+                    ? SizedBox(
                         width: 20,
                         height: 20,
                         child: CircularProgressIndicator(
                           strokeWidth: 2,
-                          color: Colors.white,
+                          color: context.appColors.onPrimary,
                         ),
                       )
                     : Text(l10n.saveAsset),
@@ -382,7 +378,7 @@ class _ClientDropdown extends ConsumerWidget {
           labelText: 'Client',
           prefixIcon: Icon(Icons.person_outline),
         ),
-        dropdownColor: AppColors.surfaceVariant,
+        dropdownColor: context.appColors.surfaceVariant,
         hint: const Text('Select Client'),
         validator: (value) => value == null ? 'Please select a client' : null,
         items: clients

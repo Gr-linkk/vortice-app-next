@@ -25,15 +25,18 @@ class WorkOrderPmKitSection extends ConsumerWidget {
               padding: const EdgeInsets.symmetric(horizontal: 16),
               child: Row(
                 children: [
-                  const Icon(Icons.inventory_2_outlined,
-                      size: 16, color: AppColors.primary),
+                  Icon(
+                    Icons.inventory_2_outlined,
+                    size: 16,
+                    color: context.appColors.primary,
+                  ),
                   const SizedBox(width: 6),
                   Text(
                     'PM PARTS KIT',
                     style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                          color: AppColors.primary,
-                          letterSpacing: 1.2,
-                        ),
+                      color: context.appColors.primary,
+                      letterSpacing: 1.2,
+                    ),
                   ),
                   const Spacer(),
                   TextButton(
@@ -51,41 +54,54 @@ class WorkOrderPmKitSection extends ConsumerWidget {
                 ],
               ),
             ),
-            ...parts.take(5).map((part) => Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 4, 16, 4),
-                  child: Row(
-                    children: [
-                      const Icon(Icons.circle,
-                          size: 5, color: AppColors.textSecondary),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Text(
-                          part.description,
-                          style: const TextStyle(fontSize: 13),
+            ...parts
+                .take(5)
+                .map(
+                  (part) => Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 4, 16, 4),
+                    child: Row(
+                      children: [
+                        Icon(
+                          Icons.circle,
+                          size: 5,
+                          color: context.appColors.textSecondary,
                         ),
-                      ),
-                      if (part.partNumber != null)
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            part.description,
+                            style: const TextStyle(fontSize: 13),
+                          ),
+                        ),
+                        if (part.partNumber != null)
+                          Text(
+                            part.partNumber!,
+                            style: TextStyle(
+                              color: context.appColors.textSecondary,
+                              fontSize: 11,
+                            ),
+                          ),
+                        const SizedBox(width: 8),
                         Text(
-                          part.partNumber!,
+                          '${part.qty} ${part.unit ?? 'ea'}',
                           style: const TextStyle(
-                              color: AppColors.textSecondary, fontSize: 11),
+                            fontWeight: FontWeight.w600,
+                            fontSize: 12,
+                          ),
                         ),
-                      const SizedBox(width: 8),
-                      Text(
-                        '${part.qty} ${part.unit ?? 'ea'}',
-                        style: const TextStyle(
-                            fontWeight: FontWeight.w600, fontSize: 12),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
-                )),
+                ),
             if (parts.length > 5)
               Padding(
                 padding: const EdgeInsets.fromLTRB(16, 4, 16, 0),
                 child: Text(
                   '+${parts.length - 5} more — tap View all',
-                  style: const TextStyle(
-                      color: AppColors.textSecondary, fontSize: 12),
+                  style: TextStyle(
+                    color: context.appColors.textSecondary,
+                    fontSize: 12,
+                  ),
                 ),
               ),
           ],

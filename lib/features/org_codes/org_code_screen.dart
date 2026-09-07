@@ -24,7 +24,11 @@ class OrgCodeScreen extends ConsumerWidget {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Icon(Icons.error_outline, color: AppColors.error, size: 48),
+              Icon(
+                Icons.error_outline,
+                color: context.appColors.error,
+                size: 48,
+              ),
               const SizedBox(height: 12),
               Text(friendlyError(context, err)),
               const SizedBox(height: 12),
@@ -40,7 +44,7 @@ class OrgCodeScreen extends ConsumerWidget {
             return Center(
               child: Text(
                 l10n.noOrgCodes,
-                style: const TextStyle(color: AppColors.textSecondary),
+                style: TextStyle(color: context.appColors.textSecondary),
               ),
             );
           }
@@ -59,7 +63,7 @@ class OrgCodeScreen extends ConsumerWidget {
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () => _showCreateSheet(context, ref, l10n),
-        backgroundColor: AppColors.primary,
+        backgroundColor: context.appColors.primary,
         child: const Icon(Icons.add),
       ),
     );
@@ -74,7 +78,7 @@ class OrgCodeScreen extends ConsumerWidget {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        backgroundColor: AppColors.surface,
+        backgroundColor: context.appColors.surface,
         title: Text(l10n.confirmDelete),
         content: Text(l10n.confirmDeleteMessage),
         actions: [
@@ -83,7 +87,7 @@ class OrgCodeScreen extends ConsumerWidget {
             onPressed: () => ctx.pop(true),
             child: Text(
               l10n.delete,
-              style: const TextStyle(color: AppColors.error),
+              style: TextStyle(color: context.appColors.error),
             ),
           ),
         ],
@@ -102,7 +106,7 @@ class OrgCodeScreen extends ConsumerWidget {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      backgroundColor: AppColors.surface,
+      backgroundColor: context.appColors.surface,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
       ),
@@ -111,12 +115,12 @@ class OrgCodeScreen extends ConsumerWidget {
   }
 }
 
-Color _roleColor(String role) => switch (role) {
-  'owner' => AppColors.success,
-  'employee' => AppColors.primary,
-  'client' => const Color(0xFF9C27B0),
-  'operator' => AppColors.warning,
-  _ => AppColors.textSecondary,
+Color _roleColor(BuildContext context, String role) => switch (role) {
+  'owner' => context.appColors.success,
+  'employee' => context.appColors.primary,
+  'client' => context.appColors.primaryLight,
+  'operator' => context.appColors.warning,
+  _ => context.appColors.textSecondary,
 };
 
 class _OrgCodeTile extends StatelessWidget {
@@ -128,7 +132,7 @@ class _OrgCodeTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isInactive = code.isExpired || code.isFullyUsed;
-    final roleColor = _roleColor(code.intendedRole);
+    final roleColor = _roleColor(context, code.intendedRole);
 
     return Dismissible(
       key: ValueKey(code.id),
@@ -136,8 +140,8 @@ class _OrgCodeTile extends StatelessWidget {
       background: Container(
         alignment: Alignment.centerRight,
         padding: const EdgeInsets.only(right: 20),
-        color: AppColors.error,
-        child: const Icon(Icons.delete, color: Colors.white),
+        color: context.appColors.error,
+        child: Icon(Icons.delete, color: Theme.of(context).colorScheme.onError),
       ),
       confirmDismiss: (_) async {
         onDelete();
@@ -191,8 +195,8 @@ class _OrgCodeTile extends StatelessWidget {
               children: [
                 Text(
                   '${code.useCount}/${code.maxUses} uses',
-                  style: const TextStyle(
-                    color: AppColors.textSecondary,
+                  style: TextStyle(
+                    color: context.appColors.textSecondary,
                     fontSize: 11,
                   ),
                 ),
@@ -203,16 +207,16 @@ class _OrgCodeTile extends StatelessWidget {
                         : 'Expires ${DateFormat.yMMMd().format(code.expiresAt!)}',
                     style: TextStyle(
                       color: code.isExpired
-                          ? AppColors.error
-                          : AppColors.textSecondary,
+                          ? context.appColors.error
+                          : context.appColors.textSecondary,
                       fontSize: 11,
                     ),
                   ),
                 if (code.notes != null && code.notes!.isNotEmpty)
                   Text(
                     code.notes!,
-                    style: const TextStyle(
-                      color: AppColors.textSecondary,
+                    style: TextStyle(
+                      color: context.appColors.textSecondary,
                       fontSize: 11,
                     ),
                   ),
@@ -309,7 +313,7 @@ class _OrgCodeFormState extends ConsumerState<_OrgCodeForm> {
                   width: 40,
                   height: 4,
                   decoration: BoxDecoration(
-                    color: AppColors.textSecondary,
+                    color: context.appColors.textSecondary,
                     borderRadius: BorderRadius.circular(2),
                   ),
                 ),
@@ -342,7 +346,7 @@ class _OrgCodeFormState extends ConsumerState<_OrgCodeForm> {
               AppDropdownField<String>(
                 initialValue: _role,
                 decoration: InputDecoration(labelText: l10n.intendedRole),
-                dropdownColor: AppColors.surfaceVariant,
+                dropdownColor: context.appColors.surfaceVariant,
                 items: const [
                   DropdownMenuItem(value: 'owner', child: Text('Owner')),
                   DropdownMenuItem(value: 'employee', child: Text('Employee')),
@@ -366,7 +370,7 @@ class _OrgCodeFormState extends ConsumerState<_OrgCodeForm> {
                   style: const TextStyle(fontSize: 14),
                 ),
                 contentPadding: EdgeInsets.zero,
-                activeThumbColor: AppColors.primary,
+                activeThumbColor: context.appColors.primary,
               ),
               ListTile(
                 contentPadding: EdgeInsets.zero,
@@ -377,13 +381,13 @@ class _OrgCodeFormState extends ConsumerState<_OrgCodeForm> {
                   style: TextStyle(
                     fontSize: 14,
                     color: _expiresAt != null
-                        ? AppColors.textPrimary
-                        : AppColors.textSecondary,
+                        ? context.appColors.textPrimary
+                        : context.appColors.textSecondary,
                   ),
                 ),
-                trailing: const Icon(
+                trailing: Icon(
                   Icons.calendar_today,
-                  color: AppColors.textSecondary,
+                  color: context.appColors.textSecondary,
                   size: 20,
                 ),
                 onTap: _pickDate,

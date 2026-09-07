@@ -3,7 +3,6 @@ import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:vortice_app/core/theme.dart';
 import 'package:vortice_app/core/app_navigation.dart';
 import 'package:vortice_app/features/auth/auth_provider.dart';
 import 'package:vortice_app/features/service_reports/service_report_provider.dart';
@@ -65,12 +64,9 @@ class ServiceReportSubmitHandler {
       input.selectedWorkOrderId,
     );
     if (missingWorkOrderMessage != null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(missingWorkOrderMessage),
-          backgroundColor: AppColors.warning,
-        ),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(missingWorkOrderMessage)));
       return null;
     }
 
@@ -86,10 +82,7 @@ class ServiceReportSubmitHandler {
       } catch (_) {
         if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text(serviceReportSignatureFailedMessage),
-              backgroundColor: AppColors.error,
-            ),
+            const SnackBar(content: Text(serviceReportSignatureFailedMessage)),
           );
         }
         return null;
@@ -115,10 +108,7 @@ class ServiceReportSubmitHandler {
       } catch (_) {
         if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text(serviceReportSubmitFailedMessage),
-              backgroundColor: AppColors.error,
-            ),
+            const SnackBar(content: Text(serviceReportSubmitFailedMessage)),
           );
         }
         return null;
@@ -129,10 +119,7 @@ class ServiceReportSubmitHandler {
     if (selectedWorkOrderId == null) {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(AppLocalizations.of(context).selectWorkOrder),
-            backgroundColor: AppColors.error,
-          ),
+          SnackBar(content: Text(AppLocalizations.of(context).selectWorkOrder)),
         );
       }
       return null;
@@ -197,11 +184,6 @@ class ServiceReportSubmitHandler {
                       : 'Saved on this device. Sync pending.')
                 : AppLocalizations.of(context).reportSubmitted,
           ),
-          backgroundColor:
-              outcome.showPhotosPendingWarning ||
-                  outcome.showReportPendingWarning
-              ? AppColors.warning
-              : AppColors.success,
         ),
       );
       if (outcome.shouldResetForm) {
@@ -229,10 +211,7 @@ class ServiceReportSubmitHandler {
 
     if (context.mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(serviceReportSubmitFailedMessage),
-          backgroundColor: AppColors.error,
-        ),
+        const SnackBar(content: Text(serviceReportSubmitFailedMessage)),
       );
     }
     return null;

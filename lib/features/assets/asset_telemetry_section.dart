@@ -51,17 +51,18 @@ class AssetTelemCard extends ConsumerWidget {
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: context.appColors.surface,
         borderRadius: BorderRadius.circular(12),
-        border: const Border.fromBorderSide(
-            BorderSide(color: AppColors.cardBorder)),
+        border: Border.fromBorderSide(
+          BorderSide(color: context.appColors.cardBorder),
+        ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              const Icon(Icons.speed, color: AppColors.primary, size: 18),
+              Icon(Icons.speed, color: context.appColors.primary, size: 18),
               const SizedBox(width: 8),
               Expanded(
                 child: Text(
@@ -71,26 +72,33 @@ class AssetTelemCard extends ConsumerWidget {
               ),
               if (alertCount > 0)
                 Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 3,
+                  ),
                   decoration: BoxDecoration(
-                    color: AppColors.warning.withValues(alpha: 0.2),
+                    color: context.appColors.warning.withValues(alpha: 0.2),
                     borderRadius: BorderRadius.circular(10),
                     border: Border.all(
-                        color: AppColors.warning.withValues(alpha: 0.5)),
+                      color: context.appColors.warning.withValues(alpha: 0.5),
+                    ),
                   ),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      const Icon(Icons.warning_amber,
-                          color: AppColors.warning, size: 12),
+                      Icon(
+                        Icons.warning_amber,
+                        color: context.appColors.warning,
+                        size: 12,
+                      ),
                       const SizedBox(width: 4),
                       Text(
                         '$alertCount',
-                        style: const TextStyle(
-                            color: AppColors.warning,
-                            fontSize: 11,
-                            fontWeight: FontWeight.bold),
+                        style: TextStyle(
+                          color: context.appColors.warning,
+                          fontSize: 11,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
                     ],
                   ),
@@ -98,7 +106,7 @@ class AssetTelemCard extends ConsumerWidget {
               const SizedBox(width: 8),
               IconButton(
                 icon: const Icon(Icons.refresh, size: 18),
-                color: AppColors.textSecondary,
+                color: context.appColors.textSecondary,
                 padding: EdgeInsets.zero,
                 constraints: const BoxConstraints(),
                 onPressed: () =>
@@ -110,14 +118,22 @@ class AssetTelemCard extends ConsumerWidget {
           const SizedBox(height: 12),
           readingAsync.when(
             loading: () => const LinearProgressIndicator(),
-            error: (_, __) => Text(l10n.noTelemetry,
-                style: const TextStyle(
-                    color: AppColors.textSecondary, fontSize: 12)),
+            error: (_, __) => Text(
+              l10n.noTelemetry,
+              style: TextStyle(
+                color: context.appColors.textSecondary,
+                fontSize: 12,
+              ),
+            ),
             data: (reading) {
               if (reading == null) {
-                return Text(l10n.noTelemetry,
-                    style: const TextStyle(
-                        color: AppColors.textSecondary, fontSize: 12));
+                return Text(
+                  l10n.noTelemetry,
+                  style: TextStyle(
+                    color: context.appColors.textSecondary,
+                    fontSize: 12,
+                  ),
+                );
               }
               final ts = reading.ts.toLocal();
               final timeStr =
@@ -131,8 +147,10 @@ class AssetTelemCard extends ConsumerWidget {
                 children: [
                   Text(
                     '${l10n.lastReading}: $timeStr',
-                    style: const TextStyle(
-                        color: AppColors.textSecondary, fontSize: 11),
+                    style: TextStyle(
+                      color: context.appColors.textSecondary,
+                      fontSize: 11,
+                    ),
                   ),
                   const SizedBox(height: 10),
                   Wrap(
@@ -140,22 +158,35 @@ class AssetTelemCard extends ConsumerWidget {
                     runSpacing: 10,
                     children: [
                       if (reading.rpm != null)
-                        AssetTeleStat(l10n.rpm, reading.rpm!.toStringAsFixed(0)),
+                        AssetTeleStat(
+                          l10n.rpm,
+                          reading.rpm!.toStringAsFixed(0),
+                        ),
                       if (reading.coolantTemp != null)
-                        AssetTeleStat(l10n.coolantTemp,
-                            '${reading.coolantTemp!.toStringAsFixed(1)}°C'),
+                        AssetTeleStat(
+                          l10n.coolantTemp,
+                          '${reading.coolantTemp!.toStringAsFixed(1)}°C',
+                        ),
                       if (reading.oilPressure != null)
-                        AssetTeleStat(l10n.oilPressure,
-                            '${reading.oilPressure!.toStringAsFixed(1)} PSI'),
+                        AssetTeleStat(
+                          l10n.oilPressure,
+                          '${reading.oilPressure!.toStringAsFixed(1)} PSI',
+                        ),
                       if (reading.batteryV != null)
-                        AssetTeleStat(l10n.batteryVoltage,
-                            '${reading.batteryV!.toStringAsFixed(2)}V'),
+                        AssetTeleStat(
+                          l10n.batteryVoltage,
+                          '${reading.batteryV!.toStringAsFixed(2)}V',
+                        ),
                       if (reading.throttlePct != null)
-                        AssetTeleStat(l10n.throttle,
-                            '${reading.throttlePct!.toStringAsFixed(0)}%'),
+                        AssetTeleStat(
+                          l10n.throttle,
+                          '${reading.throttlePct!.toStringAsFixed(0)}%',
+                        ),
                       if (reading.fuelRate != null)
-                        AssetTeleStat(l10n.fuelRate,
-                            '${reading.fuelRate!.toStringAsFixed(2)} L/h'),
+                        AssetTeleStat(
+                          l10n.fuelRate,
+                          '${reading.fuelRate!.toStringAsFixed(2)} L/h',
+                        ),
                     ],
                   ),
                 ],
@@ -169,8 +200,10 @@ class AssetTelemCard extends ConsumerWidget {
               onPressed: () =>
                   context.push('/telemetry/assets/$assetId/history'),
               icon: const Icon(Icons.history, size: 14),
-              label: Text(l10n.telemetryHistory,
-                  style: const TextStyle(fontSize: 12)),
+              label: Text(
+                l10n.telemetryHistory,
+                style: const TextStyle(fontSize: 12),
+              ),
             ),
           ),
         ],
@@ -190,14 +223,21 @@ class AssetTeleStat extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label,
-            style:
-                const TextStyle(color: AppColors.textSecondary, fontSize: 10)),
-        Text(value,
-            style: const TextStyle(
-                color: AppColors.primary,
-                fontSize: 14,
-                fontWeight: FontWeight.bold)),
+        Text(
+          label,
+          style: TextStyle(
+            color: context.appColors.textSecondary,
+            fontSize: 10,
+          ),
+        ),
+        Text(
+          value,
+          style: TextStyle(
+            color: context.appColors.primary,
+            fontSize: 14,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
       ],
     );
   }

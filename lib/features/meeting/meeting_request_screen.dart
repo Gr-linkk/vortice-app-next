@@ -55,7 +55,6 @@ class _MeetingRequestScreenState extends ConsumerState<MeetingRequestScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text("Request sent! We'll be in touch within 24 hours."),
-          backgroundColor: AppColors.success,
         ),
       );
       context.pop();
@@ -63,9 +62,7 @@ class _MeetingRequestScreenState extends ConsumerState<MeetingRequestScreen> {
       final err =
           ref.read(meetingRequestControllerProvider).error?.toString() ??
           'Unknown error';
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(err), backgroundColor: AppColors.error),
-      );
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(err)));
     }
   }
 
@@ -92,7 +89,7 @@ class _MeetingRequestScreenState extends ConsumerState<MeetingRequestScreen> {
                 Text(
                   "Tell us a bit about what you're looking for and we'll reach out to set up a consultation.",
                   style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: AppColors.textSecondary,
+                    color: context.appColors.textSecondary,
                   ),
                 ),
                 const SizedBox(height: 24),
@@ -104,7 +101,7 @@ class _MeetingRequestScreenState extends ConsumerState<MeetingRequestScreen> {
                     labelText: 'What are you looking for?',
                     prefixIcon: Icon(Icons.build_outlined),
                   ),
-                  dropdownColor: AppColors.surfaceVariant,
+                  dropdownColor: context.appColors.surfaceVariant,
                   items: _interestOptions
                       .map((o) => DropdownMenuItem(value: o, child: Text(o)))
                       .toList(),
@@ -121,7 +118,7 @@ class _MeetingRequestScreenState extends ConsumerState<MeetingRequestScreen> {
                     labelText: 'How many vessels?',
                     prefixIcon: Icon(Icons.directions_boat_outlined),
                   ),
-                  dropdownColor: AppColors.surfaceVariant,
+                  dropdownColor: context.appColors.surfaceVariant,
                   items: _vesselCountOptions
                       .map((o) => DropdownMenuItem(value: o, child: Text(o)))
                       .toList(),
@@ -138,7 +135,7 @@ class _MeetingRequestScreenState extends ConsumerState<MeetingRequestScreen> {
                     labelText: 'Preferred contact method',
                     prefixIcon: Icon(Icons.contact_phone_outlined),
                   ),
-                  dropdownColor: AppColors.surfaceVariant,
+                  dropdownColor: context.appColors.surfaceVariant,
                   items: _contactOptions
                       .map((o) => DropdownMenuItem(value: o, child: Text(o)))
                       .toList(),
@@ -167,12 +164,12 @@ class _MeetingRequestScreenState extends ConsumerState<MeetingRequestScreen> {
                 ElevatedButton(
                   onPressed: isLoading ? null : _submit,
                   child: isLoading
-                      ? const SizedBox(
+                      ? SizedBox(
                           width: 20,
                           height: 20,
                           child: CircularProgressIndicator(
                             strokeWidth: 2,
-                            color: Colors.white,
+                            color: context.appColors.onPrimary,
                           ),
                         )
                       : const Text('Request Consultation'),

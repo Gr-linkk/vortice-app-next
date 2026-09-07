@@ -15,19 +15,19 @@ class ServiceRequestFormSubmitBar extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.fromLTRB(16, 10, 16, 12),
-      decoration: const BoxDecoration(
-        color: AppColors.background,
-        border: Border(top: BorderSide(color: AppColors.divider)),
+      decoration: BoxDecoration(
+        color: context.appColors.background,
+        border: Border(top: BorderSide(color: context.appColors.divider)),
       ),
       child: ElevatedButton.icon(
         onPressed: isLoading ? null : onSubmit,
         icon: isLoading
-            ? const SizedBox(
+            ? SizedBox(
                 width: 18,
                 height: 18,
                 child: CircularProgressIndicator(
                   strokeWidth: 2,
-                  color: Colors.white,
+                  color: context.appColors.onPrimary,
                 ),
               )
             : const Icon(Icons.send_outlined),

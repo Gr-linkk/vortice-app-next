@@ -17,20 +17,25 @@ class OrgAdminInvoicesTab extends ConsumerWidget {
       error: (err, _) => Center(
         child: Text(
           err.toString(),
-          style: const TextStyle(color: AppColors.error),
+          style: TextStyle(color: context.appColors.error),
         ),
       ),
       data: (invoices) {
         if (invoices.isEmpty) {
-          return const Center(
+          return Center(
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Icon(Icons.receipt_long_outlined,
-                    size: 56, color: AppColors.textSecondary),
-                SizedBox(height: 12),
-                Text('No invoices yet.',
-                    style: TextStyle(color: AppColors.textSecondary)),
+                Icon(
+                  Icons.receipt_long_outlined,
+                  size: 56,
+                  color: context.appColors.textSecondary,
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  'No invoices yet.',
+                  style: TextStyle(color: context.appColors.textSecondary),
+                ),
               ],
             ),
           );
@@ -41,21 +46,27 @@ class OrgAdminInvoicesTab extends ConsumerWidget {
           separatorBuilder: (_, __) => const SizedBox(height: 8),
           itemBuilder: (_, i) {
             final inv = invoices[i];
-            final color = orgAdminInvoiceStatusColor(inv.status);
+            final color = orgAdminInvoiceStatusColor(
+              context.appColors,
+              inv.status,
+            );
             return InkWell(
               onTap: () => context.push('/client/invoices/${inv.id}'),
               borderRadius: BorderRadius.circular(12),
               child: Container(
                 padding: const EdgeInsets.all(14),
                 decoration: BoxDecoration(
-                  color: AppColors.surface,
+                  color: context.appColors.surface,
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: AppColors.cardBorder),
+                  border: Border.all(color: context.appColors.cardBorder),
                 ),
                 child: Row(
                   children: [
-                    const Icon(Icons.receipt_long_outlined,
-                        color: AppColors.primary, size: 22),
+                    Icon(
+                      Icons.receipt_long_outlined,
+                      color: context.appColors.primary,
+                      size: 22,
+                    ),
                     const SizedBox(width: 12),
                     Expanded(
                       child: Column(
@@ -63,24 +74,28 @@ class OrgAdminInvoicesTab extends ConsumerWidget {
                         children: [
                           Text(
                             inv.invoiceNumber,
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontWeight: FontWeight.w600,
-                              color: AppColors.textPrimary,
+                              color: context.appColors.textPrimary,
                               fontSize: 13,
                             ),
                           ),
                           if (inv.totalUsd != null)
                             Text(
                               '\$${inv.totalUsd!.toStringAsFixed(2)} USD',
-                              style: const TextStyle(
-                                  color: AppColors.textSecondary, fontSize: 12),
+                              style: TextStyle(
+                                color: context.appColors.textSecondary,
+                                fontSize: 12,
+                              ),
                             ),
                         ],
                       ),
                     ),
                     Container(
                       padding: const EdgeInsets.symmetric(
-                          horizontal: 8, vertical: 3),
+                        horizontal: 8,
+                        vertical: 3,
+                      ),
                       decoration: BoxDecoration(
                         color: color.withValues(alpha: 0.12),
                         borderRadius: BorderRadius.circular(20),
@@ -95,8 +110,11 @@ class OrgAdminInvoicesTab extends ConsumerWidget {
                       ),
                     ),
                     const SizedBox(width: 4),
-                    const Icon(Icons.chevron_right,
-                        color: AppColors.textSecondary, size: 20),
+                    Icon(
+                      Icons.chevron_right,
+                      color: context.appColors.textSecondary,
+                      size: 20,
+                    ),
                   ],
                 ),
               ),

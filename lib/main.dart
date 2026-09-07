@@ -5,6 +5,8 @@ import 'package:vortice_app/app.dart';
 import 'package:vortice_app/core/constants.dart';
 import 'package:vortice_app/features/auth/password_recovery.dart';
 import 'package:vortice_app/core/push_notifications.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:vortice_app/core/appearance_settings.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -32,9 +34,13 @@ Future<void> main() async {
   final recovery = PasswordRecoveryController();
   await recovery.start();
   await PushNotifications.instance.initialize();
+  final appearancePreferences = await SharedPreferences.getInstance();
   runApp(
     ProviderScope(
-      overrides: [passwordRecoveryProvider.overrideWith((_) => recovery)],
+      overrides: [
+        passwordRecoveryProvider.overrideWith((_) => recovery),
+        appearancePreferencesProvider.overrideWithValue(appearancePreferences),
+      ],
       child: const VorticeApp(),
     ),
   );

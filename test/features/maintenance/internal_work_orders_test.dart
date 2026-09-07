@@ -181,6 +181,9 @@ void main() {
       expect(find.text('New work order'), findsOneWidget);
       await fill(tester, 'Work order title', 'Inspect generator mountings');
       await pick(tester, 'Work type', 'Inspection');
+      await reveal(tester, find.text('Optional details'));
+      await tester.tap(find.text('Optional details'));
+      await tester.pumpAndSettle();
       await pick(
         tester,
         'Checklist (optional)',
@@ -275,6 +278,7 @@ void main() {
       await tester.tap(save);
       await tester.pumpAndSettle();
       expect(find.text('Discard edits and reload'), findsOneWidget);
+      await reveal(tester, save);
       expect(tester.widget<FilledButton>(save).onPressed, isNull);
       expect(fixture.writes, hasLength(1));
     },

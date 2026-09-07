@@ -501,116 +501,142 @@ class _MaintenanceCreateScreenState
                     ),
                   ),
                   const SizedBox(height: 16),
-                  AppDropdownField<String>(
-                    key: ValueKey('plan-$_asset'),
-                    initialValue: _plan ?? '',
-                    isExpanded: true,
-                    decoration: InputDecoration(
-                      labelText: es
-                          ? 'Plan (opcional)'
-                          : 'Service plan (optional)',
+                  ExpansionTile(
+                    key: ValueKey('optional-details-$_asset'),
+                    initiallyExpanded:
+                        _plan != null ||
+                        _checklist != null ||
+                        _component != null,
+                    maintainState: true,
+                    tilePadding: EdgeInsets.zero,
+                    title: Text(
+                      es ? 'Detalles opcionales' : 'Optional details',
                     ),
-                    items: [
-                      DropdownMenuItem<String>(
-                        value: '',
-                        child: Text(
-                          es ? 'Sin plan recurrente' : 'No recurring plan',
+                    subtitle: Text(
+                      es
+                          ? 'Plan de servicio, lista y componente'
+                          : 'Service plan, checklist and component',
+                    ),
+                    children: [
+                      AppDropdownField<String>(
+                        key: ValueKey('plan-$_asset'),
+                        initialValue: _plan ?? '',
+                        isExpanded: true,
+                        decoration: InputDecoration(
+                          labelText: es
+                              ? 'Plan (opcional)'
+                              : 'Service plan (optional)',
                         ),
+                        items: [
+                          DropdownMenuItem<String>(
+                            value: '',
+                            child: Text(
+                              es ? 'Sin plan recurrente' : 'No recurring plan',
+                            ),
+                          ),
+                          ...maintenanceRows(data['plans'])
+                              .where(
+                                (p) =>
+                                    p['engine_id'] != null &&
+                                    p['is_active'] == true,
+                              )
+                              .map(
+                                (p) => DropdownMenuItem(
+                                  value: p['id'] as String,
+                                  child: Text(
+                                    '${p['interval_label'] ?? p['interval_hours']} · ${p['component_name']}',
+                                  ),
+                                ),
+                              ),
+                        ],
+                        onChanged: frozen || data['can_plan'] != true
+                            ? null
+                            : (v) => setState(() {
+                                _plan = v == '' ? null : v;
+                                if (_plan != null) {
+                                  _workType = WorkOrderJobType.preventative;
+                                }
+                              }),
                       ),
-                      ...maintenanceRows(data['plans'])
-                          .where(
-                            (p) =>
-                                p['engine_id'] != null &&
-                                p['is_active'] == true,
-                          )
-                          .map(
-                            (p) => DropdownMenuItem(
-                              value: p['id'] as String,
+                      const SizedBox(height: 16),
+                      if (_plan == null) ...[
+                        AppDropdownField<String>(
+                          key: ValueKey('checklist-$_asset'),
+                          initialValue: _checklist ?? '',
+                          isExpanded: true,
+                          decoration: InputDecoration(
+                            labelText: es
+                                ? 'Lista de revisión (opcional)'
+                                : 'Checklist (optional)',
+                          ),
+                          items: [
+                            DropdownMenuItem(
+                              value: '',
                               child: Text(
-                                '${p['interval_label'] ?? p['interval_hours']} · ${p['component_name']}',
+                                es ? 'Sin lista de revisión' : 'No checklist',
                               ),
                             ),
+                            for (final template
+                                in maintenanceRows(data['templates']).where(
+                                  (t) =>
+                                      t['scope_engine_id'] == null ||
+                                      t['scope_engine_id'] == _component,
+                                ))
+                              DropdownMenuItem(
+                                value: template['id'] as String,
+                                child: Text(template['name'] as String),
+                              ),
+                          ],
+                          onChanged: frozen
+                              ? null
+                              : (value) => setState(
+                                  () => _checklist = value == '' ? null : value,
+                                ),
+                        ),
+                        const SizedBox(height: 16),
+                        AppDropdownField<String>(
+                          key: ValueKey('component-$_asset'),
+                          initialValue: _component ?? '',
+                          isExpanded: true,
+                          decoration: InputDecoration(
+                            labelText: es
+                                ? 'Componente'
+                                : 'Component (optional)',
                           ),
+                          items: [
+                            DropdownMenuItem(
+                              value: '',
+                              child: Text(
+                                es ? 'Sin componente' : 'No component',
+                              ),
+                            ),
+                            ...maintenanceRows(data['components']).map(
+                              (e) => DropdownMenuItem(
+                                value: e['id'] as String,
+                                child: Text(e['label'] as String),
+                              ),
+                            ),
+                          ],
+                          onChanged: frozen
+                              ? null
+                              : (v) => setState(() {
+                                  _component = v == '' ? null : v;
+                                  final selected =
+                                      maintenanceRows(data['templates'])
+                                          .where((t) => t['id'] == _checklist)
+                                          .firstOrNull;
+                                  if (selected?['scope_engine_id'] != null &&
+                                      selected!['scope_engine_id'] !=
+                                          _component) {
+                                    _checklist = null;
+                                  }
+                                }),
+                        ),
+                        const SizedBox(height: 16),
+                      ],
                     ],
-                    onChanged: frozen || data['can_plan'] != true
-                        ? null
-                        : (v) => setState(() {
-                            _plan = v == '' ? null : v;
-                            if (_plan != null) {
-                              _workType = WorkOrderJobType.preventative;
-                            }
-                          }),
                   ),
                   const SizedBox(height: 16),
-                  if (_plan == null) ...[
-                    AppDropdownField<String>(
-                      key: ValueKey('checklist-$_asset'),
-                      initialValue: _checklist ?? '',
-                      isExpanded: true,
-                      decoration: InputDecoration(
-                        labelText: es
-                            ? 'Lista de revisión (opcional)'
-                            : 'Checklist (optional)',
-                      ),
-                      items: [
-                        DropdownMenuItem(
-                          value: '',
-                          child: Text(
-                            es ? 'Sin lista de revisión' : 'No checklist',
-                          ),
-                        ),
-                        for (final template
-                            in maintenanceRows(data['templates']).where(
-                              (t) =>
-                                  t['scope_engine_id'] == null ||
-                                  t['scope_engine_id'] == _component,
-                            ))
-                          DropdownMenuItem(
-                            value: template['id'] as String,
-                            child: Text(template['name'] as String),
-                          ),
-                      ],
-                      onChanged: frozen
-                          ? null
-                          : (value) => setState(
-                              () => _checklist = value == '' ? null : value,
-                            ),
-                    ),
-                    const SizedBox(height: 16),
-                    AppDropdownField<String>(
-                      key: ValueKey('component-$_asset'),
-                      initialValue: _component ?? '',
-                      isExpanded: true,
-                      decoration: InputDecoration(
-                        labelText: es ? 'Componente' : 'Component (optional)',
-                      ),
-                      items: [
-                        DropdownMenuItem(
-                          value: '',
-                          child: Text(es ? 'Sin componente' : 'No component'),
-                        ),
-                        ...maintenanceRows(data['components']).map(
-                          (e) => DropdownMenuItem(
-                            value: e['id'] as String,
-                            child: Text(e['label'] as String),
-                          ),
-                        ),
-                      ],
-                      onChanged: frozen
-                          ? null
-                          : (v) => setState(() {
-                              _component = v == '' ? null : v;
-                              final selected = maintenanceRows(
-                                data['templates'],
-                              ).where((t) => t['id'] == _checklist).firstOrNull;
-                              if (selected?['scope_engine_id'] != null &&
-                                  selected!['scope_engine_id'] != _component) {
-                                _checklist = null;
-                              }
-                            }),
-                    ),
-                    const SizedBox(height: 16),
-                  ],
                   AppDropdownField<String>(
                     key: ValueKey('assignee-$_asset'),
                     initialValue: _assignee ?? '',

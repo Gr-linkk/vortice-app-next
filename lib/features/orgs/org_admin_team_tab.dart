@@ -25,20 +25,25 @@ class OrgAdminTeamTab extends ConsumerWidget {
         error: (err, _) => Center(
           child: Text(
             err.toString(),
-            style: const TextStyle(color: AppColors.error),
+            style: TextStyle(color: context.appColors.error),
           ),
         ),
         data: (members) {
           if (members.isEmpty) {
-            return const Center(
+            return Center(
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(Icons.people_outline,
-                      size: 56, color: AppColors.textSecondary),
-                  SizedBox(height: 12),
-                  Text('No team members yet.',
-                      style: TextStyle(color: AppColors.textSecondary)),
+                  Icon(
+                    Icons.people_outline,
+                    size: 56,
+                    color: context.appColors.textSecondary,
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    'No team members yet.',
+                    style: TextStyle(color: context.appColors.textSecondary),
+                  ),
                 ],
               ),
             );
@@ -59,7 +64,7 @@ class OrgAdminTeamTab extends ConsumerWidget {
         onPressed: () => _showInviteSheet(context, orgId, ownerProfileId),
         icon: const Icon(Icons.person_add_outlined),
         label: const Text('Invite Team Member'),
-        backgroundColor: AppColors.primary,
+        backgroundColor: context.appColors.primary,
       ),
     );
   }
@@ -72,14 +77,12 @@ class OrgAdminTeamTab extends ConsumerWidget {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      backgroundColor: AppColors.surface,
+      backgroundColor: context.appColors.surface,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
       ),
-      builder: (_) => OrgAdminInviteSheet(
-        orgId: orgId,
-        ownerProfileId: ownerProfileId,
-      ),
+      builder: (_) =>
+          OrgAdminInviteSheet(orgId: orgId, ownerProfileId: ownerProfileId),
     );
   }
 }

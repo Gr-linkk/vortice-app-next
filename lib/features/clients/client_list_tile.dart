@@ -20,36 +20,48 @@ class ClientListTile extends ConsumerWidget {
     return Card(
       child: ListTile(
         leading: CircleAvatar(
-          backgroundColor: AppColors.primary.withValues(alpha: 0.15),
-          child: const Icon(Icons.person, color: AppColors.primary, size: 22),
+          backgroundColor: context.appColors.primary.withValues(alpha: 0.15),
+          child: Icon(Icons.person, color: context.appColors.primary, size: 22),
         ),
-        title: Text(client.fullName,
-            style: Theme.of(context).textTheme.titleSmall),
+        title: Text(
+          client.fullName,
+          style: Theme.of(context).textTheme.titleSmall,
+        ),
         subtitle: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(client.email,
-                style: const TextStyle(
-                    color: AppColors.textSecondary, fontSize: 12)),
+            Text(
+              client.email,
+              style: TextStyle(
+                color: context.appColors.textSecondary,
+                fontSize: 12,
+              ),
+            ),
             Row(
               children: [
                 Text(
                   '${assetCount.valueOrNull ?? 0} ${l10n.navAssets}',
-                  style: const TextStyle(
-                      color: AppColors.textSecondary, fontSize: 11),
+                  style: TextStyle(
+                    color: context.appColors.textSecondary,
+                    fontSize: 11,
+                  ),
                 ),
                 const SizedBox(width: 12),
                 Text(
                   '${woCount.valueOrNull ?? 0} ${l10n.navWorkOrders}',
-                  style: const TextStyle(
-                      color: AppColors.textSecondary, fontSize: 11),
+                  style: TextStyle(
+                    color: context.appColors.textSecondary,
+                    fontSize: 11,
+                  ),
                 ),
               ],
             ),
           ],
         ),
-        trailing:
-            const Icon(Icons.chevron_right, color: AppColors.textSecondary),
+        trailing: Icon(
+          Icons.chevron_right,
+          color: context.appColors.textSecondary,
+        ),
         onTap: () => showClientDetailSheet(context, client),
         isThreeLine: true,
       ),

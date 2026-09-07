@@ -14,18 +14,21 @@ class VesselTelemetryEngineInfoSection extends StatelessWidget {
       children: [
         Padding(
           padding: const EdgeInsets.fromLTRB(16, 24, 16, 8),
-          child: Text('Engine Data',
-              style: Theme.of(context).textTheme.titleMedium),
+          child: Text(
+            'Engine Data',
+            style: Theme.of(context).textTheme.titleMedium,
+          ),
         ),
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16),
           child: Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: AppColors.surface,
+              color: context.appColors.surface,
               borderRadius: BorderRadius.circular(12),
-              border: const Border.fromBorderSide(
-                  BorderSide(color: AppColors.cardBorder)),
+              border: Border.fromBorderSide(
+                BorderSide(color: context.appColors.cardBorder),
+              ),
             ),
             child: Column(
               children: [
@@ -36,7 +39,9 @@ class VesselTelemetryEngineInfoSection extends StatelessWidget {
                   VesselTelemetryInfoRow(label: 'Model', value: engine.model!),
                 if (engine.serialNumber != null)
                   VesselTelemetryInfoRow(
-                      label: 'Serial', value: engine.serialNumber!),
+                    label: 'Serial',
+                    value: engine.serialNumber!,
+                  ),
                 VesselTelemetryInfoRow(
                   label: 'Engine Hours',
                   value: engine.currentHours.toStringAsFixed(1),
@@ -67,14 +72,21 @@ class VesselTelemetryInfoRow extends StatelessWidget {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(label,
-              style: const TextStyle(
-                  color: AppColors.textSecondary, fontSize: 13)),
-          Text(value,
-              style: const TextStyle(
-                  color: AppColors.textPrimary,
-                  fontSize: 13,
-                  fontWeight: FontWeight.w500)),
+          Text(
+            label,
+            style: TextStyle(
+              color: context.appColors.textSecondary,
+              fontSize: 13,
+            ),
+          ),
+          Text(
+            value,
+            style: TextStyle(
+              color: context.appColors.textPrimary,
+              fontSize: 13,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
         ],
       ),
     );

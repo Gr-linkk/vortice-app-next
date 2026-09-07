@@ -26,6 +26,8 @@ class _MaintenancePlanningScreenState
   String? _view, _asset, _person;
   String _query = '', _planFilter = 'all';
   String? _openedJobId;
+  bool _showFilters = false;
+  String? _calendarView;
 
   @override
   void didUpdateWidget(covariant MaintenancePlanningScreen oldWidget) {
@@ -80,10 +82,20 @@ class _MaintenancePlanningScreenState
       appBar: AppBar(
         title: Text(
           manager
-              ? (es ? 'Planificación' : 'Maintenance planning')
+              ? (es ? 'Planificación' : 'Planning')
               : (es ? 'Mi programación' : 'My schedule'),
         ),
         actions: [
+          IconButton(
+            tooltip: es ? 'Buscar y filtrar' : 'Search & filters',
+            isSelected:
+                _showFilters ||
+                _query.isNotEmpty ||
+                _asset != null ||
+                _person != null,
+            onPressed: () => setState(() => _showFilters = !_showFilters),
+            icon: const Icon(Icons.tune),
+          ),
           IconButton(
             onPressed: _refresh,
             tooltip: es ? 'Actualizar' : 'Refresh',
@@ -221,17 +233,6 @@ class _MaintenancePlanningScreenState
                   physics: const AlwaysScrollableScrollPhysics(),
                   padding: const EdgeInsets.fromLTRB(16, 12, 16, 40),
                   children: [
-                    Text(
-                      manager
-                          ? (es
-                                ? 'Próximos servicios y trabajo del equipo'
-                                : 'Upcoming services and team work')
-                          : (es
-                                ? 'Tu trabajo programado, listo para continuar.'
-                                : 'Your scheduled work, ready to continue.'),
-                      style: Theme.of(context).textTheme.titleMedium,
-                    ),
-                    const SizedBox(height: 12),
                     Wrap(
                       spacing: 8,
                       runSpacing: 8,
@@ -258,150 +259,168 @@ class _MaintenancePlanningScreenState
                           onPressed: () => _open(
                             '/maintenance${widget.assetId == null ? '' : '?assetId=${widget.assetId}'}',
                           ),
-                          child: Text(es ? 'Todo el trabajo' : 'All work'),
+                          child: Text(
+                            es ? 'Órdenes de trabajo' : 'Work orders',
+                          ),
                         ),
                       ],
                     ),
-                    const SizedBox(height: 16),
-                    if (jobs.any((j) => j.overdue(today) || j.unscheduled) ||
-                        plans.any((p) => p.due && !p.hasJob))
+                    if (_showFilters)
+                      ExpansionTile(
+                        initiallyExpanded: true,
+                        tilePadding: EdgeInsets.zero,
+                        maintainState: true,
+                        title: Text(
+                          es ? 'Buscar y filtrar' : 'Search & filters',
+                        ),
+                        subtitle:
+                            _query.isNotEmpty ||
+                                selectedAsset != null ||
+                                selectedPerson != null
+                            ? Text(es ? 'Filtros activos' : 'Filters active')
+                            : null,
+                        children: [
+                          TextFormField(
+                            initialValue: _query,
+                            decoration: InputDecoration(
+                              labelText: es
+                                  ? 'Buscar trabajo o servicio'
+                                  : 'Search work or service',
+                              prefixIcon: const Icon(Icons.search),
+                            ),
+                            onChanged: (value) => setState(
+                              () => _query = value.toLowerCase().trim(),
+                            ),
+                          ),
+                          if (widget.assetId == null && assets.length > 1) ...[
+                            const SizedBox(height: 16),
+                            AppDropdownField<String>(
+                              key: ValueKey('asset-$selectedAsset'),
+                              initialValue: selectedAsset ?? '',
+                              decoration: InputDecoration(
+                                labelText: es ? 'Equipo' : 'Asset',
+                              ),
+                              items: [
+                                DropdownMenuItem(
+                                  value: '',
+                                  child: Text(
+                                    es ? 'Todos los equipos' : 'All assets',
+                                  ),
+                                ),
+                                for (final asset in assets.entries)
+                                  DropdownMenuItem(
+                                    value: asset.key,
+                                    child: Text(asset.value),
+                                  ),
+                              ],
+                              onChanged: (value) => setState(
+                                () => _asset = value == '' ? null : value,
+                              ),
+                            ),
+                          ],
+                          if (manager &&
+                              people.isNotEmpty &&
+                              view != 'plans') ...[
+                            const SizedBox(height: 16),
+                            AppDropdownField<String>(
+                              key: ValueKey('person-$selectedPerson'),
+                              initialValue: selectedPerson ?? '',
+                              decoration: InputDecoration(
+                                labelText: es ? 'Responsable' : 'Assignee',
+                              ),
+                              items: [
+                                DropdownMenuItem(
+                                  value: '',
+                                  child: Text(
+                                    es ? 'Todo el equipo' : 'Whole team',
+                                  ),
+                                ),
+                                for (final person in people.entries)
+                                  DropdownMenuItem(
+                                    value: person.key,
+                                    child: Text(person.value),
+                                  ),
+                              ],
+                              onChanged: (value) => setState(
+                                () => _person = value == '' ? null : value,
+                              ),
+                            ),
+                          ],
+                          const SizedBox(height: 12),
+                        ],
+                      ),
+                    const SizedBox(height: 8),
+                    DropdownButtonHideUnderline(
+                      child: DropdownButton<String>(
+                        key: const ValueKey('planning-collection'),
+                        value: ['today', 'week', 'month'].contains(view)
+                            ? 'calendar'
+                            : view,
+                        isExpanded: true,
+                        itemHeight: null,
+                        items: [
+                          for (final option in [
+                            ('calendar', es ? 'Agenda' : 'Schedule'),
+                            (
+                              'unscheduled',
+                              es ? 'Sin programar' : 'Unscheduled',
+                            ),
+                            (
+                              'attention',
+                              es ? 'Por atender' : 'Needs attention',
+                            ),
+                            if (manager)
+                              (
+                                'plans',
+                                es ? 'Planes de servicio' : 'Service plans',
+                              ),
+                          ])
+                            DropdownMenuItem(
+                              value: option.$1,
+                              child: Padding(
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 12,
+                                ),
+                                child: Text(
+                                  option.$2,
+                                  style: Theme.of(
+                                    context,
+                                  ).textTheme.titleMedium,
+                                ),
+                              ),
+                            ),
+                        ],
+                        onChanged: (value) => setState(() {
+                          _view = value == 'calendar'
+                              ? (_calendarView ?? (manager ? 'week' : 'today'))
+                              : value;
+                        }),
+                      ),
+                    ),
+                    if (['today', 'week', 'month'].contains(view)) ...[
                       Wrap(
                         spacing: 8,
                         runSpacing: 4,
                         children: [
-                          ActionChip(
-                            label: Text(
-                              '${jobs.where((j) => j.overdue(today)).length} ${es ? 'vencidos' : 'overdue'}',
-                            ),
-                            onPressed: () =>
-                                setState(() => _view = 'attention'),
-                          ),
-                          ActionChip(
-                            label: Text(
-                              '${jobs.where((j) => j.unscheduled).length} ${es ? 'sin programar' : 'unscheduled'}',
-                            ),
-                            onPressed: () =>
-                                setState(() => _view = 'unscheduled'),
-                          ),
-                          if (manager)
-                            ActionChip(
-                              label: Text(
-                                '${plans.where((p) => p.due && !p.hasJob).length} ${es ? 'servicios pendientes' : 'services due'}',
-                              ),
-                              onPressed: () => setState(() {
-                                _view = 'plans';
-                                _planFilter = 'due';
+                          for (final option in [
+                            ('today', es ? 'Día' : 'Day'),
+                            ('week', es ? 'Semana' : 'Week'),
+                            ('month', es ? 'Mes' : 'Month'),
+                          ])
+                            ChoiceChip(
+                              label: Text(option.$2),
+                              selected: view == option.$1,
+                              onSelected: (_) => setState(() {
+                                _view = option.$1;
+                                _calendarView = option.$1;
                               }),
                             ),
+                          TextButton(
+                            onPressed: () => setState(() => _day = today),
+                            child: Text(es ? 'Hoy' : 'Today'),
+                          ),
                         ],
                       ),
-                    const SizedBox(height: 16),
-                    ExpansionTile(
-                      tilePadding: EdgeInsets.zero,
-                      maintainState: true,
-                      title: Text(es ? 'Buscar y filtrar' : 'Search & filters'),
-                      subtitle:
-                          _query.isNotEmpty ||
-                              selectedAsset != null ||
-                              selectedPerson != null
-                          ? Text(es ? 'Filtros activos' : 'Filters active')
-                          : null,
-                      children: [
-                        TextField(
-                          decoration: InputDecoration(
-                            labelText: es
-                                ? 'Buscar trabajo o servicio'
-                                : 'Search work or service',
-                            prefixIcon: const Icon(Icons.search),
-                          ),
-                          onChanged: (value) => setState(
-                            () => _query = value.toLowerCase().trim(),
-                          ),
-                        ),
-                        if (widget.assetId == null && assets.length > 1) ...[
-                          const SizedBox(height: 16),
-                          AppDropdownField<String>(
-                            key: ValueKey('asset-$selectedAsset'),
-                            initialValue: selectedAsset ?? '',
-                            decoration: InputDecoration(
-                              labelText: es ? 'Equipo' : 'Asset',
-                            ),
-                            items: [
-                              DropdownMenuItem(
-                                value: '',
-                                child: Text(
-                                  es ? 'Todos los equipos' : 'All assets',
-                                ),
-                              ),
-                              for (final asset in assets.entries)
-                                DropdownMenuItem(
-                                  value: asset.key,
-                                  child: Text(asset.value),
-                                ),
-                            ],
-                            onChanged: (value) => setState(
-                              () => _asset = value == '' ? null : value,
-                            ),
-                          ),
-                        ],
-                        if (manager &&
-                            people.isNotEmpty &&
-                            view != 'plans') ...[
-                          const SizedBox(height: 16),
-                          AppDropdownField<String>(
-                            key: ValueKey('person-$selectedPerson'),
-                            initialValue: selectedPerson ?? '',
-                            decoration: InputDecoration(
-                              labelText: es ? 'Responsable' : 'Assignee',
-                            ),
-                            items: [
-                              DropdownMenuItem(
-                                value: '',
-                                child: Text(
-                                  es ? 'Todo el equipo' : 'Whole team',
-                                ),
-                              ),
-                              for (final person in people.entries)
-                                DropdownMenuItem(
-                                  value: person.key,
-                                  child: Text(person.value),
-                                ),
-                            ],
-                            onChanged: (value) => setState(
-                              () => _person = value == '' ? null : value,
-                            ),
-                          ),
-                        ],
-                        const SizedBox(height: 12),
-                      ],
-                    ),
-                    const SizedBox(height: 16),
-                    Wrap(
-                      spacing: 8,
-                      runSpacing: 4,
-                      children: [
-                        for (final option in [
-                          ('today', es ? 'Día' : 'Day'),
-                          ('week', es ? 'Semana' : 'Week'),
-                          ('month', es ? 'Mes' : 'Month'),
-                          ('unscheduled', es ? 'Sin programar' : 'Unscheduled'),
-                          ('attention', es ? 'Por atender' : 'Needs attention'),
-                          if (manager)
-                            (
-                              'plans',
-                              es ? 'Planes de servicio' : 'Service plans',
-                            ),
-                        ])
-                          ChoiceChip(
-                            label: Text(option.$2),
-                            selected: view == option.$1,
-                            onSelected: (_) =>
-                                setState(() => _view = option.$1),
-                          ),
-                      ],
-                    ),
-                    const SizedBox(height: 16),
-                    if (['today', 'week', 'month'].contains(view)) ...[
                       Row(
                         children: [
                           IconButton(
@@ -447,54 +466,12 @@ class _MaintenancePlanningScreenState
                           ),
                         ],
                       ),
-                      Align(
-                        alignment: Alignment.center,
-                        child: TextButton(
-                          onPressed: () => setState(() => _day = today),
-                          child: Text(es ? 'Hoy' : 'Today'),
-                        ),
-                      ),
                       if (view == 'month')
                         PlanningMonth(
                           day: _day,
                           jobs: jobs,
                           es: es,
                           onSelect: (date) => setState(() => _day = date),
-                        ),
-                      if (view == 'week' && manager && displayed.isNotEmpty)
-                        Card(
-                          child: ExpansionTile(
-                            title: Text(
-                              '${es ? 'Reservas del equipo' : 'Team bookings'} · ${displayed.fold<double>(0, (sum, j) => sum + j.hoursBetween(week, until)).toStringAsFixed(1)} h',
-                            ),
-                            childrenPadding: const EdgeInsets.fromLTRB(
-                              16,
-                              0,
-                              16,
-                              16,
-                            ),
-                            expandedCrossAxisAlignment:
-                                CrossAxisAlignment.start,
-                            children: [
-                              const SizedBox(height: 8),
-                              for (final person in {
-                                for (final job in displayed) job.assignee ?? '',
-                              })
-                                Padding(
-                                  padding: const EdgeInsets.symmetric(
-                                    vertical: 3,
-                                  ),
-                                  child: Text(
-                                    '${person.isEmpty ? (es ? 'Sin asignar' : 'Unassigned') : people[person]} · ${displayed.where((j) => (j.assignee ?? '') == person).fold<double>(0, (sum, j) => sum + j.hoursBetween(week, until)).toStringAsFixed(1)} h',
-                                  ),
-                                ),
-                              Text(
-                                es
-                                    ? 'Son estimaciones, no disponibilidad confirmada. Las órdenes de servicio sin hora no suman horas.'
-                                    : 'Estimates, not confirmed availability. Untimed service orders add no booked hours.',
-                              ),
-                            ],
-                          ),
                         ),
                     ],
                     if (view == 'plans') ...[
@@ -559,6 +536,40 @@ class _MaintenancePlanningScreenState
                         ),
                       for (final job in displayed) _jobCard(job, data.jobs, es),
                     ],
+                    if (view == 'week' && manager && displayed.isNotEmpty)
+                      Card(
+                        child: ExpansionTile(
+                          title: Text(
+                            '${es ? 'Reservas del equipo' : 'Team bookings'} · ${displayed.fold<double>(0, (sum, j) => sum + j.hoursBetween(week, until)).toStringAsFixed(1)} h',
+                          ),
+                          childrenPadding: const EdgeInsets.fromLTRB(
+                            16,
+                            0,
+                            16,
+                            16,
+                          ),
+                          expandedCrossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const SizedBox(height: 8),
+                            for (final person in {
+                              for (final job in displayed) job.assignee ?? '',
+                            })
+                              Padding(
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 3,
+                                ),
+                                child: Text(
+                                  '${person.isEmpty ? (es ? 'Sin asignar' : 'Unassigned') : people[person]} · ${displayed.where((j) => (j.assignee ?? '') == person).fold<double>(0, (sum, j) => sum + j.hoursBetween(week, until)).toStringAsFixed(1)} h',
+                                ),
+                              ),
+                            Text(
+                              es
+                                  ? 'Son estimaciones, no disponibilidad confirmada. Las órdenes de servicio sin hora no suman horas.'
+                                  : 'Estimates, not confirmed availability. Untimed service orders add no booked hours.',
+                            ),
+                          ],
+                        ),
+                      ),
                     const SizedBox(height: 16),
                     Text(
                       es
@@ -580,78 +591,99 @@ class _MaintenancePlanningScreenState
   );
 
   Widget _jobCard(PlanningJob job, List<PlanningJob> jobs, bool es) => Card(
-    child: Padding(
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          if (job.providerService)
-            Text(
-              es
-                  ? 'Orden de servicio · sin hora reservada'
-                  : 'Service order · no time booked',
-              style: Theme.of(context).textTheme.labelLarge,
-            ),
-          if (job.serviceDate != null)
-            Text(DateFormat.yMMMd(es ? 'es' : 'en').format(job.serviceDate!)),
-          if (job.start != null)
-            Text(
-              '${DateFormat.MMMEd(es ? 'es' : 'en').add_Hm().format(job.start!)} · ${(job.minutes / 60).toStringAsFixed(1)} h',
-              style: Theme.of(context).textTheme.labelLarge,
-            ),
-          const SizedBox(height: 4),
-          Text(job.title, style: Theme.of(context).textTheme.titleMedium),
-          if (!job.providerService) Text(job.workType.label(es)),
-          Text(
-            '${job.assetName}${job.data['component_name'] == null ? '' : ' · ${job.data['component_name']}'}',
+    child: Container(
+      decoration: BoxDecoration(
+        border: BorderDirectional(
+          start: BorderSide(
+            color: job.conflict || job.overdue(DateTime.now())
+                ? Theme.of(context).colorScheme.error
+                : Theme.of(context).colorScheme.primary,
+            width: 3,
           ),
-          Text(
-            '${job.assigneeName.isEmpty ? (es ? 'Sin asignar' : 'Unassigned') : job.assigneeName} · ${maintenanceStatus(job.status, es)} · ${maintenancePriority(job.priority, es)}',
-          ),
-          if (job.dueDate != null)
-            Text(
-              '${es ? 'Fecha límite' : 'Deadline'}: ${maintenanceDate(job.dueDate, es)}',
-              style: job.overdue(DateTime.now())
-                  ? TextStyle(color: Theme.of(context).colorScheme.error)
-                  : null,
-            ),
-          if (job.conflict)
-            Text(
-              es
-                  ? 'Conflicto de horario: revisa el responsable y el equipo.'
-                  : 'Schedule overlap: review the assignee and asset.',
-              style: TextStyle(color: Theme.of(context).colorScheme.error),
-            ),
-          if (job.status == 'on_hold')
-            Text(
-              '${es ? 'Bloqueado' : 'Blocked'}: ${job.data['on_hold_reason'] ?? ''}',
-            ),
-          const SizedBox(height: 8),
-          Wrap(
-            spacing: 8,
-            children: [
-              if (job.schedulable)
-                FilledButton(
-                  onPressed: () => _schedule(job, jobs),
-                  child: Text(
-                    job.start == null
-                        ? (es ? 'Programar' : 'Schedule')
-                        : (es ? 'Reprogramar' : 'Reschedule'),
-                  ),
-                ),
-              TextButton(
-                onPressed: () => _open(job.route),
-                child: Text(
-                  job.providerService
-                      ? (es ? 'Abrir orden de servicio' : 'Open service order')
-                      : job.schedulable
-                      ? (es ? 'Abrir trabajo' : 'Open work')
-                      : (es ? 'Continuar trabajo' : 'Continue work'),
-                ),
+        ),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            if (job.providerService)
+              Text(
+                es
+                    ? 'Orden de servicio · sin hora reservada'
+                    : 'Service order · no time booked',
+                style: Theme.of(context).textTheme.labelLarge,
               ),
-            ],
-          ),
-        ],
+            if (job.serviceDate != null)
+              Text(DateFormat.yMMMd(es ? 'es' : 'en').format(job.serviceDate!)),
+            if (job.start != null)
+              Text(
+                '${DateFormat.MMMEd(es ? 'es' : 'en').add_Hm().format(job.start!)} · ${(job.minutes / 60).toStringAsFixed(1)} h',
+                style: Theme.of(context).textTheme.labelLarge,
+              ),
+            const SizedBox(height: 4),
+            Text(job.title, style: Theme.of(context).textTheme.titleMedium),
+            if (!job.providerService) Text(job.workType.label(es)),
+            Text(
+              '${job.assetName}${job.data['component_name'] == null ? '' : ' · ${job.data['component_name']}'}',
+            ),
+            Text(
+              '${job.assigneeName.isEmpty ? (es ? 'Sin asignar' : 'Unassigned') : job.assigneeName} · ${maintenanceStatus(job.status, es)} · ${maintenancePriority(job.priority, es)}',
+            ),
+            if (job.dueDate != null)
+              Text(
+                '${es ? 'Fecha límite' : 'Deadline'}: ${maintenanceDate(job.dueDate, es)}',
+                style: job.overdue(DateTime.now())
+                    ? TextStyle(color: Theme.of(context).colorScheme.error)
+                    : null,
+              ),
+            if (job.conflict)
+              Text(
+                es
+                    ? 'Conflicto de horario: revisa el responsable y el equipo.'
+                    : 'Schedule overlap: review the assignee and asset.',
+                style: TextStyle(color: Theme.of(context).colorScheme.error),
+              ),
+            if (job.status == 'on_hold')
+              Text(
+                '${es ? 'Bloqueado' : 'Blocked'}: ${job.data['on_hold_reason'] ?? ''}',
+              ),
+            const SizedBox(height: 8),
+            Wrap(
+              spacing: 8,
+              children: [
+                if (job.schedulable && job.start == null)
+                  FilledButton(
+                    onPressed: () => _schedule(job, jobs),
+                    child: Text(es ? 'Programar' : 'Schedule'),
+                  ),
+                if (!job.schedulable || job.start != null)
+                  FilledButton(
+                    onPressed: () => _open(job.route),
+                    child: Text(
+                      job.providerService
+                          ? (es
+                                ? 'Abrir orden de servicio'
+                                : 'Open service order')
+                          : job.schedulable
+                          ? (es ? 'Abrir trabajo' : 'Open work')
+                          : (es ? 'Continuar trabajo' : 'Continue work'),
+                    ),
+                  )
+                else
+                  TextButton(
+                    onPressed: () => _open(job.route),
+                    child: Text(es ? 'Abrir trabajo' : 'Open work'),
+                  ),
+                if (job.schedulable && job.start != null)
+                  TextButton(
+                    onPressed: () => _schedule(job, jobs),
+                    child: Text(es ? 'Reprogramar' : 'Reschedule'),
+                  ),
+              ],
+            ),
+          ],
+        ),
       ),
     ),
   );

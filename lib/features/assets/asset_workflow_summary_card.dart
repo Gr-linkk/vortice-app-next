@@ -24,10 +24,11 @@ class AssetWorkflowSummaryCard extends ConsumerWidget {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: context.appColors.surface,
         borderRadius: BorderRadius.circular(12),
-        border: const Border.fromBorderSide(
-            BorderSide(color: AppColors.cardBorder)),
+        border: Border.fromBorderSide(
+          BorderSide(color: context.appColors.cardBorder),
+        ),
       ),
       child: summaryAsync.when(
         loading: () => const Column(
@@ -38,14 +39,17 @@ class AssetWorkflowSummaryCard extends ConsumerWidget {
             LinearProgressIndicator(),
           ],
         ),
-        error: (_, __) => const Column(
+        error: (_, __) => Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            AssetWorkflowSummaryHeader(),
-            SizedBox(height: 8),
+            const AssetWorkflowSummaryHeader(),
+            const SizedBox(height: 8),
             Text(
               'Workflow summary unavailable.',
-              style: TextStyle(color: AppColors.textSecondary, fontSize: 12),
+              style: TextStyle(
+                color: context.appColors.textSecondary,
+                fontSize: 12,
+              ),
             ),
           ],
         ),
@@ -98,9 +102,9 @@ class AssetWorkflowSummaryHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     return Row(
       children: [
-        const Icon(
+        Icon(
           Icons.dashboard_customize_outlined,
-          color: AppColors.primary,
+          color: context.appColors.primary,
           size: 18,
         ),
         const SizedBox(width: 8),
@@ -134,15 +138,17 @@ class AssetWorkflowSummaryLine extends StatelessWidget {
           Icon(
             icon,
             size: 16,
-            color: highlight ? AppColors.warning : AppColors.textSecondary,
+            color: highlight
+                ? context.appColors.warning
+                : context.appColors.textSecondary,
           ),
           const SizedBox(width: 8),
           SizedBox(
             width: 132,
             child: Text(
               label,
-              style: const TextStyle(
-                color: AppColors.textSecondary,
+              style: TextStyle(
+                color: context.appColors.textSecondary,
                 fontSize: 12,
               ),
             ),
@@ -151,7 +157,9 @@ class AssetWorkflowSummaryLine extends StatelessWidget {
             child: Text(
               value,
               style: TextStyle(
-                color: highlight ? AppColors.warning : AppColors.textPrimary,
+                color: highlight
+                    ? context.appColors.warning
+                    : context.appColors.textPrimary,
                 fontSize: 12,
                 fontWeight: highlight ? FontWeight.w600 : FontWeight.normal,
               ),

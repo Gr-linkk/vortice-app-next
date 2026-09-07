@@ -5,12 +5,30 @@ import 'package:vortice_app/models/invoice.dart';
 import 'package:vortice_app/models/profile.dart';
 
 void main() {
+  test('uses the supplied dark palette', () {
+    expect(
+      invoiceStatusColor(AppPalette.dark, InvoiceStatus.paid),
+      AppPalette.dark.success,
+    );
+  });
   group('invoiceStatusColor', () {
     test('maps each invoice status to the expected theme color', () {
-      expect(invoiceStatusColor(InvoiceStatus.paid), AppColors.success);
-      expect(invoiceStatusColor(InvoiceStatus.sent), AppColors.warning);
-      expect(invoiceStatusColor(InvoiceStatus.draft), AppColors.textSecondary);
-      expect(invoiceStatusColor(InvoiceStatus.voided), AppColors.error);
+      expect(
+        invoiceStatusColor(AppPalette.light, InvoiceStatus.paid),
+        AppPalette.light.success,
+      );
+      expect(
+        invoiceStatusColor(AppPalette.light, InvoiceStatus.sent),
+        AppPalette.light.warning,
+      );
+      expect(
+        invoiceStatusColor(AppPalette.light, InvoiceStatus.draft),
+        AppPalette.light.textSecondary,
+      );
+      expect(
+        invoiceStatusColor(AppPalette.light, InvoiceStatus.voided),
+        AppPalette.light.error,
+      );
     });
   });
 
@@ -54,10 +72,7 @@ void main() {
         UserRole.operator,
       ]) {
         expect(
-          canMarkInvoicePaidFromList(
-            role: role,
-            status: InvoiceStatus.sent,
-          ),
+          canMarkInvoicePaidFromList(role: role, status: InvoiceStatus.sent),
           isFalse,
           reason: '$role should not see owner invoice payment actions',
         );
@@ -96,24 +111,15 @@ void main() {
 
   group('convertInvoiceAmount', () {
     test('returns zero for null USD', () {
-      expect(
-        convertInvoiceAmount(null, showMxn: false, exchangeRate: 20),
-        0,
-      );
+      expect(convertInvoiceAmount(null, showMxn: false, exchangeRate: 20), 0);
     });
 
     test('returns USD unchanged when not showing MXN', () {
-      expect(
-        convertInvoiceAmount(10, showMxn: false, exchangeRate: 20),
-        10,
-      );
+      expect(convertInvoiceAmount(10, showMxn: false, exchangeRate: 20), 10);
     });
 
     test('multiplies by exchange rate when showing MXN', () {
-      expect(
-        convertInvoiceAmount(10, showMxn: true, exchangeRate: 20.5),
-        205,
-      );
+      expect(convertInvoiceAmount(10, showMxn: true, exchangeRate: 20.5), 205);
     });
   });
 
@@ -138,10 +144,7 @@ void main() {
     });
 
     test('formats day/month/year', () {
-      expect(
-        formatInvoiceDate(DateTime(2026, 6, 12)),
-        '12/6/2026',
-      );
+      expect(formatInvoiceDate(DateTime(2026, 6, 12)), '12/6/2026');
     });
   });
 }

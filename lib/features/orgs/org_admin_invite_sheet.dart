@@ -44,7 +44,6 @@ class _OrgAdminInviteSheetState extends ConsumerState<OrgAdminInviteSheet> {
           content: Text(
             '${requiredCapability.label} must be enabled before inviting this role.',
           ),
-          backgroundColor: AppColors.warning,
         ),
       );
       return;
@@ -53,17 +52,18 @@ class _OrgAdminInviteSheetState extends ConsumerState<OrgAdminInviteSheet> {
     setState(() => _submitting = true);
 
     final code = OrgCodeController.generateCode();
-    final success =
-        await ref.read(orgCodeControllerProvider.notifier).createCode(
-              code: code,
-              intendedRole: _selectedRole,
-              maxUses: 1,
-              singleUse: true,
-              orgId: widget.orgId,
-              notes:
-                  'Invite for ${_nameCtrl.text.trim()} (${_emailCtrl.text.trim()})',
-              expiresAt: DateTime.now().add(const Duration(days: 7)),
-            );
+    final success = await ref
+        .read(orgCodeControllerProvider.notifier)
+        .createCode(
+          code: code,
+          intendedRole: _selectedRole,
+          maxUses: 1,
+          singleUse: true,
+          orgId: widget.orgId,
+          notes:
+              'Invite for ${_nameCtrl.text.trim()} (${_emailCtrl.text.trim()})',
+          expiresAt: DateTime.now().add(const Duration(days: 7)),
+        );
 
     setState(() => _submitting = false);
 
@@ -76,8 +76,8 @@ class _OrgAdminInviteSheetState extends ConsumerState<OrgAdminInviteSheet> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-              error?.toString() ?? 'Failed to create invite code. Try again.'),
-          backgroundColor: AppColors.error,
+            error?.toString() ?? 'Failed to create invite code. Try again.',
+          ),
         ),
       );
     }
@@ -91,33 +91,40 @@ class _OrgAdminInviteSheetState extends ConsumerState<OrgAdminInviteSheet> {
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Text(
+            Text(
               'Share this code with your team member to register:',
-              style: TextStyle(color: AppColors.textSecondary, fontSize: 13),
+              style: TextStyle(
+                color: context.appColors.textSecondary,
+                fontSize: 13,
+              ),
             ),
             const SizedBox(height: 16),
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
               decoration: BoxDecoration(
-                color: AppColors.surfaceVariant,
+                color: context.appColors.surfaceVariant,
                 borderRadius: BorderRadius.circular(12),
-                border:
-                    Border.all(color: AppColors.primary.withValues(alpha: 0.5)),
+                border: Border.all(
+                  color: context.appColors.primary.withValues(alpha: 0.5),
+                ),
               ),
               child: Text(
                 code,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 24,
                   fontWeight: FontWeight.bold,
                   letterSpacing: 4,
-                  color: AppColors.primary,
+                  color: context.appColors.primary,
                 ),
               ),
             ),
             const SizedBox(height: 12),
-            const Text(
+            Text(
               'Expires in 7 days. Single-use.',
-              style: TextStyle(color: AppColors.textSecondary, fontSize: 11),
+              style: TextStyle(
+                color: context.appColors.textSecondary,
+                fontSize: 11,
+              ),
             ),
           ],
         ),
@@ -133,50 +140,71 @@ class _OrgAdminInviteSheetState extends ConsumerState<OrgAdminInviteSheet> {
 
   @override
   Widget build(BuildContext context) {
-    final capabilitiesAsync =
-        ref.watch(clientCapabilitiesProvider(widget.ownerProfileId));
+    final capabilitiesAsync = ref.watch(
+      clientCapabilitiesProvider(widget.ownerProfileId),
+    );
 
     return capabilitiesAsync.when(
       loading: () => Padding(
         padding: EdgeInsets.fromLTRB(
-            16, 16, 16, MediaQuery.of(context).viewInsets.bottom + 16),
+          16,
+          16,
+          16,
+          MediaQuery.of(context).viewInsets.bottom + 16,
+        ),
         child: const Center(child: CircularProgressIndicator()),
       ),
       error: (err, _) => Padding(
         padding: EdgeInsets.fromLTRB(
-            16, 16, 16, MediaQuery.of(context).viewInsets.bottom + 16),
+          16,
+          16,
+          16,
+          MediaQuery.of(context).viewInsets.bottom + 16,
+        ),
         child: Text(
           err.toString(),
-          style: const TextStyle(color: AppColors.error),
+          style: TextStyle(color: context.appColors.error),
         ),
       ),
       data: (switchboard) {
-        final mechanicEnabled =
-            switchboard.isEnabled(ClientCapability.pmChecklists);
-        final operatorEnabled =
-            switchboard.isEnabled(ClientCapability.operationalChecklists);
-        final selectedCapability =
-            requiredCapabilityForInviteRole(_selectedRole);
+        final mechanicEnabled = switchboard.isEnabled(
+          ClientCapability.pmChecklists,
+        );
+        final operatorEnabled = switchboard.isEnabled(
+          ClientCapability.operationalChecklists,
+        );
+        final selectedCapability = requiredCapabilityForInviteRole(
+          _selectedRole,
+        );
         final selectedEnabled = switchboard.isEnabled(selectedCapability);
 
         return Padding(
           padding: EdgeInsets.fromLTRB(
-              16, 16, 16, MediaQuery.of(context).viewInsets.bottom + 16),
+            16,
+            16,
+            16,
+            MediaQuery.of(context).viewInsets.bottom + 16,
+          ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              const Text(
+              Text(
                 'Invite Team Member',
                 style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.textPrimary),
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                  color: context.appColors.textPrimary,
+                ),
               ),
               const SizedBox(height: 16),
-              const Text('Role',
-                  style:
-                      TextStyle(color: AppColors.textSecondary, fontSize: 12)),
+              Text(
+                'Role',
+                style: TextStyle(
+                  color: context.appColors.textSecondary,
+                  fontSize: 12,
+                ),
+              ),
               const SizedBox(height: 8),
               Row(
                 children: [
@@ -186,8 +214,9 @@ class _OrgAdminInviteSheetState extends ConsumerState<OrgAdminInviteSheet> {
                       selected: _selectedRole == 'client_mechanic',
                       enabled: mechanicEnabled,
                       onTap: mechanicEnabled
-                          ? () =>
-                              setState(() => _selectedRole = 'client_mechanic')
+                          ? () => setState(
+                              () => _selectedRole = 'client_mechanic',
+                            )
                           : null,
                     ),
                   ),
@@ -198,8 +227,9 @@ class _OrgAdminInviteSheetState extends ConsumerState<OrgAdminInviteSheet> {
                       selected: _selectedRole == 'client_operator',
                       enabled: operatorEnabled,
                       onTap: operatorEnabled
-                          ? () =>
-                              setState(() => _selectedRole = 'client_operator')
+                          ? () => setState(
+                              () => _selectedRole = 'client_operator',
+                            )
                           : null,
                     ),
                   ),
@@ -214,8 +244,8 @@ class _OrgAdminInviteSheetState extends ConsumerState<OrgAdminInviteSheet> {
                     if (!operatorEnabled)
                       'Enable Operational Checklists to invite operators.',
                   ].join('\n'),
-                  style: const TextStyle(
-                    color: AppColors.warning,
+                  style: TextStyle(
+                    color: context.appColors.warning,
                     fontSize: 12,
                   ),
                 ),
@@ -243,11 +273,13 @@ class _OrgAdminInviteSheetState extends ConsumerState<OrgAdminInviteSheet> {
                     ? null
                     : () => _sendInvite(switchboard),
                 icon: _submitting
-                    ? const SizedBox(
+                    ? SizedBox(
                         width: 16,
                         height: 16,
                         child: CircularProgressIndicator(
-                            strokeWidth: 2, color: Colors.white),
+                          strokeWidth: 2,
+                          color: context.appColors.onPrimary,
+                        ),
                       )
                     : const Icon(Icons.send),
                 label: const Text('Send Invite'),
@@ -282,17 +314,17 @@ class OrgAdminRoleChip extends StatelessWidget {
         padding: const EdgeInsets.symmetric(vertical: 12),
         decoration: BoxDecoration(
           color: !enabled
-              ? AppColors.surfaceVariant.withValues(alpha: 0.55)
+              ? context.appColors.surfaceVariant.withValues(alpha: 0.55)
               : selected
-                  ? AppColors.primary.withValues(alpha: 0.15)
-                  : AppColors.surfaceVariant,
+              ? context.appColors.primary.withValues(alpha: 0.15)
+              : context.appColors.surfaceVariant,
           borderRadius: BorderRadius.circular(10),
           border: Border.all(
             color: !enabled
-                ? AppColors.cardBorder.withValues(alpha: 0.4)
+                ? context.appColors.cardBorder.withValues(alpha: 0.4)
                 : selected
-                    ? AppColors.primary
-                    : AppColors.cardBorder,
+                ? context.appColors.primary
+                : context.appColors.cardBorder,
             width: selected ? 1.5 : 1,
           ),
         ),
@@ -301,10 +333,10 @@ class OrgAdminRoleChip extends StatelessWidget {
           textAlign: TextAlign.center,
           style: TextStyle(
             color: !enabled
-                ? AppColors.textSecondary.withValues(alpha: 0.5)
+                ? context.appColors.textSecondary.withValues(alpha: 0.5)
                 : selected
-                    ? AppColors.primary
-                    : AppColors.textSecondary,
+                ? context.appColors.primary
+                : context.appColors.textSecondary,
             fontWeight: selected ? FontWeight.w600 : FontWeight.normal,
             fontSize: 14,
           ),

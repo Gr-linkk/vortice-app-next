@@ -130,7 +130,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      backgroundColor: AppColors.surface,
+      backgroundColor: context.appColors.surface,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
       ),
@@ -144,7 +144,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 width: 40,
                 height: 4,
                 decoration: BoxDecoration(
-                  color: AppColors.divider,
+                  color: context.appColors.divider,
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
@@ -159,13 +159,13 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   ),
                 ),
               ),
-              const Padding(
-                padding: EdgeInsets.fromLTRB(16, 0, 16, 12),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
                 child: Text(
                   'Pick a tester persona. Capability chips are static hints for now.',
                   textAlign: TextAlign.center,
                   style: TextStyle(
-                    color: AppColors.textSecondary,
+                    color: context.appColors.textSecondary,
                     fontSize: 12,
                   ),
                 ),
@@ -200,10 +200,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     final authState = ref.read(authControllerProvider);
     if (authState.hasError && mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(friendlyError(context, authState.error)),
-          backgroundColor: AppColors.error,
-        ),
+        SnackBar(content: Text(friendlyError(context, authState.error))),
       );
     }
   }
@@ -220,8 +217,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
             padding: const EdgeInsets.fromLTRB(16, 18, 16, 6),
             child: Text(
               currentGroup.toUpperCase(),
-              style: const TextStyle(
-                color: AppColors.textSecondary,
+              style: TextStyle(
+                color: context.appColors.textSecondary,
                 fontSize: 11,
                 fontWeight: FontWeight.w700,
                 letterSpacing: 1.1,
@@ -255,9 +252,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
               children: [
                 Text(
                   acct.subtitle,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 11,
-                    color: AppColors.textSecondary,
+                    color: context.appColors.textSecondary,
                   ),
                 ),
                 const SizedBox(height: 6),
@@ -275,9 +272,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 const SizedBox(height: 4),
                 Text(
                   acct.email,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 10,
-                    color: AppColors.textSecondary,
+                    color: context.appColors.textSecondary,
                   ),
                 ),
               ],
@@ -322,17 +319,17 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                           width: 80,
                           height: 80,
                           decoration: BoxDecoration(
-                            color: AppColors.primary,
+                            color: context.appColors.primary,
                             borderRadius: BorderRadius.circular(20),
                           ),
-                          child: const Stack(
+                          child: Stack(
                             clipBehavior: Clip.none,
                             children: [
                               Center(
                                 child: Icon(
                                   Icons.engineering,
                                   size: 48,
-                                  color: Colors.white,
+                                  color: context.appColors.onPrimary,
                                 ),
                               ),
                             ],
@@ -350,7 +347,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     Text(
                       l10n.loginSubtitle,
                       style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: AppColors.textSecondary,
+                        color: context.appColors.textSecondary,
                       ),
                     ),
                   ],
@@ -418,12 +415,12 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     ElevatedButton(
                       onPressed: isLoading ? null : _submit,
                       child: isLoading
-                          ? const SizedBox(
+                          ? SizedBox(
                               width: 20,
                               height: 20,
                               child: CircularProgressIndicator(
                                 strokeWidth: 2,
-                                color: Colors.white,
+                                color: context.appColors.onPrimary,
                               ),
                             )
                           : Text(l10n.signIn),

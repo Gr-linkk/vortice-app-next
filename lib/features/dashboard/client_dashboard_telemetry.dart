@@ -1,3 +1,5 @@
+import 'package:vortice_app/features/assets/asset_type_provider.dart';
+import 'package:vortice_app/core/equipment_illustration.dart';
 import 'package:vortice_app/core/user_feedback.dart';
 import 'package:vortice_app/features/dashboard/dashboard_layout.dart';
 import 'package:flutter/material.dart';
@@ -104,25 +106,29 @@ class ClientDashboardTelemetry extends ConsumerWidget {
                       child: Container(
                         padding: const EdgeInsets.all(16),
                         decoration: BoxDecoration(
-                          color: AppColors.success.withValues(alpha: 0.1),
+                          color: context.appColors.success.withValues(
+                            alpha: 0.1,
+                          ),
                           borderRadius: BorderRadius.circular(12),
                           border: Border.all(
-                            color: AppColors.success.withValues(alpha: 0.3),
+                            color: context.appColors.success.withValues(
+                              alpha: 0.3,
+                            ),
                           ),
                         ),
-                        child: const Row(
+                        child: Row(
                           children: [
                             Icon(
                               Icons.check_circle,
-                              color: AppColors.success,
+                              color: context.appColors.success,
                               size: 22,
                             ),
-                            SizedBox(width: 12),
+                            const SizedBox(width: 12),
                             Expanded(
                               child: Text(
                                 'No active telemetry alerts',
                                 style: TextStyle(
-                                  color: AppColors.success,
+                                  color: context.appColors.success,
                                   fontWeight: FontWeight.w500,
                                 ),
                               ),
@@ -252,14 +258,14 @@ class _FleetHealthBar extends StatelessWidget {
 
   const _FleetHealthBar({required this.health});
 
-  Color get _statusColor {
-    if (health.activeAlertCount == 0) return AppColors.success;
-    return AppColors.warning;
+  Color _statusColor(BuildContext context) {
+    if (health.activeAlertCount == 0) return context.appColors.success;
+    return context.appColors.warning;
   }
 
   @override
   Widget build(BuildContext context) {
-    final color = _statusColor;
+    final color = _statusColor(context);
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -276,21 +282,21 @@ class _FleetHealthBar extends StatelessWidget {
             icon: Icons.directions_boat,
             value: '${health.vesselCount}',
             label: 'vessels',
-            color: AppColors.primary,
+            color: context.appColors.primary,
           ),
           _HealthStat(
             icon: Icons.warning_amber,
             value: '${health.activeAlertCount}',
             label: 'active alerts',
             color: health.activeAlertCount == 0
-                ? AppColors.success
-                : AppColors.warning,
+                ? context.appColors.success
+                : context.appColors.warning,
           ),
           _HealthStat(
             icon: Icons.schedule,
             value: '${health.upcomingServiceCount}',
             label: 'services',
-            color: AppColors.textSecondary,
+            color: context.appColors.textSecondary,
           ),
         ],
       ),
@@ -334,7 +340,10 @@ class _HealthStat extends StatelessWidget {
         const SizedBox(height: 2),
         Text(
           label,
-          style: const TextStyle(color: AppColors.textSecondary, fontSize: 11),
+          style: TextStyle(
+            color: context.appColors.textSecondary,
+            fontSize: 11,
+          ),
         ),
       ],
     );
@@ -349,10 +358,10 @@ class _FleetHealthSkeleton extends StatelessWidget {
     return Container(
       height: 72,
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: context.appColors.surface,
         borderRadius: BorderRadius.circular(16),
-        border: const Border.fromBorderSide(
-          BorderSide(color: AppColors.cardBorder),
+        border: Border.fromBorderSide(
+          BorderSide(color: context.appColors.cardBorder),
         ),
       ),
       child: const Center(child: CircularProgressIndicator()),
@@ -367,15 +376,15 @@ class _AlertTile extends ConsumerWidget {
 
   const _AlertTile({required this.alert});
 
-  Color get _severityColor => switch (alert.severity) {
-    AlertSeverity.critical => AppColors.error,
-    AlertSeverity.warning => AppColors.warning,
-    _ => AppColors.primary,
+  Color _severityColor(BuildContext context) => switch (alert.severity) {
+    AlertSeverity.critical => context.appColors.error,
+    AlertSeverity.warning => context.appColors.warning,
+    _ => context.appColors.primary,
   };
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final color = _severityColor;
+    final color = _severityColor(context);
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
       child: InkWell(
@@ -390,7 +399,7 @@ class _AlertTile extends ConsumerWidget {
         child: Container(
           padding: const EdgeInsets.all(14),
           decoration: BoxDecoration(
-            color: AppColors.surface,
+            color: context.appColors.surface,
             borderRadius: BorderRadius.circular(12),
             border: Border.all(color: color.withValues(alpha: 0.4)),
           ),
@@ -434,8 +443,8 @@ class _AlertTile extends ConsumerWidget {
                       const SizedBox(height: 2),
                       Text(
                         alert.message!,
-                        style: const TextStyle(
-                          color: AppColors.textSecondary,
+                        style: TextStyle(
+                          color: context.appColors.textSecondary,
                           fontSize: 12,
                         ),
                         maxLines: 1,
@@ -446,8 +455,8 @@ class _AlertTile extends ConsumerWidget {
                       const SizedBox(height: 2),
                       Text(
                         '${alert.value!.toStringAsFixed(1)} / threshold: ${alert.threshold!.toStringAsFixed(1)}',
-                        style: const TextStyle(
-                          color: AppColors.textSecondary,
+                        style: TextStyle(
+                          color: context.appColors.textSecondary,
                           fontSize: 11,
                         ),
                       ),
@@ -455,17 +464,17 @@ class _AlertTile extends ConsumerWidget {
                     const SizedBox(height: 4),
                     Text(
                       _formatAgo(alert.createdAt ?? DateTime.now()),
-                      style: const TextStyle(
-                        color: AppColors.textSecondary,
+                      style: TextStyle(
+                        color: context.appColors.textSecondary,
                         fontSize: 11,
                       ),
                     ),
                   ],
                 ),
               ),
-              const Icon(
+              Icon(
                 Icons.chevron_right,
-                color: AppColors.textSecondary,
+                color: context.appColors.textSecondary,
                 size: 18,
               ),
             ],
@@ -496,18 +505,27 @@ class _AlertTile extends ConsumerWidget {
 
 // ── Vessel Card ───────────────────────────────────────────────────────────────
 
-class _VesselCard extends StatelessWidget {
+class _VesselCard extends ConsumerWidget {
   final Asset asset;
   final WidgetRef ref;
 
   const _VesselCard({required this.asset, required this.ref});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final typeName = ref
+        .watch(assetTypesProvider)
+        .valueOrNull
+        ?.where((type) => type.id == asset.assetTypeId)
+        .firstOrNull
+        ?.name;
+
     // Check for alerts on this asset
     final alertsAsync = ref.watch(alertsForAssetProvider(asset.id));
     final alertCount = alertsAsync.valueOrNull?.length ?? 0;
-    final statusColor = alertCount == 0 ? AppColors.success : AppColors.warning;
+    final statusColor = alertCount == 0
+        ? context.appColors.success
+        : context.appColors.warning;
 
     return InkWell(
       onTap: () => context.push('/telemetry/vessel/${asset.id}'),
@@ -515,19 +533,19 @@ class _VesselCard extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
-          color: AppColors.surface,
+          color: context.appColors.surface,
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: AppColors.cardBorder),
+          border: Border.all(color: context.appColors.cardBorder),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
               children: [
-                const Icon(
-                  Icons.directions_boat,
-                  color: AppColors.primary,
-                  size: 22,
+                EquipmentIllustration(
+                  assetTypeId: asset.assetTypeId,
+                  typeName: typeName,
+                  size: 48,
                 ),
                 const Spacer(),
                 Container(
@@ -553,8 +571,8 @@ class _VesselCard extends StatelessWidget {
               const SizedBox(height: 2),
               Text(
                 '$alertCount alert${alertCount > 1 ? 's' : ''}',
-                style: const TextStyle(
-                  color: AppColors.warning,
+                style: TextStyle(
+                  color: context.appColors.warning,
                   fontSize: 11,
                   fontWeight: FontWeight.w500,
                 ),
@@ -579,10 +597,10 @@ class _MaintenanceTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final remaining = item.hoursRemaining;
     final color = remaining <= 0
-        ? AppColors.error
+        ? context.appColors.error
         : remaining <= 10
-        ? AppColors.warning
-        : AppColors.textSecondary;
+        ? context.appColors.warning
+        : context.appColors.textSecondary;
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
@@ -603,15 +621,15 @@ class _MaintenanceTile extends StatelessWidget {
         child: Container(
           padding: const EdgeInsets.all(14),
           decoration: BoxDecoration(
-            color: AppColors.surface,
+            color: context.appColors.surface,
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: AppColors.cardBorder),
+            border: Border.all(color: context.appColors.cardBorder),
           ),
           child: Row(
             children: [
-              const Icon(
+              Icon(
                 Icons.build_outlined,
-                color: AppColors.textSecondary,
+                color: context.appColors.textSecondary,
                 size: 20,
               ),
               const SizedBox(width: 12),
@@ -625,16 +643,16 @@ class _MaintenanceTile extends StatelessWidget {
                     ),
                     Text(
                       '${item.reminder.intervalHours} hr service',
-                      style: const TextStyle(
-                        color: AppColors.textSecondary,
+                      style: TextStyle(
+                        color: context.appColors.textSecondary,
                         fontSize: 12,
                       ),
                     ),
                     if (showPartsList && item.checklistTemplateId != null)
-                      const Text(
+                      Text(
                         'Tap to view parts list',
                         style: TextStyle(
-                          color: AppColors.primary,
+                          color: context.appColors.primary,
                           fontSize: 11,
                         ),
                       ),
@@ -653,10 +671,10 @@ class _MaintenanceTile extends StatelessWidget {
               ),
               if (showPartsList && item.checklistTemplateId != null) ...[
                 const SizedBox(width: 4),
-                const Icon(
+                Icon(
                   Icons.chevron_right,
                   size: 16,
-                  color: AppColors.primary,
+                  color: context.appColors.primary,
                 ),
               ],
             ],
@@ -674,16 +692,16 @@ class _InvoiceTile extends StatelessWidget {
 
   const _InvoiceTile({required this.invoice});
 
-  Color get _statusColor => switch (invoice.status) {
-    InvoiceStatus.paid => AppColors.success,
-    InvoiceStatus.sent => AppColors.warning,
-    InvoiceStatus.draft => AppColors.textSecondary,
-    InvoiceStatus.voided => AppColors.error,
+  Color _statusColor(BuildContext context) => switch (invoice.status) {
+    InvoiceStatus.paid => context.appColors.success,
+    InvoiceStatus.sent => context.appColors.warning,
+    InvoiceStatus.draft => context.appColors.textSecondary,
+    InvoiceStatus.voided => context.appColors.error,
   };
 
   @override
   Widget build(BuildContext context) {
-    final statusColor = _statusColor;
+    final statusColor = _statusColor(context);
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
       child: InkWell(
@@ -692,15 +710,15 @@ class _InvoiceTile extends StatelessWidget {
         child: Container(
           padding: const EdgeInsets.all(14),
           decoration: BoxDecoration(
-            color: AppColors.surface,
+            color: context.appColors.surface,
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: AppColors.cardBorder),
+            border: Border.all(color: context.appColors.cardBorder),
           ),
           child: Row(
             children: [
-              const Icon(
+              Icon(
                 Icons.receipt_long_outlined,
-                color: AppColors.primary,
+                color: context.appColors.primary,
                 size: 22,
               ),
               const SizedBox(width: 12),
@@ -717,8 +735,8 @@ class _InvoiceTile extends StatelessWidget {
                     if (invoice.totalUsd != null)
                       Text(
                         '\$${invoice.totalUsd!.toStringAsFixed(2)} USD',
-                        style: const TextStyle(
-                          color: AppColors.textSecondary,
+                        style: TextStyle(
+                          color: context.appColors.textSecondary,
                           fontSize: 12,
                         ),
                       ),
@@ -741,9 +759,9 @@ class _InvoiceTile extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: 4),
-              const Icon(
+              Icon(
                 Icons.chevron_right,
-                color: AppColors.textSecondary,
+                color: context.appColors.textSecondary,
                 size: 20,
               ),
             ],
@@ -778,7 +796,7 @@ class _ErrorTile extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       child: Text(
         message,
-        style: const TextStyle(color: AppColors.error, fontSize: 13),
+        style: TextStyle(color: context.appColors.error, fontSize: 13),
       ),
     );
   }
@@ -796,21 +814,21 @@ class _EmptyStateTile extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: AppColors.surface,
+          color: context.appColors.surface,
           borderRadius: BorderRadius.circular(12),
-          border: const Border.fromBorderSide(
-            BorderSide(color: AppColors.cardBorder),
+          border: Border.fromBorderSide(
+            BorderSide(color: context.appColors.cardBorder),
           ),
         ),
         child: Row(
           children: [
-            Icon(icon, color: AppColors.textSecondary, size: 20),
+            Icon(icon, color: context.appColors.textSecondary, size: 20),
             const SizedBox(width: 12),
             Expanded(
               child: Text(
                 message,
-                style: const TextStyle(
-                  color: AppColors.textSecondary,
+                style: TextStyle(
+                  color: context.appColors.textSecondary,
                   fontSize: 13,
                 ),
               ),

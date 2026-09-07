@@ -97,7 +97,7 @@ class _EngineFormState extends ConsumerState<EngineForm> {
                   width: 40,
                   height: 4,
                   decoration: BoxDecoration(
-                    color: AppColors.textSecondary,
+                    color: context.appColors.textSecondary,
                     borderRadius: BorderRadius.circular(2),
                   ),
                 ),
@@ -111,7 +111,7 @@ class _EngineFormState extends ConsumerState<EngineForm> {
               AppDropdownField<String>(
                 initialValue: _kind,
                 decoration: const InputDecoration(labelText: 'Title'),
-                dropdownColor: AppColors.surfaceVariant,
+                dropdownColor: context.appColors.surfaceVariant,
                 items: kEngineKindOptions
                     .map(
                       (option) => DropdownMenuItem(
@@ -141,9 +141,12 @@ class _EngineFormState extends ConsumerState<EngineForm> {
                 decoration: InputDecoration(labelText: l10n.serialNumber),
               ),
               const SizedBox(height: 12),
-              const Text(
+              Text(
                 'Hours are pulled from the most recent work order for this engine.',
-                style: TextStyle(color: AppColors.textSecondary, fontSize: 12),
+                style: TextStyle(
+                  color: context.appColors.textSecondary,
+                  fontSize: 12,
+                ),
               ),
               const SizedBox(height: 20),
               ElevatedButton(

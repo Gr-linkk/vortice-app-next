@@ -23,19 +23,17 @@ class PreTripResultsScreen extends ConsumerWidget {
     final runsAsync = ref.watch(operatorRunsForAssetProvider(assetId));
 
     return Scaffold(
-      appBar: AppBar(
-        title: Text(l10n.preTripResults),
-      ),
+      appBar: AppBar(title: Text(l10n.preTripResults)),
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // Asset header
           Container(
             padding: const EdgeInsets.all(16),
-            color: AppColors.surfaceVariant,
+            color: context.appColors.surfaceVariant,
             child: Row(
               children: [
-                const Icon(Icons.directions_boat, color: AppColors.primary),
+                Icon(Icons.directions_boat, color: context.appColors.primary),
                 const SizedBox(width: 12),
                 Expanded(
                   child: Text(
@@ -52,8 +50,10 @@ class PreTripResultsScreen extends ConsumerWidget {
             child: runsAsync.when(
               loading: () => const Center(child: CircularProgressIndicator()),
               error: (err, _) => Center(
-                child: Text(friendlyError(context, err),
-                    style: const TextStyle(color: AppColors.error)),
+                child: Text(
+                  friendlyError(context, err),
+                  style: TextStyle(color: context.appColors.error),
+                ),
               ),
               data: (runs) {
                 if (runs.isEmpty) {
@@ -61,13 +61,17 @@ class PreTripResultsScreen extends ConsumerWidget {
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        const Icon(Icons.checklist,
-                            size: 48, color: AppColors.textSecondary),
+                        Icon(
+                          Icons.checklist,
+                          size: 48,
+                          color: context.appColors.textSecondary,
+                        ),
                         const SizedBox(height: 12),
                         Text(
                           l10n.noPreTripChecks,
-                          style:
-                              const TextStyle(color: AppColors.textSecondary),
+                          style: TextStyle(
+                            color: context.appColors.textSecondary,
+                          ),
                         ),
                       ],
                     ),
@@ -108,11 +112,13 @@ class _ChecklistRunCard extends ConsumerWidget {
       child: ExpansionTile(
         leading: CircleAvatar(
           backgroundColor: hasFlagged
-              ? AppColors.warning.withValues(alpha: 0.15)
-              : AppColors.success.withValues(alpha: 0.15),
+              ? context.appColors.warning.withValues(alpha: 0.15)
+              : context.appColors.success.withValues(alpha: 0.15),
           child: Icon(
             hasFlagged ? Icons.warning_amber_rounded : Icons.check_circle,
-            color: hasFlagged ? AppColors.warning : AppColors.success,
+            color: hasFlagged
+                ? context.appColors.warning
+                : context.appColors.success,
             size: 20,
           ),
         ),
@@ -125,8 +131,10 @@ class _ChecklistRunCard extends ConsumerWidget {
           children: [
             Text(
               l10n.preDeparture,
-              style:
-                  const TextStyle(color: AppColors.textSecondary, fontSize: 12),
+              style: TextStyle(
+                color: context.appColors.textSecondary,
+                fontSize: 12,
+              ),
             ),
             const SizedBox(height: 4),
             Row(
@@ -134,14 +142,14 @@ class _ChecklistRunCard extends ConsumerWidget {
                 _StatBadge(
                   icon: Icons.check,
                   label: '$passedCount',
-                  color: AppColors.success,
+                  color: context.appColors.success,
                 ),
                 const SizedBox(width: 8),
                 if (flaggedCount > 0)
                   _StatBadge(
                     icon: Icons.warning_amber,
                     label: '$flaggedCount',
-                    color: AppColors.warning,
+                    color: context.appColors.warning,
                   ),
               ],
             ),
@@ -157,14 +165,17 @@ class _ChecklistRunCard extends ConsumerWidget {
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Icon(Icons.notes,
-                      size: 16, color: AppColors.textSecondary),
+                  Icon(
+                    Icons.notes,
+                    size: 16,
+                    color: context.appColors.textSecondary,
+                  ),
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
                       run.notes!,
-                      style: const TextStyle(
-                        color: AppColors.textSecondary,
+                      style: TextStyle(
+                        color: context.appColors.textSecondary,
                         fontSize: 13,
                       ),
                     ),
@@ -219,7 +230,10 @@ class _StatBadge extends StatelessWidget {
           Text(
             label,
             style: TextStyle(
-                color: color, fontSize: 11, fontWeight: FontWeight.bold),
+              color: color,
+              fontSize: 11,
+              fontWeight: FontWeight.bold,
+            ),
           ),
         ],
       ),
@@ -235,18 +249,21 @@ class _ResponseTile extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     // Try to get the checklist item description
     final itemsAsync = ref.watch(allChecklistItemsProvider);
-    final itemDescription = itemsAsync.whenOrNull(
-      data: (items) {
-        final item =
-            items.where((i) => i.id == response.checklistItemId).firstOrNull;
-        return item?.descriptionEn;
-      },
-    ) as String?;
+    final itemDescription =
+        itemsAsync.whenOrNull(
+              data: (items) {
+                final item = items
+                    .where((i) => i.id == response.checklistItemId)
+                    .firstOrNull;
+                return item?.descriptionEn;
+              },
+            )
+            as String?;
 
     final color = switch (response.result) {
-      'good' => AppColors.success,
-      'needs_attention' => AppColors.warning,
-      _ => AppColors.textSecondary,
+      'good' => context.appColors.success,
+      'needs_attention' => context.appColors.warning,
+      _ => context.appColors.textSecondary,
     };
 
     final icon = switch (response.result) {
@@ -265,8 +282,10 @@ class _ResponseTile extends ConsumerWidget {
       subtitle: response.notes != null && response.notes!.isNotEmpty
           ? Text(
               response.notes!,
-              style:
-                  const TextStyle(color: AppColors.textSecondary, fontSize: 11),
+              style: TextStyle(
+                color: context.appColors.textSecondary,
+                fontSize: 11,
+              ),
             )
           : null,
     );

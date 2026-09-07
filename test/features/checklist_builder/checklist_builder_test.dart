@@ -61,6 +61,23 @@ class BuilderFixture extends ChecklistBuilderRepository {
   }
 }
 
+Future<void> reveal(WidgetTester tester, Finder target) async {
+  final scroll = find
+      .descendant(
+        of: find.byType(ListView).last,
+        matching: find.byType(Scrollable),
+      )
+      .first;
+  if (target.evaluate().isEmpty) {
+    final state = tester.state<ScrollableState>(scroll);
+    state.position.jumpTo(state.position.minScrollExtent);
+    await tester.pump();
+    await tester.scrollUntilVisible(target, 180, scrollable: scroll);
+  }
+  await Scrollable.ensureVisible(tester.element(target.last), alignment: .5);
+  await tester.pumpAndSettle();
+}
+
 void main() {
   setUpAll(loadFleetScreenshotFonts);
   test('numeric range and NA rules cannot be bypassed by a pass result', () {
@@ -180,15 +197,15 @@ void main() {
       );
       expect(tester.takeException(), isNull);
       await captureFleet(tester, 'builder-library-es-320');
-      await tester.ensureVisible(find.text('Crear lista'));
+      await reveal(tester, find.text('Crear lista'));
       await tester.tap(find.text('Crear lista'));
       await tester.pumpAndSettle();
       expect(tester.takeException(), isNull);
       await captureFleet(tester, 'builder-editor-es-320');
-      await tester.ensureVisible(find.text('Añadir paso'));
+      await reveal(tester, find.text('Añadir paso'));
       await tester.tap(find.text('Añadir paso'));
       await tester.pumpAndSettle();
-      await tester.ensureVisible(find.text('Guardar paso'));
+      await reveal(tester, find.text('Guardar paso'));
       await tester.pumpAndSettle();
       await tester.drag(find.byType(ListView).last, const Offset(0, -160));
       await tester.pumpAndSettle();
@@ -196,8 +213,8 @@ void main() {
       await tester.tap(find.text('Guardar paso'));
       await tester.pumpAndSettle();
       expect(tester.takeException(), isNull);
+      await reveal(tester, find.text('Describe el paso'));
       expect(find.text('Describe el paso'), findsOneWidget);
-      await tester.ensureVisible(find.text('Describe el paso'));
       await tester.pumpAndSettle();
       await captureFleet(tester, 'builder-step-es-320');
     },
@@ -214,17 +231,17 @@ void main() {
           checklistBuilderRepositoryProvider.overrideWithValue(repository),
         ],
       );
-      await tester.ensureVisible(find.text('Save draft'));
+      await reveal(tester, find.text('Save draft'));
       await tester.tap(find.text('Save draft'));
       await tester.pumpAndSettle();
       expect(repository.calls, hasLength(1));
       repository.fail = false;
-      await tester.ensureVisible(find.text('Retry same save'));
+      await reveal(tester, find.text('Retry same save'));
       await tester.tap(find.text('Retry same save'));
       await tester.pumpAndSettle();
       expect(repository.calls, hasLength(2));
       expect(repository.calls[0], repository.calls[1]);
-      await tester.ensureVisible(find.text('Publish version'));
+      await reveal(tester, find.text('Publish version'));
       await tester.tap(find.text('Publish version'));
       await tester.pumpAndSettle();
       expect(repository.calls.last['action'], 'publish');

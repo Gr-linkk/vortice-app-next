@@ -35,7 +35,9 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
 
-    await ref.read(authControllerProvider.notifier).signUp(
+    await ref
+        .read(authControllerProvider.notifier)
+        .signUp(
           email: _emailCtrl.text.trim(),
           password: _passwordCtrl.text,
           orgCode: _orgCodeCtrl.text.trim(),
@@ -46,14 +48,12 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
     if (authState.hasError && mounted) {
       final err = authState.error.toString();
       final l10n = AppLocalizations.of(context);
-      final message =
-          err.contains('invalidOrgCode') ? l10n.invalidOrgCode : err;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(message),
-          backgroundColor: AppColors.error,
-        ),
-      );
+      final message = err.contains('invalidOrgCode')
+          ? l10n.invalidOrgCode
+          : err;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(message)));
     }
   }
 
@@ -80,10 +80,9 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
               children: [
                 Text(
                   l10n.registerSubtitle,
-                  style: Theme.of(context)
-                      .textTheme
-                      .bodyMedium
-                      ?.copyWith(color: AppColors.textSecondary),
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    color: context.appColors.textSecondary,
+                  ),
                 ),
                 const SizedBox(height: 20),
 
@@ -98,7 +97,9 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                     helperText: l10n.orgCodeHelper,
                   ),
                   validator: (v) {
-                    if (v == null || v.trim().isEmpty) return l10n.fieldRequired;
+                    if (v == null || v.trim().isEmpty) {
+                      return l10n.fieldRequired;
+                    }
                     return null;
                   },
                 ),
@@ -115,7 +116,9 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                     prefixIcon: const Icon(Icons.person_outline),
                   ),
                   validator: (v) {
-                    if (v == null || v.trim().isEmpty) return l10n.fieldRequired;
+                    if (v == null || v.trim().isEmpty) {
+                      return l10n.fieldRequired;
+                    }
                     return null;
                   },
                 ),
@@ -132,7 +135,9 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                     prefixIcon: const Icon(Icons.email_outlined),
                   ),
                   validator: (v) {
-                    if (v == null || v.trim().isEmpty) return l10n.fieldRequired;
+                    if (v == null || v.trim().isEmpty) {
+                      return l10n.fieldRequired;
+                    }
                     if (!v.contains('@')) return l10n.invalidEmail;
                     return null;
                   },
@@ -149,9 +154,11 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                     labelText: l10n.password,
                     prefixIcon: const Icon(Icons.lock_outline),
                     suffixIcon: IconButton(
-                      icon: Icon(_obscurePassword
-                          ? Icons.visibility_outlined
-                          : Icons.visibility_off_outlined),
+                      icon: Icon(
+                        _obscurePassword
+                            ? Icons.visibility_outlined
+                            : Icons.visibility_off_outlined,
+                      ),
                       onPressed: () =>
                           setState(() => _obscurePassword = !_obscurePassword),
                     ),
@@ -174,16 +181,20 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                     labelText: l10n.confirmPassword,
                     prefixIcon: const Icon(Icons.lock_outline),
                     suffixIcon: IconButton(
-                      icon: Icon(_obscureConfirm
-                          ? Icons.visibility_outlined
-                          : Icons.visibility_off_outlined),
+                      icon: Icon(
+                        _obscureConfirm
+                            ? Icons.visibility_outlined
+                            : Icons.visibility_off_outlined,
+                      ),
                       onPressed: () =>
                           setState(() => _obscureConfirm = !_obscureConfirm),
                     ),
                   ),
                   validator: (v) {
                     if (v == null || v.isEmpty) return l10n.fieldRequired;
-                    if (v != _passwordCtrl.text) return l10n.passwordsDoNotMatch;
+                    if (v != _passwordCtrl.text) {
+                      return l10n.passwordsDoNotMatch;
+                    }
                     return null;
                   },
                 ),
@@ -192,12 +203,12 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                 ElevatedButton(
                   onPressed: isLoading ? null : _submit,
                   child: isLoading
-                      ? const SizedBox(
+                      ? SizedBox(
                           width: 20,
                           height: 20,
                           child: CircularProgressIndicator(
                             strokeWidth: 2,
-                            color: Colors.white,
+                            color: context.appColors.onPrimary,
                           ),
                         )
                       : Text(l10n.createAccount),
@@ -208,7 +219,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                   children: [
                     Text(
                       l10n.alreadyHaveAccount,
-                      style: const TextStyle(color: AppColors.textSecondary),
+                      style: TextStyle(color: context.appColors.textSecondary),
                     ),
                     TextButton(
                       onPressed: () => context.pop(),

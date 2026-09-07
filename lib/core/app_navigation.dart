@@ -97,8 +97,8 @@ List<AppDestination> toolDestinations(UserRole role) {
       ),
     if (canUseMaintenance(role))
       const AppDestination(
-        'All work',
-        'Todo el trabajo',
+        'Work orders',
+        'Órdenes de trabajo',
         Icons.build_outlined,
         '/maintenance',
         description: 'Find active work, reports and completed jobs',
@@ -214,11 +214,10 @@ List<AppDestination> toolDestinations(UserRole role) {
 
 int selectedDestination(List<AppDestination> items, String location) {
   final path = Uri.parse(location).path;
-  if (path == '/maintenance' || path.startsWith('/maintenance/')) {
-    final planning = items.indexWhere(
-      (item) => item.route == '/maintenance/planning',
-    );
-    if (planning >= 0) return planning;
+  if (path == '/maintenance/assets' ||
+      path.startsWith('/maintenance/assets/')) {
+    final assets = items.indexWhere((item) => item.route.endsWith('/assets'));
+    if (assets >= 0) return assets;
   }
   for (var i = 0; i < items.length; i++) {
     if (path == items[i].route || path.startsWith('${items[i].route}/')) {

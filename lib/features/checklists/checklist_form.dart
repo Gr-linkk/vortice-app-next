@@ -79,8 +79,9 @@ class _ChecklistFormState extends ConsumerState<ChecklistForm> {
   @override
   void initState() {
     super.initState();
-    _hoursCtrl =
-        TextEditingController(text: widget.currentHours?.toString() ?? '');
+    _hoursCtrl = TextEditingController(
+      text: widget.currentHours?.toString() ?? '',
+    );
     _notesCtrl = TextEditingController(text: widget.generalNotes ?? '');
   }
 
@@ -105,7 +106,8 @@ class _ChecklistFormState extends ConsumerState<ChecklistForm> {
     );
     if (time == null) return;
     widget.onCompletedAtChanged(
-        DateTime(date.year, date.month, date.day, time.hour, time.minute));
+      DateTime(date.year, date.month, date.day, time.hour, time.minute),
+    );
   }
 
   Future<void> _retrySync() async {
@@ -117,19 +119,13 @@ class _ChecklistFormState extends ConsumerState<ChecklistForm> {
     if (state.hasError) {
       final error = state.error;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Checklist sync still pending: $error'),
-          backgroundColor: AppColors.warning,
-        ),
+        SnackBar(content: Text('Checklist sync still pending: $error')),
       );
       return;
     }
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Checklist sync retried.'),
-        backgroundColor: AppColors.success,
-      ),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(const SnackBar(content: Text('Checklist sync retried.')));
   }
 
   @override
@@ -141,9 +137,9 @@ class _ChecklistFormState extends ConsumerState<ChecklistForm> {
     final isLoading = ref.watch(checklistControllerProvider).isLoading;
     final List<ChecklistResponse> checklistResponses = widget.showSyncStatus
         ? ref
-                .watch(checklistResponsesProvider(widget.workOrderId))
-                .valueOrNull ??
-            const <ChecklistResponse>[]
+                  .watch(checklistResponsesProvider(widget.workOrderId))
+                  .valueOrNull ??
+              const <ChecklistResponse>[]
         : const <ChecklistResponse>[];
     final syncStatusByItem = {
       for (final response in checklistResponses)
@@ -174,10 +170,10 @@ class _ChecklistFormState extends ConsumerState<ChecklistForm> {
       ),
       Container(
         padding: const EdgeInsets.all(12),
-        color: AppColors.surfaceVariant,
+        color: context.appColors.surfaceVariant,
         child: Row(
           children: [
-            const Icon(Icons.checklist, color: AppColors.primary, size: 18),
+            Icon(Icons.checklist, color: context.appColors.primary, size: 18),
             const SizedBox(width: 8),
             Expanded(
               child: Column(
@@ -194,8 +190,8 @@ class _ChecklistFormState extends ConsumerState<ChecklistForm> {
                       child: Text(
                         widget.metadataCaption!,
                         style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                              color: AppColors.textSecondary,
-                            ),
+                          color: context.appColors.textSecondary,
+                        ),
                       ),
                     ),
                 ],
@@ -222,8 +218,10 @@ class _ChecklistFormState extends ConsumerState<ChecklistForm> {
           child: itemsAsync.when(
             loading: () => const Center(child: CircularProgressIndicator()),
             error: (err, _) => Center(
-              child: Text(friendlyError(context, err),
-                  style: const TextStyle(color: AppColors.error)),
+              child: Text(
+                friendlyError(context, err),
+                style: TextStyle(color: context.appColors.error),
+              ),
             ),
             data: (items) => ListView(
               padding: const EdgeInsets.only(bottom: 8),
@@ -269,15 +267,18 @@ class _ChecklistFormState extends ConsumerState<ChecklistForm> {
           child: ElevatedButton.icon(
             onPressed: isLoading ? null : widget.onSubmit,
             icon: isLoading
-                ? const SizedBox(
+                ? SizedBox(
                     width: 16,
                     height: 16,
                     child: CircularProgressIndicator(
-                        strokeWidth: 2, color: Colors.white))
+                      strokeWidth: 2,
+                      color: context.appColors.onPrimary,
+                    ),
+                  )
                 : const Icon(Icons.check),
             label: Text(l10n.submitChecklist),
             style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.success,
+              backgroundColor: context.appColors.success,
               minimumSize: const Size.fromHeight(48),
             ),
           ),

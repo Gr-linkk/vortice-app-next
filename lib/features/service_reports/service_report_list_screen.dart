@@ -40,11 +40,11 @@ class ServiceReportListScreen extends ConsumerWidget {
     );
 
     if (!canView) {
-      return const Scaffold(
+      return Scaffold(
         body: Center(
           child: Text(
             'Service reports are not available for this role.',
-            style: TextStyle(color: AppColors.textSecondary),
+            style: TextStyle(color: context.appColors.textSecondary),
           ),
         ),
       );
@@ -114,12 +114,14 @@ class ServiceReportListScreen extends ConsumerWidget {
                   Icon(
                     Icons.description_outlined,
                     size: 56,
-                    color: AppColors.textSecondary.withValues(alpha: 0.4),
+                    color: context.appColors.textSecondary.withValues(
+                      alpha: 0.4,
+                    ),
                   ),
                   const SizedBox(height: 12),
                   Text(
                     l10n.noServiceReports,
-                    style: const TextStyle(color: AppColors.textSecondary),
+                    style: TextStyle(color: context.appColors.textSecondary),
                   ),
                   if (canCreateForWorkOrder) ...[
                     const SizedBox(height: 16),
@@ -182,9 +184,9 @@ class _MaintenanceReportCard extends StatelessWidget {
       margin: EdgeInsets.zero,
       child: ListTile(
         contentPadding: const EdgeInsets.all(14),
-        leading: const Icon(
+        leading: Icon(
           Icons.description_outlined,
-          color: AppColors.primary,
+          color: context.appColors.primary,
         ),
         title: Text(job.title, maxLines: 2, overflow: TextOverflow.ellipsis),
         subtitle: Padding(
@@ -224,9 +226,9 @@ class _ReportCard extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
-          color: AppColors.surface,
+          color: context.appColors.surface,
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: AppColors.cardBorder),
+          border: Border.all(color: context.appColors.cardBorder),
         ),
         child: Row(
           children: [
@@ -234,12 +236,12 @@ class _ReportCard extends StatelessWidget {
               width: 42,
               height: 42,
               decoration: BoxDecoration(
-                color: AppColors.primary.withValues(alpha: 0.1),
+                color: context.appColors.primary.withValues(alpha: 0.1),
                 shape: BoxShape.circle,
               ),
-              child: const Icon(
+              child: Icon(
                 Icons.description_outlined,
-                color: AppColors.primary,
+                color: context.appColors.primary,
                 size: 20,
               ),
             ),
@@ -253,8 +255,8 @@ class _ReportCard extends StatelessWidget {
                       Expanded(
                         child: Text(
                           'Report — ${report.workOrderId.substring(0, 8).toUpperCase()}',
-                          style: const TextStyle(
-                            color: AppColors.textPrimary,
+                          style: TextStyle(
+                            color: context.appColors.textPrimary,
                             fontWeight: FontWeight.w600,
                             fontSize: 14,
                           ),
@@ -271,22 +273,24 @@ class _ReportCard extends StatelessWidget {
                             vertical: 2,
                           ),
                           decoration: BoxDecoration(
-                            color: AppColors.success.withValues(alpha: 0.12),
+                            color: context.appColors.success.withValues(
+                              alpha: 0.12,
+                            ),
                             borderRadius: BorderRadius.circular(20),
                           ),
-                          child: const Row(
+                          child: Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
                               Icon(
                                 Icons.draw_outlined,
                                 size: 10,
-                                color: AppColors.success,
+                                color: context.appColors.success,
                               ),
-                              SizedBox(width: 3),
+                              const SizedBox(width: 3),
                               Text(
                                 'Signed',
                                 style: TextStyle(
-                                  color: AppColors.success,
+                                  color: context.appColors.success,
                                   fontSize: 10,
                                   fontWeight: FontWeight.w600,
                                 ),
@@ -302,24 +306,24 @@ class _ReportCard extends StatelessWidget {
                       report.complaint!,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        color: AppColors.textSecondary,
+                      style: TextStyle(
+                        color: context.appColors.textSecondary,
                         fontSize: 12,
                       ),
                     ),
                   const SizedBox(height: 4),
                   Row(
                     children: [
-                      const Icon(
+                      Icon(
                         Icons.calendar_today_outlined,
                         size: 11,
-                        color: AppColors.textSecondary,
+                        color: context.appColors.textSecondary,
                       ),
                       const SizedBox(width: 4),
                       Text(
                         date,
-                        style: const TextStyle(
-                          color: AppColors.textSecondary,
+                        style: TextStyle(
+                          color: context.appColors.textSecondary,
                           fontSize: 11,
                         ),
                       ),
@@ -329,9 +333,9 @@ class _ReportCard extends StatelessWidget {
               ),
             ),
             const SizedBox(width: 8),
-            const Icon(
+            Icon(
               Icons.chevron_right,
-              color: AppColors.textSecondary,
+              color: context.appColors.textSecondary,
               size: 20,
             ),
           ],
@@ -351,7 +355,9 @@ class _ReportSyncChip extends StatelessWidget {
     final isFailed =
         syncStatus == SyncStatusValues.failed ||
         syncStatus == SyncStatusValues.conflict;
-    final color = isFailed ? AppColors.error : AppColors.warning;
+    final color = isFailed
+        ? context.appColors.error
+        : context.appColors.warning;
     final label = isFailed ? 'Sync failed' : 'Pending sync';
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),

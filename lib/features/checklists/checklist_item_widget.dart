@@ -172,8 +172,8 @@ class _ChecklistItemWidgetState extends State<ChecklistItemWidget> {
               const SizedBox(height: 2),
               Text(
                 widget.item.descriptionEs!,
-                style: const TextStyle(
-                  color: AppColors.textSecondary,
+                style: TextStyle(
+                  color: context.appColors.textSecondary,
                   fontSize: 12,
                   fontStyle: FontStyle.italic,
                 ),
@@ -186,7 +186,7 @@ class _ChecklistItemWidgetState extends State<ChecklistItemWidget> {
                   label: 'PASS',
                   value: 'pass',
                   current: status,
-                  color: AppColors.success,
+                  color: context.appColors.success,
                   onTap: () =>
                       widget.onStatusChanged(status == 'pass' ? null : 'pass'),
                 ),
@@ -195,7 +195,7 @@ class _ChecklistItemWidgetState extends State<ChecklistItemWidget> {
                   label: 'MONITOR',
                   value: 'monitor',
                   current: status,
-                  color: AppColors.warning,
+                  color: context.appColors.warning,
                   onTap: () => widget.onStatusChanged(
                     status == 'monitor' || status == 'alert' ? null : 'monitor',
                   ),
@@ -205,7 +205,7 @@ class _ChecklistItemWidgetState extends State<ChecklistItemWidget> {
                   label: 'ACTION',
                   value: 'action',
                   current: status,
-                  color: AppColors.error,
+                  color: context.appColors.error,
                   onTap: () => widget.onStatusChanged(
                     status == 'action' ? null : 'action',
                   ),
@@ -215,7 +215,7 @@ class _ChecklistItemWidgetState extends State<ChecklistItemWidget> {
                   label: 'N/A',
                   value: 'n/a',
                   current: status,
-                  color: AppColors.textSecondary,
+                  color: context.appColors.textSecondary,
                   onTap: () =>
                       widget.onStatusChanged(status == 'n/a' ? null : 'n/a'),
                 ),
@@ -232,14 +232,14 @@ class _ChecklistItemWidgetState extends State<ChecklistItemWidget> {
                           controller: _noteCtrl,
                           maxLines: 2,
                           style: const TextStyle(fontSize: 13),
-                          decoration: const InputDecoration(
+                          decoration: InputDecoration(
                             hintText: 'Describe issue / action required',
                             hintStyle: TextStyle(
-                              color: AppColors.textSecondary,
+                              color: context.appColors.textSecondary,
                               fontSize: 12,
                             ),
                             isDense: true,
-                            contentPadding: EdgeInsets.symmetric(
+                            contentPadding: const EdgeInsets.symmetric(
                               horizontal: 10,
                               vertical: 8,
                             ),
@@ -350,7 +350,7 @@ class _ChecklistPhotoTile extends StatelessWidget {
           top: -6,
           right: -6,
           child: IconButton(
-            icon: const Icon(Icons.close, size: 16, color: AppColors.error),
+            icon: Icon(Icons.close, size: 16, color: context.appColors.error),
             onPressed: onRemove,
             padding: EdgeInsets.zero,
             constraints: const BoxConstraints(minWidth: 24, minHeight: 24),
@@ -400,9 +400,13 @@ class ChecklistPhotoPlaceholder extends StatelessWidget {
     return Container(
       width: 60,
       height: 60,
-      color: AppColors.surfaceVariant,
+      color: context.appColors.surfaceVariant,
       alignment: Alignment.center,
-      child: const Icon(Icons.photo, size: 20, color: AppColors.textSecondary),
+      child: Icon(
+        Icons.photo,
+        size: 20,
+        color: context.appColors.textSecondary,
+      ),
     );
   }
 }
@@ -436,10 +440,10 @@ class ChecklistStatusButton extends StatelessWidget {
           decoration: BoxDecoration(
             color: selected
                 ? color.withValues(alpha: 0.18)
-                : AppColors.surfaceVariant,
+                : context.appColors.surfaceVariant,
             borderRadius: BorderRadius.circular(8),
             border: Border.all(
-              color: selected ? color : AppColors.divider,
+              color: selected ? color : context.appColors.divider,
               width: selected ? 1.5 : 1,
             ),
           ),
@@ -447,7 +451,7 @@ class ChecklistStatusButton extends StatelessWidget {
           child: Text(
             label,
             style: TextStyle(
-              color: selected ? color : AppColors.textSecondary,
+              color: selected ? color : context.appColors.textSecondary,
               fontWeight: FontWeight.bold,
               fontSize: 12,
             ),

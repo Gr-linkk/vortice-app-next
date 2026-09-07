@@ -1,3 +1,6 @@
+import 'dashboard_work.dart';
+import 'package:vortice_app/features/maintenance/maintenance_repository.dart';
+import 'package:vortice_app/features/maintenance/work_list_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:vortice_app/features/coordination/fleet_overview_screen.dart';
 import 'package:vortice_app/features/coordination/coordination_repository.dart';
@@ -34,6 +37,8 @@ class DashboardRefresh extends ConsumerWidget {
       ref.invalidate(fleetAssetsProvider);
       ref.invalidate(fleetAttentionProvider);
       ref.invalidate(notificationsProvider);
+      ref.invalidate(maintenanceJobsProvider);
+      ref.invalidate(workListProvider);
       await onRefresh();
       try {
         await ref.read(fleetAssetsProvider.future);
@@ -84,14 +89,25 @@ class _DashboardNotifications extends ConsumerWidget {
   }
 }
 
-class DashboardList extends StatelessWidget {
+class DashboardList extends ConsumerWidget {
   const DashboardList({super.key, required this.children});
   final List<Widget> children;
   @override
-  Widget build(BuildContext context) => ListView(
+  Widget build(BuildContext context, WidgetRef ref) => ListView(
     physics: const AlwaysScrollableScrollPhysics(),
     padding: const EdgeInsets.only(bottom: 32),
-    children: [const DashboardIntro(), ...children],
+    children: [
+      const DashboardIntro(),
+      const DashboardPriorities(),
+      const FleetEntryCard(),
+      if ([
+        UserRole.employee,
+        UserRole.clientMechanic,
+      ].contains(ref.watch(profileProvider).valueOrNull?.role))
+        const DashboardCurrentWork(),
+      ...children,
+      const DashboardShortcuts(),
+    ],
   );
 }
 
@@ -103,6 +119,51 @@ class DashboardIntro extends ConsumerWidget {
     final role = profile?.role ?? UserRole.client;
     final name = profile?.fullName.trim().split(' ').first ?? '';
     final es = Localizations.localeOf(context).languageCode == 'es';
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                name.isEmpty
+                    ? (es ? 'Bienvenido' : 'Welcome back')
+                    : (es ? 'Hola, $name' : 'Hi, $name'),
+                style: Theme.of(context).textTheme.titleLarge,
+              ),
+              const SizedBox(height: 6),
+              Text(
+                '${dashboardRoleLabel(role, es)} · ${DateFormat.MMMEd(es ? 'es' : 'en').format(DateTime.now())}',
+                style: TextStyle(color: context.appColors.textSecondary),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class DashboardPriorities extends ConsumerWidget {
+  const DashboardPriorities({super.key});
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final role = ref.watch(profileProvider).valueOrNull?.role;
+    return canManageFleet(role)
+        ? const FleetPriorityCard()
+        : const SizedBox.shrink();
+  }
+}
+
+class DashboardShortcuts extends ConsumerWidget {
+  const DashboardShortcuts({super.key});
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final role =
+        ref.watch(profileProvider).valueOrNull?.role ?? UserRole.client;
+    final es = isSpanish(context);
     final operator =
         role == UserRole.operator || role == UserRole.clientOperator;
     final checks =
@@ -121,83 +182,29 @@ class DashboardIntro extends ConsumerWidget {
       operationalChecklistsEnabled: checks,
     );
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Padding(
-          padding: const EdgeInsets.fromLTRB(16, 20, 16, 0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                name.isEmpty
-                    ? (es ? 'Bienvenido' : 'Welcome back')
-                    : (es ? 'Hola, $name' : 'Hi, $name'),
-                style: Theme.of(context).textTheme.headlineMedium,
-              ),
-              const SizedBox(height: 6),
-              Text(
-                '${dashboardRoleLabel(role, es)} · ${DateFormat.MMMEd(es ? 'es' : 'en').format(DateTime.now())}',
-                style: const TextStyle(color: AppColors.textSecondary),
-              ),
-            ],
-          ),
-        ),
-        const FleetEntryCard(),
-        if (canManageFleet(role)) const FleetPriorityCard(),
-        DashboardSection(title: es ? 'Acciones rápidas' : 'Quick actions'),
+        DashboardSection(title: es ? 'Herramientas' : 'Tools'),
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16),
-          child: LayoutBuilder(
-            builder: (context, constraints) {
-              final single =
-                  constraints.maxWidth < 340 ||
-                  MediaQuery.textScalerOf(context).scale(14) > 19;
-              return Wrap(
-                spacing: 12,
-                runSpacing: 12,
-                children: actions
-                    .map(
-                      (action) => SizedBox(
-                        width: single
-                            ? constraints.maxWidth
-                            : (constraints.maxWidth - 12) / 2,
-                        child: Card(
-                          margin: EdgeInsets.zero,
-                          child: InkWell(
-                            borderRadius: BorderRadius.circular(12),
-                            onTap: () => context.push(action.route),
-                            child: Container(
-                              constraints: const BoxConstraints(minHeight: 72),
-                              padding: const EdgeInsets.all(16),
-                              child: Row(
-                                children: [
-                                  Icon(
-                                    action.icon,
-                                    color: AppColors.primaryLight,
-                                    size: 24,
-                                  ),
-                                  const SizedBox(width: 12),
-                                  Expanded(
-                                    child: Text(
-                                      action.label(es),
-                                      style: Theme.of(
-                                        context,
-                                      ).textTheme.titleSmall,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-                    )
-                    .toList(),
-              );
-            },
+          child: Card(
+            margin: EdgeInsets.zero,
+            child: Column(
+              children: [
+                for (final action in actions)
+                  ListTile(
+                    leading: Icon(
+                      action.icon,
+                      color: context.appColors.primary,
+                    ),
+                    title: Text(action.label(es)),
+                    trailing: const Icon(Icons.chevron_right, size: 20),
+                    onTap: () => context.push(action.route),
+                  ),
+              ],
+            ),
           ),
         ),
-        const SizedBox(height: 8),
       ],
     );
   }
@@ -244,8 +251,8 @@ List<AppDestination> dashboardActions(
       )
     else if (admin)
       const AppDestination(
-        'New maintenance job',
-        'Crear trabajo',
+        'New work order',
+        'Nueva orden de trabajo',
         Icons.add_task,
         '/maintenance/new',
       )

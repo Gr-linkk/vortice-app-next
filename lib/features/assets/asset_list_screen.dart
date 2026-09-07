@@ -5,7 +5,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:vortice_app/l10n/app_localizations.dart';
 import 'package:vortice_app/core/theme.dart';
-import 'package:vortice_app/core/asset_icons.dart';
+import 'package:vortice_app/core/equipment_illustration.dart';
+import 'package:vortice_app/features/assets/asset_type_provider.dart';
 import 'package:vortice_app/features/assets/asset_provider.dart';
 import 'package:vortice_app/features/auth/auth_provider.dart';
 import 'package:vortice_app/models/asset.dart';
@@ -31,6 +32,9 @@ class _AssetListScreenState extends ConsumerState<AssetListScreen> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final assetsAsync = ref.watch(visibleAssetsProvider);
+    final types =
+        ref.watch(assetTypesProvider).valueOrNull ?? const <AssetType>[];
+    final typeNames = {for (final type in types) type.id: type.name};
     final assignedProfilesAsync = ref.watch(assetAssignedProfilesProvider);
     final profile = ref.watch(profileProvider).valueOrNull;
     final canAdd = profile?.role == UserRole.owner;
@@ -101,7 +105,7 @@ class _AssetListScreenState extends ConsumerState<AssetListScreen> {
                           ? 'No hay coincidencias. Prueba otro nombre o borra la búsqueda.'
                           : 'No matching assets. Try another name or clear the search.')
                     : l10n.noAssets,
-                style: const TextStyle(color: AppColors.textSecondary),
+                style: TextStyle(color: context.appColors.textSecondary),
               ),
             );
           }
@@ -113,6 +117,7 @@ class _AssetListScreenState extends ConsumerState<AssetListScreen> {
               itemCount: filtered.length,
               itemBuilder: (_, i) => _AssetListTile(
                 asset: filtered[i],
+                typeName: typeNames[filtered[i].assetTypeId],
                 assignedProfile: showAssignedClient
                     ? assignedProfiles[filtered[i].clientId]
                     : null,
@@ -126,7 +131,7 @@ class _AssetListScreenState extends ConsumerState<AssetListScreen> {
       floatingActionButton: canAdd
           ? FloatingActionButton.extended(
               onPressed: () => context.push('$prefix/assets/add'),
-              backgroundColor: AppColors.primary,
+              backgroundColor: context.appColors.primary,
               icon: const Icon(Icons.add),
               label: Text(isSpanish(context) ? 'Añadir equipo' : 'Add asset'),
             )
@@ -154,18 +159,18 @@ class _AssignedClientLine extends StatelessWidget {
       padding: const EdgeInsets.only(top: 2, bottom: 2),
       child: Row(
         children: [
-          const Icon(
+          Icon(
             Icons.business_outlined,
             size: 12,
-            color: AppColors.textSecondary,
+            color: context.appColors.textSecondary,
           ),
           const SizedBox(width: 3),
           Flexible(
             child: Text(
               'Assigned to $label',
               overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
-                color: AppColors.textSecondary,
+              style: TextStyle(
+                color: context.appColors.textSecondary,
                 fontSize: 11,
                 fontWeight: FontWeight.w600,
               ),
@@ -179,12 +184,14 @@ class _AssignedClientLine extends StatelessWidget {
 
 class _AssetListTile extends StatelessWidget {
   final Asset asset;
+  final String? typeName;
   final Profile? assignedProfile;
   final bool showAssignedClient;
   final VoidCallback onTap;
 
   const _AssetListTile({
     required this.asset,
+    required this.typeName,
     required this.assignedProfile,
     required this.showAssignedClient,
     required this.onTap,
@@ -194,13 +201,10 @@ class _AssetListTile extends StatelessWidget {
   Widget build(BuildContext context) {
     return Card(
       child: ListTile(
-        leading: CircleAvatar(
-          backgroundColor: AppColors.primary.withValues(alpha: 0.15),
-          child: Icon(
-            assetIconFor(asset.assetTypeId),
-            color: AppColors.primary,
-            size: 22,
-          ),
+        leading: EquipmentIllustration(
+          assetTypeId: asset.assetTypeId,
+          typeName: typeName,
+          size: 56,
         ),
         title: Text(asset.name),
         subtitle: Column(
@@ -211,25 +215,25 @@ class _AssetListTile extends StatelessWidget {
             if (asset.model != null || asset.make != null)
               Text(
                 [asset.make, asset.model].whereType<String>().join(' · '),
-                style: const TextStyle(
-                  color: AppColors.textSecondary,
+                style: TextStyle(
+                  color: context.appColors.textSecondary,
                   fontSize: 12,
                 ),
               ),
             if (asset.location != null)
               Row(
                 children: [
-                  const Icon(
+                  Icon(
                     Icons.location_on_outlined,
                     size: 12,
-                    color: AppColors.textSecondary,
+                    color: context.appColors.textSecondary,
                   ),
                   const SizedBox(width: 2),
                   Flexible(
                     child: Text(
                       asset.location!,
-                      style: const TextStyle(
-                        color: AppColors.textSecondary,
+                      style: TextStyle(
+                        color: context.appColors.textSecondary,
                         fontSize: 11,
                       ),
                     ),
@@ -238,9 +242,9 @@ class _AssetListTile extends StatelessWidget {
               ),
           ],
         ),
-        trailing: const Icon(
+        trailing: Icon(
           Icons.chevron_right,
-          color: AppColors.textSecondary,
+          color: context.appColors.textSecondary,
         ),
         onTap: onTap,
         isThreeLine: showAssignedClient || asset.location != null,

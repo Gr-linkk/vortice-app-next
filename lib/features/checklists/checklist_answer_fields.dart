@@ -1,3 +1,4 @@
+import 'package:vortice_app/core/app_filter_chip.dart';
 import 'package:flutter/material.dart';
 import 'package:vortice_app/core/user_feedback.dart';
 
@@ -167,7 +168,7 @@ class ChecklistAnswerFields extends StatelessWidget {
               style: TextStyle(color: Theme.of(context).colorScheme.error),
             ),
           if (definition['allow_na'] != false)
-            FilterChip(
+            AppFilterChip(
               label: Text(es ? 'No aplica' : 'Not applicable'),
               selected: result == na,
               onSelected: enabled

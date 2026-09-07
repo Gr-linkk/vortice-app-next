@@ -1,3 +1,4 @@
+import 'package:vortice_app/core/theme.dart';
 import 'package:flutter/material.dart';
 import 'package:vortice_app/features/invoices/invoice_detail_support.dart';
 import 'package:vortice_app/models/invoice.dart';
@@ -12,8 +13,8 @@ class InvoiceDetailHeader extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          colors: [Color(0xFF1E3A5F), Color(0xFF1E40AF)],
+        gradient: LinearGradient(
+          colors: [context.appColors.surfaceVariant, context.appColors.surface],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
@@ -25,26 +26,33 @@ class InvoiceDetailHeader extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text(
+              Text(
                 'INVOICE',
                 style: TextStyle(
-                  color: Color(0xFF93C5FD),
+                  color: context.appColors.textSecondary,
                   fontSize: 13,
                   letterSpacing: 1.2,
                 ),
               ),
               Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 4,
+                ),
                 decoration: BoxDecoration(
-                  color: invoiceStatusColor(invoice.status)
-                      .withValues(alpha: 0.2),
+                  color: invoiceStatusColor(
+                    context.appColors,
+                    invoice.status,
+                  ).withValues(alpha: 0.2),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Text(
                   invoice.status.name.toUpperCase(),
                   style: TextStyle(
-                    color: invoiceStatusColor(invoice.status),
+                    color: invoiceStatusColor(
+                      context.appColors,
+                      invoice.status,
+                    ),
                     fontSize: 11,
                     fontWeight: FontWeight.bold,
                   ),
@@ -55,8 +63,8 @@ class InvoiceDetailHeader extends StatelessWidget {
           const SizedBox(height: 4),
           Text(
             invoice.invoiceNumber,
-            style: const TextStyle(
-              color: Color(0xFF60A5FA),
+            style: TextStyle(
+              color: context.appColors.primary,
               fontSize: 24,
               fontWeight: FontWeight.bold,
             ),
@@ -101,12 +109,14 @@ class InvoiceDetailMetaItem extends StatelessWidget {
         children: [
           TextSpan(
             text: '$label: ',
-            style: const TextStyle(color: Color(0xFF93C5FD)),
+            style: TextStyle(color: context.appColors.textSecondary),
           ),
           TextSpan(
             text: value,
-            style: const TextStyle(
-                color: Colors.white, fontWeight: FontWeight.w600),
+            style: TextStyle(
+              color: context.appColors.textPrimary,
+              fontWeight: FontWeight.w600,
+            ),
           ),
         ],
       ),

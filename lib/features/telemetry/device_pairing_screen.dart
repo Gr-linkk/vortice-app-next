@@ -9,8 +9,10 @@ import 'package:vortice_app/features/telemetry/telemetry_provider.dart';
 
 /// Fetches the device record linked to a given assetId.
 /// Returns null if no device is paired.
-final devicesProvider =
-    FutureProvider.family<Map<String, dynamic>?, String>((ref, assetId) async {
+final devicesProvider = FutureProvider.family<Map<String, dynamic>?, String>((
+  ref,
+  assetId,
+) async {
   return ref.watch(telemetryRepositoryProvider).deviceForAsset(assetId);
 });
 
@@ -51,7 +53,9 @@ class _DevicePairingSheetState extends ConsumerState<DevicePairingSheet> {
 
     try {
       final userId = supabase.auth.currentUser?.id;
-      final result = await ref.read(telemetryRepositoryProvider).pairDevice(
+      final result = await ref
+          .read(telemetryRepositoryProvider)
+          .pairDevice(
             assetId: widget.assetId,
             pairingCode: code,
             linkedBy: userId,
@@ -67,10 +71,7 @@ class _DevicePairingSheetState extends ConsumerState<DevicePairingSheet> {
       if (mounted) {
         Navigator.pop(context);
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Telemetry device linked!'),
-            backgroundColor: AppColors.success,
-          ),
+          const SnackBar(content: Text('Telemetry device linked!')),
         );
       }
     } catch (e) {
@@ -82,12 +83,9 @@ class _DevicePairingSheetState extends ConsumerState<DevicePairingSheet> {
 
   void _showError(String message) {
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        backgroundColor: AppColors.error,
-      ),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
   }
 
   @override
@@ -108,7 +106,7 @@ class _DevicePairingSheetState extends ConsumerState<DevicePairingSheet> {
               width: 40,
               height: 4,
               decoration: BoxDecoration(
-                color: AppColors.divider,
+                color: context.appColors.divider,
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
@@ -120,10 +118,10 @@ class _DevicePairingSheetState extends ConsumerState<DevicePairingSheet> {
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 8),
-          const Text(
+          Text(
             'Enter the 6-digit code shown on your Vórtice Pi unit',
             style: TextStyle(
-              color: AppColors.textSecondary,
+              color: context.appColors.textSecondary,
               fontSize: 13,
             ),
             textAlign: TextAlign.center,
@@ -135,18 +133,18 @@ class _DevicePairingSheetState extends ConsumerState<DevicePairingSheet> {
             textAlign: TextAlign.center,
             maxLength: 6,
             inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 32,
               fontWeight: FontWeight.bold,
-              color: AppColors.textPrimary,
+              color: context.appColors.textPrimary,
               letterSpacing: 12,
             ),
-            decoration: const InputDecoration(
+            decoration: InputDecoration(
               hintText: '——————',
               hintStyle: TextStyle(
                 fontSize: 32,
                 letterSpacing: 12,
-                color: AppColors.textSecondary,
+                color: context.appColors.textSecondary,
               ),
               counterText: '',
             ),
@@ -155,11 +153,13 @@ class _DevicePairingSheetState extends ConsumerState<DevicePairingSheet> {
           ElevatedButton(
             onPressed: _loading ? null : _link,
             child: _loading
-                ? const SizedBox(
+                ? SizedBox(
                     height: 20,
                     width: 20,
                     child: CircularProgressIndicator(
-                        strokeWidth: 2, color: Colors.white),
+                      strokeWidth: 2,
+                      color: context.appColors.onPrimary,
+                    ),
                   )
                 : const Text('Link Device'),
           ),

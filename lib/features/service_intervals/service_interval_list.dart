@@ -27,8 +27,10 @@ class ServiceIntervalList extends ConsumerWidget {
     return intervalsAsync.when(
       loading: () => const Center(child: CircularProgressIndicator()),
       error: (err, _) => Center(
-        child: Text(friendlyError(context, err),
-            style: const TextStyle(color: AppColors.error)),
+        child: Text(
+          friendlyError(context, err),
+          style: TextStyle(color: context.appColors.error),
+        ),
       ),
       data: (intervals) {
         final visible = readOnly
@@ -39,15 +41,18 @@ class ServiceIntervalList extends ConsumerWidget {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const Icon(Icons.schedule,
-                    size: 48, color: AppColors.textSecondary),
+                Icon(
+                  Icons.schedule,
+                  size: 48,
+                  color: context.appColors.textSecondary,
+                ),
                 const SizedBox(height: 12),
                 Text(
                   readOnly
                       ? 'No published maintenance plan yet.'
                       : 'No service intervals configured.\nTap + to add one.',
                   textAlign: TextAlign.center,
-                  style: const TextStyle(color: AppColors.textSecondary),
+                  style: TextStyle(color: context.appColors.textSecondary),
                 ),
               ],
             ),

@@ -54,9 +54,11 @@ The other 12 areas remain intake in `docs/specs/NOW-006-feature-continuation.md`
 The direct fault-to-work-order workflow and adjacent simplification audit are
 tracked in `docs/specs/NOW-012-direct-workflows.md`; repair ownership and explicit
 fault verification are recorded in `docs/decisions/0009-fault-work-order-workflow.md`.
-Preserve the current visual language; naming and production identity remain
-separate decisions. Hosted activation and device review are tracked separately
-from the internal build.
+Garrett approved the Field Notes visual direction: warm ivory, deep teal,
+fine technical equipment art and saved System/Light/Dark appearance. Home puts
+current work before tools; Planning leads with the schedule. See NOW-017 and
+decision 0013. Naming and production identity remain separate decisions. Hosted
+activation and device review are tracked separately from the internal build.
 
 Detailed client-access terminology and rules live in `CONTEXT.md`.
 

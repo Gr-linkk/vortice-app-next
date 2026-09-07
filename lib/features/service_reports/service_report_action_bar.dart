@@ -26,11 +26,9 @@ class ServiceReportActionBar extends StatelessWidget {
       top: false,
       child: Container(
         padding: const EdgeInsets.fromLTRB(12, 10, 12, 12),
-        decoration: const BoxDecoration(
-          color: AppColors.surface,
-          border: Border(
-            top: BorderSide(color: AppColors.divider),
-          ),
+        decoration: BoxDecoration(
+          color: context.appColors.surface,
+          border: Border(top: BorderSide(color: context.appColors.divider)),
         ),
         child: Row(
           children: [
@@ -39,7 +37,7 @@ class ServiceReportActionBar extends StatelessWidget {
                 onPressed: onOpenSignature,
                 icon: Icon(
                   signatureSaved ? Icons.check_circle : Icons.draw_outlined,
-                  color: signatureSaved ? AppColors.success : null,
+                  color: signatureSaved ? context.appColors.success : null,
                 ),
                 label: Text(
                   signatureSaved

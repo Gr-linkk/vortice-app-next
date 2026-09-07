@@ -3,11 +3,12 @@ import 'package:vortice_app/core/theme.dart';
 import 'package:vortice_app/models/invoice.dart';
 import 'package:vortice_app/models/profile.dart';
 
-Color invoiceStatusColor(InvoiceStatus status) => switch (status) {
-      InvoiceStatus.paid => AppColors.success,
-      InvoiceStatus.sent => AppColors.warning,
-      InvoiceStatus.draft => AppColors.textSecondary,
-      InvoiceStatus.voided => AppColors.error,
+Color invoiceStatusColor(AppPalette colors, InvoiceStatus status) =>
+    switch (status) {
+      InvoiceStatus.paid => colors.success,
+      InvoiceStatus.sent => colors.warning,
+      InvoiceStatus.draft => colors.textSecondary,
+      InvoiceStatus.voided => colors.error,
     };
 
 bool isInvoiceEditingLocked(InvoiceStatus status) =>

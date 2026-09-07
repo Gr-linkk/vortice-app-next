@@ -95,7 +95,7 @@ class _CreateWorkOrderScreenState extends ConsumerState<CreateWorkOrderScreen> {
       lastDate: DateTime.now().add(const Duration(days: 365)),
       builder: (context, child) => Theme(
         data: Theme.of(context).copyWith(
-          colorScheme: const ColorScheme.dark(primary: AppColors.primary),
+          colorScheme: ColorScheme.dark(primary: context.appColors.primary),
         ),
         child: child!,
       ),
@@ -110,12 +110,9 @@ class _CreateWorkOrderScreenState extends ConsumerState<CreateWorkOrderScreen> {
     if (profile == null) return;
 
     if (_selectedAssetId == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Please select an asset'),
-          backgroundColor: AppColors.error,
-        ),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Please select an asset')));
       return;
     }
 
@@ -187,7 +184,6 @@ class _CreateWorkOrderScreenState extends ConsumerState<CreateWorkOrderScreen> {
           content: Text(
             'Work order could not be created while offline. Reconnect and try again.',
           ),
-          backgroundColor: AppColors.error,
         ),
       );
     }
@@ -199,7 +195,7 @@ class _CreateWorkOrderScreenState extends ConsumerState<CreateWorkOrderScreen> {
     final result = await showModalBottomSheet<List<String>>(
       context: context,
       isScrollControlled: true,
-      backgroundColor: AppColors.surface,
+      backgroundColor: context.appColors.surface,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
       ),

@@ -3,16 +3,34 @@ import 'package:vortice_app/core/theme.dart';
 import 'package:vortice_app/features/engines/engine_screen_support.dart';
 
 void main() {
+  test('uses the supplied dark palette', () {
+    expect(engineKindColor(AppPalette.dark, 'main'), AppPalette.dark.primary);
+  });
   group('engineKindColor', () {
     test('maps known kinds to theme colors', () {
-      expect(engineKindColor('main'), AppColors.primary);
-      expect(engineKindColor('port'), AppColors.primary);
-      expect(engineKindColor('generator'), AppColors.success);
-      expect(engineKindColor('auxiliary'), AppColors.warning);
+      expect(
+        engineKindColor(AppPalette.light, 'main'),
+        AppPalette.light.primary,
+      );
+      expect(
+        engineKindColor(AppPalette.light, 'port'),
+        AppPalette.light.primary,
+      );
+      expect(
+        engineKindColor(AppPalette.light, 'generator'),
+        AppPalette.light.success,
+      );
+      expect(
+        engineKindColor(AppPalette.light, 'auxiliary'),
+        AppPalette.light.warning,
+      );
     });
 
     test('falls back to secondary for unknown kinds', () {
-      expect(engineKindColor('unknown'), AppColors.textSecondary);
+      expect(
+        engineKindColor(AppPalette.light, 'unknown'),
+        AppPalette.light.textSecondary,
+      );
     });
   });
 
@@ -30,15 +48,11 @@ void main() {
 
   group('formatLatestEngineHoursSubtitle', () {
     test('formats hours when present', () {
-      expect(formatLatestEngineHoursSubtitle(1250.5),
-          '1250.5 hrs · latest WO');
+      expect(formatLatestEngineHoursSubtitle(1250.5), '1250.5 hrs · latest WO');
     });
 
     test('returns placeholder when hours are missing', () {
-      expect(
-        formatLatestEngineHoursSubtitle(null),
-        'No work order hours yet',
-      );
+      expect(formatLatestEngineHoursSubtitle(null), 'No work order hours yet');
     });
   });
 

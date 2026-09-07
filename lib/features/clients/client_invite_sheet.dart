@@ -50,21 +50,15 @@ class _InviteClientSheetState extends ConsumerState<InviteClientSheet> {
       ref.invalidate(clientsProvider);
       if (mounted) {
         Navigator.pop(context);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Invite sent to $email'),
-            backgroundColor: AppColors.success,
-          ),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Invite sent to $email')));
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(friendlyError(context, e)),
-            backgroundColor: AppColors.error,
-          ),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(friendlyError(context, e))));
       }
     } finally {
       if (mounted) setState(() => _loading = false);
@@ -75,7 +69,11 @@ class _InviteClientSheetState extends ConsumerState<InviteClientSheet> {
   Widget build(BuildContext context) {
     return Padding(
       padding: EdgeInsets.fromLTRB(
-          16, 16, 16, MediaQuery.of(context).viewInsets.bottom + 16),
+        16,
+        16,
+        16,
+        MediaQuery.of(context).viewInsets.bottom + 16,
+      ),
       child: Form(
         key: _formKey,
         child: Column(
@@ -87,14 +85,16 @@ class _InviteClientSheetState extends ConsumerState<InviteClientSheet> {
                 width: 40,
                 height: 4,
                 decoration: BoxDecoration(
-                  color: AppColors.divider,
+                  color: context.appColors.divider,
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
             ),
             const SizedBox(height: 16),
-            Text('Invite Client',
-                style: Theme.of(context).textTheme.titleLarge),
+            Text(
+              'Invite Client',
+              style: Theme.of(context).textTheme.titleLarge,
+            ),
             const SizedBox(height: 16),
             TextFormField(
               controller: _nameCtrl,
@@ -132,25 +132,31 @@ class _InviteClientSheetState extends ConsumerState<InviteClientSheet> {
             const SizedBox(height: 16),
             Row(
               children: [
-                const Text('Language',
-                    style: TextStyle(
-                        color: AppColors.textSecondary, fontSize: 13)),
+                Text(
+                  'Language',
+                  style: TextStyle(
+                    color: context.appColors.textSecondary,
+                    fontSize: 13,
+                  ),
+                ),
                 const SizedBox(width: 16),
                 ChoiceChip(
                   label: const Text('English'),
                   selected: _language == 'en',
                   onSelected: (_) => setState(() => _language = 'en'),
-                  selectedColor: AppColors.primary.withValues(alpha: 0.15),
+                  selectedColor: context.appColors.primary.withValues(
+                    alpha: 0.15,
+                  ),
                   labelStyle: TextStyle(
                     color: _language == 'en'
-                        ? AppColors.primary
-                        : AppColors.textSecondary,
+                        ? context.appColors.primary
+                        : context.appColors.textSecondary,
                     fontSize: 13,
                   ),
                   side: BorderSide(
                     color: _language == 'en'
-                        ? AppColors.primary
-                        : AppColors.divider,
+                        ? context.appColors.primary
+                        : context.appColors.divider,
                   ),
                 ),
                 const SizedBox(width: 8),
@@ -158,17 +164,19 @@ class _InviteClientSheetState extends ConsumerState<InviteClientSheet> {
                   label: const Text('Español'),
                   selected: _language == 'es',
                   onSelected: (_) => setState(() => _language = 'es'),
-                  selectedColor: AppColors.primary.withValues(alpha: 0.15),
+                  selectedColor: context.appColors.primary.withValues(
+                    alpha: 0.15,
+                  ),
                   labelStyle: TextStyle(
                     color: _language == 'es'
-                        ? AppColors.primary
-                        : AppColors.textSecondary,
+                        ? context.appColors.primary
+                        : context.appColors.textSecondary,
                     fontSize: 13,
                   ),
                   side: BorderSide(
                     color: _language == 'es'
-                        ? AppColors.primary
-                        : AppColors.divider,
+                        ? context.appColors.primary
+                        : context.appColors.divider,
                   ),
                 ),
               ],
@@ -177,11 +185,13 @@ class _InviteClientSheetState extends ConsumerState<InviteClientSheet> {
             ElevatedButton(
               onPressed: _loading ? null : _submit,
               child: _loading
-                  ? const SizedBox(
+                  ? SizedBox(
                       height: 20,
                       width: 20,
                       child: CircularProgressIndicator(
-                          strokeWidth: 2, color: Colors.white),
+                        strokeWidth: 2,
+                        color: context.appColors.onPrimary,
+                      ),
                     )
                   : const Text('Send Invite'),
             ),

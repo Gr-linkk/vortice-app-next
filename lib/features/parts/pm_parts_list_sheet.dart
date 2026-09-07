@@ -26,9 +26,9 @@ class PmPartsListSheet extends ConsumerWidget {
       initialChildSize: 0.6,
       maxChildSize: 0.9,
       builder: (_, ctrl) => Container(
-        decoration: const BoxDecoration(
-          color: AppColors.surface,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+        decoration: BoxDecoration(
+          color: context.appColors.surface,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
         ),
         child: Column(
           children: [
@@ -37,7 +37,7 @@ class PmPartsListSheet extends ConsumerWidget {
               width: 40,
               height: 4,
               decoration: BoxDecoration(
-                color: AppColors.divider,
+                color: context.appColors.divider,
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
@@ -45,8 +45,10 @@ class PmPartsListSheet extends ConsumerWidget {
               padding: const EdgeInsets.fromLTRB(16, 16, 8, 8),
               child: Row(
                 children: [
-                  const Icon(Icons.inventory_2_outlined,
-                      color: AppColors.primary),
+                  Icon(
+                    Icons.inventory_2_outlined,
+                    color: context.appColors.primary,
+                  ),
                   const SizedBox(width: 10),
                   Expanded(
                     child: Text(
@@ -77,9 +79,12 @@ class PmPartsListSheet extends ConsumerWidget {
                         child: Column(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            const Text('No parts list for this service.',
-                                style:
-                                    TextStyle(color: AppColors.textSecondary)),
+                            Text(
+                              'No parts list for this service.',
+                              style: TextStyle(
+                                color: context.appColors.textSecondary,
+                              ),
+                            ),
                             if (canEdit) ...[
                               const SizedBox(height: 12),
                               ElevatedButton.icon(
@@ -112,39 +117,56 @@ class PmPartsListSheet extends ConsumerWidget {
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    Text(part.description,
-                                        style: const TextStyle(
-                                            fontWeight: FontWeight.w500)),
+                                    Text(
+                                      part.description,
+                                      style: const TextStyle(
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                    ),
                                     if (part.partNumber != null)
-                                      Text('PN: ${part.partNumber}',
-                                          style: const TextStyle(
-                                              color: AppColors.textSecondary,
-                                              fontSize: 12)),
+                                      Text(
+                                        'PN: ${part.partNumber}',
+                                        style: TextStyle(
+                                          color:
+                                              context.appColors.textSecondary,
+                                          fontSize: 12,
+                                        ),
+                                      ),
                                     if (part.notes != null)
-                                      Text(part.notes!,
-                                          style: const TextStyle(
-                                              color: AppColors.textSecondary,
-                                              fontSize: 11,
-                                              fontStyle: FontStyle.italic)),
+                                      Text(
+                                        part.notes!,
+                                        style: TextStyle(
+                                          color:
+                                              context.appColors.textSecondary,
+                                          fontSize: 11,
+                                          fontStyle: FontStyle.italic,
+                                        ),
+                                      ),
                                   ],
                                 ),
                               ),
                               Text(
                                 '${part.qty} ${part.unit ?? 'ea'}',
                                 style: const TextStyle(
-                                    fontWeight: FontWeight.w600, fontSize: 13),
+                                  fontWeight: FontWeight.w600,
+                                  fontSize: 13,
+                                ),
                               ),
                               if (canEdit) ...[
                                 const SizedBox(width: 4),
                                 IconButton(
                                   tooltip: 'Delete part',
-                                  icon: const Icon(Icons.delete_outline,
-                                      color: AppColors.error, size: 20),
+                                  icon: Icon(
+                                    Icons.delete_outline,
+                                    color: context.appColors.error,
+                                    size: 20,
+                                  ),
                                   onPressed: () async {
                                     final confirmed = await showDialog<bool>(
                                       context: context,
                                       builder: (ctx) => AlertDialog(
-                                        backgroundColor: AppColors.surface,
+                                        backgroundColor:
+                                            context.appColors.surface,
                                         title: const Text('Delete part?'),
                                         content: Text(part.description),
                                         actions: [
@@ -156,19 +178,25 @@ class PmPartsListSheet extends ConsumerWidget {
                                           TextButton(
                                             onPressed: () =>
                                                 Navigator.pop(ctx, true),
-                                            child: const Text('Delete',
-                                                style: TextStyle(
-                                                    color: AppColors.error)),
+                                            child: Text(
+                                              'Delete',
+                                              style: TextStyle(
+                                                color: context.appColors.error,
+                                              ),
+                                            ),
                                           ),
                                         ],
                                       ),
                                     );
                                     if (confirmed == true) {
                                       await ref
-                                          .read(pmPartsControllerProvider
-                                              .notifier)
+                                          .read(
+                                            pmPartsControllerProvider.notifier,
+                                          )
                                           .removeRequirement(
-                                              part.id, templateId);
+                                            part.id,
+                                            templateId,
+                                          );
                                     }
                                   },
                                 ),
@@ -192,7 +220,7 @@ class PmPartsListSheet extends ConsumerWidget {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      backgroundColor: AppColors.surface,
+      backgroundColor: context.appColors.surface,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
       ),

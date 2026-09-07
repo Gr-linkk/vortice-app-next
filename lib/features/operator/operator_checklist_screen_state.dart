@@ -11,7 +11,6 @@ import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:vortice_app/core/theme.dart';
 import 'package:vortice_app/features/auth/auth_provider.dart';
 import 'package:vortice_app/features/checklists/checklist_provider.dart';
 import 'package:vortice_app/features/checklists/checklist_submission_orchestrator.dart';
@@ -383,7 +382,6 @@ class OperatorChecklistScreenState
                         ? 'Guardado en este dispositivo; pendiente de envío.'
                         : 'Saved on this device; pending upload.'),
             ),
-            backgroundColor: AppColors.success,
           ),
         );
         ref.invalidate(myChecklistAssignmentsProvider);
@@ -412,26 +410,19 @@ class OperatorChecklistScreenState
                 Localizations.localeOf(context).languageCode == 'es',
               ),
             ),
-            backgroundColor: AppColors.error,
           ),
         );
       }
     } on TimeoutException {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text(operatorOfflineSubmitMessage),
-            backgroundColor: AppColors.error,
-          ),
+          const SnackBar(content: Text(operatorOfflineSubmitMessage)),
         );
       }
     } catch (_) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text(operatorOfflineSubmitMessage),
-            backgroundColor: AppColors.error,
-          ),
+          const SnackBar(content: Text(operatorOfflineSubmitMessage)),
         );
       }
     } finally {

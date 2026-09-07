@@ -1,3 +1,4 @@
+import 'package:vortice_app/core/theme.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:vortice_app/features/parts/pm_parts_provider.dart';
@@ -33,8 +34,9 @@ class _PmPartRequirementSheetState
     final req = widget.requirement;
     _descCtrl = TextEditingController(text: req?.description ?? '');
     _partNumberCtrl = TextEditingController(text: req?.partNumber ?? '');
-    _qtyCtrl =
-        TextEditingController(text: req != null ? req.qty.toString() : '1');
+    _qtyCtrl = TextEditingController(
+      text: req != null ? req.qty.toString() : '1',
+    );
     _unitCtrl = TextEditingController(text: req?.unit ?? 'ea');
     _notesCtrl = TextEditingController(text: req?.notes ?? '');
   }
@@ -56,7 +58,11 @@ class _PmPartRequirementSheetState
 
     return Padding(
       padding: EdgeInsets.fromLTRB(
-          16, 16, 16, MediaQuery.of(context).viewInsets.bottom + 16),
+        16,
+        16,
+        16,
+        MediaQuery.of(context).viewInsets.bottom + 16,
+      ),
       child: Form(
         key: _formKey,
         child: SingleChildScrollView(
@@ -87,8 +93,9 @@ class _PmPartRequirementSheetState
                   Expanded(
                     child: TextFormField(
                       controller: _qtyCtrl,
-                      keyboardType:
-                          const TextInputType.numberWithOptions(decimal: true),
+                      keyboardType: const TextInputType.numberWithOptions(
+                        decimal: true,
+                      ),
                       decoration: const InputDecoration(labelText: 'Qty'),
                       validator: (v) {
                         if (v == null || v.trim().isEmpty) return 'Required';
@@ -118,11 +125,13 @@ class _PmPartRequirementSheetState
               ElevatedButton.icon(
                 onPressed: isLoading ? null : _submit,
                 icon: isLoading
-                    ? const SizedBox(
+                    ? SizedBox(
                         width: 16,
                         height: 16,
                         child: CircularProgressIndicator(
-                            strokeWidth: 2, color: Colors.white),
+                          strokeWidth: 2,
+                          color: context.appColors.onPrimary,
+                        ),
                       )
                     : const Icon(Icons.save),
                 label: const Text('Save'),
@@ -143,10 +152,12 @@ class _PmPartRequirementSheetState
         ? _partNumberCtrl.text.trim()
         : null;
     final qty = double.tryParse(_qtyCtrl.text.trim()) ?? 1.0;
-    final unit =
-        _unitCtrl.text.trim().isNotEmpty ? _unitCtrl.text.trim() : null;
-    final notes =
-        _notesCtrl.text.trim().isNotEmpty ? _notesCtrl.text.trim() : null;
+    final unit = _unitCtrl.text.trim().isNotEmpty
+        ? _unitCtrl.text.trim()
+        : null;
+    final notes = _notesCtrl.text.trim().isNotEmpty
+        ? _notesCtrl.text.trim()
+        : null;
 
     final success = widget.requirement == null
         ? await controller.addRequirement(
@@ -157,17 +168,14 @@ class _PmPartRequirementSheetState
             unit: unit,
             notes: notes,
           )
-        : await controller.updateRequirement(
-            widget.requirement!.id,
-            widget.templateId,
-            {
-              'description': description,
-              'part_number': partNumber,
-              'qty': qty,
-              'unit': unit,
-              'notes': notes,
-            },
-          );
+        : await controller
+              .updateRequirement(widget.requirement!.id, widget.templateId, {
+                'description': description,
+                'part_number': partNumber,
+                'qty': qty,
+                'unit': unit,
+                'notes': notes,
+              });
 
     if (success && mounted) Navigator.pop(context);
   }

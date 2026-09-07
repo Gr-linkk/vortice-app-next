@@ -51,7 +51,7 @@ class AssetDetailScreen extends ConsumerWidget {
                   final confirmed = await showDialog<bool>(
                     context: context,
                     builder: (ctx) => AlertDialog(
-                      backgroundColor: AppColors.surface,
+                      backgroundColor: context.appColors.surface,
                       title: Text(l10n.confirmDelete),
                       content: Text(l10n.confirmDeleteMessage),
                       actions: [
@@ -63,7 +63,7 @@ class AssetDetailScreen extends ConsumerWidget {
                           onPressed: () => ctx.pop(true),
                           child: Text(
                             l10n.delete,
-                            style: const TextStyle(color: AppColors.error),
+                            style: TextStyle(color: context.appColors.error),
                           ),
                         ),
                       ],
@@ -82,16 +82,16 @@ class AssetDetailScreen extends ConsumerWidget {
                   value: 'delete',
                   child: Row(
                     children: [
-                      const Icon(
+                      Icon(
                         Icons.delete_outline,
-                        color: AppColors.error,
+                        color: context.appColors.error,
                         size: 18,
                       ),
                       const SizedBox(width: 8),
                       Flexible(
                         child: Text(
                           l10n.delete,
-                          style: const TextStyle(color: AppColors.error),
+                          style: TextStyle(color: context.appColors.error),
                         ),
                       ),
                     ],

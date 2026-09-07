@@ -21,7 +21,11 @@ class ReminderScreen extends ConsumerWidget {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Icon(Icons.error_outline, color: AppColors.error, size: 48),
+              Icon(
+                Icons.error_outline,
+                color: context.appColors.error,
+                size: 48,
+              ),
               const SizedBox(height: 12),
               Text(friendlyError(context, err)),
               const SizedBox(height: 12),
@@ -35,18 +39,23 @@ class ReminderScreen extends ConsumerWidget {
         data: (reminders) {
           if (reminders.isEmpty) {
             return Center(
-              child: Text(l10n.noReminders,
-                  style: const TextStyle(color: AppColors.textSecondary)),
+              child: Text(
+                l10n.noReminders,
+                style: TextStyle(color: context.appColors.textSecondary),
+              ),
             );
           }
 
           // Group by urgency
-          final overdue =
-              reminders.where((r) => r.urgency == 'overdue').toList();
-          final dueSoon =
-              reminders.where((r) => r.urgency == 'dueSoon').toList();
-          final upcoming =
-              reminders.where((r) => r.urgency == 'upcoming').toList();
+          final overdue = reminders
+              .where((r) => r.urgency == 'overdue')
+              .toList();
+          final dueSoon = reminders
+              .where((r) => r.urgency == 'dueSoon')
+              .toList();
+          final upcoming = reminders
+              .where((r) => r.urgency == 'upcoming')
+              .toList();
           final later = reminders.where((r) => r.urgency == 'later').toList();
 
           return RefreshIndicator(
@@ -57,25 +66,25 @@ class ReminderScreen extends ConsumerWidget {
                 if (overdue.isNotEmpty)
                   _ReminderSection(
                     title: l10n.overdue,
-                    color: AppColors.error,
+                    color: context.appColors.error,
                     reminders: overdue,
                   ),
                 if (dueSoon.isNotEmpty)
                   _ReminderSection(
                     title: l10n.dueSoon,
-                    color: AppColors.warning,
+                    color: context.appColors.warning,
                     reminders: dueSoon,
                   ),
                 if (upcoming.isNotEmpty)
                   _ReminderSection(
                     title: l10n.upcomingLabel,
-                    color: const Color(0xFFFDD835),
+                    color: context.appColors.warning,
                     reminders: upcoming,
                   ),
                 if (later.isNotEmpty)
                   _ReminderSection(
                     title: l10n.laterLabel,
-                    color: AppColors.textSecondary,
+                    color: context.appColors.textSecondary,
                     reminders: later,
                   ),
               ],
@@ -107,10 +116,9 @@ class _ReminderSection extends StatelessWidget {
           padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
           child: Text(
             title.toUpperCase(),
-            style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                  color: color,
-                  letterSpacing: 1.2,
-                ),
+            style: Theme.of(
+              context,
+            ).textTheme.labelSmall?.copyWith(color: color, letterSpacing: 1.2),
           ),
         ),
         ...reminders.map((r) => _ReminderCard(reminder: r, color: color)),
@@ -154,8 +162,10 @@ class _ReminderCard extends ConsumerWidget {
                   ),
                   const SizedBox(width: 8),
                   Expanded(
-                    child: Text(reminder.assetName,
-                        style: Theme.of(context).textTheme.titleSmall),
+                    child: Text(
+                      reminder.assetName,
+                      style: Theme.of(context).textTheme.titleSmall,
+                    ),
                   ),
                   Text(
                     '${reminder.reminder.intervalHours}HR Service',
@@ -172,7 +182,7 @@ class _ReminderCard extends ConsumerWidget {
                 borderRadius: BorderRadius.circular(4),
                 child: LinearProgressIndicator(
                   value: progress,
-                  backgroundColor: AppColors.surfaceVariant,
+                  backgroundColor: context.appColors.surfaceVariant,
                   color: color,
                   minHeight: 6,
                 ),
@@ -183,13 +193,17 @@ class _ReminderCard extends ConsumerWidget {
                 children: [
                   Text(
                     '${reminder.currentHours.toStringAsFixed(1)} hrs',
-                    style: const TextStyle(
-                        color: AppColors.textSecondary, fontSize: 11),
+                    style: TextStyle(
+                      color: context.appColors.textSecondary,
+                      fontSize: 11,
+                    ),
                   ),
                   Text(
                     '${l10n.dueAt} ${reminder.reminder.dueAtHours.toStringAsFixed(1)} hrs',
-                    style: const TextStyle(
-                        color: AppColors.textSecondary, fontSize: 11),
+                    style: TextStyle(
+                      color: context.appColors.textSecondary,
+                      fontSize: 11,
+                    ),
                   ),
                 ],
               ),
@@ -212,11 +226,14 @@ class _ReminderCard extends ConsumerWidget {
   }
 
   void _confirmAcknowledge(
-      BuildContext context, WidgetRef ref, AppLocalizations l10n) async {
+    BuildContext context,
+    WidgetRef ref,
+    AppLocalizations l10n,
+  ) async {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        backgroundColor: AppColors.surface,
+        backgroundColor: context.appColors.surface,
         title: Text(l10n.acknowledgeReminder),
         content: Text(l10n.acknowledgeReminderMessage),
         actions: [

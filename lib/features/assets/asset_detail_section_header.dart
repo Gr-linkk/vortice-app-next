@@ -13,9 +13,9 @@ class AssetDetailSectionHeader extends StatelessWidget {
       child: Text(
         title.toUpperCase(),
         style: Theme.of(context).textTheme.labelSmall?.copyWith(
-              color: AppColors.primary,
-              letterSpacing: 1.2,
-            ),
+          color: context.appColors.primary,
+          letterSpacing: 1.2,
+        ),
       ),
     );
   }

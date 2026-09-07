@@ -9,13 +9,14 @@ bool fleetSpanish(BuildContext context) =>
 String fleetText(BuildContext context, String en, String es) =>
     fleetSpanish(context) ? es : en;
 
-Color operatingStateColor(OperatingState state) => switch (state) {
-  OperatingState.available => AppColors.success,
-  OperatingState.restricted => AppColors.warning,
-  OperatingState.outOfService => AppColors.error,
-  OperatingState.underMaintenance => AppColors.primaryLight,
-  OperatingState.unknown => AppColors.textSecondary,
-};
+Color operatingStateColor(AppPalette colors, OperatingState state) =>
+    switch (state) {
+      OperatingState.available => colors.success,
+      OperatingState.restricted => colors.warning,
+      OperatingState.outOfService => colors.error,
+      OperatingState.underMaintenance => colors.primaryLight,
+      OperatingState.unknown => colors.textSecondary,
+    };
 IconData operatingStateIcon(OperatingState state) => switch (state) {
   OperatingState.available => Icons.check_circle_outline,
   OperatingState.restricted => Icons.warning_amber_rounded,
@@ -86,7 +87,7 @@ class OperatingStateBadge extends StatelessWidget {
   @override
   Widget build(BuildContext context) => FleetBadge(
     label: state.label(fleetSpanish(context)),
-    color: operatingStateColor(state),
+    color: operatingStateColor(context.appColors, state),
     icon: operatingStateIcon(state),
   );
 }
@@ -98,12 +99,12 @@ class FaultStatusBadge extends StatelessWidget {
   Widget build(BuildContext context) => FleetBadge(
     label: status.label(fleetSpanish(context)),
     color: status == FaultStatus.resolved
-        ? AppColors.success
+        ? context.appColors.success
         : status == FaultStatus.pendingReview
-        ? AppColors.warning
+        ? context.appColors.warning
         : status == FaultStatus.dismissed
-        ? AppColors.textSecondary
-        : AppColors.primaryLight,
+        ? context.appColors.textSecondary
+        : context.appColors.primaryLight,
   );
 }
 
@@ -117,7 +118,7 @@ class FleetError extends StatelessWidget {
     child: Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        const Icon(Icons.cloud_off_outlined, color: AppColors.warning),
+        Icon(Icons.cloud_off_outlined, color: context.appColors.warning),
         const SizedBox(height: 12),
         Text(
           fleetErrorMessage(error, fleetSpanish(context)),
@@ -150,7 +151,7 @@ class FleetEmpty extends StatelessWidget {
     child: Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Icon(icon, size: 42, color: AppColors.primaryLight),
+        Icon(icon, size: 42, color: context.appColors.primaryLight),
         const SizedBox(height: 12),
         Text(
           title,
@@ -161,7 +162,7 @@ class FleetEmpty extends StatelessWidget {
         Text(
           message,
           textAlign: TextAlign.center,
-          style: const TextStyle(color: AppColors.textSecondary),
+          style: TextStyle(color: context.appColors.textSecondary),
         ),
       ],
     ),
@@ -183,7 +184,8 @@ class FleetEventTile extends StatelessWidget {
         ? OperatingState.parse(event.toState).label(es)
         : FaultStatus.parse(event.toState).label(es);
     final action = switch (event.kind) {
-      'work_order_progress' => es ? 'Avance de la orden' : 'Work order progress',
+      'work_order_progress' =>
+        es ? 'Avance de la orden' : 'Work order progress',
       'reported' => es ? 'Falla reportada' : 'Fault reported',
       'assign' => es ? 'Responsable asignado' : 'Repair assigned',
       'note' => es ? 'Nota de progreso' : 'Progress note',
@@ -196,9 +198,13 @@ class FleetEventTile extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Padding(
-            padding: EdgeInsets.only(top: 3),
-            child: Icon(Icons.history, size: 18, color: AppColors.primaryLight),
+          Padding(
+            padding: const EdgeInsets.only(top: 3),
+            child: Icon(
+              Icons.history,
+              size: 18,
+              color: context.appColors.primaryLight,
+            ),
           ),
           const SizedBox(width: 12),
           Expanded(
@@ -214,9 +220,9 @@ class FleetEventTile extends StatelessWidget {
                 const SizedBox(height: 6),
                 Text(
                   '${event.actorName} · ${fleetDate(context, event.createdAt)}',
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 12,
-                    color: AppColors.textSecondary,
+                    color: context.appColors.textSecondary,
                   ),
                 ),
               ],

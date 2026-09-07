@@ -74,11 +74,13 @@ class WorkOrderDetailBody extends ConsumerWidget {
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
             color: workOrderStatusColor(
+              context.appColors,
               workOrder.status,
             ).withValues(alpha: 0.1),
             borderRadius: BorderRadius.circular(12),
             border: Border.all(
               color: workOrderStatusColor(
+                context.appColors,
                 workOrder.status,
               ).withValues(alpha: 0.4),
             ),
@@ -95,6 +97,7 @@ class WorkOrderDetailBody extends ConsumerWidget {
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                 decoration: BoxDecoration(
                   color: workOrderStatusColor(
+                    context.appColors,
                     workOrder.status,
                   ).withValues(alpha: 0.2),
                   borderRadius: BorderRadius.circular(4),
@@ -102,7 +105,10 @@ class WorkOrderDetailBody extends ConsumerWidget {
                 child: Text(
                   workOrder.status.name,
                   style: TextStyle(
-                    color: workOrderStatusColor(workOrder.status),
+                    color: workOrderStatusColor(
+                      context.appColors,
+                      workOrder.status,
+                    ),
                     fontSize: 11,
                     fontWeight: FontWeight.bold,
                   ),
@@ -118,7 +124,7 @@ class WorkOrderDetailBody extends ConsumerWidget {
           Text(
             l10n.description,
             style: Theme.of(context).textTheme.labelSmall?.copyWith(
-              color: AppColors.primary,
+              color: context.appColors.primary,
               letterSpacing: 1.2,
             ),
           ),
@@ -131,7 +137,7 @@ class WorkOrderDetailBody extends ConsumerWidget {
         Text(
           l10n.woDetailsSection.toUpperCase(),
           style: Theme.of(context).textTheme.labelSmall?.copyWith(
-            color: AppColors.primary,
+            color: context.appColors.primary,
             letterSpacing: 1.2,
           ),
         ),
@@ -270,7 +276,7 @@ class WorkOrderDetailBody extends ConsumerWidget {
           Text(
             l10n.internalNotes.toUpperCase(),
             style: Theme.of(context).textTheme.labelSmall?.copyWith(
-              color: AppColors.warning,
+              color: context.appColors.warning,
               letterSpacing: 1.2,
             ),
           ),
@@ -286,7 +292,7 @@ class WorkOrderDetailBody extends ConsumerWidget {
             icon: Icons.pause_circle_outline,
             label: l10n.onHoldReason,
             value: workOrder.onHoldReason!,
-            color: AppColors.warning,
+            color: context.appColors.warning,
           ),
         ],
 
@@ -296,7 +302,7 @@ class WorkOrderDetailBody extends ConsumerWidget {
             icon: Icons.check_circle,
             label: l10n.completedAt,
             value: dateFmt.format(workOrder.completedAt!.toLocal()),
-            color: AppColors.success,
+            color: context.appColors.success,
           ),
 
         // ── Client checklist context ───────────────────────────────────

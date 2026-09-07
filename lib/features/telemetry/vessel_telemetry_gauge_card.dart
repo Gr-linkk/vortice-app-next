@@ -20,17 +20,19 @@ class VesselTelemetryGaugeCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: context.appColors.surface,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.cardBorder),
+        border: Border.all(color: context.appColors.cardBorder),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
             label,
-            style:
-                const TextStyle(color: AppColors.textSecondary, fontSize: 11),
+            style: TextStyle(
+              color: context.appColors.textSecondary,
+              fontSize: 11,
+            ),
           ),
           const Spacer(),
           Row(
@@ -47,10 +49,7 @@ class VesselTelemetryGaugeCard extends StatelessWidget {
               ),
               if (unit.isNotEmpty) ...[
                 const SizedBox(width: 4),
-                Text(
-                  unit,
-                  style: TextStyle(fontSize: 12, color: color),
-                ),
+                Text(unit, style: TextStyle(fontSize: 12, color: color)),
               ],
             ],
           ),

@@ -23,30 +23,35 @@ class AssetChecklistHistoryCard extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: AppColors.surface,
+          color: context.appColors.surface,
           borderRadius: BorderRadius.circular(12),
-          border: const Border.fromBorderSide(
-              BorderSide(color: AppColors.cardBorder)),
+          border: Border.fromBorderSide(
+            BorderSide(color: context.appColors.cardBorder),
+          ),
         ),
         child: Row(
           children: [
-            const Icon(Icons.fact_check_outlined, color: AppColors.primary),
+            Icon(Icons.fact_check_outlined, color: context.appColors.primary),
             const SizedBox(width: 12),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('Checklist History',
-                      style: Theme.of(context).textTheme.titleSmall),
-                  const Text(
+                  Text(
+                    'Checklist History',
+                    style: Theme.of(context).textTheme.titleSmall,
+                  ),
+                  Text(
                     'Saved maintenance and operations checklist records',
-                    style:
-                        TextStyle(color: AppColors.textSecondary, fontSize: 12),
+                    style: TextStyle(
+                      color: context.appColors.textSecondary,
+                      fontSize: 12,
+                    ),
                   ),
                 ],
               ),
             ),
-            const Icon(Icons.chevron_right, color: AppColors.textSecondary),
+            Icon(Icons.chevron_right, color: context.appColors.textSecondary),
           ],
         ),
       ),

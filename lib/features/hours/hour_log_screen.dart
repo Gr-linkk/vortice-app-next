@@ -29,7 +29,11 @@ class HourLogScreen extends ConsumerWidget {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Icon(Icons.error_outline, color: AppColors.error, size: 48),
+              Icon(
+                Icons.error_outline,
+                color: context.appColors.error,
+                size: 48,
+              ),
               const SizedBox(height: 12),
               Text(friendlyError(context, err)),
               const SizedBox(height: 12),
@@ -44,8 +48,10 @@ class HourLogScreen extends ConsumerWidget {
         data: (logs) {
           if (logs.isEmpty) {
             return Center(
-              child: Text(l10n.noHourLogs,
-                  style: const TextStyle(color: AppColors.textSecondary)),
+              child: Text(
+                l10n.noHourLogs,
+                style: TextStyle(color: context.appColors.textSecondary),
+              ),
             );
           }
           return RefreshIndicator(
@@ -61,25 +67,25 @@ class HourLogScreen extends ConsumerWidget {
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () => _showLogSheet(context, ref, l10n),
-        backgroundColor: AppColors.primary,
+        backgroundColor: context.appColors.primary,
         child: const Icon(Icons.add),
       ),
     );
   }
 
   void _showLogSheet(
-      BuildContext context, WidgetRef ref, AppLocalizations l10n) {
+    BuildContext context,
+    WidgetRef ref,
+    AppLocalizations l10n,
+  ) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      backgroundColor: AppColors.surface,
+      backgroundColor: context.appColors.surface,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
       ),
-      builder: (ctx) => _HourLogForm(
-        engineId: engineId,
-        assetId: assetId,
-      ),
+      builder: (ctx) => _HourLogForm(engineId: engineId, assetId: assetId),
     );
   }
 }
@@ -100,10 +106,14 @@ class _HourLogTile extends StatelessWidget {
           width: 40,
           height: 40,
           decoration: BoxDecoration(
-            color: AppColors.primary.withValues(alpha: 0.15),
+            color: context.appColors.primary.withValues(alpha: 0.15),
             borderRadius: BorderRadius.circular(8),
           ),
-          child: const Icon(Icons.schedule, color: AppColors.primary, size: 22),
+          child: Icon(
+            Icons.schedule,
+            color: context.appColors.primary,
+            size: 22,
+          ),
         ),
         title: Text(
           '${log.hours.toStringAsFixed(1)} hrs',
@@ -112,17 +122,29 @@ class _HourLogTile extends StatelessWidget {
         subtitle: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(dateStr,
-                style: const TextStyle(
-                    color: AppColors.textSecondary, fontSize: 11)),
+            Text(
+              dateStr,
+              style: TextStyle(
+                color: context.appColors.textSecondary,
+                fontSize: 11,
+              ),
+            ),
             if (log.source != null)
-              Text('Source: ${log.source}',
-                  style: const TextStyle(
-                      color: AppColors.textSecondary, fontSize: 11)),
+              Text(
+                'Source: ${log.source}',
+                style: TextStyle(
+                  color: context.appColors.textSecondary,
+                  fontSize: 11,
+                ),
+              ),
             if (log.notes != null && log.notes!.isNotEmpty)
-              Text(log.notes!,
-                  style: const TextStyle(
-                      color: AppColors.textSecondary, fontSize: 12)),
+              Text(
+                log.notes!,
+                style: TextStyle(
+                  color: context.appColors.textSecondary,
+                  fontSize: 12,
+                ),
+              ),
           ],
         ),
         isThreeLine: true,
@@ -156,7 +178,9 @@ class _HourLogFormState extends ConsumerState<_HourLogForm> {
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
 
-    final success = await ref.read(hourLogControllerProvider.notifier).logHours(
+    final success = await ref
+        .read(hourLogControllerProvider.notifier)
+        .logHours(
           engineId: widget.engineId,
           assetId: widget.assetId,
           hours: double.parse(_hoursCtrl.text),
@@ -173,7 +197,11 @@ class _HourLogFormState extends ConsumerState<_HourLogForm> {
 
     return Padding(
       padding: EdgeInsets.fromLTRB(
-          16, 16, 16, MediaQuery.of(context).viewInsets.bottom + 16),
+        16,
+        16,
+        16,
+        MediaQuery.of(context).viewInsets.bottom + 16,
+      ),
       child: Form(
         key: _formKey,
         child: Column(
@@ -185,22 +213,20 @@ class _HourLogFormState extends ConsumerState<_HourLogForm> {
                 width: 40,
                 height: 4,
                 decoration: BoxDecoration(
-                  color: AppColors.textSecondary,
+                  color: context.appColors.textSecondary,
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
             ),
             const SizedBox(height: 16),
-            Text(
-              l10n.logHours,
-              style: Theme.of(context).textTheme.titleLarge,
-            ),
+            Text(l10n.logHours, style: Theme.of(context).textTheme.titleLarge),
             const SizedBox(height: 16),
             TextFormField(
               controller: _hoursCtrl,
               decoration: InputDecoration(labelText: l10n.currentHours),
-              keyboardType:
-                  const TextInputType.numberWithOptions(decimal: true),
+              keyboardType: const TextInputType.numberWithOptions(
+                decimal: true,
+              ),
               validator: (v) {
                 if (v == null || v.trim().isEmpty) return l10n.fieldRequired;
                 if (double.tryParse(v) == null) return l10n.invalidNumber;

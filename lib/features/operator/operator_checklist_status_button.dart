@@ -30,10 +30,10 @@ class OperatorChecklistStatusButton extends StatelessWidget {
           decoration: BoxDecoration(
             color: selected
                 ? color.withValues(alpha: 0.18)
-                : AppColors.surfaceVariant,
+                : context.appColors.surfaceVariant,
             borderRadius: BorderRadius.circular(7),
             border: Border.all(
-              color: selected ? color : AppColors.divider,
+              color: selected ? color : context.appColors.divider,
               width: selected ? 1.5 : 1,
             ),
           ),
@@ -41,7 +41,7 @@ class OperatorChecklistStatusButton extends StatelessWidget {
           child: Text(
             label,
             style: TextStyle(
-              color: selected ? color : AppColors.textSecondary,
+              color: selected ? color : context.appColors.textSecondary,
               fontWeight: FontWeight.bold,
               fontSize: 11,
             ),

@@ -6,33 +6,48 @@ import 'package:vortice_app/models/invoice.dart';
 import 'package:vortice_app/models/profile.dart';
 
 Profile _profile({required String id, required UserRole role}) => Profile(
-      id: id,
-      email: '$id@example.com',
-      fullName: 'Member $id',
-      role: role,
-    );
+  id: id,
+  email: '$id@example.com',
+  fullName: 'Member $id',
+  role: role,
+);
 
 ClientCapabilitySwitchboard _switchboard({
   bool pmChecklists = true,
   bool operationalChecklists = true,
-}) =>
-    ClientCapabilitySwitchboard(
-      clientId: 'client-1',
-      enabledByCapability: {
-        ClientCapability.pmChecklists: pmChecklists,
-        ClientCapability.operationalChecklists: operationalChecklists,
-      },
-    );
+}) => ClientCapabilitySwitchboard(
+  clientId: 'client-1',
+  enabledByCapability: {
+    ClientCapability.pmChecklists: pmChecklists,
+    ClientCapability.operationalChecklists: operationalChecklists,
+  },
+);
 
 void main() {
+  test('uses the supplied dark palette', () {
+    expect(
+      orgAdminMemberRoleColor(AppPalette.dark, UserRole.clientMechanic),
+      AppPalette.dark.primary,
+    );
+  });
   group('orgAdminMemberRoleColor', () {
     test('maps org member roles to theme colors', () {
       expect(
-          orgAdminMemberRoleColor(UserRole.clientMechanic), AppColors.primary);
+        orgAdminMemberRoleColor(AppPalette.light, UserRole.clientMechanic),
+        AppPalette.light.primary,
+      );
       expect(
-          orgAdminMemberRoleColor(UserRole.clientOperator), AppColors.warning);
-      expect(orgAdminMemberRoleColor(UserRole.clientAdmin), AppColors.success);
-      expect(orgAdminMemberRoleColor(UserRole.owner), AppColors.textSecondary);
+        orgAdminMemberRoleColor(AppPalette.light, UserRole.clientOperator),
+        AppPalette.light.warning,
+      );
+      expect(
+        orgAdminMemberRoleColor(AppPalette.light, UserRole.clientAdmin),
+        AppPalette.light.success,
+      );
+      expect(
+        orgAdminMemberRoleColor(AppPalette.light, UserRole.owner),
+        AppPalette.light.textSecondary,
+      );
     });
   });
 
@@ -117,33 +132,42 @@ void main() {
 
   group('orgAdminInvoiceStatusColor', () {
     test('maps invoice statuses to theme colors', () {
-      expect(orgAdminInvoiceStatusColor(InvoiceStatus.paid), AppColors.success);
-      expect(orgAdminInvoiceStatusColor(InvoiceStatus.sent), AppColors.warning);
       expect(
-        orgAdminInvoiceStatusColor(InvoiceStatus.draft),
-        AppColors.textSecondary,
+        orgAdminInvoiceStatusColor(AppPalette.light, InvoiceStatus.paid),
+        AppPalette.light.success,
       );
-      expect(orgAdminInvoiceStatusColor(InvoiceStatus.voided), AppColors.error);
+      expect(
+        orgAdminInvoiceStatusColor(AppPalette.light, InvoiceStatus.sent),
+        AppPalette.light.warning,
+      );
+      expect(
+        orgAdminInvoiceStatusColor(AppPalette.light, InvoiceStatus.draft),
+        AppPalette.light.textSecondary,
+      );
+      expect(
+        orgAdminInvoiceStatusColor(AppPalette.light, InvoiceStatus.voided),
+        AppPalette.light.error,
+      );
     });
   });
 
   group('orgAdminChecklistAssignmentStatusColor', () {
     test('maps assignment statuses to theme colors', () {
       expect(
-        orgAdminChecklistAssignmentStatusColor('completed'),
-        AppColors.success,
+        orgAdminChecklistAssignmentStatusColor(AppPalette.light, 'completed'),
+        AppPalette.light.success,
       );
       expect(
-        orgAdminChecklistAssignmentStatusColor('in_progress'),
-        AppColors.warning,
+        orgAdminChecklistAssignmentStatusColor(AppPalette.light, 'in_progress'),
+        AppPalette.light.warning,
       );
       expect(
-        orgAdminChecklistAssignmentStatusColor('cancelled'),
-        AppColors.textSecondary,
+        orgAdminChecklistAssignmentStatusColor(AppPalette.light, 'cancelled'),
+        AppPalette.light.textSecondary,
       );
       expect(
-        orgAdminChecklistAssignmentStatusColor('pending'),
-        AppColors.primary,
+        orgAdminChecklistAssignmentStatusColor(AppPalette.light, 'pending'),
+        AppPalette.light.primary,
       );
     });
   });
@@ -205,9 +229,10 @@ void main() {
         ['m1'],
       );
       expect(
-        filterMembersForChecklistType(members, 'operator_daily')
-            .map((m) => m.id)
-            .toList(),
+        filterMembersForChecklistType(
+          members,
+          'operator_daily',
+        ).map((m) => m.id).toList(),
         ['o1', 'o2'],
       );
     });

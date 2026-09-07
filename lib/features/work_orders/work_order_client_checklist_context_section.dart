@@ -11,15 +11,18 @@ import 'package:vortice_app/models/work_order.dart';
 class WorkOrderClientChecklistContextSection extends ConsumerWidget {
   final WorkOrder workOrder;
 
-  const WorkOrderClientChecklistContextSection(
-      {super.key, required this.workOrder});
+  const WorkOrderClientChecklistContextSection({
+    super.key,
+    required this.workOrder,
+  });
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final rowsAsync = ref.watch(
-      savedChecklistsForAssetProvider(
-        (assetId: workOrder.assetId, type: SavedChecklistType.maintenance),
-      ),
+      savedChecklistsForAssetProvider((
+        assetId: workOrder.assetId,
+        type: SavedChecklistType.maintenance,
+      )),
     );
 
     return rowsAsync.when(
@@ -35,17 +38,20 @@ class WorkOrderClientChecklistContextSection extends ConsumerWidget {
         return Container(
           padding: const EdgeInsets.all(14),
           decoration: BoxDecoration(
-            color: AppColors.surface,
+            color: context.appColors.surface,
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: AppColors.cardBorder),
+            border: Border.all(color: context.appColors.cardBorder),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Row(
                 children: [
-                  const Icon(Icons.history_toggle_off,
-                      color: AppColors.primary, size: 20),
+                  Icon(
+                    Icons.history_toggle_off,
+                    color: context.appColors.primary,
+                    size: 20,
+                  ),
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
@@ -56,9 +62,12 @@ class WorkOrderClientChecklistContextSection extends ConsumerWidget {
                 ],
               ),
               const SizedBox(height: 4),
-              const Text(
+              Text(
                 'Reference only — these do not complete the work order checklist.',
-                style: TextStyle(color: AppColors.textSecondary, fontSize: 12),
+                style: TextStyle(
+                  color: context.appColors.textSecondary,
+                  fontSize: 12,
+                ),
               ),
               const SizedBox(height: 10),
               ...clientRows.map(
@@ -93,7 +102,7 @@ class WorkOrderClientChecklistReferenceTile extends ConsumerWidget {
 
     return Card(
       margin: const EdgeInsets.only(top: 8),
-      color: AppColors.surfaceVariant.withValues(alpha: 0.45),
+      color: context.appColors.surfaceVariant.withValues(alpha: 0.45),
       child: Padding(
         padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
         child: Column(
@@ -117,8 +126,8 @@ class WorkOrderClientChecklistReferenceTile extends ConsumerWidget {
                           if (row.currentHours != null)
                             '${row.currentHours!.toStringAsFixed(0)}h',
                         ].join(' • '),
-                        style: const TextStyle(
-                          color: AppColors.textSecondary,
+                        style: TextStyle(
+                          color: context.appColors.textSecondary,
                           fontSize: 12,
                         ),
                       ),
@@ -128,11 +137,13 @@ class WorkOrderClientChecklistReferenceTile extends ConsumerWidget {
                 if (flagged > 0)
                   Chip(
                     visualDensity: VisualDensity.compact,
-                    backgroundColor: AppColors.warning.withValues(alpha: 0.15),
+                    backgroundColor: context.appColors.warning.withValues(
+                      alpha: 0.15,
+                    ),
                     label: Text(
                       '$flagged flagged',
-                      style: const TextStyle(
-                        color: AppColors.warning,
+                      style: TextStyle(
+                        color: context.appColors.warning,
                         fontSize: 11,
                         fontWeight: FontWeight.w700,
                       ),
@@ -186,11 +197,9 @@ class WorkOrderClientChecklistReferenceTile extends ConsumerWidget {
         ? reference
         : '$existing\n\n$reference';
 
-    final success =
-        await ref.read(workOrderControllerProvider.notifier).updateWorkOrder(
-      workOrder.id,
-      {'notes_internal': nextNotes},
-    );
+    final success = await ref
+        .read(workOrderControllerProvider.notifier)
+        .updateWorkOrder(workOrder.id, {'notes_internal': nextNotes});
     if (!context.mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
@@ -199,18 +208,19 @@ class WorkOrderClientChecklistReferenceTile extends ConsumerWidget {
               ? 'Client checklist attached as WO reference.'
               : 'Could not attach reference right now.',
         ),
-        backgroundColor: success ? AppColors.success : AppColors.error,
       ),
     );
   }
 }
 
 void showWorkOrderSavedChecklistReference(
-    BuildContext context, SavedChecklist row) {
+  BuildContext context,
+  SavedChecklist row,
+) {
   showModalBottomSheet(
     context: context,
     isScrollControlled: true,
-    backgroundColor: AppColors.surface,
+    backgroundColor: context.appColors.surface,
     shape: const RoundedRectangleBorder(
       borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
     ),
@@ -239,16 +249,23 @@ class WorkOrderSavedChecklistReferenceSheet extends StatelessWidget {
           controller: controller,
           padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
           children: [
-            Text(row.templateName,
-                style: Theme.of(context).textTheme.titleMedium),
+            Text(
+              row.templateName,
+              style: Theme.of(context).textTheme.titleMedium,
+            ),
             const SizedBox(height: 6),
-            const Text(
+            Text(
               'Client-submitted checklist reference',
-              style: TextStyle(color: AppColors.textSecondary, fontSize: 12),
+              style: TextStyle(
+                color: context.appColors.textSecondary,
+                fontSize: 12,
+              ),
             ),
             const SizedBox(height: 14),
             WorkOrderSavedChecklistHeaderLine(
-                label: 'Submitted', value: submittedLabel),
+              label: 'Submitted',
+              value: submittedLabel,
+            ),
             WorkOrderSavedChecklistHeaderLine(
               label: 'Completed by',
               value: '${header['completed_by'] ?? row.submittedBy ?? '—'}',
@@ -260,7 +277,9 @@ class WorkOrderSavedChecklistReferenceSheet extends StatelessWidget {
               ),
             if ((row.generalNotes ?? '').trim().isNotEmpty)
               WorkOrderSavedChecklistHeaderLine(
-                  label: 'Notes', value: row.generalNotes!.trim()),
+                label: 'Notes',
+                value: row.generalNotes!.trim(),
+              ),
             const SizedBox(height: 12),
             ...items.map((item) {
               final response = (item['response'] ?? '').toString();
@@ -276,7 +295,7 @@ class WorkOrderSavedChecklistReferenceSheet extends StatelessWidget {
                 trailing: Text(
                   response.toUpperCase(),
                   style: TextStyle(
-                    color: isFlagged ? AppColors.warning : null,
+                    color: isFlagged ? context.appColors.warning : null,
                     fontWeight: FontWeight.w700,
                   ),
                 ),
@@ -293,8 +312,11 @@ class WorkOrderSavedChecklistHeaderLine extends StatelessWidget {
   final String label;
   final String value;
 
-  const WorkOrderSavedChecklistHeaderLine(
-      {super.key, required this.label, required this.value});
+  const WorkOrderSavedChecklistHeaderLine({
+    super.key,
+    required this.label,
+    required this.value,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -307,8 +329,8 @@ class WorkOrderSavedChecklistHeaderLine extends StatelessWidget {
             width: 110,
             child: Text(
               label,
-              style: const TextStyle(
-                color: AppColors.textSecondary,
+              style: TextStyle(
+                color: context.appColors.textSecondary,
                 fontSize: 12,
               ),
             ),

@@ -58,10 +58,7 @@ class _ServiceIntervalAddSheetState
           .read(serviceIntervalControllerProvider.notifier)
           .lastError;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(error ?? 'Failed to save interval. Try again.'),
-          backgroundColor: AppColors.error,
-        ),
+        SnackBar(content: Text(error ?? 'Failed to save interval. Try again.')),
       );
     }
   }
@@ -87,12 +84,12 @@ class _ServiceIntervalAddSheetState
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                const Text(
+                Text(
                   'Add Service Interval',
                   style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.w600,
-                    color: AppColors.textPrimary,
+                    color: context.appColors.textPrimary,
                   ),
                 ),
                 const SizedBox(height: 16),
@@ -145,13 +142,15 @@ class _ServiceIntervalAddSheetState
                         : 'Showing maintenance templates for this asset only.',
                     prefixIcon: const Icon(Icons.checklist_outlined),
                   ),
-                  dropdownColor: AppColors.surfaceVariant,
+                  dropdownColor: context.appColors.surfaceVariant,
                   items: [
-                    const DropdownMenuItem<ChecklistTemplate?>(
+                    DropdownMenuItem<ChecklistTemplate?>(
                       value: null,
                       child: Text(
                         '— No template —',
-                        style: TextStyle(color: AppColors.textSecondary),
+                        style: TextStyle(
+                          color: context.appColors.textSecondary,
+                        ),
                       ),
                     ),
                     ...templates.map(
@@ -167,12 +166,12 @@ class _ServiceIntervalAddSheetState
                 ElevatedButton.icon(
                   onPressed: isLoading ? null : _save,
                   icon: isLoading
-                      ? const SizedBox(
+                      ? SizedBox(
                           width: 16,
                           height: 16,
                           child: CircularProgressIndicator(
                             strokeWidth: 2,
-                            color: Colors.white,
+                            color: context.appColors.onPrimary,
                           ),
                         )
                       : const Icon(Icons.save),

@@ -34,15 +34,15 @@ class AssetServiceReportsCard extends ConsumerWidget {
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: AppColors.surface,
+          color: context.appColors.surface,
           borderRadius: BorderRadius.circular(12),
-          border: const Border.fromBorderSide(
-            BorderSide(color: AppColors.cardBorder),
+          border: Border.fromBorderSide(
+            BorderSide(color: context.appColors.cardBorder),
           ),
         ),
         child: Row(
           children: [
-            const Icon(Icons.description_outlined, color: AppColors.primary),
+            Icon(Icons.description_outlined, color: context.appColors.primary),
             const SizedBox(width: 12),
             Expanded(
               child: reportsAsync.when(
@@ -52,8 +52,8 @@ class AssetServiceReportsCard extends ConsumerWidget {
                     Text(title, style: Theme.of(context).textTheme.titleSmall),
                     Text(
                       es ? 'Cargando informes...' : 'Loading asset records...',
-                      style: const TextStyle(
-                        color: AppColors.textSecondary,
+                      style: TextStyle(
+                        color: context.appColors.textSecondary,
                         fontSize: 12,
                       ),
                     ),
@@ -67,8 +67,8 @@ class AssetServiceReportsCard extends ConsumerWidget {
                       es
                           ? 'Informes no disponibles.'
                           : 'Service report records unavailable.',
-                      style: const TextStyle(
-                        color: AppColors.textSecondary,
+                      style: TextStyle(
+                        color: context.appColors.textSecondary,
                         fontSize: 12,
                       ),
                     ),
@@ -93,8 +93,8 @@ class AssetServiceReportsCard extends ConsumerWidget {
                       ),
                       Text(
                         subtitle,
-                        style: const TextStyle(
-                          color: AppColors.textSecondary,
+                        style: TextStyle(
+                          color: context.appColors.textSecondary,
                           fontSize: 12,
                         ),
                       ),
@@ -103,7 +103,7 @@ class AssetServiceReportsCard extends ConsumerWidget {
                 },
               ),
             ),
-            const Icon(Icons.chevron_right, color: AppColors.textSecondary),
+            Icon(Icons.chevron_right, color: context.appColors.textSecondary),
           ],
         ),
       ),

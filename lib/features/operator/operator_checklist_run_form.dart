@@ -114,12 +114,12 @@ class _OperatorChecklistRunFormState
       ),
       Container(
         padding: const EdgeInsets.all(12),
-        color: AppColors.surfaceVariant,
+        color: context.appColors.surfaceVariant,
         child: Row(
           children: [
-            const Icon(
+            Icon(
               Icons.directions_boat,
-              color: AppColors.primary,
+              color: context.appColors.primary,
               size: 18,
             ),
             const SizedBox(width: 8),
@@ -146,7 +146,7 @@ class _OperatorChecklistRunFormState
             error: (e, _) => Center(
               child: Text(
                 e.toString(),
-                style: const TextStyle(color: AppColors.error),
+                style: TextStyle(color: context.appColors.error),
               ),
             ),
             data: (items) => ListView(
@@ -177,17 +177,19 @@ class _OperatorChecklistRunFormState
                 ? null
                 : widget.onSubmit,
             icon: widget.submitting
-                ? const SizedBox(
+                ? SizedBox(
                     width: 16,
                     height: 16,
                     child: CircularProgressIndicator(
                       strokeWidth: 2,
-                      color: Colors.white,
+                      color: context.appColors.onPrimary,
                     ),
                   )
                 : const Icon(Icons.check),
             label: Text(l10n.completeChecklist),
-            style: ElevatedButton.styleFrom(backgroundColor: AppColors.success),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: context.appColors.success,
+            ),
           ),
         ),
       ],

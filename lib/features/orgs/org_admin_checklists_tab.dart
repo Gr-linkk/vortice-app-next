@@ -25,30 +25,30 @@ class OrgAdminChecklistsTab extends ConsumerWidget {
         error: (err, _) => Center(
           child: Text(
             err.toString(),
-            style: const TextStyle(color: AppColors.error),
+            style: TextStyle(color: context.appColors.error),
           ),
         ),
         data: (assignments) {
           if (assignments.isEmpty) {
-            return const Center(
+            return Center(
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Icon(
                     Icons.checklist_outlined,
                     size: 56,
-                    color: AppColors.textSecondary,
+                    color: context.appColors.textSecondary,
                   ),
-                  SizedBox(height: 12),
+                  const SizedBox(height: 12),
                   Text(
                     'No checklists assigned yet.',
-                    style: TextStyle(color: AppColors.textSecondary),
+                    style: TextStyle(color: context.appColors.textSecondary),
                   ),
-                  SizedBox(height: 4),
+                  const SizedBox(height: 4),
                   Text(
                     'Open the checklist library to assign a pre-operation check or create a maintenance job.',
                     style: TextStyle(
-                      color: AppColors.textSecondary,
+                      color: context.appColors.textSecondary,
                       fontSize: 12,
                     ),
                   ),
@@ -69,17 +69,22 @@ class OrgAdminChecklistsTab extends ConsumerWidget {
               final status = a['status'] as String? ?? 'pending';
               final isPM = template?['checklist_type'] == 'pm';
               final statusColor = orgAdminChecklistAssignmentStatusColor(
+                context.appColors,
                 status,
               );
               return Card(
                 child: ListTile(
                   leading: CircleAvatar(
                     backgroundColor:
-                        (isPM ? AppColors.primary : AppColors.warning)
+                        (isPM
+                                ? context.appColors.primary
+                                : context.appColors.warning)
                             .withValues(alpha: 0.15),
                     child: Icon(
                       isPM ? Icons.build_outlined : Icons.checklist_outlined,
-                      color: isPM ? AppColors.primary : AppColors.warning,
+                      color: isPM
+                          ? context.appColors.primary
+                          : context.appColors.warning,
                       size: 18,
                     ),
                   ),
@@ -94,8 +99,8 @@ class OrgAdminChecklistsTab extends ConsumerWidget {
                         assignee!['full_name'] as String,
                       if (asset?['name'] != null) asset!['name'] as String,
                     ].join(' • '),
-                    style: const TextStyle(
-                      color: AppColors.textSecondary,
+                    style: TextStyle(
+                      color: context.appColors.textSecondary,
                       fontSize: 12,
                     ),
                   ),

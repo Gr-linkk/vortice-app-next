@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:vortice_app/l10n/app_localizations.dart';
 import 'package:vortice_app/core/router.dart';
 import 'package:vortice_app/core/theme.dart';
+import 'package:vortice_app/core/appearance_settings.dart';
 import 'package:vortice_app/features/auth/auth_provider.dart';
 import 'dart:async';
 import 'package:vortice_app/core/push_notifications.dart';
@@ -42,9 +43,11 @@ class VorticeApp extends ConsumerWidget {
     });
 
     return MaterialApp.router(
-      title: 'Vórtice Mechanical',
+      title: 'Vortice Next',
       debugShowCheckedModeBanner: false,
-      theme: AppTheme.darkNavyTheme,
+      theme: AppTheme.lightTheme,
+      darkTheme: AppTheme.darkTheme,
+      themeMode: ref.watch(themeModeProvider),
       routerConfig: router,
       locale: locale,
       localizationsDelegates: const [

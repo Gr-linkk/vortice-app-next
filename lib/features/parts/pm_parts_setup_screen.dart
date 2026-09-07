@@ -19,21 +19,22 @@ class PmPartsSetupScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context);
-    final requirementsAsync =
-        ref.watch(pmPartsRequirementsProvider(templateId));
+    final requirementsAsync = ref.watch(
+      pmPartsRequirementsProvider(templateId),
+    );
 
     return Scaffold(
-      appBar: AppBar(
-        title: Text('$templateName — ${l10n.pmPartsTitle}'),
-      ),
+      appBar: AppBar(title: Text('$templateName — ${l10n.pmPartsTitle}')),
       body: requirementsAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (err, _) => Center(
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Text(friendlyError(context, err),
-                  style: const TextStyle(color: AppColors.error)),
+              Text(
+                friendlyError(context, err),
+                style: TextStyle(color: context.appColors.error),
+              ),
               const SizedBox(height: 12),
               ElevatedButton(
                 onPressed: () =>
@@ -46,9 +47,10 @@ class PmPartsSetupScreen extends ConsumerWidget {
         data: (requirements) {
           if (requirements.isEmpty) {
             return Center(
-              child: Text(l10n.noPmParts,
-                  style:
-                      const TextStyle(color: AppColors.textSecondary)),
+              child: Text(
+                l10n.noPmParts,
+                style: TextStyle(color: context.appColors.textSecondary),
+              ),
             );
           }
           return ListView.builder(
@@ -62,25 +64,26 @@ class PmPartsSetupScreen extends ConsumerWidget {
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () => _showSheet(context, ref),
-        backgroundColor: AppColors.primary,
+        backgroundColor: context.appColors.primary,
         child: const Icon(Icons.add),
       ),
     );
   }
 
-  void _showSheet(BuildContext context, WidgetRef ref,
-      [PmPartsRequirement? requirement]) {
+  void _showSheet(
+    BuildContext context,
+    WidgetRef ref, [
+    PmPartsRequirement? requirement,
+  ]) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      backgroundColor: AppColors.surface,
+      backgroundColor: context.appColors.surface,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
       ),
-      builder: (_) => _PmPartSheet(
-        templateId: templateId,
-        requirement: requirement,
-      ),
+      builder: (_) =>
+          _PmPartSheet(templateId: templateId, requirement: requirement),
     );
   }
 }
@@ -103,44 +106,54 @@ class _PmPartTile extends ConsumerWidget {
         onTap: () => showModalBottomSheet(
           context: context,
           isScrollControlled: true,
-          backgroundColor: AppColors.surface,
+          backgroundColor: context.appColors.surface,
           shape: const RoundedRectangleBorder(
             borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
           ),
-          builder: (_) => _PmPartSheet(
-            templateId: templateId,
-            requirement: requirement,
-          ),
+          builder: (_) =>
+              _PmPartSheet(templateId: templateId, requirement: requirement),
         ),
         child: ListTile(
-          leading: const CircleAvatar(
-            backgroundColor: AppColors.surfaceVariant,
-            child: Icon(Icons.build_circle_outlined,
-                color: AppColors.primary, size: 20),
+          leading: CircleAvatar(
+            backgroundColor: context.appColors.surfaceVariant,
+            child: Icon(
+              Icons.build_circle_outlined,
+              color: context.appColors.primary,
+              size: 20,
+            ),
           ),
           title: Text(requirement.description),
           subtitle: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               if (requirement.partNumber != null)
-                Text('# ${requirement.partNumber}',
-                    style: const TextStyle(
-                        color: AppColors.textSecondary, fontSize: 11)),
+                Text(
+                  '# ${requirement.partNumber}',
+                  style: TextStyle(
+                    color: context.appColors.textSecondary,
+                    fontSize: 11,
+                  ),
+                ),
               Row(
                 children: [
                   Text(
                     '${l10n.quantity}: ${requirement.qty}',
-                    style: const TextStyle(
-                        color: AppColors.textSecondary, fontSize: 12),
+                    style: TextStyle(
+                      color: context.appColors.textSecondary,
+                      fontSize: 12,
+                    ),
                   ),
                   if (requirement.unit != null) ...[
-                    const Text(' ',
-                        style:
-                            TextStyle(color: AppColors.textSecondary)),
+                    Text(
+                      ' ',
+                      style: TextStyle(color: context.appColors.textSecondary),
+                    ),
                     Text(
                       requirement.unit!,
-                      style: const TextStyle(
-                          color: AppColors.textSecondary, fontSize: 12),
+                      style: TextStyle(
+                        color: context.appColors.textSecondary,
+                        fontSize: 12,
+                      ),
                     ),
                   ],
                 ],
@@ -148,13 +161,16 @@ class _PmPartTile extends ConsumerWidget {
             ],
           ),
           trailing: IconButton(
-            icon: const Icon(Icons.delete_outline,
-                color: AppColors.error, size: 20),
+            icon: Icon(
+              Icons.delete_outline,
+              color: context.appColors.error,
+              size: 20,
+            ),
             onPressed: () async {
               final confirmed = await showDialog<bool>(
                 context: context,
                 builder: (ctx) => AlertDialog(
-                  backgroundColor: AppColors.surface,
+                  backgroundColor: context.appColors.surface,
                   title: Text(l10n.confirmDelete),
                   content: Text(l10n.confirmDeleteMessage),
                   actions: [
@@ -164,9 +180,10 @@ class _PmPartTile extends ConsumerWidget {
                     ),
                     TextButton(
                       onPressed: () => Navigator.pop(ctx, true),
-                      child: Text(l10n.delete,
-                          style:
-                              const TextStyle(color: AppColors.error)),
+                      child: Text(
+                        l10n.delete,
+                        style: TextStyle(color: context.appColors.error),
+                      ),
                     ),
                   ],
                 ),
@@ -211,8 +228,9 @@ class _PmPartSheetState extends ConsumerState<_PmPartSheet> {
     final req = widget.requirement;
     _descCtrl = TextEditingController(text: req?.description ?? '');
     _partNumberCtrl = TextEditingController(text: req?.partNumber ?? '');
-    _qtyCtrl =
-        TextEditingController(text: req != null ? req.qty.toString() : '1');
+    _qtyCtrl = TextEditingController(
+      text: req != null ? req.qty.toString() : '1',
+    );
     _unitCtrl = TextEditingController(text: req?.unit ?? '');
     _notesCtrl = TextEditingController(text: req?.notes ?? '');
   }
@@ -235,7 +253,11 @@ class _PmPartSheetState extends ConsumerState<_PmPartSheet> {
 
     return Padding(
       padding: EdgeInsets.fromLTRB(
-          16, 16, 16, MediaQuery.of(context).viewInsets.bottom + 16),
+        16,
+        16,
+        16,
+        MediaQuery.of(context).viewInsets.bottom + 16,
+      ),
       child: Form(
         key: _formKey,
         child: SingleChildScrollView(
@@ -251,9 +273,8 @@ class _PmPartSheetState extends ConsumerState<_PmPartSheet> {
               TextFormField(
                 controller: _descCtrl,
                 decoration: InputDecoration(labelText: l10n.partName),
-                validator: (v) => (v == null || v.trim().isEmpty)
-                    ? l10n.fieldRequired
-                    : null,
+                validator: (v) =>
+                    (v == null || v.trim().isEmpty) ? l10n.fieldRequired : null,
               ),
               const SizedBox(height: 12),
               TextFormField(
@@ -266,10 +287,10 @@ class _PmPartSheetState extends ConsumerState<_PmPartSheet> {
                   Expanded(
                     child: TextFormField(
                       controller: _qtyCtrl,
-                      keyboardType:
-                          const TextInputType.numberWithOptions(decimal: true),
-                      decoration:
-                          InputDecoration(labelText: l10n.quantity),
+                      keyboardType: const TextInputType.numberWithOptions(
+                        decimal: true,
+                      ),
+                      decoration: InputDecoration(labelText: l10n.quantity),
                       validator: (v) {
                         if (v == null || v.isEmpty) return l10n.fieldRequired;
                         if (double.tryParse(v) == null) {
@@ -283,8 +304,7 @@ class _PmPartSheetState extends ConsumerState<_PmPartSheet> {
                   Expanded(
                     child: TextFormField(
                       controller: _unitCtrl,
-                      decoration:
-                          InputDecoration(labelText: l10n.partsUnit),
+                      decoration: InputDecoration(labelText: l10n.partsUnit),
                     ),
                   ),
                 ],
@@ -316,24 +336,23 @@ class _PmPartSheetState extends ConsumerState<_PmPartSheet> {
         ? _partNumberCtrl.text.trim()
         : null;
     final qty = double.tryParse(_qtyCtrl.text.trim()) ?? 1.0;
-    final unit =
-        _unitCtrl.text.trim().isNotEmpty ? _unitCtrl.text.trim() : null;
-    final notes =
-        _notesCtrl.text.trim().isNotEmpty ? _notesCtrl.text.trim() : null;
+    final unit = _unitCtrl.text.trim().isNotEmpty
+        ? _unitCtrl.text.trim()
+        : null;
+    final notes = _notesCtrl.text.trim().isNotEmpty
+        ? _notesCtrl.text.trim()
+        : null;
 
     bool success;
     if (widget.requirement != null) {
-      success = await controller.updateRequirement(
-        widget.requirement!.id,
-        widget.templateId,
-        {
-          'description': description,
-          'part_number': partNumber,
-          'qty': qty,
-          'unit': unit,
-          'notes': notes,
-        },
-      );
+      success = await controller
+          .updateRequirement(widget.requirement!.id, widget.templateId, {
+            'description': description,
+            'part_number': partNumber,
+            'qty': qty,
+            'unit': unit,
+            'notes': notes,
+          });
     } else {
       success = await controller.addRequirement(
         templateId: widget.templateId,

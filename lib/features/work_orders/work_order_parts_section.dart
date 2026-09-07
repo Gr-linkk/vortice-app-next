@@ -35,9 +35,9 @@ class WorkOrderPartsSection extends ConsumerWidget {
             Text(
               l10n.partsWithMarkup.toUpperCase(),
               style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                    color: AppColors.textSecondary,
-                    letterSpacing: 1.2,
-                  ),
+                color: context.appColors.textSecondary,
+                letterSpacing: 1.2,
+              ),
             ),
             const SizedBox(height: 8),
             ...lines.map(
@@ -52,16 +52,16 @@ class WorkOrderPartsSection extends ConsumerWidget {
                         children: [
                           Text(
                             formatInvoicePartLineLabel(line),
-                            style: const TextStyle(
-                              color: AppColors.textPrimary,
+                            style: TextStyle(
+                              color: context.appColors.textPrimary,
                               fontSize: 13,
                               fontWeight: FontWeight.w600,
                             ),
                           ),
                           Text(
                             formatInvoicePartLineDetail(line),
-                            style: const TextStyle(
-                              color: AppColors.textSecondary,
+                            style: TextStyle(
+                              color: context.appColors.textSecondary,
                               fontSize: 12,
                             ),
                           ),
@@ -70,8 +70,8 @@ class WorkOrderPartsSection extends ConsumerWidget {
                     ),
                     Text(
                       '\$${line.lineTotalUsd.toStringAsFixed(2)}',
-                      style: const TextStyle(
-                        color: AppColors.success,
+                      style: TextStyle(
+                        color: context.appColors.success,
                         fontWeight: FontWeight.w600,
                         fontSize: 13,
                       ),
@@ -82,8 +82,8 @@ class WorkOrderPartsSection extends ConsumerWidget {
             ),
             Text(
               'Total: \$${sumInvoicePartLineTotals(lines).toStringAsFixed(2)}',
-              style: const TextStyle(
-                color: AppColors.textSecondary,
+              style: TextStyle(
+                color: context.appColors.textSecondary,
                 fontSize: 12,
               ),
             ),

@@ -5,13 +5,13 @@ import 'package:vortice_app/models/asset.dart';
 import 'package:vortice_app/models/checklist_template.dart';
 import 'package:vortice_app/models/work_order.dart';
 
-Widget createWorkOrderSectionHeader(String title) {
+Widget createWorkOrderSectionHeader(BuildContext context, String title) {
   return Padding(
     padding: const EdgeInsets.only(top: 4, bottom: 4),
     child: Text(
       title,
-      style: const TextStyle(
-        color: AppColors.textSecondary,
+      style: TextStyle(
+        color: context.appColors.textSecondary,
         fontSize: 11,
         fontWeight: FontWeight.w600,
         letterSpacing: 1.2,

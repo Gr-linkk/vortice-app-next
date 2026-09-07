@@ -3,7 +3,6 @@ import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:vortice_app/core/theme.dart';
 import 'package:vortice_app/features/auth/auth_provider.dart';
 import 'package:vortice_app/features/service_reports/service_report_action_bar.dart';
 import 'package:vortice_app/features/service_reports/service_report_app_bar.dart';
@@ -113,7 +112,6 @@ class ServiceReportScreenState extends ConsumerState<ServiceReportScreen> {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text(AppLocalizations.of(context).signatureSaved),
-              backgroundColor: AppColors.success,
             ),
           );
         }

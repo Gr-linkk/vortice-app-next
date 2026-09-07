@@ -19,7 +19,9 @@ class ChecklistSyncStatusBanner extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = hasConflict ? AppColors.error : AppColors.warning;
+    final color = hasConflict
+        ? context.appColors.error
+        : context.appColors.warning;
     return Container(
       width: double.infinity,
       margin: const EdgeInsets.fromLTRB(12, 10, 12, 0),
@@ -41,9 +43,9 @@ class ChecklistSyncStatusBanner extends StatelessWidget {
             child: Text(
               message,
               style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: color,
-                    fontWeight: FontWeight.w600,
-                  ),
+                color: color,
+                fontWeight: FontWeight.w600,
+              ),
             ),
           ),
           if (onRetry != null) ...[
@@ -83,9 +85,10 @@ class ChecklistItemSyncChip extends StatelessWidget {
     final label = syncStatusChipLabel(syncStatus);
     if (label == null) return const SizedBox.shrink();
 
-    final isError = syncStatus == SyncStatusValues.failed ||
+    final isError =
+        syncStatus == SyncStatusValues.failed ||
         syncStatus == SyncStatusValues.conflict;
-    final color = isError ? AppColors.error : AppColors.warning;
+    final color = isError ? context.appColors.error : context.appColors.warning;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(

@@ -42,7 +42,7 @@ class OperatorChecklistSelectionStep extends StatelessWidget {
             loading: () => const CircularProgressIndicator(),
             error: (e, _) => Text(
               e.toString(),
-              style: const TextStyle(color: AppColors.error),
+              style: TextStyle(color: context.appColors.error),
             ),
             data: (assets) {
               final grouped = <String, List<Map<String, dynamic>>>{};
@@ -67,11 +67,11 @@ class OperatorChecklistSelectionStep extends StatelessWidget {
               return AppDropdownField<String>(
                 initialValue: selectedAsset?['id'] as String?,
                 decoration: const InputDecoration(),
-                dropdownColor: AppColors.surfaceVariant,
+                dropdownColor: context.appColors.surfaceVariant,
                 items: allItems,
                 hint: Text(
                   l10n.selectAsset,
-                  style: const TextStyle(color: AppColors.textSecondary),
+                  style: TextStyle(color: context.appColors.textSecondary),
                 ),
                 onChanged: (id) {
                   if (id == null) return;
@@ -91,7 +91,7 @@ class OperatorChecklistSelectionStep extends StatelessWidget {
             loading: () => const CircularProgressIndicator(),
             error: (e, _) => Text(
               e.toString(),
-              style: const TextStyle(color: AppColors.error),
+              style: TextStyle(color: context.appColors.error),
             ),
             data: (templates) {
               final operatorTemplates = templates
@@ -122,7 +122,7 @@ class OperatorChecklistSelectionStep extends StatelessWidget {
               return AppDropdownField<String>(
                 initialValue: selectedTemplate?.id,
                 decoration: const InputDecoration(),
-                dropdownColor: AppColors.surfaceVariant,
+                dropdownColor: context.appColors.surfaceVariant,
                 items: operatorTemplates
                     .map(
                       (t) => DropdownMenuItem(value: t.id, child: Text(t.name)),
@@ -130,7 +130,7 @@ class OperatorChecklistSelectionStep extends StatelessWidget {
                     .toList(),
                 hint: Text(
                   l10n.selectTemplate,
-                  style: const TextStyle(color: AppColors.textSecondary),
+                  style: TextStyle(color: context.appColors.textSecondary),
                 ),
                 onChanged: (id) {
                   if (id == null) return;

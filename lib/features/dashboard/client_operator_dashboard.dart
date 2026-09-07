@@ -1,3 +1,5 @@
+import 'package:vortice_app/features/assets/asset_type_provider.dart';
+import 'package:vortice_app/core/equipment_illustration.dart';
 import 'package:vortice_app/core/user_feedback.dart';
 import 'package:vortice_app/features/dashboard/dashboard_layout.dart';
 import 'package:flutter/material.dart';
@@ -37,6 +39,7 @@ class ClientOperatorDashboard extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final es = isSpanish(context);
     final assetsAsync = ref.watch(currentClientFleetAssetsProvider);
     final runsAsync = ref.watch(clientOperatorRecentRunsProvider);
     final operationalChecklistsAllowedAsync = ref.watch(
@@ -80,25 +83,53 @@ class ClientOperatorDashboard extends ConsumerWidget {
             // ── 0. Assigned Pre-Op Checklists (from client admin) ──────────
             if (showOperationalChecklists)
               assignedChecklistsAsync!.when(
-                loading: () => const SizedBox.shrink(),
-                error: (_, __) => const SizedBox.shrink(),
+                loading: () => const _LoadingTile(),
+                error: (error, _) => AppErrorState(
+                  error: error,
+                  onRetry: () => ref.invalidate(myChecklistAssignmentsProvider),
+                ),
                 data: (assignments) {
-                  if (assignments.isEmpty) return const SizedBox.shrink();
+                  if (assignments.isEmpty) {
+                    return Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 8,
+                      ),
+                      child: Text(
+                        dashboardText(
+                          context,
+                          'No checklists assigned to you.',
+                          'No tienes revisiones asignadas.',
+                        ),
+                      ),
+                    );
+                  }
+                  final ordered = [...assignments]
+                    ..sort((a, b) {
+                      const ranks = {
+                        'in_progress': 0,
+                        'pending': 1,
+                        'completed': 2,
+                      };
+                      return (ranks[a['status']] ?? 1).compareTo(
+                        ranks[b['status']] ?? 1,
+                      );
+                    });
                   return Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       DashboardSection(
                         title: 'Assigned Checklists (${assignments.length})',
                       ),
-                      ...assignments.map((a) {
+                      ...ordered.map((a) {
                         final template =
                             a['checklist_templates'] as Map<String, dynamic>?;
                         final asset = a['assets'] as Map<String, dynamic>?;
                         final status = a['status'] as String? ?? 'pending';
                         final statusColor = switch (status) {
-                          'completed' => AppColors.success,
-                          'in_progress' => AppColors.warning,
-                          _ => AppColors.primary,
+                          'completed' => context.appColors.success,
+                          'in_progress' => context.appColors.warning,
+                          _ => context.appColors.primary,
                         };
                         return Card(
                           margin: const EdgeInsets.symmetric(
@@ -107,25 +138,24 @@ class ClientOperatorDashboard extends ConsumerWidget {
                           ),
                           child: ListTile(
                             leading: CircleAvatar(
-                              backgroundColor: AppColors.warning.withValues(
-                                alpha: 0.1,
-                              ),
-                              child: const Icon(
+                              backgroundColor: context.appColors.warning
+                                  .withValues(alpha: 0.1),
+                              child: Icon(
                                 Icons.checklist_outlined,
                                 size: 18,
-                                color: AppColors.warning,
+                                color: context.appColors.warning,
                               ),
                             ),
                             title: Text(
                               template?['name'] as String? ?? 'Checklist',
-                              maxLines: 1,
+                              maxLines: 3,
                               overflow: TextOverflow.ellipsis,
                             ),
                             subtitle: asset?['name'] != null
                                 ? Text(
                                     asset!['name'] as String,
-                                    style: const TextStyle(
-                                      color: AppColors.textSecondary,
+                                    style: TextStyle(
+                                      color: context.appColors.textSecondary,
                                       fontSize: 12,
                                     ),
                                   )
@@ -199,16 +229,16 @@ class ClientOperatorDashboard extends ConsumerWidget {
 
             // ── 1. Pre-Departure Checklists ───────────────────────────
             if (showOperationalChecklists) ...[
-              const DashboardSection(title: 'Pre-Departure Checklists'),
+              DashboardSection(title: es ? 'Revisiones antes de operar' : 'Pre-operation checks'),
               assetsAsync.when(
                 loading: () => const _LoadingTile(),
                 error: (err, _) =>
                     _ErrorTile(message: friendlyError(context, err)),
                 data: (assets) {
                   if (assets.isEmpty) {
-                    return const _EmptyState(
+                    return _EmptyState(
                       icon: Icons.directions_boat_outlined,
-                      message: 'No assets assigned.',
+                      message: es ? 'No hay equipos asignados.' : 'No assets assigned.',
                     );
                   }
                   return Column(
@@ -222,16 +252,16 @@ class ClientOperatorDashboard extends ConsumerWidget {
 
             if (showOperationalChecklists) ...[
               // ── 3. Recent Checks ──────────────────────────────────────
-              const DashboardSection(title: 'Recent Checks'),
+              DashboardSection(title: es ? 'Revisiones recientes' : 'Recent Checks'),
               runsAsync.when(
                 loading: () => const _LoadingTile(),
                 error: (err, _) =>
                     _ErrorTile(message: friendlyError(context, err)),
                 data: (runs) {
                   if (runs.isEmpty) {
-                    return const _EmptyState(
+                    return _EmptyState(
                       icon: Icons.history_outlined,
-                      message: 'No completed checks yet.',
+                      message: es ? 'Todavía no hay revisiones completadas.' : 'No completed checks yet.',
                     );
                   }
                   return Column(
@@ -251,16 +281,27 @@ class ClientOperatorDashboard extends ConsumerWidget {
 
 // ── Asset Checklist Card ──────────────────────────────────────────────────────
 
-class _AssetChecklistCard extends StatelessWidget {
+class _AssetChecklistCard extends ConsumerWidget {
   final Asset asset;
   const _AssetChecklistCard({required this.asset});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final typeName = ref
+        .watch(assetTypesProvider)
+        .valueOrNull
+        ?.where((type) => type.id == asset.assetTypeId)
+        .firstOrNull
+        ?.name;
+
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
       child: ListTile(
-        leading: const Icon(Icons.checklist, color: AppColors.primaryLight),
+        leading: EquipmentIllustration(
+          assetTypeId: asset.assetTypeId,
+          typeName: typeName,
+          size: 48,
+        ),
         title: Text(asset.name),
         subtitle: Text(
           dashboardText(context, 'Start checklist', 'Iniciar revisión'),
@@ -295,9 +336,9 @@ class _RecentRunTile extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
-          color: AppColors.surface,
+          color: context.appColors.surface,
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: AppColors.cardBorder),
+          border: Border.all(color: context.appColors.cardBorder),
         ),
         child: Row(
           children: [
@@ -305,12 +346,12 @@ class _RecentRunTile extends StatelessWidget {
               width: 40,
               height: 40,
               decoration: BoxDecoration(
-                color: AppColors.success.withValues(alpha: 0.12),
+                color: context.appColors.success.withValues(alpha: 0.12),
                 shape: BoxShape.circle,
               ),
-              child: const Icon(
+              child: Icon(
                 Icons.check_circle_outline,
-                color: AppColors.success,
+                color: context.appColors.success,
                 size: 20,
               ),
             ),
@@ -321,17 +362,17 @@ class _RecentRunTile extends StatelessWidget {
                 children: [
                   Text(
                     assetName,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontWeight: FontWeight.w600,
-                      color: AppColors.textPrimary,
+                      color: context.appColors.textPrimary,
                       fontSize: 13,
                     ),
                   ),
                   const SizedBox(height: 2),
                   Text(
                     dateStr,
-                    style: const TextStyle(
-                      color: AppColors.textSecondary,
+                    style: TextStyle(
+                      color: context.appColors.textSecondary,
                       fontSize: 12,
                     ),
                   ),
@@ -341,13 +382,13 @@ class _RecentRunTile extends StatelessWidget {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
               decoration: BoxDecoration(
-                color: AppColors.success.withValues(alpha: 0.12),
+                color: context.appColors.success.withValues(alpha: 0.12),
                 borderRadius: BorderRadius.circular(20),
               ),
               child: Text(
                 runType.replaceAll('_', ' ').toUpperCase(),
-                style: const TextStyle(
-                  color: AppColors.success,
+                style: TextStyle(
+                  color: context.appColors.success,
                   fontSize: 10,
                   fontWeight: FontWeight.w600,
                 ),
@@ -384,7 +425,7 @@ class _ErrorTile extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       child: Text(
         message,
-        style: const TextStyle(color: AppColors.error, fontSize: 13),
+        style: TextStyle(color: context.appColors.error, fontSize: 13),
       ),
     );
   }
@@ -402,21 +443,21 @@ class _EmptyState extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: AppColors.surface,
+          color: context.appColors.surface,
           borderRadius: BorderRadius.circular(12),
-          border: const Border.fromBorderSide(
-            BorderSide(color: AppColors.cardBorder),
+          border: Border.fromBorderSide(
+            BorderSide(color: context.appColors.cardBorder),
           ),
         ),
         child: Row(
           children: [
-            Icon(icon, color: AppColors.textSecondary, size: 20),
+            Icon(icon, color: context.appColors.textSecondary, size: 20),
             const SizedBox(width: 12),
             Expanded(
               child: Text(
                 message,
-                style: const TextStyle(
-                  color: AppColors.textSecondary,
+                style: TextStyle(
+                  color: context.appColors.textSecondary,
                   fontSize: 13,
                 ),
               ),

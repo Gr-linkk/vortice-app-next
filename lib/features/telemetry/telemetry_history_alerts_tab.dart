@@ -26,8 +26,10 @@ class TelemetryHistoryAlertsTab extends ConsumerWidget {
     return alertsAsync.when(
       loading: () => const Center(child: CircularProgressIndicator()),
       error: (err, _) => Center(
-        child: Text(friendlyError(context, err),
-            style: const TextStyle(color: AppColors.error)),
+        child: Text(
+          friendlyError(context, err),
+          style: TextStyle(color: context.appColors.error),
+        ),
       ),
       data: (alerts) {
         if (alerts.isEmpty) {
@@ -35,12 +37,15 @@ class TelemetryHistoryAlertsTab extends ConsumerWidget {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const Icon(Icons.check_circle,
-                    size: 48, color: AppColors.success),
+                Icon(
+                  Icons.check_circle,
+                  size: 48,
+                  color: context.appColors.success,
+                ),
                 const SizedBox(height: 12),
                 Text(
                   l10n.noAlerts,
-                  style: const TextStyle(color: AppColors.textSecondary),
+                  style: TextStyle(color: context.appColors.textSecondary),
                 ),
               ],
             ),
@@ -58,8 +63,7 @@ class TelemetryHistoryAlertsTab extends ConsumerWidget {
           child: ListView.builder(
             padding: const EdgeInsets.all(16),
             itemCount: alerts.length,
-            itemBuilder: (_, i) =>
-                TelemetryHistoryAlertCard(alert: alerts[i]),
+            itemBuilder: (_, i) => TelemetryHistoryAlertCard(alert: alerts[i]),
           ),
         );
       },

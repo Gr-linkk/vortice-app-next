@@ -19,15 +19,19 @@ class AssetDetailRow extends StatelessWidget {
             width: 120,
             child: Text(
               label,
-              style:
-                  const TextStyle(color: AppColors.textSecondary, fontSize: 13),
+              style: TextStyle(
+                color: context.appColors.textSecondary,
+                fontSize: 13,
+              ),
             ),
           ),
           Expanded(
             child: Text(
               value!,
-              style:
-                  const TextStyle(color: AppColors.textPrimary, fontSize: 13),
+              style: TextStyle(
+                color: context.appColors.textPrimary,
+                fontSize: 13,
+              ),
             ),
           ),
         ],

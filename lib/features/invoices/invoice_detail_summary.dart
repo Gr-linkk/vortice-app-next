@@ -21,10 +21,11 @@ class InvoiceDetailSummaryCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: const Color(0xFF0F1722),
+        color: context.appColors.surfaceVariant,
         borderRadius: BorderRadius.circular(14),
-        border: const Border.fromBorderSide(
-            BorderSide(color: AppColors.cardBorder)),
+        border: Border.fromBorderSide(
+          BorderSide(color: context.appColors.cardBorder),
+        ),
       ),
       child: Column(
         children: [
@@ -50,7 +51,7 @@ class InvoiceDetailSummaryCard extends StatelessWidget {
               mxn: showMxn,
             ),
           ),
-          const Divider(color: AppColors.divider, height: 24),
+          Divider(color: context.appColors.divider, height: 24),
           InvoiceDetailSummaryRow(
             label: l10n.totalDue,
             value: showMxn
@@ -63,8 +64,10 @@ class InvoiceDetailSummaryCard extends StatelessWidget {
               padding: const EdgeInsets.only(top: 8),
               child: Text(
                 '(${formatInvoiceCurrency(invoice.totalMxn, mxn: true)})',
-                style: const TextStyle(
-                    color: AppColors.textSecondary, fontSize: 12),
+                style: TextStyle(
+                  color: context.appColors.textSecondary,
+                  fontSize: 12,
+                ),
               ),
             ),
           if (invoice.exchangeRate != null)
@@ -72,8 +75,10 @@ class InvoiceDetailSummaryCard extends StatelessWidget {
               padding: const EdgeInsets.only(top: 8),
               child: Text(
                 '${l10n.exchangeRate}: 1 USD = ${invoice.exchangeRate!.toStringAsFixed(4)} MXN',
-                style: const TextStyle(
-                    color: AppColors.textSecondary, fontSize: 11),
+                style: TextStyle(
+                  color: context.appColors.textSecondary,
+                  fontSize: 11,
+                ),
               ),
             ),
         ],
@@ -104,8 +109,9 @@ class InvoiceDetailSummaryRow extends StatelessWidget {
           Text(
             label,
             style: TextStyle(
-              color:
-                  isGrand ? const Color(0xFF60A5FA) : AppColors.textSecondary,
+              color: isGrand
+                  ? context.appColors.primary
+                  : context.appColors.textSecondary,
               fontSize: isGrand ? 18 : 14,
               fontWeight: isGrand ? FontWeight.w900 : FontWeight.normal,
             ),
@@ -113,7 +119,9 @@ class InvoiceDetailSummaryRow extends StatelessWidget {
           Text(
             value,
             style: TextStyle(
-              color: isGrand ? const Color(0xFF60A5FA) : AppColors.textPrimary,
+              color: isGrand
+                  ? context.appColors.primary
+                  : context.appColors.textPrimary,
               fontSize: isGrand ? 20 : 14,
               fontWeight: FontWeight.w600,
             ),

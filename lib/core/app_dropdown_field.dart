@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-/// Native form dropdowns share a compact selected value and readable menu rows.
+/// Native form dropdowns keep selected values and menu rows fully readable.
 /// The surrounding form owns the gap between fields.
 class AppDropdownField<T> extends StatelessWidget {
   const AppDropdownField({
@@ -32,6 +32,7 @@ class AppDropdownField<T> extends StatelessWidget {
   Widget build(BuildContext context) => DropdownButtonFormField<T>(
     initialValue: initialValue,
     isExpanded: isExpanded,
+    isDense: false,
     itemHeight: null,
     menuMaxHeight: menuMaxHeight,
     borderRadius: BorderRadius.circular(12),
@@ -51,8 +52,8 @@ class AppDropdownField<T> extends StatelessWidget {
             Align(
               alignment: AlignmentDirectional.centerStart,
               child: DefaultTextStyle.merge(
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
+                softWrap: true,
+                overflow: TextOverflow.visible,
                 child: item.child,
               ),
             ),

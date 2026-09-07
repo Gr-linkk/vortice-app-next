@@ -40,8 +40,10 @@ class TelemetryHistoryReadingsTab extends ConsumerWidget {
     return readingsAsync.when(
       loading: () => const Center(child: CircularProgressIndicator()),
       error: (err, _) => Center(
-        child: Text(friendlyError(context, err),
-            style: const TextStyle(color: AppColors.error)),
+        child: Text(
+          friendlyError(context, err),
+          style: TextStyle(color: context.appColors.error),
+        ),
       ),
       data: (readings) {
         if (readings.isEmpty) {
@@ -49,12 +51,15 @@ class TelemetryHistoryReadingsTab extends ConsumerWidget {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const Icon(Icons.sensors_off,
-                    size: 48, color: AppColors.textSecondary),
+                Icon(
+                  Icons.sensors_off,
+                  size: 48,
+                  color: context.appColors.textSecondary,
+                ),
                 const SizedBox(height: 12),
                 Text(
                   l10n.noTelemetryData,
-                  style: const TextStyle(color: AppColors.textSecondary),
+                  style: TextStyle(color: context.appColors.textSecondary),
                 ),
               ],
             ),
@@ -64,17 +69,21 @@ class TelemetryHistoryReadingsTab extends ConsumerWidget {
         return RefreshIndicator(
           onRefresh: () async {
             if (assetId != null) {
-              ref.invalidate(telemetryHistoryForAssetProvider((
-                assetId: assetId!,
-                from: dateRange.start,
-                to: dateRange.end,
-              )));
+              ref.invalidate(
+                telemetryHistoryForAssetProvider((
+                  assetId: assetId!,
+                  from: dateRange.start,
+                  to: dateRange.end,
+                )),
+              );
             } else {
-              ref.invalidate(telemetryHistoryProvider((
-                engineId: engineId!,
-                from: dateRange.start,
-                to: dateRange.end,
-              )));
+              ref.invalidate(
+                telemetryHistoryProvider((
+                  engineId: engineId!,
+                  from: dateRange.start,
+                  to: dateRange.end,
+                )),
+              );
             }
           },
           child: ListView.builder(

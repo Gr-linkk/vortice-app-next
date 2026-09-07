@@ -271,7 +271,7 @@ class _ChecklistScreenBodyState extends ConsumerState<ChecklistScreenBody> {
         error: (err, _) => Center(
           child: Text(
             friendlyError(context, err),
-            style: const TextStyle(color: AppColors.error),
+            style: TextStyle(color: context.appColors.error),
           ),
         ),
         data: (allTemplates) {
@@ -319,10 +319,10 @@ class _ChecklistScreenBodyState extends ConsumerState<ChecklistScreenBody> {
           }
 
           if (_selectedTemplate == null) {
-            return const Center(
+            return Center(
               child: Text(
                 'Checklist template unavailable for this work order.',
-                style: TextStyle(color: AppColors.error),
+                style: TextStyle(color: context.appColors.error),
               ),
             );
           }
@@ -416,7 +416,6 @@ class _ChecklistScreenBodyState extends ConsumerState<ChecklistScreenBody> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Monitor and Action items need a note or photo.'),
-          backgroundColor: AppColors.error,
         ),
       );
       return;
@@ -439,7 +438,6 @@ class _ChecklistScreenBodyState extends ConsumerState<ChecklistScreenBody> {
             content: Text(
               'Photo upload failed. Checklist kept as draft; retry when connection improves.',
             ),
-            backgroundColor: AppColors.warning,
           ),
         );
       }
@@ -521,9 +519,6 @@ class _ChecklistScreenBodyState extends ConsumerState<ChecklistScreenBody> {
               content: Text(
                 savedLocally ? error.message : 'Checklist save failed: $error',
               ),
-              backgroundColor: savedLocally
-                  ? AppColors.warning
-                  : AppColors.error,
             ),
           );
         }
@@ -539,7 +534,6 @@ class _ChecklistScreenBodyState extends ConsumerState<ChecklistScreenBody> {
           content: Text(
             '${ChecklistSubmissionSupport.onlineSubmittedMessage(deferredPhotoReason: _photoUploadDeferredReason)} ${isSpanish(context) ? 'El servicio se completa desde un trabajo vinculado a un plan.' : 'Complete service through a job linked to its plan.'}',
           ),
-          backgroundColor: AppColors.success,
         ),
       );
     }

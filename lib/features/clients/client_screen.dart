@@ -27,7 +27,7 @@ class _ClientScreenState extends ConsumerState<ClientScreen> {
         onPressed: () => showClientInviteSheet(context),
         icon: const Icon(Icons.person_add),
         label: const Text("Invite Client"),
-        backgroundColor: AppColors.primary,
+        backgroundColor: context.appColors.primary,
       ),
       appBar: AppBar(
         title: Text(l10n.clientsTitle),
@@ -40,8 +40,10 @@ class _ClientScreenState extends ConsumerState<ClientScreen> {
                 hintText: l10n.searchClients,
                 prefixIcon: const Icon(Icons.search, size: 20),
                 isDense: true,
-                contentPadding:
-                    const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 10,
+                ),
               ),
               onChanged: (v) => setState(() => _searchQuery = v),
             ),
@@ -54,7 +56,11 @@ class _ClientScreenState extends ConsumerState<ClientScreen> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Icon(Icons.error_outline, color: AppColors.error, size: 48),
+              Icon(
+                Icons.error_outline,
+                color: context.appColors.error,
+                size: 48,
+              ),
               const SizedBox(height: 12),
               Text(friendlyError(context, err)),
               const SizedBox(height: 12),
@@ -75,8 +81,10 @@ class _ClientScreenState extends ConsumerState<ClientScreen> {
 
           if (filtered.isEmpty) {
             return Center(
-              child: Text(l10n.noClients,
-                  style: const TextStyle(color: AppColors.textSecondary)),
+              child: Text(
+                l10n.noClients,
+                style: TextStyle(color: context.appColors.textSecondary),
+              ),
             );
           }
 

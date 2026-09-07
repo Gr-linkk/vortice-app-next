@@ -90,10 +90,7 @@ class _InvoiceDetailScreenState extends ConsumerState<InvoiceDetailScreen> {
       labourTotal,
     ].any((value) => value == null || !value.isFinite || value < 0)) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(AppLocalizations.of(context).invalidNumber),
-          backgroundColor: AppColors.error,
-        ),
+        SnackBar(content: Text(AppLocalizations.of(context).invalidNumber)),
       );
       return;
     }
@@ -113,10 +110,7 @@ class _InvoiceDetailScreenState extends ConsumerState<InvoiceDetailScreen> {
     if (success && mounted) {
       setState(() => _isEditing = false);
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(AppLocalizations.of(context).invoiceSaved),
-          backgroundColor: AppColors.success,
-        ),
+        SnackBar(content: Text(AppLocalizations.of(context).invoiceSaved)),
       );
     } else if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -124,7 +118,6 @@ class _InvoiceDetailScreenState extends ConsumerState<InvoiceDetailScreen> {
           content: Text(
             friendlyError(context, ref.read(invoiceControllerProvider).error),
           ),
-          backgroundColor: AppColors.error,
         ),
       );
     }
@@ -139,22 +132,14 @@ class _InvoiceDetailScreenState extends ConsumerState<InvoiceDetailScreen> {
       if (message != null) {
         ScaffoldMessenger.of(context)
           ..hideCurrentSnackBar()
-          ..showSnackBar(
-            SnackBar(
-              content: Text(message),
-              backgroundColor: AppColors.success,
-            ),
-          );
+          ..showSnackBar(SnackBar(content: Text(message)));
       }
     } catch (_) {
       if (!mounted) return;
       ScaffoldMessenger.of(context)
         ..hideCurrentSnackBar()
         ..showSnackBar(
-          const SnackBar(
-            content: Text('Could not create invoice file.'),
-            backgroundColor: AppColors.error,
-          ),
+          const SnackBar(content: Text('Could not create invoice file.')),
         );
     } finally {
       if (mounted) {
@@ -215,11 +200,6 @@ class _InvoiceDetailScreenState extends ConsumerState<InvoiceDetailScreen> {
                               ? 'Live exchange rate unavailable. Using fallback: 1 USD = ${result.rate.toStringAsFixed(4)} MXN.'
                               : 'Exchange rate refreshed: 1 USD = ${result.rate.toStringAsFixed(4)} MXN.',
                         ),
-                        backgroundColor: result == null
-                            ? AppColors.error
-                            : result.isFallback
-                            ? AppColors.warning
-                            : AppColors.success,
                       ),
                     );
                 }
@@ -396,16 +376,13 @@ class _InvoiceDetailScreenState extends ConsumerState<InvoiceDetailScreen> {
                                     ? l10n.invoiceMarkedPaid
                                     : 'Could not mark invoice paid.',
                               ),
-                              backgroundColor: success
-                                  ? AppColors.success
-                                  : AppColors.error,
                             ),
                           );
                       },
                       icon: const Icon(Icons.check_circle),
                       label: Text(l10n.markPaid),
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.success,
+                        backgroundColor: context.appColors.success,
                       ),
                     ),
                 ],

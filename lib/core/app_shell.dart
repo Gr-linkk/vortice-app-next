@@ -108,9 +108,9 @@ class AppShell extends ConsumerWidget {
         bottomNavigationBar: hideBottomNavigation
             ? null
             : Container(
-                decoration: const BoxDecoration(
+                decoration: BoxDecoration(
                   border: Border(
-                    top: BorderSide(color: AppColors.divider, width: 1),
+                    top: BorderSide(color: context.appColors.divider, width: 1),
                   ),
                 ),
                 child: BottomNavigationBar(

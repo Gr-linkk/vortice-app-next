@@ -21,22 +21,24 @@ class OrgAdminMemberCard extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final isLoading = ref.watch(orgControllerProvider).isLoading;
-    final capabilities =
-        ref.watch(clientCapabilitiesProvider(ownerProfileId)).valueOrNull;
+    final capabilities = ref
+        .watch(clientCapabilitiesProvider(ownerProfileId))
+        .valueOrNull;
     final roleCapability = orgAdminCapabilityForRole(profile.role);
-    final workflowDisabled = capabilities != null &&
+    final workflowDisabled =
+        capabilities != null &&
         isOrgMemberWorkflowDisabled(
           role: profile.role,
           capabilities: capabilities,
         );
-    final color = orgAdminMemberRoleColor(profile.role);
+    final color = orgAdminMemberRoleColor(context.appColors, profile.role);
 
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: context.appColors.surface,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.cardBorder),
+        border: Border.all(color: context.appColors.cardBorder),
       ),
       child: Row(
         children: [
@@ -51,17 +53,17 @@ class OrgAdminMemberCard extends ConsumerWidget {
               children: [
                 Text(
                   profile.fullName,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontWeight: FontWeight.w600,
-                    color: AppColors.textPrimary,
+                    color: context.appColors.textPrimary,
                     fontSize: 14,
                   ),
                 ),
                 const SizedBox(height: 2),
                 Text(
                   profile.email,
-                  style: const TextStyle(
-                    color: AppColors.textSecondary,
+                  style: TextStyle(
+                    color: context.appColors.textSecondary,
                     fontSize: 12,
                   ),
                 ),
@@ -69,8 +71,8 @@ class OrgAdminMemberCard extends ConsumerWidget {
                   const SizedBox(height: 4),
                   Text(
                     '${roleCapability.label} disabled for this client',
-                    style: const TextStyle(
-                      color: AppColors.warning,
+                    style: TextStyle(
+                      color: context.appColors.warning,
                       fontSize: 11,
                     ),
                   ),
@@ -102,8 +104,9 @@ class OrgAdminMemberCard extends ConsumerWidget {
                       context: context,
                       builder: (ctx) => AlertDialog(
                         title: const Text('Remove Member'),
-                        content:
-                            Text('Remove ${profile.fullName} from this org?'),
+                        content: Text(
+                          'Remove ${profile.fullName} from this org?',
+                        ),
                         actions: [
                           TextButton(
                             onPressed: () => Navigator.pop(ctx, false),
@@ -112,7 +115,8 @@ class OrgAdminMemberCard extends ConsumerWidget {
                           ElevatedButton(
                             onPressed: () => Navigator.pop(ctx, true),
                             style: ElevatedButton.styleFrom(
-                                backgroundColor: AppColors.error),
+                              backgroundColor: context.appColors.error,
+                            ),
                             child: const Text('Remove'),
                           ),
                         ],
@@ -123,7 +127,9 @@ class OrgAdminMemberCard extends ConsumerWidget {
                         .read(orgControllerProvider.notifier)
                         .removeMember(profile.id, orgId: orgId);
                   },
-            style: TextButton.styleFrom(foregroundColor: AppColors.error),
+            style: TextButton.styleFrom(
+              foregroundColor: context.appColors.error,
+            ),
             child: const Text('Remove'),
           ),
         ],

@@ -18,23 +18,29 @@ class OrgAdminFleetTab extends ConsumerWidget {
       error: (err, _) => Center(
         child: Text(
           err.toString(),
-          style: const TextStyle(color: AppColors.error),
+          style: TextStyle(color: context.appColors.error),
         ),
       ),
       data: (assets) {
-        final orgAssets =
-            assets.where((a) => a.clientId == ownerProfileId).toList();
+        final orgAssets = assets
+            .where((a) => a.clientId == ownerProfileId)
+            .toList();
 
         if (orgAssets.isEmpty) {
-          return const Center(
+          return Center(
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Icon(Icons.directions_boat_outlined,
-                    size: 56, color: AppColors.textSecondary),
-                SizedBox(height: 12),
-                Text('No fleet assets.',
-                    style: TextStyle(color: AppColors.textSecondary)),
+                Icon(
+                  Icons.directions_boat_outlined,
+                  size: 56,
+                  color: context.appColors.textSecondary,
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  'No fleet assets.',
+                  style: TextStyle(color: context.appColors.textSecondary),
+                ),
               ],
             ),
           );
@@ -60,13 +66,17 @@ class _OrgAdminAssetCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: context.appColors.surface,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.cardBorder),
+        border: Border.all(color: context.appColors.cardBorder),
       ),
       child: Row(
         children: [
-          const Icon(Icons.directions_boat, color: AppColors.primary, size: 24),
+          Icon(
+            Icons.directions_boat,
+            color: context.appColors.primary,
+            size: 24,
+          ),
           const SizedBox(width: 12),
           Expanded(
             child: Column(
@@ -74,23 +84,28 @@ class _OrgAdminAssetCard extends StatelessWidget {
               children: [
                 Text(
                   asset.name,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontWeight: FontWeight.w600,
-                    color: AppColors.textPrimary,
+                    color: context.appColors.textPrimary,
                     fontSize: 14,
                   ),
                 ),
                 if (asset.model != null)
                   Text(
                     asset.model!,
-                    style: const TextStyle(
-                        color: AppColors.textSecondary, fontSize: 12),
+                    style: TextStyle(
+                      color: context.appColors.textSecondary,
+                      fontSize: 12,
+                    ),
                   ),
               ],
             ),
           ),
-          const Icon(Icons.lock_outline,
-              color: AppColors.textSecondary, size: 16),
+          Icon(
+            Icons.lock_outline,
+            color: context.appColors.textSecondary,
+            size: 16,
+          ),
         ],
       ),
     );

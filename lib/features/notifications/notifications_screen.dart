@@ -46,7 +46,7 @@ class NotificationsScreen extends ConsumerWidget {
                 },
                 child: Text(
                   l10n.markAllRead,
-                  style: const TextStyle(color: AppColors.primary),
+                  style: TextStyle(color: context.appColors.primary),
                 ),
               );
             },
@@ -73,13 +73,15 @@ class NotificationsScreen extends ConsumerWidget {
                         Icon(
                           Icons.notifications_none,
                           size: 56,
-                          color: AppColors.textSecondary.withValues(alpha: 0.4),
+                          color: context.appColors.textSecondary.withValues(
+                            alpha: 0.4,
+                          ),
                         ),
                         const SizedBox(height: 12),
                         Text(
                           l10n.noNotifications,
-                          style: const TextStyle(
-                            color: AppColors.textSecondary,
+                          style: TextStyle(
+                            color: context.appColors.textSecondary,
                           ),
                         ),
                       ],
@@ -94,7 +96,7 @@ class NotificationsScreen extends ConsumerWidget {
                   padding: const EdgeInsets.symmetric(vertical: 8),
                   itemCount: notifications.length,
                   separatorBuilder: (_, __) =>
-                      const Divider(height: 1, color: AppColors.divider),
+                      Divider(height: 1, color: context.appColors.divider),
                   itemBuilder: (context, index) {
                     final n = notifications[index];
                     return _NotificationTile(notification: n, role: role);
@@ -122,12 +124,12 @@ class _NotificationTile extends ConsumerWidget {
     _ => Icons.notifications,
   };
 
-  Color _colorFor(String type) => switch (type) {
-    'maintenance_flag' => AppColors.warning,
-    'telemetry_alert' => AppColors.error,
-    'work_order' => AppColors.primary,
-    'invoice' => AppColors.success,
-    _ => AppColors.textSecondary,
+  Color _colorFor(BuildContext context, String type) => switch (type) {
+    'maintenance_flag' => context.appColors.warning,
+    'telemetry_alert' => context.appColors.error,
+    'work_order' => context.appColors.primary,
+    'invoice' => context.appColors.success,
+    _ => context.appColors.textSecondary,
   };
 
   String _timeAgo(DateTime dt) {
@@ -199,7 +201,7 @@ class _NotificationTile extends ConsumerWidget {
           : null,
       child: Container(
         color: isUnread
-            ? AppColors.primary.withValues(alpha: 0.06)
+            ? context.appColors.primary.withValues(alpha: 0.06)
             : Colors.transparent,
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         child: Row(
@@ -210,13 +212,16 @@ class _NotificationTile extends ConsumerWidget {
               width: 40,
               height: 40,
               decoration: BoxDecoration(
-                color: _colorFor(notification.type).withValues(alpha: 0.15),
+                color: _colorFor(
+                  context,
+                  notification.type,
+                ).withValues(alpha: 0.15),
                 shape: BoxShape.circle,
               ),
               child: Icon(
                 _iconFor(notification.type),
                 size: 20,
-                color: _colorFor(notification.type),
+                color: _colorFor(context, notification.type),
               ),
             ),
             const SizedBox(width: 12),
@@ -232,7 +237,7 @@ class _NotificationTile extends ConsumerWidget {
                         child: Text(
                           notification.title,
                           style: TextStyle(
-                            color: AppColors.textPrimary,
+                            color: context.appColors.textPrimary,
                             fontWeight: isUnread
                                 ? FontWeight.w600
                                 : FontWeight.normal,
@@ -244,8 +249,8 @@ class _NotificationTile extends ConsumerWidget {
                         Container(
                           width: 8,
                           height: 8,
-                          decoration: const BoxDecoration(
-                            color: AppColors.primary,
+                          decoration: BoxDecoration(
+                            color: context.appColors.primary,
                             shape: BoxShape.circle,
                           ),
                         ),
@@ -254,16 +259,16 @@ class _NotificationTile extends ConsumerWidget {
                   const SizedBox(height: 3),
                   Text(
                     notification.body,
-                    style: const TextStyle(
-                      color: AppColors.textSecondary,
+                    style: TextStyle(
+                      color: context.appColors.textSecondary,
                       fontSize: 13,
                     ),
                   ),
                   const SizedBox(height: 4),
                   Text(
                     _timeAgo(notification.createdAt),
-                    style: const TextStyle(
-                      color: AppColors.textSecondary,
+                    style: TextStyle(
+                      color: context.appColors.textSecondary,
                       fontSize: 11,
                     ),
                   ),

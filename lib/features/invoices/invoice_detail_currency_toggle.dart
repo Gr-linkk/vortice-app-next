@@ -55,17 +55,23 @@ class InvoiceDetailCurrencyButton extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 8),
         decoration: BoxDecoration(
-          color: selected ? const Color(0xFF1E3A5F) : AppColors.surfaceVariant,
+          color: selected
+              ? context.appColors.primary
+              : context.appColors.surfaceVariant,
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
-            color: selected ? AppColors.primary : AppColors.divider,
+            color: selected
+                ? context.appColors.primary
+                : context.appColors.divider,
             width: selected ? 2 : 1,
           ),
         ),
         child: Text(
           '$flag $label',
           style: TextStyle(
-            color: selected ? Colors.white : AppColors.textSecondary,
+            color: selected
+                ? context.appColors.onPrimary
+                : context.appColors.textSecondary,
             fontWeight: FontWeight.w600,
             fontSize: 13,
           ),

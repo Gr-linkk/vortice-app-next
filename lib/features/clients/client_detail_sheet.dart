@@ -40,9 +40,9 @@ class _ClientDetailSheetState extends ConsumerState<ClientDetailSheet> {
     final success = await ref
         .read(clientControllerProvider.notifier)
         .updateClient(widget.client.id, {
-      'full_name': _nameCtrl.text.trim(),
-      'email': _emailCtrl.text.trim(),
-    });
+          'full_name': _nameCtrl.text.trim(),
+          'email': _emailCtrl.text.trim(),
+        });
     if (success && mounted) {
       Navigator.pop(context);
     }
@@ -56,7 +56,11 @@ class _ClientDetailSheetState extends ConsumerState<ClientDetailSheet> {
 
     return Padding(
       padding: EdgeInsets.fromLTRB(
-          16, 16, 16, MediaQuery.of(context).viewInsets.bottom + 16),
+        16,
+        16,
+        16,
+        MediaQuery.of(context).viewInsets.bottom + 16,
+      ),
       child: SingleChildScrollView(
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -67,7 +71,7 @@ class _ClientDetailSheetState extends ConsumerState<ClientDetailSheet> {
                 width: 40,
                 height: 4,
                 decoration: BoxDecoration(
-                  color: AppColors.textSecondary,
+                  color: context.appColors.textSecondary,
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
@@ -76,11 +80,15 @@ class _ClientDetailSheetState extends ConsumerState<ClientDetailSheet> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text(l10n.clientDetails,
-                    style: Theme.of(context).textTheme.titleLarge),
+                Text(
+                  l10n.clientDetails,
+                  style: Theme.of(context).textTheme.titleLarge,
+                ),
                 IconButton(
-                  icon: Icon(_editing ? Icons.close : Icons.edit,
-                      color: AppColors.primary),
+                  icon: Icon(
+                    _editing ? Icons.close : Icons.edit,
+                    color: context.appColors.primary,
+                  ),
                   onPressed: () => setState(() => _editing = !_editing),
                 ),
               ],
@@ -111,10 +119,11 @@ class _ClientDetailSheetState extends ConsumerState<ClientDetailSheet> {
               _DetailRow(label: l10n.fullName, value: widget.client.fullName),
               _DetailRow(label: l10n.email, value: widget.client.email),
               _DetailRow(
-                  label: l10n.language,
-                  value: widget.client.preferredLanguage == 'es'
-                      ? l10n.spanish
-                      : l10n.english),
+                label: l10n.language,
+                value: widget.client.preferredLanguage == 'es'
+                    ? l10n.spanish
+                    : l10n.english,
+              ),
               const SizedBox(height: 8),
               ClientCapabilitySwitchboardSection(clientId: widget.client.id),
               const SizedBox(height: 16),
@@ -145,14 +154,22 @@ class _DetailRow extends StatelessWidget {
         children: [
           SizedBox(
             width: 120,
-            child: Text(label,
-                style: const TextStyle(
-                    color: AppColors.textSecondary, fontSize: 13)),
+            child: Text(
+              label,
+              style: TextStyle(
+                color: context.appColors.textSecondary,
+                fontSize: 13,
+              ),
+            ),
           ),
           Expanded(
-            child: Text(value,
-                style: const TextStyle(
-                    color: AppColors.textPrimary, fontSize: 13)),
+            child: Text(
+              value,
+              style: TextStyle(
+                color: context.appColors.textPrimary,
+                fontSize: 13,
+              ),
+            ),
           ),
         ],
       ),

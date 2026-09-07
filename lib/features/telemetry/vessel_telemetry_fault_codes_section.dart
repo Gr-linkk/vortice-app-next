@@ -25,8 +25,10 @@ class VesselTelemetryFaultCodesSection extends ConsumerWidget {
           children: [
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 24, 16, 8),
-              child: Text('Fault Codes',
-                  style: Theme.of(context).textTheme.titleMedium),
+              child: Text(
+                'Fault Codes',
+                style: Theme.of(context).textTheme.titleMedium,
+              ),
             ),
             ...alerts.map(
               (a) => VesselTelemetryFaultCodeTile(alert: a, assetId: assetId),
@@ -50,14 +52,14 @@ class VesselTelemetryFaultCodeTile extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final severityColor = alertSeverityColor(alert.severity);
+    final severityColor = alertSeverityColor(context.appColors, alert.severity);
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
       child: Container(
         padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
-          color: AppColors.surface,
+          color: context.appColors.surface,
           borderRadius: BorderRadius.circular(12),
           border: Border.all(color: severityColor.withValues(alpha: 0.35)),
         ),
@@ -72,24 +74,28 @@ class VesselTelemetryFaultCodeTile extends ConsumerWidget {
                   if (alert.spn != null)
                     Text(
                       'SPN ${alert.spn}  FMI ${alert.fmi ?? '?'}',
-                      style: const TextStyle(
-                          fontWeight: FontWeight.w600,
-                          color: AppColors.textPrimary,
-                          fontSize: 13),
+                      style: TextStyle(
+                        fontWeight: FontWeight.w600,
+                        color: context.appColors.textPrimary,
+                        fontSize: 13,
+                      ),
                     )
                   else
                     Text(
                       alert.alertType.name.toUpperCase(),
-                      style: const TextStyle(
-                          fontWeight: FontWeight.w600,
-                          color: AppColors.textPrimary,
-                          fontSize: 13),
+                      style: TextStyle(
+                        fontWeight: FontWeight.w600,
+                        color: context.appColors.textPrimary,
+                        fontSize: 13,
+                      ),
                     ),
                   if (alert.message != null)
                     Text(
                       alert.message!,
-                      style: const TextStyle(
-                          color: AppColors.textSecondary, fontSize: 12),
+                      style: TextStyle(
+                        color: context.appColors.textSecondary,
+                        fontSize: 12,
+                      ),
                     ),
                 ],
               ),

@@ -17,27 +17,31 @@ class UpgradePrompt extends StatelessWidget {
       margin: const EdgeInsets.all(24),
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
-        color: AppColors.warning.withValues(alpha: 0.08),
-        border: Border.all(color: AppColors.warning.withValues(alpha: 0.4)),
+        color: context.appColors.warning.withValues(alpha: 0.08),
+        border: Border.all(
+          color: context.appColors.warning.withValues(alpha: 0.4),
+        ),
         borderRadius: BorderRadius.circular(16),
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const Icon(Icons.lock_outline, color: AppColors.warning, size: 48),
+          Icon(Icons.lock_outline, color: context.appColors.warning, size: 48),
           const SizedBox(height: 16),
           Text(
             l10n.upgradeRequired,
-            style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.w600,
-                ),
+            style: Theme.of(
+              context,
+            ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 8),
           Text(
             l10n.upgradeMessage(requiredTier.displayName),
-            style:
-                const TextStyle(color: AppColors.textSecondary, fontSize: 14),
+            style: TextStyle(
+              color: context.appColors.textSecondary,
+              fontSize: 14,
+            ),
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 20),
@@ -72,22 +76,26 @@ class TierGateBanner extends StatelessWidget {
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
           decoration: BoxDecoration(
-            color: AppColors.warning.withValues(alpha: 0.08),
+            color: context.appColors.warning.withValues(alpha: 0.08),
             border: Border(
-              bottom:
-                  BorderSide(color: AppColors.warning.withValues(alpha: 0.25)),
+              bottom: BorderSide(
+                color: context.appColors.warning.withValues(alpha: 0.25),
+              ),
             ),
           ),
           child: Row(
             children: [
-              const Icon(Icons.lock_outline,
-                  color: AppColors.warning, size: 18),
+              Icon(
+                Icons.lock_outline,
+                color: context.appColors.warning,
+                size: 18,
+              ),
               const SizedBox(width: 8),
               Expanded(
                 child: Text(
                   l10n.upgradeMessage(requiredTier.displayName),
-                  style: const TextStyle(
-                    color: AppColors.warning,
+                  style: TextStyle(
+                    color: context.appColors.warning,
                     fontSize: 13,
                   ),
                 ),

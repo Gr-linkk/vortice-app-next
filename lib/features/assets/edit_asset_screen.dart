@@ -66,7 +66,6 @@ class _EditAssetScreenState extends ConsumerState<EditAssetScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Please select the client this asset belongs to.'),
-          backgroundColor: AppColors.error,
         ),
       );
       return;
@@ -103,12 +102,9 @@ class _EditAssetScreenState extends ConsumerState<EditAssetScreen> {
     if (success && mounted) context.pop(true);
     if (!success && mounted) {
       final err = ref.read(assetControllerProvider).error;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(friendlyError(context, err)),
-          backgroundColor: AppColors.error,
-        ),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(friendlyError(context, err))));
     }
   }
 
@@ -133,7 +129,7 @@ class _EditAssetScreenState extends ConsumerState<EditAssetScreen> {
                 loading: () => const LinearProgressIndicator(),
                 error: (err, _) => Text(
                   err.toString(),
-                  style: const TextStyle(color: AppColors.error),
+                  style: TextStyle(color: context.appColors.error),
                 ),
                 data: (clients) => AppDropdownField<String>(
                   initialValue: _selectedClientId,
@@ -141,7 +137,7 @@ class _EditAssetScreenState extends ConsumerState<EditAssetScreen> {
                     labelText: 'Assigned Client',
                     prefixIcon: Icon(Icons.business_outlined),
                   ),
-                  dropdownColor: AppColors.surfaceVariant,
+                  dropdownColor: context.appColors.surfaceVariant,
                   items: clients
                       .map(
                         (c) => DropdownMenuItem(
@@ -168,7 +164,7 @@ class _EditAssetScreenState extends ConsumerState<EditAssetScreen> {
                     labelText: l10n.assetType,
                     prefixIcon: const Icon(Icons.category_outlined),
                   ),
-                  dropdownColor: AppColors.surfaceVariant,
+                  dropdownColor: context.appColors.surfaceVariant,
                   items: types
                       .map(
                         (t) =>
@@ -282,12 +278,12 @@ class _EditAssetScreenState extends ConsumerState<EditAssetScreen> {
               ElevatedButton(
                 onPressed: isLoading ? null : _submit,
                 child: isLoading
-                    ? const SizedBox(
+                    ? SizedBox(
                         width: 20,
                         height: 20,
                         child: CircularProgressIndicator(
                           strokeWidth: 2,
-                          color: Colors.white,
+                          color: context.appColors.onPrimary,
                         ),
                       )
                     : Text(l10n.save),

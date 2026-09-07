@@ -23,7 +23,11 @@ class EngineScreen extends ConsumerWidget {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Icon(Icons.error_outline, color: AppColors.error, size: 48),
+              Icon(
+                Icons.error_outline,
+                color: context.appColors.error,
+                size: 48,
+              ),
               const SizedBox(height: 12),
               Text(friendlyError(context, err)),
               const SizedBox(height: 12),
@@ -47,7 +51,7 @@ class EngineScreen extends ConsumerWidget {
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () => showEngineFormSheet(context, assetId, null),
-        backgroundColor: AppColors.primary,
+        backgroundColor: context.appColors.primary,
         child: const Icon(Icons.add),
       ),
     );

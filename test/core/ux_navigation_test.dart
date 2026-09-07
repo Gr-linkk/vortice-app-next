@@ -281,6 +281,21 @@ void main() {
     ).firstMatch(File('pubspec.yaml').readAsStringSync())!.group(1);
     expect(AppConstants.appVersion, version);
   });
+  test('maintenance routes identify their actual navigation section', () {
+    final items = primaryDestinations(UserRole.owner);
+    expect(
+      selectedDestination(items, '/maintenance/planning?view=week'),
+      items.indexWhere((e) => e.en == 'Planning'),
+    );
+    expect(
+      selectedDestination(items, '/maintenance/assets/asset'),
+      items.indexWhere((e) => e.en == 'Assets'),
+    );
+    expect(
+      selectedDestination(items, '/maintenance/jobs/job'),
+      items.indexWhere((e) => e.en == 'More'),
+    );
+  });
   test(
     'every role keeps assets, faults, and tools reachable; field roles omit billing',
     () {

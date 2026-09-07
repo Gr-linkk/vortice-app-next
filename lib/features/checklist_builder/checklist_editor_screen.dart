@@ -344,6 +344,9 @@ class _ChecklistEditorScreenState extends ConsumerState<ChecklistEditorScreen> {
                   components,
                   (v) => _engine = v,
                 ),
+              const SizedBox(height: 16),
+              const Divider(),
+              const SizedBox(height: 16),
               Text(
                 '${es ? 'Pasos' : 'Steps'} (${_steps.length}/100)',
                 style: Theme.of(context).textTheme.titleLarge,

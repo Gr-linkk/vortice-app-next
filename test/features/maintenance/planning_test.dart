@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:vortice_app/core/app_navigation.dart';
+import 'package:vortice_app/core/theme.dart';
 import 'package:vortice_app/features/maintenance/planning/planning_models.dart';
 import 'package:vortice_app/features/maintenance/planning/planning_repository.dart';
 import 'package:vortice_app/features/maintenance/planning/maintenance_planning_screen.dart';
@@ -66,11 +67,41 @@ class FixturePlanning implements PlanningRepository {
   }
 }
 
+// Load the real theme's colors and resolve only test font families for captures.
+ThemeData planningCaptureTheme(ThemeData theme) => theme.copyWith(
+  textTheme: theme.textTheme.apply(fontFamily: 'Roboto'),
+  primaryTextTheme: theme.primaryTextTheme.apply(fontFamily: 'Roboto'),
+  appBarTheme: theme.appBarTheme.copyWith(
+    titleTextStyle: theme.appBarTheme.titleTextStyle?.copyWith(
+      fontFamily: 'Roboto',
+    ),
+  ),
+  filledButtonTheme: FilledButtonThemeData(
+    style: theme.filledButtonTheme.style?.copyWith(
+      textStyle: WidgetStateProperty.resolveWith(
+        (states) => theme.filledButtonTheme.style?.textStyle
+            ?.resolve(states)
+            ?.copyWith(fontFamily: 'Roboto'),
+      ),
+    ),
+  ),
+  textButtonTheme: TextButtonThemeData(
+    style: theme.textButtonTheme.style?.copyWith(
+      textStyle: WidgetStateProperty.resolveWith(
+        (states) => theme.textButtonTheme.style?.textStyle
+            ?.resolve(states)
+            ?.copyWith(fontFamily: 'Roboto'),
+      ),
+    ),
+  ),
+);
+
 Future<void> showPlanning(
   WidgetTester tester,
   Widget screen,
   FixturePlanning fixture, {
   bool es = false,
+  bool light = false,
   double width = 390,
   double scale = 1,
   UserRole role = UserRole.clientAdmin,
@@ -90,7 +121,12 @@ Future<void> showPlanning(
       : screen;
   await pumpMaintenance(
     tester,
-    home,
+    Theme(
+      data: planningCaptureTheme(
+        light ? AppTheme.lightTheme : AppTheme.darkTheme,
+      ),
+      child: home,
+    ),
     FixtureMaintenance(),
     es: es,
     width: width,
@@ -220,10 +256,14 @@ void main() {
       expect(job.schedulable, isFalse);
     },
   );
-  test('primary planning navigation also selects work details', () {
+  test('planning stays separate from general work navigation', () {
     final items = primaryDestinations(UserRole.clientAdmin);
     expect(items[2].en, 'Planning');
-    expect(selectedDestination(items, '/maintenance/jobs/job'), 2);
+    expect(selectedDestination(items, '/maintenance/planning'), 2);
+    expect(
+      selectedDestination(items, '/maintenance/jobs/job'),
+      items.indexWhere((item) => item.en == 'More'),
+    );
     expect(primaryDestinations(UserRole.clientMechanic)[2].en, 'My schedule');
   });
 
@@ -234,9 +274,10 @@ void main() {
       PlanningData(jobs: [booking('unplanned')], plans: []),
     );
     await showPlanning(tester, const MaintenancePlanningScreen(), fixture);
-    expect(find.text('Maintenance planning'), findsOneWidget);
-    await reveal(tester, find.widgetWithText(ChoiceChip, 'Unscheduled'));
-    await tester.tap(find.widgetWithText(ChoiceChip, 'Unscheduled'));
+    expect(find.text('Planning'), findsOneWidget);
+    await tester.tap(find.byKey(const ValueKey('planning-collection')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Unscheduled').last);
     await tester.pumpAndSettle();
     await reveal(tester, find.text('Schedule'));
     await tester.tap(find.text('Schedule'));
@@ -244,6 +285,76 @@ void main() {
     expect(find.text('Schedule work'), findsOneWidget);
     expect(find.text('Booked start'), findsOneWidget);
   });
+  testWidgets(
+    'booked work opens first and collection changes retain calendar view',
+    (tester) async {
+      final fixture = FixturePlanning(
+        PlanningData(
+          jobs: [booking('booked', start: DateTime.now())],
+          plans: [],
+        ),
+      );
+      await showPlanning(tester, const MaintenancePlanningScreen(), fixture);
+      await reveal(tester, find.widgetWithText(FilledButton, 'Open work'));
+      expect(find.widgetWithText(TextButton, 'Reschedule'), findsOneWidget);
+      expect(find.widgetWithText(FilledButton, 'Reschedule'), findsNothing);
+      await tester.drag(find.byType(ListView).first, const Offset(0, 800));
+      await tester.pumpAndSettle();
+      await tester.tap(find.widgetWithText(ChoiceChip, 'Day'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('planning-collection')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Unscheduled').last);
+      await tester.pumpAndSettle();
+      expect(find.widgetWithText(ChoiceChip, 'Day'), findsNothing);
+      await tester.tap(find.byKey(const ValueKey('planning-collection')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Schedule').last);
+      await tester.pumpAndSettle();
+      expect(
+        tester
+            .widget<ChoiceChip>(find.widgetWithText(ChoiceChip, 'Day'))
+            .selected,
+        isTrue,
+      );
+    },
+  );
+
+  testWidgets(
+    'large text collections and reopened search preserve readable filters',
+    (tester) async {
+      final fixture = FixturePlanning(
+        PlanningData(jobs: [booking('pump')], plans: []),
+      );
+      await showPlanning(
+        tester,
+        const MaintenancePlanningScreen(),
+        fixture,
+        es: true,
+        width: 360,
+        scale: 2,
+      );
+      await tester.tap(find.byTooltip('Buscar y filtrar'));
+      await tester.pumpAndSettle();
+      await tester.enterText(find.byType(TextFormField).first, 'pump');
+      await tester.pumpAndSettle();
+      await tester.tap(find.byTooltip('Buscar y filtrar'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byTooltip('Buscar y filtrar'));
+      await tester.pumpAndSettle();
+      expect(find.text('pump'), findsOneWidget);
+      await tester.tap(find.byTooltip('Buscar y filtrar'));
+      await tester.pumpAndSettle();
+      await reveal(tester, find.byKey(const ValueKey('planning-collection')));
+      await tester.tap(find.byKey(const ValueKey('planning-collection')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Sin programar').last);
+      await tester.pumpAndSettle();
+      await reveal(tester, find.text('Programar'));
+      expect(tester.takeException(), isNull);
+    },
+  );
+
   testWidgets(
     'changing the requested booking reuses the planner with fresh work',
     (tester) async {
@@ -317,7 +428,7 @@ void main() {
     await tester.tap(find.text('Try again'));
     await tester.pumpAndSettle();
     expect(fixture.reads, greaterThan(before));
-    expect(find.text('Maintenance planning'), findsOneWidget);
+    expect(find.text('Planning'), findsOneWidget);
   });
   testWidgets('uncertain scheduling retry preserves exact identity and input', (
     tester,
@@ -460,64 +571,70 @@ void main() {
     expect(fixture.writes, isEmpty);
     expect(find.text('Explain the change'), findsOneWidget);
   });
-  for (final spanish in [false, true]) {
-    testWidgets(
-      'native planning renders ${spanish ? 'Spanish large text' : 'English'}',
-      (tester) async {
-        final now = DateTime.now();
-        final fixture = FixturePlanning(
-          PlanningData(
-            jobs: [
-              booking(
-                'generator preventive maintenance',
-                start: DateTime(now.year, now.month, now.day, 8),
-                minutes: 180,
-              ),
-              booking(
-                'pump inspection',
-                start: DateTime(now.year, now.month, now.day + 1, 10),
-                minutes: 90,
-              ),
-            ],
-            plans: [
-              PlanningPlan({
-                'id': 'plan',
-                'asset_id': 'asset',
-                'asset_name': 'Harbour generator',
-                'interval_label': '250-hour generator service',
-                'engine_id': 'engine',
-                'component_name': 'Auxiliary generator',
-                'current_hours': 1240,
-                'next_due_hours': 1250,
-                'can_manage': true,
-              }),
-            ],
-          ),
-        );
-        await showPlanning(
-          tester,
-          const MaintenancePlanningScreen(),
-          fixture,
-          es: spanish,
-          width: spanish ? 360 : 412,
-          scale: spanish ? 1.35 : 1,
-        );
-        await captureFleet(tester, spanish ? 'planning-es' : 'planning-en');
-        await reveal(
-          tester,
-          find.widgetWithText(ChoiceChip, spanish ? 'Mes' : 'Month'),
-        );
-        await tester.tap(
-          find.widgetWithText(ChoiceChip, spanish ? 'Mes' : 'Month'),
-        );
-        await tester.pumpAndSettle();
-        await reveal(tester, find.byType(PlanningMonth));
-        await captureFleet(
-          tester,
-          spanish ? 'planning-month-es' : 'planning-month-en',
-        );
-        expect(tester.takeException(), isNull);
-      },
-    );
+  for (final light in [false, true]) {
+    for (final spanish in [false, true]) {
+      testWidgets(
+        'native planning renders ${light ? 'light' : 'dark'} ${spanish ? 'Spanish large text' : 'English'}',
+        (tester) async {
+          final now = DateTime.now();
+          final fixture = FixturePlanning(
+            PlanningData(
+              jobs: [
+                booking(
+                  'generator preventive maintenance',
+                  start: DateTime(now.year, now.month, now.day, 8),
+                  minutes: 180,
+                ),
+                booking(
+                  'pump inspection',
+                  start: DateTime(now.year, now.month, now.day + 1, 10),
+                  minutes: 90,
+                ),
+              ],
+              plans: [
+                PlanningPlan({
+                  'id': 'plan',
+                  'asset_id': 'asset',
+                  'asset_name': 'Harbour generator',
+                  'interval_label': '250-hour generator service',
+                  'engine_id': 'engine',
+                  'component_name': 'Auxiliary generator',
+                  'current_hours': 1240,
+                  'next_due_hours': 1250,
+                  'can_manage': true,
+                }),
+              ],
+            ),
+          );
+          await showPlanning(
+            tester,
+            const MaintenancePlanningScreen(),
+            fixture,
+            es: spanish,
+            light: light,
+            width: spanish ? 360 : 412,
+            scale: spanish ? 1.35 : 1,
+          );
+          await captureFleet(
+            tester,
+            'planning-${light ? 'light' : 'dark'}-${spanish ? 'es' : 'en'}',
+          );
+          await reveal(
+            tester,
+            find.widgetWithText(ChoiceChip, spanish ? 'Mes' : 'Month'),
+          );
+          await tester.tap(
+            find.widgetWithText(ChoiceChip, spanish ? 'Mes' : 'Month'),
+          );
+          await tester.pumpAndSettle();
+          await reveal(tester, find.byType(PlanningMonth));
+          await captureFleet(
+            tester,
+            'planning-month-${light ? 'light' : 'dark'}-${spanish ? 'es' : 'en'}',
+          );
+          expect(tester.takeException(), isNull);
+        },
+      );
+    }
   }
 }

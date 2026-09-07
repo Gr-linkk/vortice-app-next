@@ -15,16 +15,13 @@ class FleetEntryCard extends ConsumerWidget {
     final faults = assets?.fold<int>(0, (n, a) => n + a.openFaults);
     final down = assets?.where((a) => a.state.isDowntime).length;
     return Card(
-      margin: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+      margin: const EdgeInsets.fromLTRB(16, 0, 16, 8),
       child: ListTile(
-        contentPadding: const EdgeInsets.symmetric(
-          horizontal: 16,
-          vertical: 10,
-        ),
-        leading: const Icon(
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 0),
+        leading: Icon(
           Icons.fact_check_outlined,
-          color: AppColors.primaryLight,
-          size: 30,
+          color: context.appColors.primaryLight,
+          size: 22,
         ),
         title: Text(es ? 'Fallas y disponibilidad' : 'Faults & availability'),
         subtitle: Text(
@@ -67,9 +64,9 @@ class AssetReadinessCard extends ConsumerWidget {
             children: [
               Row(
                 children: [
-                  const Icon(
+                  Icon(
                     Icons.fact_check_outlined,
-                    color: AppColors.primaryLight,
+                    color: context.appColors.primaryLight,
                   ),
                   const SizedBox(width: 10),
                   Expanded(
@@ -89,7 +86,7 @@ class AssetReadinessCard extends ConsumerWidget {
                   es
                       ? 'Abrir estado de disponibilidad'
                       : 'Open availability status',
-                  style: const TextStyle(color: AppColors.textSecondary),
+                  style: TextStyle(color: context.appColors.textSecondary),
                 ),
               if (asset != null && asset.openFaults > 0) ...[
                 const SizedBox(height: 8),

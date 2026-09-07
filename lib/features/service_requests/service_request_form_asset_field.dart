@@ -24,7 +24,7 @@ class ServiceRequestFormAssetField extends StatelessWidget {
         hintText: 'Select asset',
         prefixIcon: Icon(Icons.directions_boat_outlined),
       ),
-      dropdownColor: AppColors.surfaceVariant,
+      dropdownColor: context.appColors.surfaceVariant,
       items: [
         ...assets.map(
           (asset) => DropdownMenuItem<String>(

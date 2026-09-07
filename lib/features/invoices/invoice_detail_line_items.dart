@@ -36,18 +36,19 @@ class InvoiceDetailLineItemsCard extends ConsumerWidget {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: context.appColors.surface,
         borderRadius: BorderRadius.circular(14),
-        border: const Border.fromBorderSide(
-            BorderSide(color: AppColors.cardBorder)),
+        border: Border.fromBorderSide(
+          BorderSide(color: context.appColors.cardBorder),
+        ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
             l10n.lineItems.toUpperCase(),
-            style: const TextStyle(
-              color: AppColors.textSecondary,
+            style: TextStyle(
+              color: context.appColors.textSecondary,
               fontSize: 12,
               fontWeight: FontWeight.w600,
               letterSpacing: 1,
@@ -156,16 +157,18 @@ class InvoiceDetailLineItemRow extends StatelessWidget {
                 label,
                 style: TextStyle(
                   color: isSubtle
-                      ? AppColors.textSecondary
-                      : AppColors.textPrimary,
+                      ? context.appColors.textSecondary
+                      : context.appColors.textPrimary,
                   fontSize: 14,
                 ),
               ),
               if (detail != null)
                 Text(
                   detail!,
-                  style: const TextStyle(
-                      color: AppColors.textSecondary, fontSize: 12),
+                  style: TextStyle(
+                    color: context.appColors.textSecondary,
+                    fontSize: 12,
+                  ),
                 ),
             ],
           ),
@@ -173,7 +176,9 @@ class InvoiceDetailLineItemRow extends StatelessWidget {
         Text(
           amount,
           style: TextStyle(
-            color: isSubtle ? AppColors.textSecondary : const Color(0xFF60A5FA),
+            color: isSubtle
+                ? context.appColors.textSecondary
+                : context.appColors.primary,
             fontSize: 14,
             fontWeight: FontWeight.w600,
           ),
@@ -206,18 +211,19 @@ class InvoiceDetailEditableLineItems extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: context.appColors.surface,
         borderRadius: BorderRadius.circular(14),
-        border: const Border.fromBorderSide(
-            BorderSide(color: AppColors.cardBorder)),
+        border: Border.fromBorderSide(
+          BorderSide(color: context.appColors.cardBorder),
+        ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
             l10n.editLineItems.toUpperCase(),
-            style: const TextStyle(
-              color: AppColors.primary,
+            style: TextStyle(
+              color: context.appColors.primary,
               fontSize: 12,
               fontWeight: FontWeight.w600,
               letterSpacing: 1,

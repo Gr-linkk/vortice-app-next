@@ -76,6 +76,10 @@ void main() {
     await tester.tap(find.text('Other').last);
     await tester.pumpAndSettle();
     expect(requestedAsset, isNotNull);
+    await tester.ensureVisible(
+      find.byType(DropdownButtonFormField<String>).last,
+    );
+    await tester.pumpAndSettle();
     await tester.tap(find.byType(DropdownButtonFormField<String>).last);
     await tester.pumpAndSettle();
     final menuText = find.descendant(
@@ -104,14 +108,14 @@ void main() {
       width: 320,
       scale: 1.5,
     );
-      await tester.scrollUntilVisible(
-        find.text('Añadir repuesto'),
-        200,
-        scrollable: find.byType(Scrollable).first,
-      );
-      await tester.ensureVisible(find.text('Añadir repuesto'));
-      await tester.pumpAndSettle();
-      await tester.tap(find.text('Añadir repuesto'));
+    await tester.scrollUntilVisible(
+      find.text('Añadir repuesto'),
+      200,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.ensureVisible(find.text('Añadir repuesto'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Añadir repuesto'));
     await tester.pumpAndSettle();
     final fields = find.descendant(
       of: find.byType(AlertDialog),
@@ -148,6 +152,13 @@ void main() {
       final component = find.byKey(const ValueKey('component-asset'));
       final assignee = find.byKey(const ValueKey('assignee-asset'));
       await tester.scrollUntilVisible(
+        find.text('Optional details'),
+        200,
+        scrollable: find.byType(Scrollable).first,
+      );
+      await tester.tap(find.text('Optional details'));
+      await tester.pumpAndSettle();
+      await tester.scrollUntilVisible(
         plan,
         200,
         scrollable: find.byType(Scrollable).first,
@@ -163,6 +174,8 @@ void main() {
         greaterThanOrEqualTo(16),
       );
       await captureFleet(tester, 'form-maintenance-fields');
+      await tester.ensureVisible(plan);
+      await tester.pumpAndSettle();
       await tester.tap(plan);
       await tester.pumpAndSettle();
       await tester.tap(
@@ -219,6 +232,8 @@ void main() {
         of: find.byType(Scrollable).last,
         matching: find.text(label),
       );
+      await tester.ensureVisible(menuText);
+      await tester.pumpAndSettle();
       final paragraph = tester.renderObject<RenderParagraph>(menuText);
       expect(paragraph.didExceedMaxLines, isFalse);
       expect(tester.getSize(menuText).height, greaterThan(48));
@@ -227,10 +242,13 @@ void main() {
       await tester.pumpAndSettle();
       expect(selected, 'long');
       expect(tester.takeException(), isNull);
+      final selectedText = find.text(label).hitTestable();
+      expect(selectedText, findsOneWidget);
       expect(
-        tester.getSize(find.byType(DropdownButtonFormField<String>)).height,
-        lessThan(100),
+        tester.renderObject<RenderParagraph>(selectedText).didExceedMaxLines,
+        isFalse,
       );
+      expect(tester.getSize(selectedText).height, greaterThan(48));
       await captureFleet(tester, 'form-dropdown-selected-es-large');
     },
   );

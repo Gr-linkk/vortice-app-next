@@ -50,7 +50,7 @@ class ClientServiceRequestListScreen extends ConsumerWidget {
         onPressed: () => context.push('/client/service-requests/new'),
         icon: const Icon(Icons.add),
         label: const Text('Request Service'),
-        backgroundColor: AppColors.primary,
+        backgroundColor: context.appColors.primary,
       ),
     );
   }
@@ -115,12 +115,12 @@ class _ServiceRequestCard extends ConsumerWidget {
     final isNew = request.status == ServiceRequestStatus.newRequest;
     final isUrgent = request.urgency == ServiceRequestUrgency.urgent;
     final color = request.status == ServiceRequestStatus.declined
-        ? AppColors.error
+        ? context.appColors.error
         : request.status == ServiceRequestStatus.resolved
-        ? AppColors.success
+        ? context.appColors.success
         : isUrgent
-        ? AppColors.warning
-        : AppColors.primary;
+        ? context.appColors.warning
+        : context.appColors.primary;
 
     return Card(
       margin: const EdgeInsets.only(bottom: 10),
@@ -152,8 +152,8 @@ class _ServiceRequestCard extends ConsumerWidget {
                       const SizedBox(height: 4),
                       Text(
                         _subtitle,
-                        style: const TextStyle(
-                          color: AppColors.textSecondary,
+                        style: TextStyle(
+                          color: context.appColors.textSecondary,
                           fontSize: 12,
                         ),
                       ),
@@ -177,8 +177,8 @@ class _ServiceRequestCard extends ConsumerWidget {
               const SizedBox(height: 10),
               Text(
                 'Engine hours: ${request.engineHours}',
-                style: const TextStyle(
-                  color: AppColors.textSecondary,
+                style: TextStyle(
+                  color: context.appColors.textSecondary,
                   fontSize: 12,
                 ),
               ),
@@ -187,8 +187,8 @@ class _ServiceRequestCard extends ConsumerWidget {
               const SizedBox(height: 10),
               Text(
                 request.handledLabel!,
-                style: const TextStyle(
-                  color: AppColors.success,
+                style: TextStyle(
+                  color: context.appColors.success,
                   fontSize: 12,
                   fontWeight: FontWeight.w600,
                 ),
@@ -198,8 +198,8 @@ class _ServiceRequestCard extends ConsumerWidget {
               const SizedBox(height: 6),
               Text(
                 request.workOrderLinkLabel!,
-                style: const TextStyle(
-                  color: AppColors.textSecondary,
+                style: TextStyle(
+                  color: context.appColors.textSecondary,
                   fontSize: 12,
                 ),
               ),
@@ -208,8 +208,8 @@ class _ServiceRequestCard extends ConsumerWidget {
               const SizedBox(height: 10),
               Text(
                 'Phone / WhatsApp: ${request.contactPhoneOrWhatsapp}',
-                style: const TextStyle(
-                  color: AppColors.textSecondary,
+                style: TextStyle(
+                  color: context.appColors.textSecondary,
                   fontSize: 12,
                 ),
               ),
@@ -343,7 +343,6 @@ class _ServiceRequestCard extends ConsumerWidget {
         content: Text(
           success ? 'Request updated.' : 'Unable to update request.',
         ),
-        backgroundColor: success ? AppColors.success : AppColors.error,
       ),
     );
   }
@@ -393,7 +392,7 @@ class _EmptyList extends StatelessWidget {
       padding: const EdgeInsets.all(32),
       children: [
         const SizedBox(height: 96),
-        Icon(icon, color: AppColors.textSecondary, size: 48),
+        Icon(icon, color: context.appColors.textSecondary, size: 48),
         const SizedBox(height: 16),
         Text(
           title,
@@ -404,7 +403,7 @@ class _EmptyList extends StatelessWidget {
         Text(
           message,
           textAlign: TextAlign.center,
-          style: const TextStyle(color: AppColors.textSecondary),
+          style: TextStyle(color: context.appColors.textSecondary),
         ),
       ],
     );

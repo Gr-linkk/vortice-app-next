@@ -790,6 +790,7 @@ class _JobActionDialogState extends State<_JobActionDialog> {
                 TextFormField(
                   controller: _partNumber,
                   decoration: InputDecoration(
+                    floatingLabelBehavior: FloatingLabelBehavior.always,
                     labelText: es ? 'Número de repuesto' : 'Part number',
                   ),
                 ),

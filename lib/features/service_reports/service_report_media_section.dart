@@ -96,14 +96,14 @@ class ServiceReportMediaSection extends StatelessWidget {
                         onTap: () => onRemovePhoto(i),
                         child: Container(
                           padding: const EdgeInsets.all(4),
-                          decoration: const BoxDecoration(
-                            color: AppColors.error,
+                          decoration: BoxDecoration(
+                            color: context.appColors.error,
                             shape: BoxShape.circle,
                           ),
-                          child: const Icon(
+                          child: Icon(
                             Icons.close,
                             size: 14,
-                            color: Colors.white,
+                            color: context.appColors.onPrimary,
                           ),
                         ),
                       ),

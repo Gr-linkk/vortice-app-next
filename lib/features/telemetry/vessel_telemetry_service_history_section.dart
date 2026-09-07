@@ -7,7 +7,10 @@ import 'package:vortice_app/features/telemetry/telemetry_screen_support.dart';
 class VesselTelemetryServiceHistorySection extends ConsumerWidget {
   final String assetId;
 
-  const VesselTelemetryServiceHistorySection({super.key, required this.assetId});
+  const VesselTelemetryServiceHistorySection({
+    super.key,
+    required this.assetId,
+  });
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -26,25 +29,33 @@ class VesselTelemetryServiceHistorySection extends ConsumerWidget {
           children: [
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 24, 16, 8),
-              child: Text('Service History',
-                  style: Theme.of(context).textTheme.titleMedium),
+              child: Text(
+                'Service History',
+                style: Theme.of(context).textTheme.titleMedium,
+              ),
             ),
             ...assetReports.map(
               (r) => Padding(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 4,
+                ),
                 child: Container(
                   padding: const EdgeInsets.all(14),
                   decoration: BoxDecoration(
-                    color: AppColors.surface,
+                    color: context.appColors.surface,
                     borderRadius: BorderRadius.circular(12),
-                    border: const Border.fromBorderSide(
-                        BorderSide(color: AppColors.cardBorder)),
+                    border: Border.fromBorderSide(
+                      BorderSide(color: context.appColors.cardBorder),
+                    ),
                   ),
                   child: Row(
                     children: [
-                      const Icon(Icons.build_outlined,
-                          color: AppColors.success, size: 20),
+                      Icon(
+                        Icons.build_outlined,
+                        color: context.appColors.success,
+                        size: 20,
+                      ),
                       const SizedBox(width: 12),
                       Expanded(
                         child: Text(
@@ -57,8 +68,10 @@ class VesselTelemetryServiceHistorySection extends ConsumerWidget {
                       if (r.createdAt != null)
                         Text(
                           formatServiceReportShortDate(r.createdAt!),
-                          style: const TextStyle(
-                              color: AppColors.textSecondary, fontSize: 12),
+                          style: TextStyle(
+                            color: context.appColors.textSecondary,
+                            fontSize: 12,
+                          ),
                         ),
                     ],
                   ),

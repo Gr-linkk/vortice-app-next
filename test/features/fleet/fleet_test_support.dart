@@ -279,12 +279,6 @@ Future<void> pumpFleet(
               titleTextStyle: AppTheme.darkNavyTheme.appBarTheme.titleTextStyle
                   ?.copyWith(fontFamily: 'Roboto'),
             ),
-            chipTheme: AppTheme.darkNavyTheme.chipTheme.copyWith(
-              labelStyle: const TextStyle(
-                fontFamily: 'Roboto',
-                color: AppColors.textPrimary,
-              ),
-            ),
           ),
           debugShowCheckedModeBanner: false,
           routerConfig: router,

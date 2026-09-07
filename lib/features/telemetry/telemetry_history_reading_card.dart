@@ -17,9 +17,13 @@ class TelemetryHistoryReadingCard extends StatelessWidget {
     return Card(
       margin: const EdgeInsets.only(bottom: 8),
       child: ExpansionTile(
-        leading: const CircleAvatar(
-          backgroundColor: AppColors.surfaceVariant,
-          child: Icon(Icons.sensors, color: AppColors.primary, size: 18),
+        leading: CircleAvatar(
+          backgroundColor: context.appColors.surfaceVariant,
+          child: Icon(
+            Icons.sensors,
+            color: context.appColors.primary,
+            size: 18,
+          ),
         ),
         title: Text(
           formatReadingDateTime(reading.ts),
@@ -28,8 +32,10 @@ class TelemetryHistoryReadingCard extends StatelessWidget {
         subtitle: reading.rpm != null
             ? Text(
                 '${reading.rpm!.toStringAsFixed(0)} RPM',
-                style: const TextStyle(
-                    color: AppColors.textSecondary, fontSize: 12),
+                style: TextStyle(
+                  color: context.appColors.textSecondary,
+                  fontSize: 12,
+                ),
               )
             : null,
         children: [
@@ -38,45 +44,55 @@ class TelemetryHistoryReadingCard extends StatelessWidget {
             child: Column(
               children: [
                 TelemetryDetailRow(
-                    label: 'RPM', value: reading.rpm?.toStringAsFixed(0)),
+                  label: 'RPM',
+                  value: reading.rpm?.toStringAsFixed(0),
+                ),
                 TelemetryDetailRow(
-                    label: l10n.coolantTemp,
-                    value: reading.coolantTemp != null
-                        ? '${reading.coolantTemp!.toStringAsFixed(1)}°C'
-                        : null),
+                  label: l10n.coolantTemp,
+                  value: reading.coolantTemp != null
+                      ? '${reading.coolantTemp!.toStringAsFixed(1)}°C'
+                      : null,
+                ),
                 TelemetryDetailRow(
-                    label: l10n.oilPressure,
-                    value: reading.oilPressure != null
-                        ? '${reading.oilPressure!.toStringAsFixed(1)} PSI'
-                        : null),
+                  label: l10n.oilPressure,
+                  value: reading.oilPressure != null
+                      ? '${reading.oilPressure!.toStringAsFixed(1)} PSI'
+                      : null,
+                ),
                 TelemetryDetailRow(
-                    label: l10n.battery,
-                    value: reading.batteryV != null
-                        ? '${reading.batteryV!.toStringAsFixed(2)}V'
-                        : null),
+                  label: l10n.battery,
+                  value: reading.batteryV != null
+                      ? '${reading.batteryV!.toStringAsFixed(2)}V'
+                      : null,
+                ),
                 TelemetryDetailRow(
-                    label: l10n.boostPressure,
-                    value: reading.boostPsi != null
-                        ? '${reading.boostPsi!.toStringAsFixed(1)} PSI'
-                        : null),
+                  label: l10n.boostPressure,
+                  value: reading.boostPsi != null
+                      ? '${reading.boostPsi!.toStringAsFixed(1)} PSI'
+                      : null,
+                ),
                 TelemetryDetailRow(
-                    label: l10n.throttle,
-                    value: reading.throttlePct != null
-                        ? '${reading.throttlePct!.toStringAsFixed(0)}%'
-                        : null),
+                  label: l10n.throttle,
+                  value: reading.throttlePct != null
+                      ? '${reading.throttlePct!.toStringAsFixed(0)}%'
+                      : null,
+                ),
                 TelemetryDetailRow(
-                    label: l10n.fuelRate,
-                    value: reading.fuelRate != null
-                        ? '${reading.fuelRate!.toStringAsFixed(2)} L/hr'
-                        : null),
+                  label: l10n.fuelRate,
+                  value: reading.fuelRate != null
+                      ? '${reading.fuelRate!.toStringAsFixed(2)} L/hr'
+                      : null,
+                ),
                 TelemetryDetailRow(
-                    label: l10n.torque,
-                    value: reading.torquePct != null
-                        ? '${reading.torquePct!.toStringAsFixed(0)}%'
-                        : null),
+                  label: l10n.torque,
+                  value: reading.torquePct != null
+                      ? '${reading.torquePct!.toStringAsFixed(0)}%'
+                      : null,
+                ),
                 TelemetryDetailRow(
-                    label: l10n.engineHours,
-                    value: reading.engineHours?.toStringAsFixed(1)),
+                  label: l10n.engineHours,
+                  value: reading.engineHours?.toStringAsFixed(1),
+                ),
               ],
             ),
           ),

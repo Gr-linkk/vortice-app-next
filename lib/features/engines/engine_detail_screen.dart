@@ -23,14 +23,11 @@ class EngineDetailScreen extends ConsumerWidget {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      backgroundColor: AppColors.surface,
+      backgroundColor: context.appColors.surface,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
       ),
-      builder: (ctx) => EngineForm(
-        assetId: assetId,
-        engine: engine,
-      ),
+      builder: (ctx) => EngineForm(assetId: assetId, engine: engine),
     );
   }
 
@@ -53,8 +50,8 @@ class EngineDetailScreen extends ConsumerWidget {
         children: [
           Text(
             engineKindLabel(engine.kind),
-            style: const TextStyle(
-              color: AppColors.primary,
+            style: TextStyle(
+              color: context.appColors.primary,
               fontSize: 12,
               fontWeight: FontWeight.w600,
               letterSpacing: 0.6,
@@ -65,7 +62,9 @@ class EngineDetailScreen extends ConsumerWidget {
           EngineInfoRow(label: 'Manufacturer', value: engine.make),
           EngineInfoRow(label: 'Model', value: engine.model),
           EngineInfoRow(label: 'Serial Number', value: engine.serialNumber),
-          ref.watch(latestEngineHoursProvider(engine.id)).when(
+          ref
+              .watch(latestEngineHoursProvider(engine.id))
+              .when(
                 loading: () => const EngineInfoRow(
                   label: 'Latest Work Order Hours',
                   value: 'Loading…',

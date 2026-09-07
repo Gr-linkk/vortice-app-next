@@ -7,6 +7,12 @@ import 'package:vortice_app/models/saved_checklist.dart';
 import 'package:vortice_app/models/work_order.dart';
 
 void main() {
+  test('uses the supplied dark palette', () {
+    expect(
+      workOrderStatusColor(AppPalette.dark, WorkOrderStatus.assigned),
+      AppPalette.dark.primary,
+    );
+  });
   group('workOrderRoutePrefixForRole', () {
     test('maps staff and client roles to existing route prefixes', () {
       expect(workOrderRoutePrefixForRole(UserRole.owner), '/owner');
@@ -20,17 +26,33 @@ void main() {
   group('workOrderStatusColor', () {
     test('maps each work order status to the expected theme color', () {
       expect(
-          workOrderStatusColor(WorkOrderStatus.draft), AppColors.textSecondary);
-      expect(workOrderStatusColor(WorkOrderStatus.assigned), AppColors.primary);
-      expect(
-          workOrderStatusColor(WorkOrderStatus.inProgress), AppColors.warning);
-      expect(workOrderStatusColor(WorkOrderStatus.onHold), AppColors.warning);
-      expect(
-        workOrderStatusColor(WorkOrderStatus.pendingReview),
-        AppColors.primary,
+        workOrderStatusColor(AppPalette.light, WorkOrderStatus.draft),
+        AppPalette.light.textSecondary,
       );
-      expect(workOrderStatusColor(WorkOrderStatus.invoiced), AppColors.success);
-      expect(workOrderStatusColor(WorkOrderStatus.closed), AppColors.success);
+      expect(
+        workOrderStatusColor(AppPalette.light, WorkOrderStatus.assigned),
+        AppPalette.light.primary,
+      );
+      expect(
+        workOrderStatusColor(AppPalette.light, WorkOrderStatus.inProgress),
+        AppPalette.light.warning,
+      );
+      expect(
+        workOrderStatusColor(AppPalette.light, WorkOrderStatus.onHold),
+        AppPalette.light.warning,
+      );
+      expect(
+        workOrderStatusColor(AppPalette.light, WorkOrderStatus.pendingReview),
+        AppPalette.light.primary,
+      );
+      expect(
+        workOrderStatusColor(AppPalette.light, WorkOrderStatus.invoiced),
+        AppPalette.light.success,
+      );
+      expect(
+        workOrderStatusColor(AppPalette.light, WorkOrderStatus.closed),
+        AppPalette.light.success,
+      );
     });
   });
 
@@ -107,30 +129,32 @@ void main() {
       );
     });
 
-    test('shows actions section when status or checklist actions are available',
-        () {
-      expect(
-        WorkOrderDetailActionsPolicy.showsActionsSection(
-          canManageStatus: true,
-          canOpenChecklist: false,
-        ),
-        isTrue,
-      );
-      expect(
-        WorkOrderDetailActionsPolicy.showsActionsSection(
-          canManageStatus: false,
-          canOpenChecklist: true,
-        ),
-        isTrue,
-      );
-      expect(
-        WorkOrderDetailActionsPolicy.showsActionsSection(
-          canManageStatus: false,
-          canOpenChecklist: false,
-        ),
-        isFalse,
-      );
-    });
+    test(
+      'shows actions section when status or checklist actions are available',
+      () {
+        expect(
+          WorkOrderDetailActionsPolicy.showsActionsSection(
+            canManageStatus: true,
+            canOpenChecklist: false,
+          ),
+          isTrue,
+        );
+        expect(
+          WorkOrderDetailActionsPolicy.showsActionsSection(
+            canManageStatus: false,
+            canOpenChecklist: true,
+          ),
+          isTrue,
+        );
+        expect(
+          WorkOrderDetailActionsPolicy.showsActionsSection(
+            canManageStatus: false,
+            canOpenChecklist: false,
+          ),
+          isFalse,
+        );
+      },
+    );
 
     test('canStartWorkOrder allows draft and assigned states for managers', () {
       expect(

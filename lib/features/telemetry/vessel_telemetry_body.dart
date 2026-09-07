@@ -30,8 +30,10 @@ class VesselTelemetryBody extends ConsumerWidget {
     return enginesAsync.when(
       loading: () => const Center(child: CircularProgressIndicator()),
       error: (err, _) => Center(
-        child: Text(friendlyError(context, err),
-            style: const TextStyle(color: AppColors.error)),
+        child: Text(
+          friendlyError(context, err),
+          style: TextStyle(color: context.appColors.error),
+        ),
       ),
       data: (engines) {
         final engine =
@@ -62,12 +64,13 @@ class VesselTelemetryBody extends ConsumerWidget {
                           label: Text(e.label),
                           selected: selected,
                           onSelected: (_) => onEngineSelected(e),
-                          selectedColor:
-                              AppColors.primary.withValues(alpha: 0.2),
+                          selectedColor: context.appColors.primary.withValues(
+                            alpha: 0.2,
+                          ),
                           labelStyle: TextStyle(
                             color: selected
-                                ? AppColors.primary
-                                : AppColors.textSecondary,
+                                ? context.appColors.primary
+                                : context.appColors.textSecondary,
                           ),
                         ),
                       );

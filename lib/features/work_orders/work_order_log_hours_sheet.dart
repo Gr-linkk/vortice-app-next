@@ -51,7 +51,6 @@ class _LogHoursSheetState extends ConsumerState<LogHoursSheet> {
             content: Text(
               'Changes could not be saved right now. Reconnect and try again.',
             ),
-            backgroundColor: AppColors.error,
           ),
         );
       }
@@ -107,12 +106,12 @@ class _LogHoursSheetState extends ConsumerState<LogHoursSheet> {
             ElevatedButton(
               onPressed: isLoading ? null : _save,
               child: isLoading
-                  ? const SizedBox(
+                  ? SizedBox(
                       width: 16,
                       height: 16,
                       child: CircularProgressIndicator(
                         strokeWidth: 2,
-                        color: Colors.white,
+                        color: context.appColors.onPrimary,
                       ),
                     )
                   : Text(l10n.save),

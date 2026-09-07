@@ -101,15 +101,15 @@ class _ChecklistHistoryList extends ConsumerWidget {
       error: (err, _) => Center(
         child: Text(
           err.toString(),
-          style: const TextStyle(color: AppColors.error),
+          style: TextStyle(color: context.appColors.error),
         ),
       ),
       data: (rows) {
         if (rows.isEmpty) {
-          return const Center(
+          return Center(
             child: Text(
               'No saved checklists yet.',
-              style: TextStyle(color: AppColors.textSecondary),
+              style: TextStyle(color: context.appColors.textSecondary),
             ),
           );
         }
@@ -140,7 +140,10 @@ class _SavedChecklistCard extends StatelessWidget {
         title: Text(row.templateName),
         subtitle: Text(
           '${formatChecklistDateTime(row.submittedAt)} • ${row.sourceType}',
-          style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
+          style: TextStyle(
+            fontSize: 12,
+            color: context.appColors.textSecondary,
+          ),
         ),
         childrenPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
         children: [
@@ -271,8 +274,8 @@ class _HeaderLine extends StatelessWidget {
             width: 110,
             child: Text(
               label,
-              style: const TextStyle(
-                color: AppColors.textSecondary,
+              style: TextStyle(
+                color: context.appColors.textSecondary,
                 fontSize: 12,
               ),
             ),

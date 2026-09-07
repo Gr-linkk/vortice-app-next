@@ -10,7 +10,7 @@ class TelemetryHistoryAlertCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final severityColor = alertSeverityColor(alert.severity);
+    final severityColor = alertSeverityColor(context.appColors, alert.severity);
     final icon = alertTypeIcon(alert.alertType);
 
     return Card(
@@ -23,26 +23,32 @@ class TelemetryHistoryAlertCard extends StatelessWidget {
         title: Row(
           children: [
             if (alert.spn != null)
-              Text('SPN ${alert.spn}',
-                  style: Theme.of(context).textTheme.titleSmall)
+              Text(
+                'SPN ${alert.spn}',
+                style: Theme.of(context).textTheme.titleSmall,
+              )
             else if (alert.parameter != null)
-              Text(alert.parameter!,
-                  style: Theme.of(context).textTheme.titleSmall)
+              Text(
+                alert.parameter!,
+                style: Theme.of(context).textTheme.titleSmall,
+              )
             else
-              Text(alert.alertType.name.toUpperCase(),
-                  style: Theme.of(context).textTheme.titleSmall),
+              Text(
+                alert.alertType.name.toUpperCase(),
+                style: Theme.of(context).textTheme.titleSmall,
+              ),
             const Spacer(),
             if (!alert.acknowledged)
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                 decoration: BoxDecoration(
-                  color: AppColors.error.withValues(alpha: 0.15),
+                  color: context.appColors.error.withValues(alpha: 0.15),
                   borderRadius: BorderRadius.circular(4),
                 ),
-                child: const Text(
+                child: Text(
                   'NEW',
                   style: TextStyle(
-                    color: AppColors.error,
+                    color: context.appColors.error,
                     fontSize: 10,
                     fontWeight: FontWeight.bold,
                   ),
@@ -58,8 +64,10 @@ class TelemetryHistoryAlertCard extends StatelessWidget {
             const SizedBox(height: 4),
             Text(
               formatAlertDateTime(alert.createdAt ?? DateTime.now()),
-              style:
-                  const TextStyle(color: AppColors.textSecondary, fontSize: 11),
+              style: TextStyle(
+                color: context.appColors.textSecondary,
+                fontSize: 11,
+              ),
             ),
           ],
         ),

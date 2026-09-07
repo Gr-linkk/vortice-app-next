@@ -15,7 +15,7 @@ class ServiceIntervalMetricChip extends StatelessWidget {
   Widget build(BuildContext context) {
     return Chip(
       visualDensity: VisualDensity.compact,
-      backgroundColor: AppColors.surfaceVariant,
+      backgroundColor: context.appColors.surfaceVariant,
       avatar: Icon(icon, size: 16),
       label: Text(label),
     );

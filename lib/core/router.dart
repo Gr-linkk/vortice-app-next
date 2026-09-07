@@ -687,7 +687,7 @@ class _OperatorChecklistCapabilityGate extends ConsumerWidget {
             padding: const EdgeInsets.all(24),
             child: Text(
               friendlyError(context, assetAsync!.asError!.error),
-              style: const TextStyle(color: AppColors.error),
+              style: TextStyle(color: context.appColors.error),
             ),
           ),
         ),

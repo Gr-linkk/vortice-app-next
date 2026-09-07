@@ -50,16 +50,16 @@ class _SignaturePadWidgetState extends State<SignaturePadWidget> {
         Container(
           height: 200,
           decoration: BoxDecoration(
-            color: AppColors.surfaceVariant,
+            color: context.appColors.surfaceVariant,
             borderRadius: BorderRadius.circular(10),
-            border: Border.all(color: AppColors.divider),
+            border: Border.all(color: context.appColors.divider),
           ),
           child: ClipRRect(
             borderRadius: BorderRadius.circular(10),
             child: SfSignaturePad(
               key: _signaturePadKey,
-              backgroundColor: AppColors.surfaceVariant,
-              strokeColor: AppColors.textPrimary,
+              backgroundColor: context.appColors.surfaceVariant,
+              strokeColor: context.appColors.textPrimary,
               minimumStrokeWidth: 1.5,
               maximumStrokeWidth: 4.0,
               onDrawStart: () {
@@ -81,20 +81,24 @@ class _SignaturePadWidgetState extends State<SignaturePadWidget> {
             ElevatedButton.icon(
               onPressed: (!_hasDrawn || _saving) ? null : _save,
               icon: _saving
-                  ? const SizedBox(
+                  ? SizedBox(
                       width: 14,
                       height: 14,
                       child: CircularProgressIndicator(
                         strokeWidth: 2,
-                        valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                        valueColor: AlwaysStoppedAnimation<Color>(
+                          context.appColors.onPrimary,
+                        ),
                       ),
                     )
                   : const Icon(Icons.check, size: 16),
               label: Text(l10n.saveSignature),
               style: ElevatedButton.styleFrom(
                 minimumSize: Size.zero,
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 20,
+                  vertical: 10,
+                ),
               ),
             ),
           ],

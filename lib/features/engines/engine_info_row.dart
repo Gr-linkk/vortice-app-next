@@ -17,8 +17,8 @@ class EngineInfoRow extends StatelessWidget {
         children: [
           Text(
             label,
-            style: const TextStyle(
-              color: AppColors.textSecondary,
+            style: TextStyle(
+              color: context.appColors.textSecondary,
               fontSize: 12,
             ),
           ),

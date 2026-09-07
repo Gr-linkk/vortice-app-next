@@ -6,16 +6,15 @@ import 'package:vortice_app/features/parts/pm_parts_provider.dart';
 class CreateWorkOrderPmPartsPreview extends ConsumerWidget {
   final String templateId;
 
-  const CreateWorkOrderPmPartsPreview({
-    super.key,
-    required this.templateId,
-  });
+  const CreateWorkOrderPmPartsPreview({super.key, required this.templateId});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     return Padding(
       padding: const EdgeInsets.only(top: 16),
-      child: ref.watch(pmPartsRequirementsProvider(templateId)).when(
+      child: ref
+          .watch(pmPartsRequirementsProvider(templateId))
+          .when(
             loading: () => const SizedBox.shrink(),
             error: (_, __) => const SizedBox.shrink(),
             data: (parts) {
@@ -24,22 +23,25 @@ class CreateWorkOrderPmPartsPreview extends ConsumerWidget {
               return Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: AppColors.surface,
+                  color: context.appColors.surface,
                   borderRadius: BorderRadius.circular(10),
-                  border: Border.all(color: AppColors.cardBorder),
+                  border: Border.all(color: context.appColors.cardBorder),
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Row(
+                    Row(
                       children: [
-                        Icon(Icons.inventory_2_outlined,
-                            color: AppColors.primary, size: 18),
-                        SizedBox(width: 8),
+                        Icon(
+                          Icons.inventory_2_outlined,
+                          color: context.appColors.primary,
+                          size: 18,
+                        ),
+                        const SizedBox(width: 8),
                         Text(
                           'Parts required',
                           style: TextStyle(
-                            color: AppColors.textPrimary,
+                            color: context.appColors.textPrimary,
                             fontSize: 13,
                             fontWeight: FontWeight.w600,
                           ),
@@ -52,8 +54,8 @@ class CreateWorkOrderPmPartsPreview extends ConsumerWidget {
                         padding: const EdgeInsets.only(left: 26, bottom: 4),
                         child: Text(
                           '• ${part.description} — ${part.qty} ${part.unit ?? 'ea'}',
-                          style: const TextStyle(
-                            color: AppColors.textSecondary,
+                          style: TextStyle(
+                            color: context.appColors.textSecondary,
                             fontSize: 12,
                           ),
                         ),

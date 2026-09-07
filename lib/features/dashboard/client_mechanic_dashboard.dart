@@ -1,3 +1,5 @@
+import 'package:vortice_app/features/assets/asset_type_provider.dart';
+import 'package:vortice_app/core/equipment_illustration.dart';
 import 'package:vortice_app/core/user_feedback.dart';
 import 'package:vortice_app/features/dashboard/dashboard_layout.dart';
 import 'package:flutter/material.dart';
@@ -135,13 +137,20 @@ class ClientMechanicDashboard extends ConsumerWidget {
 
 // ── Available Checklist Card ─────────────────────────────────────────────────
 
-class _AvailableChecklistCard extends StatelessWidget {
+class _AvailableChecklistCard extends ConsumerWidget {
   final _MechanicChecklistOption option;
   const _AvailableChecklistCard({required this.option});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final asset = option.asset;
+    final typeName = ref
+        .watch(assetTypesProvider)
+        .valueOrNull
+        ?.where((type) => type.id == asset.assetTypeId)
+        .firstOrNull
+        ?.name;
+
     final template = option.template;
     final query = Uri(
       path: '/client/assets/${asset.id}/checklists/new',
@@ -156,7 +165,11 @@ class _AvailableChecklistCard extends StatelessWidget {
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
       child: ListTile(
-        leading: const Icon(Icons.checklist, color: AppColors.primaryLight),
+        leading: EquipmentIllustration(
+          assetTypeId: asset.assetTypeId,
+          typeName: typeName,
+          size: 48,
+        ),
         title: Text(template.name),
         subtitle: Text(
           '${asset.name} · ${dashboardText(context, 'Start checklist', 'Iniciar revisión')}',
@@ -192,7 +205,7 @@ class _ErrorTile extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       child: Text(
         message,
-        style: const TextStyle(color: AppColors.error, fontSize: 13),
+        style: TextStyle(color: context.appColors.error, fontSize: 13),
       ),
     );
   }
@@ -210,19 +223,21 @@ class _HelperTile extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
-          color: AppColors.primary.withValues(alpha: 0.08),
+          color: context.appColors.primary.withValues(alpha: 0.08),
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: AppColors.primary.withValues(alpha: 0.18)),
+          border: Border.all(
+            color: context.appColors.primary.withValues(alpha: 0.18),
+          ),
         ),
         child: Row(
           children: [
-            Icon(icon, color: AppColors.primary, size: 20),
+            Icon(icon, color: context.appColors.primary, size: 20),
             const SizedBox(width: 12),
             Expanded(
               child: Text(
                 message,
-                style: const TextStyle(
-                  color: AppColors.textPrimary,
+                style: TextStyle(
+                  color: context.appColors.textPrimary,
                   fontSize: 13,
                 ),
               ),
@@ -246,21 +261,21 @@ class _EmptyState extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: AppColors.surface,
+          color: context.appColors.surface,
           borderRadius: BorderRadius.circular(12),
-          border: const Border.fromBorderSide(
-            BorderSide(color: AppColors.cardBorder),
+          border: Border.fromBorderSide(
+            BorderSide(color: context.appColors.cardBorder),
           ),
         ),
         child: Row(
           children: [
-            Icon(icon, color: AppColors.textSecondary, size: 20),
+            Icon(icon, color: context.appColors.textSecondary, size: 20),
             const SizedBox(width: 12),
             Expanded(
               child: Text(
                 message,
-                style: const TextStyle(
-                  color: AppColors.textSecondary,
+                style: TextStyle(
+                  color: context.appColors.textSecondary,
                   fontSize: 13,
                 ),
               ),

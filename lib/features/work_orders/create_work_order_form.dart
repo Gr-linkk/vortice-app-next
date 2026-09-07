@@ -77,7 +77,7 @@ class CreateWorkOrderForm extends ConsumerWidget {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           // ── JOB DETAILS ───────────────────────────────────────
-          createWorkOrderSectionHeader('JOB DETAILS'),
+          createWorkOrderSectionHeader(context, 'JOB DETAILS'),
           const SizedBox(height: 8),
           TextFormField(
             controller: titleCtrl,
@@ -93,7 +93,7 @@ class CreateWorkOrderForm extends ConsumerWidget {
           AppDropdownField<WorkOrderJobType>(
             initialValue: jobType,
             decoration: InputDecoration(labelText: l10n.jobType),
-            dropdownColor: AppColors.surfaceVariant,
+            dropdownColor: context.appColors.surfaceVariant,
             items: WorkOrderJobType.values
                 .map(
                   (t) => DropdownMenuItem(
@@ -118,13 +118,13 @@ class CreateWorkOrderForm extends ConsumerWidget {
                 labelText: '${l10n.linkedAsset} *',
                 prefixIcon: const Icon(Icons.directions_boat_outlined),
               ),
-              dropdownColor: AppColors.surfaceVariant,
+              dropdownColor: context.appColors.surfaceVariant,
               items: [
                 DropdownMenuItem(
                   value: null,
                   child: Text(
                     l10n.noAsset,
-                    style: const TextStyle(color: AppColors.textSecondary),
+                    style: TextStyle(color: context.appColors.textSecondary),
                   ),
                 ),
                 ...assets.map(
@@ -160,14 +160,14 @@ class CreateWorkOrderForm extends ConsumerWidget {
                             labelText: 'Engine / Position',
                             prefixIcon: Icon(Icons.settings_outlined),
                           ),
-                          dropdownColor: AppColors.surfaceVariant,
+                          dropdownColor: context.appColors.surfaceVariant,
                           items: [
-                            const DropdownMenuItem(
+                            DropdownMenuItem(
                               value: null,
                               child: Text(
                                 'None',
                                 style: TextStyle(
-                                  color: AppColors.textSecondary,
+                                  color: context.appColors.textSecondary,
                                 ),
                               ),
                             ),
@@ -207,9 +207,9 @@ class CreateWorkOrderForm extends ConsumerWidget {
                     child: CircularProgressIndicator(strokeWidth: 2),
                   ),
                 ),
-                error: (_, __) => const Text(
+                error: (_, __) => Text(
                   'Could not load templates',
-                  style: TextStyle(color: AppColors.error),
+                  style: TextStyle(color: context.appColors.error),
                 ),
                 data: (templates) {
                   final selectedAsset = assetsAsync.valueOrNull
@@ -232,32 +232,38 @@ class CreateWorkOrderForm extends ConsumerWidget {
                     isExpanded: true,
                     decoration: InputDecoration(
                       hintText: 'Optional — assign a checklist',
-                      hintStyle: const TextStyle(
-                        color: AppColors.textSecondary,
+                      hintStyle: TextStyle(
+                        color: context.appColors.textSecondary,
                         fontSize: 14,
                       ),
                       filled: true,
-                      fillColor: AppColors.surface,
+                      fillColor: context.appColors.surface,
                       contentPadding: const EdgeInsets.symmetric(
                         horizontal: 12,
                         vertical: 12,
                       ),
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(8),
-                        borderSide: const BorderSide(color: AppColors.divider),
+                        borderSide: BorderSide(
+                          color: context.appColors.divider,
+                        ),
                       ),
                       enabledBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(8),
-                        borderSide: const BorderSide(color: AppColors.divider),
+                        borderSide: BorderSide(
+                          color: context.appColors.divider,
+                        ),
                       ),
                     ),
-                    dropdownColor: AppColors.surfaceVariant,
+                    dropdownColor: context.appColors.surfaceVariant,
                     items: [
-                      const DropdownMenuItem<String?>(
+                      DropdownMenuItem<String?>(
                         value: null,
                         child: Text(
                           'None',
-                          style: TextStyle(color: AppColors.textSecondary),
+                          style: TextStyle(
+                            color: context.appColors.textSecondary,
+                          ),
                         ),
                       ),
                       for (final t in filtered)
@@ -286,7 +292,7 @@ class CreateWorkOrderForm extends ConsumerWidget {
 
           // ── ASSIGNMENT ────────────────────────────────────────
           const SizedBox(height: 24),
-          createWorkOrderSectionHeader('ASSIGNMENT'),
+          createWorkOrderSectionHeader(context, 'ASSIGNMENT'),
           const SizedBox(height: 8),
           assignableProfilesAsync.when(
             loading: () => const Center(child: CircularProgressIndicator()),
@@ -328,11 +334,13 @@ class CreateWorkOrderForm extends ConsumerWidget {
                           .toList(),
                     ),
                   ] else
-                    const Padding(
-                      padding: EdgeInsets.only(top: 8),
+                    Padding(
+                      padding: const EdgeInsets.only(top: 8),
                       child: Text(
                         'No technicians assigned yet',
-                        style: TextStyle(color: AppColors.textSecondary),
+                        style: TextStyle(
+                          color: context.appColors.textSecondary,
+                        ),
                       ),
                     ),
                 ],
@@ -342,7 +350,7 @@ class CreateWorkOrderForm extends ConsumerWidget {
 
           // ── SCHEDULING ────────────────────────────────────────
           const SizedBox(height: 24),
-          createWorkOrderSectionHeader('SCHEDULING'),
+          createWorkOrderSectionHeader(context, 'SCHEDULING'),
           const SizedBox(height: 8),
           InkWell(
             onTap: onPickScheduledDate,
@@ -364,8 +372,8 @@ class CreateWorkOrderForm extends ConsumerWidget {
                     : l10n.selectDate,
                 style: TextStyle(
                   color: scheduledDate != null
-                      ? AppColors.textPrimary
-                      : AppColors.textSecondary,
+                      ? context.appColors.textPrimary
+                      : context.appColors.textSecondary,
                 ),
               ),
             ),
@@ -384,7 +392,7 @@ class CreateWorkOrderForm extends ConsumerWidget {
 
           // ── NOTES ─────────────────────────────────────────────
           const SizedBox(height: 24),
-          createWorkOrderSectionHeader('NOTES'),
+          createWorkOrderSectionHeader(context, 'NOTES'),
           const SizedBox(height: 8),
           TextFormField(
             controller: descCtrl,
@@ -410,12 +418,12 @@ class CreateWorkOrderForm extends ConsumerWidget {
           ElevatedButton(
             onPressed: isLoading ? null : onSubmit,
             child: isLoading
-                ? const SizedBox(
+                ? SizedBox(
                     width: 20,
                     height: 20,
                     child: CircularProgressIndicator(
                       strokeWidth: 2,
-                      color: Colors.white,
+                      color: context.appColors.onPrimary,
                     ),
                   )
                 : Text(l10n.createWorkOrder),

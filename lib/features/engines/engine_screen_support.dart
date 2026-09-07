@@ -2,12 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:vortice_app/core/theme.dart';
 import 'package:vortice_app/features/engines/engine_kind_options.dart';
 
-Color engineKindColor(String kind) => switch (kind) {
-      'main' || 'port' || 'starboard' || 'wing' => AppColors.primary,
-      'generator' => AppColors.success,
-      'auxiliary' => AppColors.warning,
-      _ => AppColors.textSecondary,
-    };
+Color engineKindColor(AppPalette colors, String kind) => switch (kind) {
+  'main' || 'port' || 'starboard' || 'wing' => colors.primary,
+  'generator' => colors.success,
+  'auxiliary' => colors.warning,
+  _ => colors.textSecondary,
+};
 
 String displayEngineInfoValue(String? value) {
   return value?.trim().isNotEmpty == true ? value! : '—';

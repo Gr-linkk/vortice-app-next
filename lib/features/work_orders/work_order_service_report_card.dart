@@ -72,10 +72,10 @@ class WorkOrderServiceReportCard extends ConsumerWidget {
           child: Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: AppColors.surface,
+              color: context.appColors.surface,
               borderRadius: BorderRadius.circular(12),
-              border: const Border.fromBorderSide(
-                BorderSide(color: AppColors.cardBorder),
+              border: Border.fromBorderSide(
+                BorderSide(color: context.appColors.cardBorder),
               ),
             ),
             child: Row(
@@ -84,7 +84,9 @@ class WorkOrderServiceReportCard extends ConsumerWidget {
                   hasReports
                       ? Icons.description_outlined
                       : Icons.note_add_outlined,
-                  color: hasReports ? AppColors.success : AppColors.primary,
+                  color: hasReports
+                      ? context.appColors.success
+                      : context.appColors.primary,
                 ),
                 const SizedBox(width: 12),
                 Expanded(
@@ -99,8 +101,8 @@ class WorkOrderServiceReportCard extends ConsumerWidget {
                       ),
                       Text(
                         subtitle,
-                        style: const TextStyle(
-                          color: AppColors.textSecondary,
+                        style: TextStyle(
+                          color: context.appColors.textSecondary,
                           fontSize: 12,
                         ),
                       ),
@@ -108,9 +110,9 @@ class WorkOrderServiceReportCard extends ConsumerWidget {
                   ),
                 ),
                 if ((hasReports && canView) || (!hasReports && canAttach))
-                  const Icon(
+                  Icon(
                     Icons.chevron_right,
-                    color: AppColors.textSecondary,
+                    color: context.appColors.textSecondary,
                   ),
               ],
             ),

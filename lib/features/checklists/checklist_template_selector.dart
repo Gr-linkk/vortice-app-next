@@ -19,12 +19,12 @@ class ChecklistTemplateSelector extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final serviceTemplates = templates
-        .where((template) => template.intervalHours != null)
-        .toList()
-      ..sort(compareTemplatesByServiceHours);
-    final otherTemplates =
-        templates.where((template) => template.intervalHours == null).toList();
+    final serviceTemplates =
+        templates.where((template) => template.intervalHours != null).toList()
+          ..sort(compareTemplatesByServiceHours);
+    final otherTemplates = templates
+        .where((template) => template.intervalHours == null)
+        .toList();
 
     final grouped = <String, List<ChecklistTemplate>>{};
     for (final template in otherTemplates) {
@@ -38,8 +38,9 @@ class ChecklistTemplateSelector extends StatelessWidget {
       'pre_ops',
       'general',
       'dredge',
-      ...grouped.keys
-          .where((key) => !['pre_ops', 'general', 'dredge'].contains(key)),
+      ...grouped.keys.where(
+        (key) => !['pre_ops', 'general', 'dredge'].contains(key),
+      ),
     ];
 
     final categoryLabel = {
@@ -55,7 +56,7 @@ class ChecklistTemplateSelector extends StatelessWidget {
           child: Text(
             emptyMessage,
             textAlign: TextAlign.center,
-            style: const TextStyle(color: AppColors.textSecondary),
+            style: TextStyle(color: context.appColors.textSecondary),
           ),
         ),
       );
@@ -70,17 +71,19 @@ class ChecklistTemplateSelector extends StatelessWidget {
             child: Text(
               'Service Hours',
               style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                    color: AppColors.primary,
-                    fontWeight: FontWeight.bold,
-                    letterSpacing: 1.1,
-                  ),
+                color: context.appColors.primary,
+                fontWeight: FontWeight.bold,
+                letterSpacing: 1.1,
+              ),
             ),
           ),
-          ...serviceTemplates.map((t) => ChecklistTemplateTile(
-                template: t,
-                selected: preselected?.id == t.id,
-                onTap: () => onSelect(t),
-              )),
+          ...serviceTemplates.map(
+            (t) => ChecklistTemplateTile(
+              template: t,
+              selected: preselected?.id == t.id,
+              onTap: () => onSelect(t),
+            ),
+          ),
         ],
         for (final key in orderedKeys)
           if (grouped.containsKey(key)) ...[
@@ -89,17 +92,19 @@ class ChecklistTemplateSelector extends StatelessWidget {
               child: Text(
                 categoryLabel[key] ?? key.toUpperCase(),
                 style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                      color: AppColors.primary,
-                      fontWeight: FontWeight.bold,
-                      letterSpacing: 1.1,
-                    ),
+                  color: context.appColors.primary,
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: 1.1,
+                ),
               ),
             ),
-            ...grouped[key]!.map((t) => ChecklistTemplateTile(
-                  template: t,
-                  selected: preselected?.id == t.id,
-                  onTap: () => onSelect(t),
-                )),
+            ...grouped[key]!.map(
+              (t) => ChecklistTemplateTile(
+                template: t,
+                selected: preselected?.id == t.id,
+                onTap: () => onSelect(t),
+              ),
+            ),
           ],
       ],
     );
@@ -124,21 +129,25 @@ class ChecklistTemplateTile extends StatelessWidget {
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 3),
       color: selected
-          ? AppColors.primary.withValues(alpha: 0.08)
-          : AppColors.surface,
+          ? context.appColors.primary.withValues(alpha: 0.08)
+          : context.appColors.surface,
       child: ListTile(
         leading: CircleAvatar(
-          backgroundColor: AppColors.surfaceVariant,
+          backgroundColor: context.appColors.surfaceVariant,
           child: intervalHours == null
               ? Icon(
                   Icons.checklist,
-                  color: selected ? AppColors.primary : AppColors.textSecondary,
+                  color: selected
+                      ? context.appColors.primary
+                      : context.appColors.textSecondary,
                   size: 20,
                 )
               : Text(
                   '${intervalHours}h',
                   style: TextStyle(
-                    color: selected ? AppColors.primary : AppColors.textPrimary,
+                    color: selected
+                        ? context.appColors.primary
+                        : context.appColors.textPrimary,
                     fontSize: 11,
                     fontWeight: FontWeight.bold,
                   ),
@@ -156,8 +165,8 @@ class ChecklistTemplateTile extends StatelessWidget {
               )
             : null,
         trailing: selected
-            ? const Icon(Icons.check, color: AppColors.primary, size: 20)
-            : const Icon(Icons.chevron_right, color: AppColors.textSecondary),
+            ? Icon(Icons.check, color: context.appColors.primary, size: 20)
+            : Icon(Icons.chevron_right, color: context.appColors.textSecondary),
         onTap: onTap,
       ),
     );

@@ -38,7 +38,7 @@ class InvoiceScreen extends ConsumerWidget {
     await showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      backgroundColor: AppColors.surface,
+      backgroundColor: context.appColors.surface,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
       ),
@@ -62,13 +62,13 @@ class InvoiceScreen extends ConsumerWidget {
               if ((woData as List).isEmpty)
                 Text(
                   l10n.noCompletedWorkOrders,
-                  style: const TextStyle(color: AppColors.textSecondary),
+                  style: TextStyle(color: context.appColors.textSecondary),
                 )
               else
                 AppDropdownField<String>(
                   initialValue: selectedWoId,
                   decoration: const InputDecoration(),
-                  dropdownColor: AppColors.surfaceVariant,
+                  dropdownColor: context.appColors.surfaceVariant,
                   items: (woData as List)
                       .map(
                         (w) => DropdownMenuItem<String>(
@@ -96,10 +96,7 @@ class InvoiceScreen extends ConsumerWidget {
                           ScaffoldMessenger.of(context)
                             ..hideCurrentSnackBar()
                             ..showSnackBar(
-                              SnackBar(
-                                content: Text(l10n.invoiceGenerated),
-                                backgroundColor: AppColors.success,
-                              ),
+                              SnackBar(content: Text(l10n.invoiceGenerated)),
                             );
                           final basePath =
                               ref.read(profileProvider).valueOrNull?.role ==
@@ -120,7 +117,6 @@ class InvoiceScreen extends ConsumerWidget {
                                       ? 'Invoice generation failed.'
                                       : 'Invoice generation failed: $error',
                                 ),
-                                backgroundColor: AppColors.error,
                               ),
                             );
                         }
@@ -160,7 +156,7 @@ class InvoiceScreen extends ConsumerWidget {
             children: [
               Text(
                 friendlyError(context, err),
-                style: const TextStyle(color: AppColors.error),
+                style: TextStyle(color: context.appColors.error),
               ),
               const SizedBox(height: 12),
               ElevatedButton(
@@ -175,7 +171,7 @@ class InvoiceScreen extends ConsumerWidget {
             return Center(
               child: Text(
                 l10n.noInvoices,
-                style: const TextStyle(color: AppColors.textSecondary),
+                style: TextStyle(color: context.appColors.textSecondary),
               ),
             );
           }
@@ -200,17 +196,23 @@ class InvoiceScreen extends ConsumerWidget {
             child: ListView(
               children: [
                 if (unpaid.isNotEmpty) ...[
-                  _SectionHeader(label: l10n.unpaid, color: AppColors.warning),
+                  _SectionHeader(
+                    label: l10n.unpaid,
+                    color: context.appColors.warning,
+                  ),
                   ...unpaid.map((i) => _InvoiceTile(invoice: i)),
                 ],
                 if (paid.isNotEmpty) ...[
-                  _SectionHeader(label: l10n.paid, color: AppColors.success),
+                  _SectionHeader(
+                    label: l10n.paid,
+                    color: context.appColors.success,
+                  ),
                   ...paid.map((i) => _InvoiceTile(invoice: i)),
                 ],
                 if (voided.isNotEmpty) ...[
-                  const _SectionHeader(
+                  _SectionHeader(
                     label: 'VOIDED',
-                    color: AppColors.textSecondary,
+                    color: context.appColors.textSecondary,
                   ),
                   ...voided.map((i) => _InvoiceTile(invoice: i)),
                 ],
@@ -247,11 +249,11 @@ class _InvoiceTile extends ConsumerWidget {
   final Invoice invoice;
   const _InvoiceTile({required this.invoice});
 
-  Color _statusColor() => switch (invoice.status) {
-    InvoiceStatus.paid => AppColors.success,
-    InvoiceStatus.sent => AppColors.warning,
-    InvoiceStatus.draft => AppColors.textSecondary,
-    InvoiceStatus.voided => AppColors.textSecondary,
+  Color _statusColor(BuildContext context) => switch (invoice.status) {
+    InvoiceStatus.paid => context.appColors.success,
+    InvoiceStatus.sent => context.appColors.warning,
+    InvoiceStatus.draft => context.appColors.textSecondary,
+    InvoiceStatus.voided => context.appColors.textSecondary,
   };
 
   @override
@@ -275,14 +277,14 @@ class _InvoiceTile extends ConsumerWidget {
       child: ListTile(
         onTap: () => context.push('$basePath/invoices/${invoice.id}'),
         leading: CircleAvatar(
-          backgroundColor: _statusColor().withValues(alpha: 0.15),
+          backgroundColor: _statusColor(context).withValues(alpha: 0.15),
           child: Icon(
             invoice.status == InvoiceStatus.paid
                 ? Icons.check_circle
                 : invoice.status == InvoiceStatus.voided
                 ? Icons.cancel
                 : Icons.receipt_long,
-            color: _statusColor(),
+            color: _statusColor(context),
             size: 20,
           ),
         ),
@@ -296,7 +298,7 @@ class _InvoiceTile extends ConsumerWidget {
             Text(
               '\$${total.toStringAsFixed(2)} USD',
               style: TextStyle(
-                color: _statusColor(),
+                color: _statusColor(context),
                 fontWeight: FontWeight.bold,
                 fontSize: 14,
               ),
@@ -304,8 +306,8 @@ class _InvoiceTile extends ConsumerWidget {
             if (invoice.totalMxn != null)
               Text(
                 '\$${invoice.totalMxn!.toStringAsFixed(2)} MXN',
-                style: const TextStyle(
-                  color: AppColors.textSecondary,
+                style: TextStyle(
+                  color: context.appColors.textSecondary,
                   fontSize: 11,
                 ),
               ),
@@ -327,9 +329,6 @@ class _InvoiceTile extends ConsumerWidget {
                               ? l10n.invoiceMarkedPaid
                               : 'Could not mark invoice paid.',
                         ),
-                        backgroundColor: success
-                            ? AppColors.success
-                            : AppColors.error,
                       ),
                     );
                 },
@@ -338,13 +337,13 @@ class _InvoiceTile extends ConsumerWidget {
             : Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                 decoration: BoxDecoration(
-                  color: _statusColor().withValues(alpha: 0.15),
+                  color: _statusColor(context).withValues(alpha: 0.15),
                   borderRadius: BorderRadius.circular(4),
                 ),
                 child: Text(
                   statusLabel,
                   style: TextStyle(
-                    color: _statusColor(),
+                    color: _statusColor(context),
                     fontSize: 11,
                     fontWeight: FontWeight.bold,
                   ),

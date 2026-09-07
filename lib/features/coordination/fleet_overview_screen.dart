@@ -31,61 +31,65 @@ class FleetPriorityCard extends ConsumerWidget {
       category: null as String?,
       offset: 0,
     );
-    return Card(
-      margin: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Text(
-              es ? 'Prioridades de la flota' : 'Fleet priorities',
-              style: Theme.of(context).textTheme.titleLarge,
-            ),
-            const SizedBox(height: 8),
-            ref
-                .watch(fleetAttentionProvider(query))
-                .when(
-                  loading: () => const LinearProgressIndicator(),
-                  error: (error, _) => FleetError(
-                    error: error,
-                    onRetry: () => ref.invalidate(fleetAttentionProvider),
+    return ref
+        .watch(fleetAttentionProvider(query))
+        .when(
+          loading: () => const Padding(
+            padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            child: LinearProgressIndicator(),
+          ),
+          error: (error, _) => FleetError(
+            error: error,
+            onRetry: () => ref.invalidate(fleetAttentionProvider),
+          ),
+          data: (page) {
+            final rows = coordinationRows(page['items']);
+            final updated =
+                '${es ? 'Actualizado' : 'Updated'} ${fleetDate(context, DateTime.tryParse(page['generated_at'] as String? ?? ''))}';
+            if (rows.isEmpty) {
+              return Card(
+                margin: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+                child: ListTile(
+                  title: Text(
+                    es
+                        ? 'Sin registros en la lista de prioridades'
+                        : 'No fleet priority records',
                   ),
-                  data: (page) => Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      Text(
-                        '${es ? 'Actualizado' : 'Updated'} ${fleetDate(context, DateTime.tryParse(page['generated_at'] as String? ?? ''))}',
-                        style: Theme.of(context).textTheme.bodySmall,
-                      ),
-                      if (coordinationRows(page['items']).isEmpty)
-                        Padding(
-                          padding: const EdgeInsets.symmetric(vertical: 12),
-                          child: Text(
-                            es
-                                ? 'No hay decisiones pendientes.'
-                                : 'No decisions are waiting.',
-                          ),
-                        ),
-                      for (final row in coordinationRows(page['items']).take(3))
-                        AttentionTile(row: row),
-                    ],
-                  ),
+                  subtitle: Text(updated),
+                  trailing: const Icon(Icons.chevron_right),
+                  onTap: () => context.push('/fleet/overview'),
                 ),
-            const SizedBox(height: 12),
-            OutlinedButton.icon(
-              onPressed: () => context.push('/fleet/overview'),
-              icon: const Icon(Icons.dashboard_outlined),
-              label: Text(
-                es
-                    ? 'Ver indicadores y registros'
-                    : 'View indicators and records',
+              );
+            }
+            return Card(
+              margin: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+              child: Padding(
+                padding: const EdgeInsets.all(12),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Text(
+                      es ? 'Necesita atenci\u00f3n' : 'Needs attention',
+                      style: Theme.of(context).textTheme.titleMedium,
+                    ),
+                    const SizedBox(height: 4),
+                    Text(updated, style: Theme.of(context).textTheme.bodySmall),
+                    for (final row in rows.take(3)) AttentionTile(row: row),
+                    TextButton.icon(
+                      onPressed: () => context.push('/fleet/overview'),
+                      icon: const Icon(Icons.dashboard_outlined),
+                      label: Text(
+                        es
+                            ? 'Ver indicadores y registros'
+                            : 'View indicators and records',
+                      ),
+                    ),
+                  ],
+                ),
               ),
-            ),
-          ],
-        ),
-      ),
-    );
+            );
+          },
+        );
   }
 }
 
@@ -202,7 +206,14 @@ class _FleetOverviewScreenState extends ConsumerState<FleetOverviewScreen> {
                                 spacing: 12,
                                 runSpacing: 12,
                                 children: [
-                                  for (final key in attentionCategories.keys)
+                                  for (final key
+                                      in (attentionCategories.keys.toList()
+                                        ..sort(
+                                          (a, b) => ((counts[b] as num?) ?? 0)
+                                              .compareTo(
+                                                (counts[a] as num?) ?? 0,
+                                              ),
+                                        )))
                                     SizedBox(
                                       width: single
                                           ? constraints.maxWidth
@@ -339,10 +350,10 @@ class AttentionTile extends ConsumerWidget {
     final es = fleetSpanish(context);
     final category = row['category'] as String;
     return Padding(
-      padding: const EdgeInsets.only(top: 12),
+      padding: const EdgeInsets.only(top: 6),
       child: OutlinedButton(
         style: OutlinedButton.styleFrom(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
           alignment: Alignment.centerLeft,
         ),
         onPressed: () async {

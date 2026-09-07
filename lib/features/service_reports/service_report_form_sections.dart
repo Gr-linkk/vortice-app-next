@@ -27,7 +27,7 @@ class ServiceReportSectionHeader extends StatelessWidget {
           Text(
             title.toUpperCase(),
             style: Theme.of(context).textTheme.labelSmall?.copyWith(
-              color: AppColors.primary,
+              color: context.appColors.primary,
               letterSpacing: 0.8,
             ),
           ),
@@ -35,8 +35,8 @@ class ServiceReportSectionHeader extends StatelessWidget {
             const SizedBox(height: 2),
             Text(
               subtitle!,
-              style: const TextStyle(
-                color: AppColors.textSecondary,
+              style: TextStyle(
+                color: context.appColors.textSecondary,
                 fontSize: 11,
               ),
             ),
@@ -95,13 +95,15 @@ class ServiceReportPermissionBanner extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: AppColors.warning.withValues(alpha: 0.12),
+        color: context.appColors.warning.withValues(alpha: 0.12),
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: AppColors.warning.withValues(alpha: 0.35)),
+        border: Border.all(
+          color: context.appColors.warning.withValues(alpha: 0.35),
+        ),
       ),
-      child: const Text(
+      child: Text(
         'Only owner and employee accounts can submit service reports.',
-        style: TextStyle(color: AppColors.warning),
+        style: TextStyle(color: context.appColors.warning),
       ),
     );
   }
@@ -115,12 +117,12 @@ class ServiceReportLinkedWorkOrderBanner extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: AppColors.primary.withValues(alpha: 0.10),
+        color: context.appColors.primary.withValues(alpha: 0.10),
         borderRadius: BorderRadius.circular(10),
       ),
-      child: const Text(
+      child: Text(
         'Linked to this work order. Fill the 5C fields below.',
-        style: TextStyle(color: AppColors.textSecondary),
+        style: TextStyle(color: context.appColors.textSecondary),
       ),
     );
   }
@@ -150,12 +152,12 @@ class ServiceReportWorkOrderSection extends ConsumerWidget {
           error: (error, __) => Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: AppColors.error.withValues(alpha: 0.12),
+              color: context.appColors.error.withValues(alpha: 0.12),
               borderRadius: BorderRadius.circular(10),
             ),
             child: Text(
               'Could not load work orders: $error',
-              style: const TextStyle(color: AppColors.error),
+              style: TextStyle(color: context.appColors.error),
             ),
           ),
           data: (orders) {
@@ -173,12 +175,12 @@ class ServiceReportWorkOrderSection extends ConsumerWidget {
               return Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: AppColors.warning.withValues(alpha: 0.12),
+                  color: context.appColors.warning.withValues(alpha: 0.12),
                   borderRadius: BorderRadius.circular(10),
                 ),
-                child: const Text(
+                child: Text(
                   'No cached work orders are available. Reopen from a work order or reconnect and try again.',
-                  style: TextStyle(color: AppColors.warning),
+                  style: TextStyle(color: context.appColors.warning),
                 ),
               );
             }
@@ -212,7 +214,7 @@ class ServiceReportWorkOrderSection extends ConsumerWidget {
                 labelText: l10n.linkedWorkOrder,
                 prefixIcon: const Icon(Icons.build_outlined),
               ),
-              dropdownColor: AppColors.surfaceVariant,
+              dropdownColor: context.appColors.surfaceVariant,
               items: active
                   .map(
                     (w) =>

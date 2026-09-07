@@ -32,7 +32,7 @@ class PartsLogScreen extends ConsumerWidget {
             children: [
               Text(
                 friendlyError(context, err),
-                style: const TextStyle(color: AppColors.error),
+                style: TextStyle(color: context.appColors.error),
               ),
               const SizedBox(height: 12),
               ElevatedButton(
@@ -47,7 +47,7 @@ class PartsLogScreen extends ConsumerWidget {
             return Center(
               child: Text(
                 l10n.noParts,
-                style: const TextStyle(color: AppColors.textSecondary),
+                style: TextStyle(color: context.appColors.textSecondary),
               ),
             );
           }
@@ -64,7 +64,7 @@ class PartsLogScreen extends ConsumerWidget {
       floatingActionButton: canAdd
           ? FloatingActionButton(
               onPressed: () => _showAddPartDialog(context, ref),
-              backgroundColor: AppColors.primary,
+              backgroundColor: context.appColors.primary,
               child: const Icon(Icons.add),
             )
           : null,
@@ -75,7 +75,7 @@ class PartsLogScreen extends ConsumerWidget {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      backgroundColor: AppColors.surface,
+      backgroundColor: context.appColors.surface,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
       ),
@@ -97,9 +97,13 @@ class _PartTile extends ConsumerWidget {
 
     return Card(
       child: ListTile(
-        leading: const CircleAvatar(
-          backgroundColor: AppColors.surfaceVariant,
-          child: Icon(Icons.settings, color: AppColors.primary, size: 20),
+        leading: CircleAvatar(
+          backgroundColor: context.appColors.surfaceVariant,
+          child: Icon(
+            Icons.settings,
+            color: context.appColors.primary,
+            size: 20,
+          ),
         ),
         title: Text(part.description),
         subtitle: Column(
@@ -108,8 +112,8 @@ class _PartTile extends ConsumerWidget {
             if (part.partNumber != null)
               Text(
                 '# ${part.partNumber}',
-                style: const TextStyle(
-                  color: AppColors.textSecondary,
+                style: TextStyle(
+                  color: context.appColors.textSecondary,
                   fontSize: 11,
                 ),
               ),
@@ -117,19 +121,19 @@ class _PartTile extends ConsumerWidget {
               children: [
                 Text(
                   '${l10n.quantity}: ${part.quantity}',
-                  style: const TextStyle(
-                    color: AppColors.textSecondary,
+                  style: TextStyle(
+                    color: context.appColors.textSecondary,
                     fontSize: 12,
                   ),
                 ),
-                const Text(
+                Text(
                   ' · ',
-                  style: TextStyle(color: AppColors.textSecondary),
+                  style: TextStyle(color: context.appColors.textSecondary),
                 ),
                 Text(
                   '\$$totalCost',
-                  style: const TextStyle(
-                    color: AppColors.success,
+                  style: TextStyle(
+                    color: context.appColors.success,
                     fontSize: 12,
                     fontWeight: FontWeight.w600,
                   ),
@@ -140,9 +144,9 @@ class _PartTile extends ConsumerWidget {
         ),
         trailing: canDelete
             ? IconButton(
-                icon: const Icon(
+                icon: Icon(
                   Icons.delete_outline,
-                  color: AppColors.error,
+                  color: context.appColors.error,
                   size: 20,
                 ),
                 onPressed: () async {
@@ -214,7 +218,7 @@ class _AddPartSheetState extends ConsumerState<_AddPartSheet> {
               data: (orders) => AppDropdownField<String>(
                 initialValue: _selectedWorkOrderId,
                 decoration: InputDecoration(labelText: l10n.linkedWorkOrder),
-                dropdownColor: AppColors.surfaceVariant,
+                dropdownColor: context.appColors.surfaceVariant,
                 menuMaxHeight: 320,
                 isExpanded: true,
                 items: orders
@@ -323,12 +327,9 @@ class _AddPartSheetState extends ConsumerState<_AddPartSheet> {
                         final errorMsg =
                             errorState.error?.toString() ??
                             'Failed to save part. Check your connection and try again.';
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text(errorMsg),
-                            backgroundColor: AppColors.error,
-                          ),
-                        );
+                        ScaffoldMessenger.of(
+                          context,
+                        ).showSnackBar(SnackBar(content: Text(errorMsg)));
                       }
                     },
               child: Text(l10n.addPart),

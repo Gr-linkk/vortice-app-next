@@ -14,11 +14,8 @@ class TelemetryHistoryScreen extends ConsumerStatefulWidget {
   final String? engineId;
   final String? assetId;
 
-  const TelemetryHistoryScreen({
-    super.key,
-    this.engineId,
-    this.assetId,
-  }) : assert(assetId != null || engineId != null);
+  const TelemetryHistoryScreen({super.key, this.engineId, this.assetId})
+    : assert(assetId != null || engineId != null);
 
   @override
   ConsumerState<TelemetryHistoryScreen> createState() =>
@@ -54,11 +51,11 @@ class _TelemetryHistoryScreenState extends ConsumerState<TelemetryHistoryScreen>
       builder: (context, child) {
         return Theme(
           data: Theme.of(context).copyWith(
-            colorScheme: const ColorScheme.dark(
-              primary: AppColors.primary,
-              onPrimary: Colors.white,
-              surface: AppColors.surface,
-              onSurface: AppColors.textPrimary,
+            colorScheme: ColorScheme.dark(
+              primary: context.appColors.primary,
+              onPrimary: context.appColors.onPrimary,
+              surface: context.appColors.surface,
+              onSurface: context.appColors.textPrimary,
             ),
           ),
           child: child!,
@@ -92,17 +89,15 @@ class _TelemetryHistoryScreenState extends ConsumerState<TelemetryHistoryScreen>
     );
   }
 
-  Widget _buildHistoryScaffold(
-    BuildContext context,
-    AppLocalizations l10n,
-  ) {
+  Widget _buildHistoryScaffold(BuildContext context, AppLocalizations l10n) {
     final engineAsync = widget.engineId == null
         ? null
         : ref.watch(engineByIdProvider(widget.engineId!));
 
     return Scaffold(
       appBar: AppBar(
-        title: engineAsync?.when(
+        title:
+            engineAsync?.when(
               loading: () => Text(l10n.telemetryHistory),
               error: (_, __) => Text(l10n.telemetryHistory),
               data: (engine) => Text(engine?.label ?? l10n.telemetryHistory),
@@ -127,16 +122,19 @@ class _TelemetryHistoryScreenState extends ConsumerState<TelemetryHistoryScreen>
         children: [
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            color: AppColors.surfaceVariant,
+            color: context.appColors.surfaceVariant,
             child: Row(
               children: [
-                const Icon(Icons.calendar_today,
-                    size: 14, color: AppColors.textSecondary),
+                Icon(
+                  Icons.calendar_today,
+                  size: 14,
+                  color: context.appColors.textSecondary,
+                ),
                 const SizedBox(width: 8),
                 Text(
                   '${formatTelemetryDate(_dateRange.start)} - ${formatTelemetryDate(_dateRange.end)}',
-                  style: const TextStyle(
-                    color: AppColors.textSecondary,
+                  style: TextStyle(
+                    color: context.appColors.textSecondary,
                     fontSize: 13,
                   ),
                 ),

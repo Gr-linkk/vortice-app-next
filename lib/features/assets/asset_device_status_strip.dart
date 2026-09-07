@@ -34,8 +34,10 @@ class AssetDeviceStatusStrip extends ConsumerWidget {
                     isOwner
                         ? 'No telemetry device'
                         : 'No telemetry device linked',
-                    style: const TextStyle(
-                        color: AppColors.textSecondary, fontSize: 12),
+                    style: TextStyle(
+                      color: context.appColors.textSecondary,
+                      fontSize: 12,
+                    ),
                   ),
                 ),
                 if (isOwner)
@@ -48,18 +50,19 @@ class AssetDeviceStatusStrip extends ConsumerWidget {
                     onPressed: () => showModalBottomSheet(
                       context: context,
                       isScrollControlled: true,
-                      backgroundColor: AppColors.surface,
+                      backgroundColor: context.appColors.surface,
                       shape: const RoundedRectangleBorder(
-                        borderRadius:
-                            BorderRadius.vertical(top: Radius.circular(16)),
+                        borderRadius: BorderRadius.vertical(
+                          top: Radius.circular(16),
+                        ),
                       ),
-                      builder: (_) => DevicePairingSheet(
-                        assetId: assetId,
-                        assetName: '',
-                      ),
+                      builder: (_) =>
+                          DevicePairingSheet(assetId: assetId, assetName: ''),
                     ),
-                    child: const Text('Link Device →',
-                        style: TextStyle(fontSize: 12)),
+                    child: const Text(
+                      'Link Device →',
+                      style: TextStyle(fontSize: 12),
+                    ),
                   ),
               ],
             ),
@@ -70,7 +73,8 @@ class AssetDeviceStatusStrip extends ConsumerWidget {
         final lastSeen = lastSeenStr != null
             ? DateTime.tryParse(lastSeenStr)?.toLocal()
             : null;
-        final isLive = lastSeen != null &&
+        final isLive =
+            lastSeen != null &&
             DateTime.now().difference(lastSeen).inMinutes < 5;
 
         if (isLive) {
@@ -80,65 +84,87 @@ class AssetDeviceStatusStrip extends ConsumerWidget {
               children: [
                 const AssetStatusDot(live: true),
                 const SizedBox(width: 8),
-                const Text(
+                Text(
                   'LIVE',
                   style: TextStyle(
-                    color: AppColors.success,
+                    color: context.appColors.success,
                     fontSize: 12,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
                 if (reading?.rpm != null) ...[
-                  const Text(' · ',
-                      style: TextStyle(
-                          color: AppColors.textSecondary, fontSize: 12)),
+                  Text(
+                    ' · ',
+                    style: TextStyle(
+                      color: context.appColors.textSecondary,
+                      fontSize: 12,
+                    ),
+                  ),
                   Text(
                     '${reading!.rpm!.toStringAsFixed(0)} RPM',
-                    style: const TextStyle(
-                        color: AppColors.textPrimary, fontSize: 12),
+                    style: TextStyle(
+                      color: context.appColors.textPrimary,
+                      fontSize: 12,
+                    ),
                   ),
                 ],
                 if (reading?.coolantTemp != null) ...[
-                  const Text(' · ',
-                      style: TextStyle(
-                          color: AppColors.textSecondary, fontSize: 12)),
+                  Text(
+                    ' · ',
+                    style: TextStyle(
+                      color: context.appColors.textSecondary,
+                      fontSize: 12,
+                    ),
+                  ),
                   Text(
                     '${reading!.coolantTemp!.toStringAsFixed(1)}°C',
-                    style: const TextStyle(
-                        color: AppColors.textPrimary, fontSize: 12),
+                    style: TextStyle(
+                      color: context.appColors.textPrimary,
+                      fontSize: 12,
+                    ),
                   ),
                 ],
                 const Spacer(),
                 Text(
                   'Last seen ${formatDeviceMinutesAgo(lastSeen)}',
-                  style: const TextStyle(
-                      color: AppColors.textSecondary, fontSize: 11),
+                  style: TextStyle(
+                    color: context.appColors.textSecondary,
+                    fontSize: 11,
+                  ),
                 ),
               ],
             ),
           );
         } else {
-          final lastSeenLabel =
-              lastSeen != null ? formatDeviceRelativeTime(lastSeen) : 'Never';
+          final lastSeenLabel = lastSeen != null
+              ? formatDeviceRelativeTime(lastSeen)
+              : 'Never';
           return AssetStatusStripContainer(
             child: Row(
               children: [
                 const AssetStatusDot(live: false),
                 const SizedBox(width: 8),
-                const Text(
+                Text(
                   'Device linked',
-                  style: TextStyle(color: AppColors.warning, fontSize: 12),
+                  style: TextStyle(
+                    color: context.appColors.warning,
+                    fontSize: 12,
+                  ),
                 ),
-                const Text(
+                Text(
                   ' · No recent data',
-                  style:
-                      TextStyle(color: AppColors.textSecondary, fontSize: 12),
+                  style: TextStyle(
+                    color: context.appColors.textSecondary,
+                    fontSize: 12,
+                  ),
                 ),
                 const Spacer(),
                 Text(
                   'Last seen $lastSeenLabel',
-                  style: const TextStyle(
-                      color: AppColors.textSecondary, fontSize: 11),
+                  style: TextStyle(
+                    color: context.appColors.textSecondary,
+                    fontSize: 11,
+                  ),
                 ),
               ],
             ),
@@ -159,10 +185,11 @@ class AssetStatusStripContainer extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: context.appColors.surface,
         borderRadius: BorderRadius.circular(10),
-        border: const Border.fromBorderSide(
-            BorderSide(color: AppColors.cardBorder)),
+        border: Border.fromBorderSide(
+          BorderSide(color: context.appColors.cardBorder),
+        ),
       ),
       child: child,
     );
@@ -181,9 +208,11 @@ class AssetStatusDot extends StatelessWidget {
       height: 8,
       decoration: BoxDecoration(
         shape: BoxShape.circle,
-        color: live ? AppColors.success : Colors.transparent,
+        color: live ? context.appColors.success : Colors.transparent,
         border: Border.all(
-          color: live ? AppColors.success : AppColors.textSecondary,
+          color: live
+              ? context.appColors.success
+              : context.appColors.textSecondary,
           width: 1.5,
         ),
       ),

@@ -48,7 +48,7 @@ class WorkOrderDetailScreen extends ConsumerWidget {
         error: (err, _) => Center(
           child: Text(
             err.toString(),
-            style: const TextStyle(color: AppColors.error),
+            style: TextStyle(color: context.appColors.error),
           ),
         ),
         data: (wo) {

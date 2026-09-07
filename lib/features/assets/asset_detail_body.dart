@@ -2,7 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:vortice_app/features/coordination/coordination_entry.dart';
 import 'package:vortice_app/features/maintenance/maintenance_models.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:vortice_app/core/asset_icons.dart';
+import 'package:vortice_app/core/equipment_illustration.dart';
+import 'package:vortice_app/features/assets/asset_type_provider.dart';
 import 'package:vortice_app/core/theme.dart';
 import 'package:vortice_app/features/fleet/fleet_entry_card.dart';
 import 'package:vortice_app/features/assets/asset_checklist_history_card.dart';
@@ -33,6 +34,12 @@ class AssetDetailBody extends ConsumerWidget {
     final l10n = AppLocalizations.of(context);
     final role = ref.watch(profileProvider).valueOrNull?.role;
     final prefix = AssetWorkflowPolicy.routePrefixForRole(role);
+    final types =
+        ref.watch(assetTypesProvider).valueOrNull ?? const <AssetType>[];
+    final typeName = types
+        .where((type) => type.id == asset.assetTypeId)
+        .firstOrNull
+        ?.name;
 
     return ListView(
       padding: const EdgeInsets.all(16),
@@ -41,10 +48,10 @@ class AssetDetailBody extends ConsumerWidget {
         Container(
           padding: const EdgeInsets.all(20),
           decoration: BoxDecoration(
-            color: AppColors.surface,
+            color: context.appColors.surface,
             borderRadius: BorderRadius.circular(12),
-            border: const Border.fromBorderSide(
-              BorderSide(color: AppColors.cardBorder),
+            border: Border.fromBorderSide(
+              BorderSide(color: context.appColors.cardBorder),
             ),
           ),
           child: Column(
@@ -52,14 +59,10 @@ class AssetDetailBody extends ConsumerWidget {
             children: [
               Row(
                 children: [
-                  CircleAvatar(
-                    radius: 28,
-                    backgroundColor: AppColors.primary.withValues(alpha: 0.15),
-                    child: Icon(
-                      assetIconFor(asset.assetTypeId),
-                      color: AppColors.primary,
-                      size: 30,
-                    ),
+                  EquipmentIllustration(
+                    assetTypeId: asset.assetTypeId,
+                    typeName: typeName,
+                    size: 92,
                   ),
                   const SizedBox(width: 16),
                   Expanded(
@@ -76,8 +79,8 @@ class AssetDetailBody extends ConsumerWidget {
                               asset.make,
                               asset.model,
                             ].whereType<String>().join(' · '),
-                            style: const TextStyle(
-                              color: AppColors.textSecondary,
+                            style: TextStyle(
+                              color: context.appColors.textSecondary,
                               fontSize: 13,
                             ),
                           ),
@@ -146,7 +149,7 @@ class AssetDetailBody extends ConsumerWidget {
             padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
             child: Text(
               asset.notes!,
-              style: const TextStyle(color: AppColors.textSecondary),
+              style: TextStyle(color: context.appColors.textSecondary),
             ),
           ),
         ],

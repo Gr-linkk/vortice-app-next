@@ -58,7 +58,7 @@ class _ServiceIntervalScreenState extends ConsumerState<ServiceIntervalScreen> {
               onPressed: () => _showAddSheet(context, activeAsset!),
               icon: const Icon(Icons.add),
               label: const Text('Add Interval'),
-              backgroundColor: AppColors.primary,
+              backgroundColor: context.appColors.primary,
             ),
       body: Column(
         children: [
@@ -69,7 +69,7 @@ class _ServiceIntervalScreenState extends ConsumerState<ServiceIntervalScreen> {
                 padding: const EdgeInsets.all(16),
                 child: Text(
                   friendlyError(context, err),
-                  style: const TextStyle(color: AppColors.error),
+                  style: TextStyle(color: context.appColors.error),
                 ),
               ),
               data: (asset) => ServiceIntervalAssetHeader(asset: asset),
@@ -81,7 +81,7 @@ class _ServiceIntervalScreenState extends ConsumerState<ServiceIntervalScreen> {
                 loading: () => const LinearProgressIndicator(),
                 error: (err, _) => Text(
                   friendlyError(context, err),
-                  style: const TextStyle(color: AppColors.error),
+                  style: TextStyle(color: context.appColors.error),
                 ),
                 data: (assets) => AppDropdownField<Asset>(
                   initialValue: _selectedAsset,
@@ -89,7 +89,7 @@ class _ServiceIntervalScreenState extends ConsumerState<ServiceIntervalScreen> {
                     labelText: 'Select Asset',
                     prefixIcon: Icon(Icons.directions_boat_outlined),
                   ),
-                  dropdownColor: AppColors.surfaceVariant,
+                  dropdownColor: context.appColors.surfaceVariant,
                   items: assets
                       .map(
                         (a) => DropdownMenuItem<Asset>(
@@ -127,20 +127,22 @@ class _ServiceIntervalScreenState extends ConsumerState<ServiceIntervalScreen> {
             ),
           Expanded(
             child: activeAssetId == null
-                ? const Center(
+                ? Center(
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         Icon(
                           Icons.schedule,
                           size: 56,
-                          color: AppColors.textSecondary,
+                          color: context.appColors.textSecondary,
                         ),
-                        SizedBox(height: 12),
+                        const SizedBox(height: 12),
                         Text(
                           'Select an asset to manage its\nservice intervals.',
                           textAlign: TextAlign.center,
-                          style: TextStyle(color: AppColors.textSecondary),
+                          style: TextStyle(
+                            color: context.appColors.textSecondary,
+                          ),
                         ),
                       ],
                     ),
@@ -183,7 +185,7 @@ class _ServiceIntervalScreenState extends ConsumerState<ServiceIntervalScreen> {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      backgroundColor: AppColors.surface,
+      backgroundColor: context.appColors.surface,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
       ),
@@ -205,7 +207,7 @@ class _ServiceIntervalScreenState extends ConsumerState<ServiceIntervalScreen> {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      backgroundColor: AppColors.surface,
+      backgroundColor: context.appColors.surface,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
       ),

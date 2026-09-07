@@ -1,3 +1,5 @@
+import 'package:vortice_app/features/assets/asset_type_provider.dart';
+import 'package:vortice_app/features/maintenance/work_list_provider.dart';
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
@@ -41,7 +43,7 @@ import '../fleet/fleet_test_support.dart';
 const asset = Asset(
   id: 'pump',
   clientId: 'company',
-  assetTypeId: 'pump',
+  assetTypeId: '86e99260-a55d-4b80-a762-ceaeb301e880',
   name: 'Hydraulic Pump 04 — Workshop',
 );
 const order = WorkOrder(
@@ -63,6 +65,8 @@ Future<GoRouter> pumpDashboard(
   String language = 'en',
   bool telemetry = false,
   bool checks = true,
+  bool dark = true,
+  List<WorkListEntry> currentWork = const [],
   Future<List<WorkOrder>> Function()? loadOrders,
   Future<List<Asset>> Function()? loadFleet,
 }) async {
@@ -101,6 +105,7 @@ Future<GoRouter> pumpDashboard(
               role,
               operationalChecklistsEnabled: true,
             ).map((a) => a.route),
+            '/maintenance/jobs/current',
             '/fleet',
             '/fleet/overview',
             '/notifications',
@@ -119,10 +124,11 @@ Future<GoRouter> pumpDashboard(
     ],
   );
   addTearDown(router.dispose);
-  final theme = AppTheme.darkNavyTheme;
+  final theme = dark ? AppTheme.darkTheme : AppTheme.lightTheme;
   await tester.pumpWidget(
     ProviderScope(
       overrides: [
+        workListProvider.overrideWith((_, __) async => currentWork),
         profileProvider.overrideWith((_) async => profile),
         authStatusProvider.overrideWithValue(
           AppAuthStatus(
@@ -140,6 +146,14 @@ Future<GoRouter> pumpDashboard(
           },
         ),
         notificationsProvider.overrideWith((_) async => []),
+        assetTypesProvider.overrideWith(
+          (_) async => [
+            const AssetType(
+              id: '86e99260-a55d-4b80-a762-ceaeb301e880',
+              name: 'Pump',
+            ),
+          ],
+        ),
         assetsProvider.overrideWith((_) async => [asset]),
         visibleAssetsProvider.overrideWith((_) async => [asset]),
         currentClientFleetAssetsProvider.overrideWith(
@@ -149,7 +163,7 @@ Future<GoRouter> pumpDashboard(
           (_) async => [
             const ChecklistTemplate(
               id: 'template',
-              assetTypeId: 'pump',
+              assetTypeId: '86e99260-a55d-4b80-a762-ceaeb301e880',
               name: 'Pump maintenance inspection',
             ),
           ],
@@ -231,6 +245,66 @@ Future<GoRouter> pumpDashboard(
 
 void main() {
   setUpAll(loadFleetScreenshotFonts);
+  testWidgets('mechanic can open current work before scrolling to tools', (
+    tester,
+  ) async {
+    await pumpDashboard(
+      tester,
+      UserRole.clientMechanic,
+      currentWork: [
+        const WorkListEntry(
+          id: 'current',
+          title: 'Continue pump repair',
+          assetName: 'Pump 04',
+          status: 'in_progress',
+          route: '/maintenance/jobs/current',
+          assignedToMe: true,
+          service: false,
+        ),
+      ],
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('Continue pump repair').hitTestable(), findsOneWidget);
+    await tester.tap(find.text('Continue pump repair'));
+    await tester.pumpAndSettle();
+    expect(find.text('Opened /maintenance/jobs/current'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+  for (final dark in [false, true]) {
+    for (final role in [
+      UserRole.owner,
+      UserRole.clientMechanic,
+      UserRole.operator,
+    ]) {
+      testWidgets(
+        'Field Notes ${role.name} ${dark ? "dark" : "light"} render',
+        (tester) async {
+          await pumpDashboard(
+            tester,
+            role,
+            dark: dark,
+            currentWork: [
+              const WorkListEntry(
+                id: 'current',
+                title: 'Continue pump repair',
+                assetName: 'Pump 04',
+                status: 'in_progress',
+                route: '/maintenance/jobs/current',
+                assignedToMe: true,
+                service: false,
+              ),
+            ],
+          );
+          await tester.pumpAndSettle();
+          expect(tester.takeException(), isNull);
+          await captureFleet(
+            tester,
+            'home-${role.name}-${dark ? "dark" : "light"}',
+          );
+        },
+      );
+    }
+  }
   for (final role in UserRole.values) {
     testWidgets('${role.name} has consistent home landmarks and fault action', (
       tester,
@@ -239,7 +313,6 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.byType(DashboardAppBar), findsOneWidget);
       expect(find.text('Hi, Alex'), findsOneWidget);
-      expect(find.text('Quick actions'), findsOneWidget);
       expect(find.byType(SignOutButton), findsOneWidget);
       expect(tester.getCenter(find.byType(SignOutButton)).dx, greaterThan(330));
       expect(tester.takeException(), isNull);
@@ -248,6 +321,11 @@ void main() {
           role == UserRole.clientAdmin) {
         await captureFleet(tester, 'dashboard-${role.name}');
       }
+      await tester.scrollUntilVisible(
+        find.text('Report a fault').hitTestable(),
+        350,
+        scrollable: find.byType(Scrollable).first,
+      );
       await tester.tap(find.text('Report a fault'));
       await tester.pumpAndSettle();
       expect(find.text('Opened /fleet/report'), findsOneWidget);
@@ -356,7 +434,7 @@ void main() {
       queryParameters: {
         'clientId': 'company',
         'name': asset.name,
-        'assetTypeId': 'pump',
+        'assetTypeId': asset.assetTypeId,
         'templateId': 'template',
       },
     );
@@ -368,6 +446,11 @@ void main() {
     await pumpDashboard(tester, UserRole.operator, checks: false);
     await tester.pumpAndSettle();
     expect(find.text('Start checklist'), findsNothing);
+    await tester.scrollUntilVisible(
+      find.text('View assets'),
+      350,
+      scrollable: find.byType(Scrollable).first,
+    );
     expect(find.text('View assets'), findsOneWidget);
     expect(find.text('Report a fault'), findsOneWidget);
   });
@@ -380,7 +463,6 @@ void main() {
         UserRole.employee,
         loadOrders: () => request.future,
       );
-      expect(find.text('Report a fault'), findsOneWidget);
       expect(find.byType(SignOutButton), findsOneWidget);
       request.completeError(StateError('internal database detail'));
       await tester.pumpAndSettle();

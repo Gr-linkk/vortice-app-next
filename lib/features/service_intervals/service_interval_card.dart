@@ -32,12 +32,12 @@ class ServiceIntervalCard extends ConsumerWidget {
     final card = Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: context.appColors.surface,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
           color: interval.enabled
-              ? AppColors.cardBorder
-              : AppColors.cardBorder.withValues(alpha: 0.4),
+              ? context.appColors.cardBorder
+              : context.appColors.cardBorder.withValues(alpha: 0.4),
         ),
       ),
       child: Row(
@@ -47,14 +47,14 @@ class ServiceIntervalCard extends ConsumerWidget {
             width: 48,
             height: 48,
             decoration: BoxDecoration(
-              color: AppColors.primary.withValues(alpha: 0.1),
+              color: context.appColors.primary.withValues(alpha: 0.1),
               shape: BoxShape.circle,
             ),
             child: Center(
               child: Text(
                 '${interval.intervalHours.toInt()}h',
-                style: const TextStyle(
-                  color: AppColors.primary,
+                style: TextStyle(
+                  color: context.appColors.primary,
                   fontWeight: FontWeight.bold,
                   fontSize: 13,
                 ),
@@ -76,8 +76,8 @@ class ServiceIntervalCard extends ConsumerWidget {
                         style: TextStyle(
                           fontWeight: FontWeight.w600,
                           color: interval.enabled
-                              ? AppColors.textPrimary
-                              : AppColors.textSecondary,
+                              ? context.appColors.textPrimary
+                              : context.appColors.textSecondary,
                           fontSize: 14,
                         ),
                       ),
@@ -95,7 +95,8 @@ class ServiceIntervalCard extends ConsumerWidget {
                 ),
                 const SizedBox(height: 2),
                 ServiceIntervalTemplateLabel(
-                    templateId: interval.checklistTemplateId),
+                  templateId: interval.checklistTemplateId,
+                ),
                 const SizedBox(height: 8),
                 Wrap(
                   spacing: 8,
@@ -125,7 +126,8 @@ class ServiceIntervalCard extends ConsumerWidget {
                   const SizedBox(height: 8),
                   ServiceIntervalPartsSummary(
                     templateId: interval.checklistTemplateId!,
-                    fallbackName: interval.label ??
+                    fallbackName:
+                        interval.label ??
                         '${interval.intervalHours.toInt()}h Service',
                     canEdit: !readOnly,
                   ),
@@ -142,8 +144,10 @@ class ServiceIntervalCard extends ConsumerWidget {
                   const SizedBox(height: 8),
                   OutlinedButton.icon(
                     onPressed: () => _startClientChecklist(context),
-                    icon:
-                        const Icon(Icons.playlist_add_check_outlined, size: 18),
+                    icon: const Icon(
+                      Icons.playlist_add_check_outlined,
+                      size: 18,
+                    ),
                     label: const Text('Start checklist'),
                   ),
                 ],
@@ -163,10 +167,10 @@ class ServiceIntervalCard extends ConsumerWidget {
         alignment: Alignment.centerRight,
         padding: const EdgeInsets.only(right: 20),
         decoration: BoxDecoration(
-          color: AppColors.error.withValues(alpha: 0.8),
+          color: context.appColors.error.withValues(alpha: 0.8),
           borderRadius: BorderRadius.circular(12),
         ),
-        child: const Icon(Icons.delete_outline, color: Colors.white),
+        child: Icon(Icons.delete_outline, color: Theme.of(context).colorScheme.onError),
       ),
       confirmDismiss: (direction) async {
         final confirmed = await showDialog<bool>(
@@ -174,7 +178,8 @@ class ServiceIntervalCard extends ConsumerWidget {
           builder: (ctx) => AlertDialog(
             title: const Text('Delete Interval'),
             content: Text(
-                'Delete the ${interval.intervalHours.toInt()}h service interval?'),
+              'Delete the ${interval.intervalHours.toInt()}h service interval?',
+            ),
             actions: [
               TextButton(
                 onPressed: () => Navigator.pop(ctx, false),
@@ -182,8 +187,9 @@ class ServiceIntervalCard extends ConsumerWidget {
               ),
               ElevatedButton(
                 onPressed: () => Navigator.pop(ctx, true),
-                style:
-                    ElevatedButton.styleFrom(backgroundColor: AppColors.error),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: context.appColors.error,
+                ),
                 child: const Text('Delete'),
               ),
             ],
@@ -195,12 +201,12 @@ class ServiceIntervalCard extends ConsumerWidget {
             .read(serviceIntervalControllerProvider.notifier)
             .deleteInterval(interval.id, assetId);
         if (!success && context.mounted) {
-          final error =
-              ref.read(serviceIntervalControllerProvider.notifier).lastError;
+          final error = ref
+              .read(serviceIntervalControllerProvider.notifier)
+              .lastError;
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text(error ?? 'Failed to delete interval. Try again.'),
-              backgroundColor: AppColors.error,
             ),
           );
         }
@@ -216,9 +222,9 @@ class ServiceIntervalCard extends ConsumerWidget {
     final templateName = interval.checklistTemplateId == null
         ? null
         : templates
-            ?.where((t) => t.id == interval.checklistTemplateId)
-            .firstOrNull
-            ?.name;
+              ?.where((t) => t.id == interval.checklistTemplateId)
+              .firstOrNull
+              ?.name;
     final draft = MaintenanceWorkOrderDraft.preventativeMaintenance(
       assetId: assetId,
       intervalHours: interval.intervalHours,
@@ -228,10 +234,12 @@ class ServiceIntervalCard extends ConsumerWidget {
       checklistTemplateId: interval.checklistTemplateId,
       checklistTemplateName: templateName,
     );
-    context.push(Uri(
-      path: '/owner/work-orders/create',
-      queryParameters: draft.toQueryParameters(),
-    ).toString());
+    context.push(
+      Uri(
+        path: '/owner/work-orders/create',
+        queryParameters: draft.toQueryParameters(),
+      ).toString(),
+    );
   }
 
   void _startClientChecklist(BuildContext context) {
@@ -239,15 +247,17 @@ class ServiceIntervalCard extends ConsumerWidget {
     final templateId = summary.interval.checklistTemplateId;
     if (targetAsset == null || templateId == null) return;
 
-    context.push(Uri(
-      path: '/client/assets/$assetId/checklists/new',
-      queryParameters: {
-        'clientId': targetAsset.clientId,
-        'name': targetAsset.name,
-        'assetTypeId': targetAsset.assetTypeId,
-        'templateId': templateId,
-      },
-    ).toString());
+    context.push(
+      Uri(
+        path: '/client/assets/$assetId/checklists/new',
+        queryParameters: {
+          'clientId': targetAsset.clientId,
+          'name': targetAsset.name,
+          'assetTypeId': targetAsset.assetTypeId,
+          'templateId': templateId,
+        },
+      ).toString(),
+    );
   }
 }
 
@@ -259,22 +269,29 @@ class ServiceIntervalTemplateLabel extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     if (templateId == null) {
-      return const Text(
+      return Text(
         'No checklist template',
-        style: TextStyle(color: AppColors.textSecondary, fontSize: 12),
+        style: TextStyle(color: context.appColors.textSecondary, fontSize: 12),
       );
     }
     final templatesAsync = ref.watch(checklistTemplatesProvider);
     return templatesAsync.when(
-      loading: () => const Text('...',
-          style: TextStyle(color: AppColors.textSecondary, fontSize: 12)),
-      error: (_, __) => const Text('—',
-          style: TextStyle(color: AppColors.textSecondary, fontSize: 12)),
+      loading: () => Text(
+        '...',
+        style: TextStyle(color: context.appColors.textSecondary, fontSize: 12),
+      ),
+      error: (_, __) => Text(
+        '—',
+        style: TextStyle(color: context.appColors.textSecondary, fontSize: 12),
+      ),
       data: (templates) {
         final template = templates.where((t) => t.id == templateId).firstOrNull;
         return Text(
           template?.name ?? 'Unknown template',
-          style: const TextStyle(color: AppColors.textSecondary, fontSize: 12),
+          style: TextStyle(
+            color: context.appColors.textSecondary,
+            fontSize: 12,
+          ),
         );
       },
     );
@@ -294,7 +311,10 @@ class ServiceIntervalPartsSummary extends ConsumerWidget {
   });
 
   void _showPartsSheet(
-      BuildContext context, String templateId, String templateName) {
+    BuildContext context,
+    String templateId,
+    String templateName,
+  ) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -316,7 +336,8 @@ class ServiceIntervalPartsSummary extends ConsumerWidget {
       loading: () => const SizedBox.shrink(),
       error: (_, __) => const SizedBox.shrink(),
       data: (parts) {
-        final templateName = templatesAsync.valueOrNull
+        final templateName =
+            templatesAsync.valueOrNull
                 ?.where((t) => t.id == templateId)
                 .firstOrNull
                 ?.name ??
@@ -328,10 +349,11 @@ class ServiceIntervalPartsSummary extends ConsumerWidget {
           children: [
             Chip(
               visualDensity: VisualDensity.compact,
-              backgroundColor: AppColors.surfaceVariant,
+              backgroundColor: context.appColors.surfaceVariant,
               avatar: const Icon(Icons.inventory_2_outlined, size: 16),
-              label:
-                  Text('${parts.length} part${parts.length == 1 ? '' : 's'}'),
+              label: Text(
+                '${parts.length} part${parts.length == 1 ? '' : 's'}',
+              ),
             ),
             TextButton.icon(
               onPressed: () =>

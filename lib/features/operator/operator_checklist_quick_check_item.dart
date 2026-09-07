@@ -143,7 +143,7 @@ class _OperatorChecklistQuickCheckItemState
                   label: 'PASS',
                   value: 'pass',
                   current: status,
-                  color: AppColors.success,
+                  color: context.appColors.success,
                   onTap: () =>
                       widget.onChanged(status == 'pass' ? null : 'pass'),
                 ),
@@ -152,7 +152,7 @@ class _OperatorChecklistQuickCheckItemState
                   label: 'MONITOR',
                   value: 'monitor',
                   current: status,
-                  color: AppColors.warning,
+                  color: context.appColors.warning,
                   onTap: () => widget.onChanged(
                     status == 'monitor' || status == 'alert' ? null : 'monitor',
                   ),
@@ -162,7 +162,7 @@ class _OperatorChecklistQuickCheckItemState
                   label: 'ACTION',
                   value: 'action',
                   current: status,
-                  color: AppColors.error,
+                  color: context.appColors.error,
                   onTap: () =>
                       widget.onChanged(status == 'action' ? null : 'action'),
                 ),
@@ -171,7 +171,7 @@ class _OperatorChecklistQuickCheckItemState
                   label: 'N/A',
                   value: 'n/a',
                   current: status,
-                  color: AppColors.textSecondary,
+                  color: context.appColors.textSecondary,
                   onTap: () => widget.onChanged(status == 'n/a' ? null : 'n/a'),
                 ),
               ],
@@ -187,14 +187,14 @@ class _OperatorChecklistQuickCheckItemState
                           controller: _noteCtrl,
                           maxLines: 2,
                           style: const TextStyle(fontSize: 12),
-                          decoration: const InputDecoration(
+                          decoration: InputDecoration(
                             hintText: 'Describe issue / action',
                             hintStyle: TextStyle(
-                              color: AppColors.textSecondary,
+                              color: context.appColors.textSecondary,
                               fontSize: 12,
                             ),
                             isDense: true,
-                            contentPadding: EdgeInsets.symmetric(
+                            contentPadding: const EdgeInsets.symmetric(
                               horizontal: 8,
                               vertical: 6,
                             ),
@@ -215,10 +215,10 @@ class _OperatorChecklistQuickCheckItemState
                                 ),
                               ),
                               IconButton(
-                                icon: const Icon(
+                                icon: Icon(
                                   Icons.close,
                                   size: 14,
-                                  color: AppColors.error,
+                                  color: context.appColors.error,
                                 ),
                                 onPressed: () => widget.onPhotoChanged(null),
                                 padding: EdgeInsets.zero,

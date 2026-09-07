@@ -5,11 +5,7 @@ class TelemetryDetailRow extends StatelessWidget {
   final String label;
   final String? value;
 
-  const TelemetryDetailRow({
-    super.key,
-    required this.label,
-    this.value,
-  });
+  const TelemetryDetailRow({super.key, required this.label, this.value});
 
   @override
   Widget build(BuildContext context) {
@@ -20,14 +16,21 @@ class TelemetryDetailRow extends StatelessWidget {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(label,
-              style: const TextStyle(
-                  color: AppColors.textSecondary, fontSize: 13)),
-          Text(value!,
-              style: const TextStyle(
-                  color: AppColors.textPrimary,
-                  fontSize: 13,
-                  fontWeight: FontWeight.w500)),
+          Text(
+            label,
+            style: TextStyle(
+              color: context.appColors.textSecondary,
+              fontSize: 13,
+            ),
+          ),
+          Text(
+            value!,
+            style: TextStyle(
+              color: context.appColors.textPrimary,
+              fontSize: 13,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
         ],
       ),
     );

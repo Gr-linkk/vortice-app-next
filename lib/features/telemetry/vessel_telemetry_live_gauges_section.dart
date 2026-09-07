@@ -33,8 +33,10 @@ class VesselTelemetryLiveGaugesSection extends ConsumerWidget {
                   reading != null
                       ? 'Last updated: ${formatTelemetryTime(reading.ts)}'
                       : '',
-                  style: const TextStyle(
-                      color: AppColors.textSecondary, fontSize: 11),
+                  style: TextStyle(
+                    color: context.appColors.textSecondary,
+                    fontSize: 11,
+                  ),
                 ),
               ),
             ],
@@ -48,17 +50,19 @@ class VesselTelemetryLiveGaugesSection extends ConsumerWidget {
           ),
           error: (err, _) => Padding(
             padding: const EdgeInsets.all(16),
-            child: Text(friendlyError(context, err),
-                style: const TextStyle(color: AppColors.error)),
+            child: Text(
+              friendlyError(context, err),
+              style: TextStyle(color: context.appColors.error),
+            ),
           ),
           data: (reading) {
             if (reading == null) {
-              return const Padding(
-                padding: EdgeInsets.all(24),
+              return Padding(
+                padding: const EdgeInsets.all(24),
                 child: Center(
                   child: Text(
                     'Waiting for data...',
-                    style: TextStyle(color: AppColors.textSecondary),
+                    style: TextStyle(color: context.appColors.textSecondary),
                   ),
                 ),
               );
@@ -77,37 +81,43 @@ class VesselTelemetryLiveGaugesSection extends ConsumerWidget {
                     label: 'RPM',
                     value: reading.rpm?.toStringAsFixed(0),
                     unit: '',
-                    color: AppColors.primary,
+                    color: context.appColors.primary,
                   ),
                   VesselTelemetryGaugeCard(
                     label: 'Coolant',
                     value: reading.coolantTemp?.toStringAsFixed(1),
                     unit: '°C',
-                    color: coolantTelemetryColor(reading.coolantTemp),
+                    color: coolantTelemetryColor(
+                      context.appColors,
+                      reading.coolantTemp,
+                    ),
                   ),
                   VesselTelemetryGaugeCard(
                     label: 'Oil Pressure',
                     value: reading.oilPressure?.toStringAsFixed(1),
                     unit: 'PSI',
-                    color: AppColors.primary,
+                    color: context.appColors.primary,
                   ),
                   VesselTelemetryGaugeCard(
                     label: 'Fuel Rate',
                     value: reading.fuelRate?.toStringAsFixed(2),
                     unit: 'L/hr',
-                    color: AppColors.textSecondary,
+                    color: context.appColors.textSecondary,
                   ),
                   VesselTelemetryGaugeCard(
                     label: 'Battery',
                     value: reading.batteryV?.toStringAsFixed(2),
                     unit: 'V',
-                    color: batteryTelemetryColor(reading.batteryV),
+                    color: batteryTelemetryColor(
+                      context.appColors,
+                      reading.batteryV,
+                    ),
                   ),
                   VesselTelemetryGaugeCard(
                     label: 'Boost',
                     value: reading.boostPsi?.toStringAsFixed(1),
                     unit: 'PSI',
-                    color: AppColors.textSecondary,
+                    color: context.appColors.textSecondary,
                   ),
                 ],
               ),

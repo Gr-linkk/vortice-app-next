@@ -29,10 +29,7 @@ class OwnerPartsScreen extends StatelessWidget {
           ),
         ),
         body: const TabBarView(
-          children: [
-            PartsLogScreen(embedded: true),
-            PmKitsScreen(),
-          ],
+          children: [PartsLogScreen(embedded: true), PmKitsScreen()],
         ),
       ),
     );
@@ -41,12 +38,14 @@ class OwnerPartsScreen extends StatelessWidget {
 
 // ── Provider: all clients with their assets and interval-linked PM kits ───────
 
-final pmKitsByClientProvider =
-    FutureProvider<List<Map<String, dynamic>>>((ref) async {
+final pmKitsByClientProvider = FutureProvider<List<Map<String, dynamic>>>((
+  ref,
+) async {
   final clients = await supabase
       .from(AppConstants.tProfiles)
       .select('id, full_name, subscription_tier')
-      .inFilter('role', ['client', 'client_admin']).order('full_name');
+      .inFilter('role', ['client', 'client_admin'])
+      .order('full_name');
 
   final result = <Map<String, dynamic>>[];
 
@@ -94,7 +93,8 @@ final pmKitsByClientProvider =
           'interval_id': intervalMap['id'],
           'template_id': templateId,
           'template_name': template?['name'] ?? 'Unknown',
-          'interval_label': template?['interval_label'] ??
+          'interval_label':
+              template?['interval_label'] ??
               '${intervalMap['interval_hours']}HR',
           'interval_hours': intervalMap['interval_hours'],
           'parts': List<Map<String, dynamic>>.from(parts as List),
@@ -137,25 +137,36 @@ class PmKitsScreen extends ConsumerWidget {
     return kitsAsync.when(
       loading: () => const Center(child: CircularProgressIndicator()),
       error: (err, _) => Center(
-          child: Text(friendlyError(context, err),
-              style: const TextStyle(color: AppColors.error))),
+        child: Text(
+          friendlyError(context, err),
+          style: TextStyle(color: context.appColors.error),
+        ),
+      ),
       data: (clients) {
         if (clients.isEmpty) {
-          return const Center(
+          return Center(
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Icon(Icons.inventory_2_outlined,
-                    size: 56, color: AppColors.textSecondary),
-                SizedBox(height: 12),
-                Text('No PM kits set up yet.',
-                    style: TextStyle(color: AppColors.textSecondary)),
-                SizedBox(height: 4),
+                Icon(
+                  Icons.inventory_2_outlined,
+                  size: 56,
+                  color: context.appColors.textSecondary,
+                ),
+                const SizedBox(height: 12),
                 Text(
-                    'Link checklist templates to service reminders\nto build PM kits per vessel.',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                        color: AppColors.textSecondary, fontSize: 12)),
+                  'No PM kits set up yet.',
+                  style: TextStyle(color: context.appColors.textSecondary),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  'Link checklist templates to service reminders\nto build PM kits per vessel.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    color: context.appColors.textSecondary,
+                    fontSize: 12,
+                  ),
+                ),
               ],
             ),
           );
@@ -177,24 +188,26 @@ class PmKitsScreen extends ConsumerWidget {
                     padding: const EdgeInsets.fromLTRB(16, 20, 16, 4),
                     child: Row(
                       children: [
-                        const Icon(Icons.person_outline,
-                            size: 16, color: AppColors.primary),
+                        Icon(
+                          Icons.person_outline,
+                          size: 16,
+                          color: context.appColors.primary,
+                        ),
                         const SizedBox(width: 6),
                         Text(
                           client['name'] as String,
-                          style: Theme.of(context)
-                              .textTheme
-                              .titleMedium
-                              ?.copyWith(color: AppColors.primary),
+                          style: Theme.of(context).textTheme.titleMedium
+                              ?.copyWith(color: context.appColors.primary),
                         ),
                       ],
                     ),
                   ),
                   ...assets.map((asset) {
                     final kits = asset['kits'] as List<Map<String, dynamic>>;
-                    final makeModel =
-                        formatAssetMakeModel(asset['make'] as String?,
-                            asset['model'] as String?);
+                    final makeModel = formatAssetMakeModel(
+                      asset['make'] as String?,
+                      asset['model'] as String?,
+                    );
                     return Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
@@ -202,34 +215,40 @@ class PmKitsScreen extends ConsumerWidget {
                           padding: const EdgeInsets.fromLTRB(24, 8, 16, 4),
                           child: Row(
                             children: [
-                              const Icon(Icons.directions_boat_outlined,
-                                  size: 14, color: AppColors.textSecondary),
+                              Icon(
+                                Icons.directions_boat_outlined,
+                                size: 14,
+                                color: context.appColors.textSecondary,
+                              ),
                               const SizedBox(width: 6),
                               Text(
                                 asset['name'] as String,
-                                style: Theme.of(context)
-                                    .textTheme
-                                    .titleSmall
-                                    ?.copyWith(color: AppColors.textSecondary),
+                                style: Theme.of(context).textTheme.titleSmall
+                                    ?.copyWith(
+                                      color: context.appColors.textSecondary,
+                                    ),
                               ),
                               if (makeModel != null) ...[
                                 const SizedBox(width: 6),
                                 Text(
                                   makeModel,
-                                  style: const TextStyle(
-                                      color: AppColors.textSecondary,
-                                      fontSize: 11),
+                                  style: TextStyle(
+                                    color: context.appColors.textSecondary,
+                                    fontSize: 11,
+                                  ),
                                 ),
                               ],
                             ],
                           ),
                         ),
-                        ...kits.map((kit) => PmKitCard(
-                              kit: kit,
-                              assetName: asset['name'] as String,
-                              onRefresh: () =>
-                                  ref.invalidate(pmKitsByClientProvider),
-                            )),
+                        ...kits.map(
+                          (kit) => PmKitCard(
+                            kit: kit,
+                            assetName: asset['name'] as String,
+                            onRefresh: () =>
+                                ref.invalidate(pmKitsByClientProvider),
+                          ),
+                        ),
                       ],
                     );
                   }),

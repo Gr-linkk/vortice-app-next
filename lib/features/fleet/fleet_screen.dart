@@ -1,3 +1,4 @@
+import 'package:vortice_app/core/app_filter_chip.dart';
 import 'package:vortice_app/core/app_dropdown_field.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -68,7 +69,9 @@ class _FleetScreenState extends ConsumerState<FleetScreen> {
                     Expanded(
                       child: Text(
                         es ? 'Filtrado por equipo' : 'Filtered to one asset',
-                        style: const TextStyle(color: AppColors.textSecondary),
+                        style: TextStyle(
+                          color: context.appColors.textSecondary,
+                        ),
                       ),
                     ),
                     TextButton(
@@ -114,12 +117,12 @@ class _FleetScreenState extends ConsumerState<FleetScreen> {
             child: Wrap(
               spacing: 8,
               children: [
-                FilterChip(
+                AppFilterChip(
                   label: Text(es ? 'Cerradas' : 'Closed'),
                   selected: _closed,
                   onSelected: (value) => setState(() => _closed = value),
                 ),
-                FilterChip(
+                AppFilterChip(
                   label: Text(es ? 'Asignadas a mí' : 'Assigned to me'),
                   selected: _mine,
                   onSelected: (value) => setState(() => _mine = value),
@@ -277,7 +280,7 @@ class FleetSummary extends StatelessWidget {
           child: _Metric(
             value: '$unavailable',
             label: es ? 'No disponibles' : 'Unavailable',
-            color: AppColors.warning,
+            color: context.appColors.warning,
           ),
         ),
         const SizedBox(width: 12),
@@ -285,7 +288,7 @@ class FleetSummary extends StatelessWidget {
           child: _Metric(
             value: '$faults',
             label: es ? 'Fallas activas' : 'Active faults',
-            color: AppColors.primaryLight,
+            color: context.appColors.primaryLight,
           ),
         ),
       ],
@@ -305,9 +308,9 @@ class _Metric extends StatelessWidget {
   Widget build(BuildContext context) => Container(
     padding: const EdgeInsets.all(16),
     decoration: BoxDecoration(
-      color: AppColors.surface,
+      color: context.appColors.surface,
       borderRadius: BorderRadius.circular(12),
-      border: Border.all(color: AppColors.cardBorder),
+      border: Border.all(color: context.appColors.cardBorder),
     ),
     child: Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -319,7 +322,7 @@ class _Metric extends StatelessWidget {
           ).textTheme.headlineMedium?.copyWith(color: color),
         ),
         const SizedBox(height: 4),
-        Text(label, style: const TextStyle(color: AppColors.textSecondary)),
+        Text(label, style: TextStyle(color: context.appColors.textSecondary)),
       ],
     ),
   );
@@ -347,15 +350,15 @@ class FaultListCard extends StatelessWidget {
                   Expanded(
                     child: Text(
                       fault.assetName,
-                      style: const TextStyle(
-                        color: AppColors.primaryLight,
+                      style: TextStyle(
+                        color: context.appColors.primaryLight,
                         fontWeight: FontWeight.w600,
                       ),
                     ),
                   ),
-                  const Icon(
+                  Icon(
                     Icons.chevron_right,
-                    color: AppColors.textSecondary,
+                    color: context.appColors.textSecondary,
                   ),
                 ],
               ),
@@ -375,7 +378,7 @@ class FaultListCard extends StatelessWidget {
                   if (fault.urgent)
                     FleetBadge(
                       label: es ? 'Urgente' : 'Urgent',
-                      color: AppColors.error,
+                      color: context.appColors.error,
                       icon: Icons.priority_high,
                     ),
                 ],
@@ -384,16 +387,16 @@ class FaultListCard extends StatelessWidget {
               Text(
                 fault.assigneeName ??
                     (es ? 'Sin responsable asignado' : 'No mechanic assigned'),
-                style: const TextStyle(
-                  color: AppColors.textSecondary,
+                style: TextStyle(
+                  color: context.appColors.textSecondary,
                   fontSize: 13,
                 ),
               ),
               const SizedBox(height: 4),
               Text(
                 fleetDate(context, fault.updatedAt ?? fault.createdAt),
-                style: const TextStyle(
-                  color: AppColors.textSecondary,
+                style: TextStyle(
+                  color: context.appColors.textSecondary,
                   fontSize: 12,
                 ),
               ),
@@ -430,9 +433,9 @@ class FleetAssetCard extends StatelessWidget {
                       style: Theme.of(context).textTheme.titleMedium,
                     ),
                   ),
-                  const Icon(
+                  Icon(
                     Icons.chevron_right,
-                    color: AppColors.textSecondary,
+                    color: context.appColors.textSecondary,
                   ),
                 ],
               ),
@@ -440,7 +443,7 @@ class FleetAssetCard extends StatelessWidget {
                 const SizedBox(height: 4),
                 Text(
                   asset.location!,
-                  style: const TextStyle(color: AppColors.textSecondary),
+                  style: TextStyle(color: context.appColors.textSecondary),
                 ),
               ],
               const SizedBox(height: 12),
@@ -461,8 +464,8 @@ class FleetAssetCard extends StatelessWidget {
                       : '${asset.openFaults} active faults',
                   style: TextStyle(
                     color: asset.urgentFaults > 0
-                        ? AppColors.warning
-                        : AppColors.textSecondary,
+                        ? context.appColors.warning
+                        : context.appColors.textSecondary,
                   ),
                 ),
               ],

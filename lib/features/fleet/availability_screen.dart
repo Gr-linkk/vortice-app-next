@@ -68,7 +68,9 @@ class AvailabilityScreen extends ConsumerWidget {
                       const SizedBox(height: 6),
                       Text(
                         asset.location!,
-                        style: const TextStyle(color: AppColors.textSecondary),
+                        style: TextStyle(
+                          color: context.appColors.textSecondary,
+                        ),
                       ),
                     ],
                     const SizedBox(height: 20),
@@ -87,9 +89,9 @@ class AvailabilityScreen extends ConsumerWidget {
                       const SizedBox(height: 8),
                       Text(
                         '${asset.changedByName ?? ''} · ${fleetDate(context, asset.changedAt)}',
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 12,
-                          color: AppColors.textSecondary,
+                          color: context.appColors.textSecondary,
                         ),
                       ),
                     ],
@@ -105,8 +107,8 @@ class AvailabilityScreen extends ConsumerWidget {
                               es
                                   ? 'Tiempo no disponible registrado'
                                   : 'Recorded downtime',
-                              style: const TextStyle(
-                                color: AppColors.textSecondary,
+                              style: TextStyle(
+                                color: context.appColors.textSecondary,
                               ),
                             ),
                             const SizedBox(height: 8),
@@ -128,9 +130,9 @@ class AvailabilityScreen extends ConsumerWidget {
                                   : (es
                                         ? 'Incluye la parada actual desde ${fleetDate(context, asset.unavailableSince)}.'
                                         : 'Includes the current outage since ${fleetDate(context, asset.unavailableSince)}.'),
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontSize: 12,
-                                color: AppColors.textSecondary,
+                                color: context.appColors.textSecondary,
                               ),
                             ),
                           ],
@@ -144,7 +146,7 @@ class AvailabilityScreen extends ConsumerWidget {
                           es
                               ? '${asset.urgentFaults} fallas urgentes requieren revisión antes de marcar Disponible.'
                               : '${asset.urgentFaults} urgent faults need review before marking Available.',
-                          style: const TextStyle(color: AppColors.warning),
+                          style: TextStyle(color: context.appColors.warning),
                         ),
                       ),
                     const SizedBox(height: 20),
@@ -210,8 +212,8 @@ class AvailabilityScreen extends ConsumerWidget {
                                     es
                                         ? 'Los cambios y sus motivos aparecerán aquí.'
                                         : 'Changes and their reasons will appear here.',
-                                    style: const TextStyle(
-                                      color: AppColors.textSecondary,
+                                    style: TextStyle(
+                                      color: context.appColors.textSecondary,
                                     ),
                                   ),
                                 ),
@@ -343,7 +345,7 @@ class _AvailabilityEditSheetState extends ConsumerState<AvailabilityEditSheet> {
                         es
                             ? 'Resuelve o descarta las fallas urgentes primero.'
                             : 'Resolve or dismiss urgent faults first.',
-                        style: const TextStyle(color: AppColors.warning),
+                        style: TextStyle(color: context.appColors.warning),
                       ),
                     ),
                   const SizedBox(height: 16),
@@ -368,7 +370,7 @@ class _AvailabilityEditSheetState extends ConsumerState<AvailabilityEditSheet> {
                       padding: const EdgeInsets.only(bottom: 12),
                       child: Text(
                         fleetErrorMessage(_error!, es),
-                        style: const TextStyle(color: AppColors.warning),
+                        style: TextStyle(color: context.appColors.warning),
                       ),
                     ),
                   FilledButton(

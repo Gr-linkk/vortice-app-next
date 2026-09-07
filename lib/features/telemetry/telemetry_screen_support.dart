@@ -23,25 +23,25 @@ String formatServiceReportShortDate(DateTime dt) {
   return DateFormat('MMM d').format(dt);
 }
 
-Color coolantTelemetryColor(double? temp) {
-  if (temp == null) return AppColors.textSecondary;
-  if (temp > 95) return AppColors.error;
-  if (temp > 85) return AppColors.warning;
-  return AppColors.success;
+Color coolantTelemetryColor(AppPalette colors, double? temp) {
+  if (temp == null) return colors.textSecondary;
+  if (temp > 95) return colors.error;
+  if (temp > 85) return colors.warning;
+  return colors.success;
 }
 
-Color batteryTelemetryColor(double? v) {
-  if (v == null) return AppColors.textSecondary;
-  if (v < 12.0) return AppColors.error;
-  if (v < 12.4) return AppColors.warning;
-  return AppColors.success;
+Color batteryTelemetryColor(AppPalette colors, double? v) {
+  if (v == null) return colors.textSecondary;
+  if (v < 12.0) return colors.error;
+  if (v < 12.4) return colors.warning;
+  return colors.success;
 }
 
-Color alertSeverityColor(AlertSeverity severity) {
+Color alertSeverityColor(AppPalette colors, AlertSeverity severity) {
   return switch (severity) {
-    AlertSeverity.critical => AppColors.error,
-    AlertSeverity.warning => AppColors.warning,
-    AlertSeverity.info => AppColors.primary,
+    AlertSeverity.critical => colors.error,
+    AlertSeverity.warning => colors.warning,
+    AlertSeverity.info => colors.primary,
   };
 }
 
@@ -60,6 +60,6 @@ String maintenanceHoursRemainingLabel(double hoursRemaining) {
   return '${hoursRemaining.toStringAsFixed(0)} hrs';
 }
 
-Color maintenanceHoursRemainingColor(double hoursRemaining) {
-  return hoursRemaining <= 0 ? AppColors.error : AppColors.textSecondary;
+Color maintenanceHoursRemainingColor(AppPalette colors, double hoursRemaining) {
+  return hoursRemaining <= 0 ? colors.error : colors.textSecondary;
 }

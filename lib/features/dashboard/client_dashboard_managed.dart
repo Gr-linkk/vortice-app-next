@@ -1,3 +1,5 @@
+import 'package:vortice_app/features/assets/asset_type_provider.dart';
+import 'package:vortice_app/core/equipment_illustration.dart';
 import 'package:vortice_app/features/dashboard/dashboard_layout.dart';
 import 'package:flutter/material.dart';
 import 'package:vortice_app/core/user_feedback.dart';
@@ -46,7 +48,7 @@ class ClientDashboardManaged extends ConsumerWidget {
                   children: [
                     DashboardSection(
                       title: 'Open faults (${flags.length})',
-                      color: AppColors.warning,
+                      color: context.appColors.warning,
                     ),
                     ...flags.map((flag) {
                       final assetName =
@@ -64,13 +66,15 @@ class ClientDashboardManaged extends ConsumerWidget {
                               context.push('/fleet/faults/${flag['id']}'),
                           leading: CircleAvatar(
                             backgroundColor:
-                                (isUrgent ? AppColors.error : AppColors.warning)
+                                (isUrgent
+                                        ? context.appColors.error
+                                        : context.appColors.warning)
                                     .withValues(alpha: 0.15),
                             child: Icon(
                               isUrgent ? Icons.warning : Icons.flag,
                               color: isUrgent
-                                  ? AppColors.error
-                                  : AppColors.warning,
+                                  ? context.appColors.error
+                                  : context.appColors.warning,
                               size: 18,
                             ),
                           ),
@@ -82,8 +86,8 @@ class ClientDashboardManaged extends ConsumerWidget {
                           ),
                           subtitle: Text(
                             assetName,
-                            style: const TextStyle(
-                              color: AppColors.textSecondary,
+                            style: TextStyle(
+                              color: context.appColors.textSecondary,
                               fontSize: 12,
                             ),
                           ),
@@ -94,15 +98,15 @@ class ClientDashboardManaged extends ConsumerWidget {
                                     vertical: 4,
                                   ),
                                   decoration: BoxDecoration(
-                                    color: AppColors.error.withValues(
+                                    color: context.appColors.error.withValues(
                                       alpha: 0.15,
                                     ),
                                     borderRadius: BorderRadius.circular(6),
                                   ),
-                                  child: const Text(
+                                  child: Text(
                                     'URGENT',
                                     style: TextStyle(
-                                      color: AppColors.error,
+                                      color: context.appColors.error,
                                       fontSize: 10,
                                       fontWeight: FontWeight.bold,
                                     ),
@@ -154,12 +158,12 @@ class ClientDashboardManaged extends ConsumerWidget {
                             ? '/maintenance/jobs/${r['maintenance_job_id']}'
                             : '/client/service-reports/${r['id']}',
                       ),
-                      leading: const CircleAvatar(
-                        backgroundColor: AppColors.surfaceVariant,
+                      leading: CircleAvatar(
+                        backgroundColor: context.appColors.surfaceVariant,
                         child: Icon(
                           Icons.build_outlined,
                           size: 18,
-                          color: AppColors.textSecondary,
+                          color: context.appColors.textSecondary,
                         ),
                       ),
                       title: Text(
@@ -175,8 +179,8 @@ class ClientDashboardManaged extends ConsumerWidget {
                           if (createdAt != null)
                             DateFormat('MMM d, yyyy').format(createdAt),
                         ].join(' • '),
-                        style: const TextStyle(
-                          color: AppColors.textSecondary,
+                        style: TextStyle(
+                          color: context.appColors.textSecondary,
                           fontSize: 12,
                         ),
                       ),
@@ -251,12 +255,12 @@ class ClientDashboardManaged extends ConsumerWidget {
                     return ListTile(
                       onTap: () =>
                           context.push('/client/service-reports/${r['id']}'),
-                      leading: const CircleAvatar(
-                        backgroundColor: AppColors.surfaceVariant,
+                      leading: CircleAvatar(
+                        backgroundColor: context.appColors.surfaceVariant,
                         child: Icon(
                           Icons.assignment_outlined,
                           size: 18,
-                          color: AppColors.textSecondary,
+                          color: context.appColors.textSecondary,
                         ),
                       ),
                       title: Text(
@@ -272,8 +276,8 @@ class ClientDashboardManaged extends ConsumerWidget {
                           if (createdAt != null)
                             DateFormat('MMM d, yyyy').format(createdAt),
                         ].join(' • '),
-                        style: const TextStyle(
-                          color: AppColors.textSecondary,
+                        style: TextStyle(
+                          color: context.appColors.textSecondary,
                           fontSize: 12,
                         ),
                       ),
@@ -310,7 +314,7 @@ class _MErrorTile extends StatelessWidget {
     padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
     child: Text(
       message,
-      style: const TextStyle(color: AppColors.error, fontSize: 13),
+      style: TextStyle(color: context.appColors.error, fontSize: 13),
     ),
   );
 }
@@ -324,13 +328,13 @@ class _MEmptyStateTile extends StatelessWidget {
     padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
     child: Row(
       children: [
-        Icon(icon, size: 18, color: AppColors.textSecondary),
+        Icon(icon, size: 18, color: context.appColors.textSecondary),
         const SizedBox(width: 10),
         Expanded(
           child: Text(
             message,
-            style: const TextStyle(
-              color: AppColors.textSecondary,
+            style: TextStyle(
+              color: context.appColors.textSecondary,
               fontSize: 13,
             ),
           ),
@@ -344,36 +348,40 @@ class _MEmptyStateTile extends StatelessWidget {
 
 // ── Asset tile ─────────────────────────────────────────────────────────────────
 
-class _MAssetTile extends StatelessWidget {
+class _MAssetTile extends ConsumerWidget {
   final Asset asset;
   const _MAssetTile({required this.asset});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final typeName = ref
+        .watch(assetTypesProvider)
+        .valueOrNull
+        ?.where((type) => type.id == asset.assetTypeId)
+        .firstOrNull
+        ?.name;
+
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
       child: ListTile(
-        leading: const CircleAvatar(
-          backgroundColor: AppColors.surfaceVariant,
-          child: Icon(
-            Icons.directions_boat_outlined,
-            size: 20,
-            color: AppColors.primary,
-          ),
+        leading: EquipmentIllustration(
+          assetTypeId: asset.assetTypeId,
+          typeName: typeName,
+          size: 48,
         ),
         title: Text(asset.name),
         subtitle: asset.make != null || asset.model != null
             ? Text(
                 [asset.make, asset.model].whereType<String>().join(' '),
-                style: const TextStyle(
-                  color: AppColors.textSecondary,
+                style: TextStyle(
+                  color: context.appColors.textSecondary,
                   fontSize: 12,
                 ),
               )
             : null,
-        trailing: const Icon(
+        trailing: Icon(
           Icons.chevron_right,
-          color: AppColors.textSecondary,
+          color: context.appColors.textSecondary,
           size: 18,
         ),
         onTap: () => context.push('/client/assets/${asset.id}'),
@@ -391,7 +399,9 @@ class _MInvoiceTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isPaid = invoice.status == InvoiceStatus.paid;
-    final color = isPaid ? AppColors.success : AppColors.warning;
+    final color = isPaid
+        ? context.appColors.success
+        : context.appColors.warning;
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
       child: ListTile(
@@ -406,7 +416,10 @@ class _MInvoiceTile extends StatelessWidget {
         title: Text(invoice.invoiceNumber),
         subtitle: Text(
           '\$${(invoice.totalUsd ?? 0).toStringAsFixed(2)} USD',
-          style: const TextStyle(color: AppColors.textSecondary, fontSize: 12),
+          style: TextStyle(
+            color: context.appColors.textSecondary,
+            fontSize: 12,
+          ),
         ),
         trailing: Container(
           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),

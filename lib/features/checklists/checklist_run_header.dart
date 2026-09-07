@@ -31,7 +31,7 @@ class ChecklistRunHeader extends StatelessWidget {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(12),
-      color: AppColors.surface,
+      color: context.appColors.surface,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -53,8 +53,9 @@ class ChecklistRunHeader extends StatelessWidget {
               Expanded(
                 child: TextField(
                   controller: hoursController,
-                  keyboardType:
-                      const TextInputType.numberWithOptions(decimal: true),
+                  keyboardType: const TextInputType.numberWithOptions(
+                    decimal: true,
+                  ),
                   decoration: const InputDecoration(
                     labelText: 'Current hours (optional)',
                     isDense: true,
@@ -73,9 +74,8 @@ class ChecklistRunHeader extends StatelessWidget {
               labelText: 'General notes (optional)',
               isDense: true,
             ),
-            onChanged: (value) => onNotesChanged(
-              value.trim().isEmpty ? null : value.trim(),
-            ),
+            onChanged: (value) =>
+                onNotesChanged(value.trim().isEmpty ? null : value.trim()),
           ),
         ],
       ),
@@ -97,8 +97,10 @@ class ChecklistHeaderText extends StatelessWidget {
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 4),
-      child:
-          Text('$label: $value', style: Theme.of(context).textTheme.bodySmall),
+      child: Text(
+        '$label: $value',
+        style: Theme.of(context).textTheme.bodySmall,
+      ),
     );
   }
 }

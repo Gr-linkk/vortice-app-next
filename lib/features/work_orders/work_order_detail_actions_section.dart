@@ -83,7 +83,7 @@ class WorkOrderDetailActionsSection extends ConsumerWidget {
         Text(
           l10n.actions.toUpperCase(),
           style: Theme.of(context).textTheme.labelSmall?.copyWith(
-            color: AppColors.primary,
+            color: context.appColors.primary,
             letterSpacing: 1.2,
           ),
         ),
@@ -117,7 +117,7 @@ class WorkOrderDetailActionsSection extends ConsumerWidget {
                 context.push('$routePrefix/checklists/${workOrder.id}'),
             icon: Icon(
               checklistDone ? Icons.check_circle : Icons.checklist,
-              color: checklistDone ? AppColors.success : null,
+              color: checklistDone ? context.appColors.success : null,
             ),
             label: Text(
               checklistDone
@@ -126,8 +126,8 @@ class WorkOrderDetailActionsSection extends ConsumerWidget {
             ),
             style: checklistDone
                 ? OutlinedButton.styleFrom(
-                    foregroundColor: AppColors.success,
-                    side: const BorderSide(color: AppColors.success),
+                    foregroundColor: context.appColors.success,
+                    side: BorderSide(color: context.appColors.success),
                   )
                 : null,
           ),
@@ -186,8 +186,8 @@ class WorkOrderDetailActionsSection extends ConsumerWidget {
             ),
             style: ElevatedButton.styleFrom(
               backgroundColor: hasSubmittedServiceReport
-                  ? AppColors.success
-                  : AppColors.primary,
+                  ? context.appColors.success
+                  : context.appColors.primary,
             ),
           ),
           if (reportsAsync.hasError)
@@ -205,7 +205,7 @@ class WorkOrderDetailActionsSection extends ConsumerWidget {
               onPressed: () => showModalBottomSheet(
                 context: context,
                 isScrollControlled: true,
-                backgroundColor: AppColors.surface,
+                backgroundColor: context.appColors.surface,
                 shape: const RoundedRectangleBorder(
                   borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
                 ),
@@ -251,10 +251,7 @@ class WorkOrderDetailActionsSection extends ConsumerWidget {
                     if (!context.mounted) return;
                     if (success) {
                       ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('Work order reopened'),
-                          backgroundColor: AppColors.primary,
-                        ),
+                        const SnackBar(content: Text('Work order reopened')),
                       );
                     } else {
                       showWorkOrderActionFailedSnackBar(context);
@@ -263,8 +260,8 @@ class WorkOrderDetailActionsSection extends ConsumerWidget {
             icon: const Icon(Icons.refresh),
             label: Text(l10n.reopenWorkOrder),
             style: OutlinedButton.styleFrom(
-              foregroundColor: AppColors.warning,
-              side: const BorderSide(color: AppColors.warning),
+              foregroundColor: context.appColors.warning,
+              side: BorderSide(color: context.appColors.warning),
             ),
           ),
         ],
@@ -285,10 +282,7 @@ class WorkOrderDetailActionsSection extends ConsumerWidget {
                       ScaffoldMessenger.of(context)
                         ..hideCurrentSnackBar()
                         ..showSnackBar(
-                          SnackBar(
-                            content: Text(l10n.invoiceGenerated),
-                            backgroundColor: AppColors.success,
-                          ),
+                          SnackBar(content: Text(l10n.invoiceGenerated)),
                         );
                       context.push('$routePrefix/invoices/$newId');
                     } else {
@@ -302,7 +296,6 @@ class WorkOrderDetailActionsSection extends ConsumerWidget {
                                   ? 'Invoice generation failed.'
                                   : 'Invoice generation failed: $error',
                             ),
-                            backgroundColor: AppColors.error,
                           ),
                         );
                     }
@@ -315,9 +308,6 @@ class WorkOrderDetailActionsSection extends ConsumerWidget {
                   )
                 : const Icon(Icons.receipt_long),
             label: Text(l10n.generateInvoice),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF1E40AF),
-            ),
           ),
         ],
       ],

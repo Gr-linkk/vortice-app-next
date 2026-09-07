@@ -24,7 +24,7 @@ class EngineTile extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final latestHoursAsync = ref.watch(latestEngineHoursProvider(engine.id));
     final latestHours = latestHoursAsync.valueOrNull?.hours;
-    final kindColor = engineKindColor(engine.kind);
+    final kindColor = engineKindColor(context.appColors, engine.kind);
 
     return Dismissible(
       key: ValueKey(engine.id),
@@ -32,8 +32,8 @@ class EngineTile extends ConsumerWidget {
       background: Container(
         alignment: Alignment.centerRight,
         padding: const EdgeInsets.only(right: 20),
-        color: AppColors.error,
-        child: const Icon(Icons.delete, color: Colors.white),
+        color: context.appColors.error,
+        child: Icon(Icons.delete, color: Theme.of(context).colorScheme.onError),
       ),
       confirmDismiss: (_) async {
         onDelete();
@@ -50,16 +50,20 @@ class EngineTile extends ConsumerWidget {
             ),
             child: Icon(Icons.engineering, color: kindColor, size: 22),
           ),
-          title:
-              Text(engine.label, style: Theme.of(context).textTheme.titleSmall),
+          title: Text(
+            engine.label,
+            style: Theme.of(context).textTheme.titleSmall,
+          ),
           subtitle: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Row(
                 children: [
                   Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 6,
+                      vertical: 2,
+                    ),
                     decoration: BoxDecoration(
                       color: kindColor.withValues(alpha: 0.15),
                       borderRadius: BorderRadius.circular(4),
@@ -77,21 +81,27 @@ class EngineTile extends ConsumerWidget {
                   if (engine.make != null || engine.model != null)
                     Text(
                       [engine.make, engine.model].whereType<String>().join(' '),
-                      style: const TextStyle(
-                          color: AppColors.textSecondary, fontSize: 12),
+                      style: TextStyle(
+                        color: context.appColors.textSecondary,
+                        fontSize: 12,
+                      ),
                     ),
                 ],
               ),
               const SizedBox(height: 2),
               Text(
                 formatLatestEngineHoursSubtitle(latestHours),
-                style: const TextStyle(
-                    color: AppColors.textSecondary, fontSize: 11),
+                style: TextStyle(
+                  color: context.appColors.textSecondary,
+                  fontSize: 11,
+                ),
               ),
             ],
           ),
-          trailing:
-              const Icon(Icons.chevron_right, color: AppColors.textSecondary),
+          trailing: Icon(
+            Icons.chevron_right,
+            color: context.appColors.textSecondary,
+          ),
           onTap: onTap,
           onLongPress: onEdit,
           isThreeLine: true,

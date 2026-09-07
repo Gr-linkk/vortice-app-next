@@ -13,7 +13,7 @@ enum TelemetryAlertType {
   @JsonValue('critical')
   critical,
   @JsonValue('info')
-  info;
+  info,
 }
 
 enum AlertSeverity {
@@ -22,7 +22,7 @@ enum AlertSeverity {
   @JsonValue('warning')
   warning,
   @JsonValue('critical')
-  critical;
+  critical,
 }
 
 @freezed

@@ -29,7 +29,7 @@ class OperatorChecklistRunHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Material(
-      color: AppColors.surface,
+      color: context.appColors.surface,
       child: Padding(
         padding: const EdgeInsets.all(12),
         child: Column(

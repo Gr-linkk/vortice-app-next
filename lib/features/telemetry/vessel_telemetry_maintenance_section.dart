@@ -17,8 +17,9 @@ class VesselTelemetryMaintenanceSection extends ConsumerWidget {
       loading: () => const SizedBox.shrink(),
       error: (_, __) => const SizedBox.shrink(),
       data: (reminders) {
-        final assetReminders =
-            reminders.where((r) => r.reminder.assetId == assetId).toList();
+        final assetReminders = reminders
+            .where((r) => r.reminder.assetId == assetId)
+            .toList();
 
         if (assetReminders.isEmpty) return const SizedBox.shrink();
 
@@ -27,38 +28,52 @@ class VesselTelemetryMaintenanceSection extends ConsumerWidget {
           children: [
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 24, 16, 8),
-              child: Text('Maintenance Schedule',
-                  style: Theme.of(context).textTheme.titleMedium),
+              child: Text(
+                'Maintenance Schedule',
+                style: Theme.of(context).textTheme.titleMedium,
+              ),
             ),
-            ...assetReminders.take(5).map(
+            ...assetReminders
+                .take(5)
+                .map(
                   (r) => Padding(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 4,
+                    ),
                     child: Container(
                       padding: const EdgeInsets.all(14),
                       decoration: BoxDecoration(
-                        color: AppColors.surface,
+                        color: context.appColors.surface,
                         borderRadius: BorderRadius.circular(12),
-                        border: const Border.fromBorderSide(
-                            BorderSide(color: AppColors.cardBorder)),
+                        border: Border.fromBorderSide(
+                          BorderSide(color: context.appColors.cardBorder),
+                        ),
                       ),
                       child: Row(
                         children: [
-                          const Icon(Icons.schedule,
-                              color: AppColors.textSecondary, size: 18),
+                          Icon(
+                            Icons.schedule,
+                            color: context.appColors.textSecondary,
+                            size: 18,
+                          ),
                           const SizedBox(width: 12),
                           Expanded(
                             child: Text(
                               '${r.reminder.intervalHours} hr service',
-                              style: const TextStyle(
-                                  color: AppColors.textPrimary, fontSize: 13),
+                              style: TextStyle(
+                                color: context.appColors.textPrimary,
+                                fontSize: 13,
+                              ),
                             ),
                           ),
                           Text(
                             maintenanceHoursRemainingLabel(r.hoursRemaining),
                             style: TextStyle(
                               color: maintenanceHoursRemainingColor(
-                                  r.hoursRemaining),
+                                context.appColors,
+                                r.hoursRemaining,
+                              ),
                               fontSize: 12,
                               fontWeight: FontWeight.w600,
                             ),
