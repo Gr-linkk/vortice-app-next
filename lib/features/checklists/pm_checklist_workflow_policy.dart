@@ -65,9 +65,10 @@ class PmChecklistWorkflowPolicy {
       'item-1',
       Uint8List.fromList([2]),
     );
-    return checklist_attachments.checklistAttachmentsAppendInsteadOfReplace() &&
-        checklist_attachments.checklistPhotosForItem(photos, 'item-1').length ==
-            2;
+    return checklist_attachments
+            .checklistPhotosForItem(photos, 'item-1')
+            .length ==
+        2;
   }
 
   static bool checklistSubmissionRetainsAllPhotoUrls() {
@@ -87,8 +88,9 @@ class PmChecklistWorkflowPolicy {
   }
 
   static bool onlineSubmissionUsesSubmittedStateMessage() {
-    return ChecklistSubmissionSupport.onlineSubmittedMessage()
-        .contains('submitted');
+    return ChecklistSubmissionSupport.onlineSubmittedMessage().contains(
+      'submitted',
+    );
   }
 
   static bool transientErrorsQueueForSync() {

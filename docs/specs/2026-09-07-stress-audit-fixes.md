@@ -21,15 +21,22 @@ audit. Work is isolated on `codex/stress-audit-fixes`, based on Build 21 commit
 - Retain three real SQLite queue stress regressions in the normal suite:
   concurrent flushes, rejected-subject isolation and account switching.
 
-The historical walkthrough scoreboard and constant declarations do not establish
-behavioral coverage. Their skip explanation is corrected; removing the obsolete
-declarations is a separate pending approval after automatic review rejected
-deletion. They must not be counted as verified product acceptance.
+Garrett explicitly approved retiring the historical walkthrough scoreboard and
+constant declarations. Removed 204 permanently skipped cases and 12 active
+metadata/constant-only cases, plus their unused registry, verifier and grouping
+helpers. All 24 behavioral workflow cases remain as ordinary test groups.
+Runtime feature switches and application behavior are preserved. The smaller
+test count reflects removal of declarations, not loss of behavioral coverage.
 
 ## Validation
 
-- Guarded `scripts/verify.cmd` passed: clean analysis and **528 Flutter tests**,
-  with the **204 historical declaration checks still explicitly skipped**.
+- After the approved retirement, guarded verification reports clean analysis,
+  **516 passing tests, zero skipped**, and `Project verification passed`.
+  Log: `work/verify-retirement.log`. The outer PowerShell invocation raised its
+  existing build-hook stderr wrapper error after the helper's successful footer;
+  analysis and all retained tests completed successfully.
+- Before the approved retirement, guarded `scripts/verify.cmd` passed: clean
+  analysis and **528 Flutter tests**, with **204 historical checks skipped**.
   Log: `work/verify-final.log`. PowerShell wraps build-hook stderr as
   `NativeCommandError`; the helper completed successfully with exit code 0.
 - Six native UI regression cases pass in English/Spanish at 320 logical pixels

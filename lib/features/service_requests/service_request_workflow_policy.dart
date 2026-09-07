@@ -5,10 +5,6 @@ import 'package:vortice_app/models/service_request.dart';
 class ServiceRequestWorkflowPolicy {
   const ServiceRequestWorkflowPolicy._();
 
-  static bool clientCanSubmitServiceRequest() => true;
-
-  static bool ownerCanGenerateWorkOrderFromRequest() => true;
-
   static bool maintenanceDraftCarriesServiceRequestId() {
     const draft = MaintenanceWorkOrderDraft(
       serviceRequestId: 'sr-1',
