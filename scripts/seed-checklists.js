@@ -86,21 +86,7 @@ function supabaseRequest(method, tablePath, body) {
 // First ensure asset_types has our placeholder
 async function ensureAssetTypes() {
   console.log('Ensuring asset_types exist...');
-  const types = [
-    { id: '00000000-0000-0000-0000-000000000001', category: 'Marine Vessels', name: 'Motor Yacht', tracking_unit: 'engine_hours' },
-    { id: '00000000-0000-0000-0000-000000000002', category: 'Marine Vessels', name: 'Sailing Yacht', tracking_unit: 'engine_hours' },
-    { id: '00000000-0000-0000-0000-000000000003', category: 'Marine Vessels', name: 'Catamaran', tracking_unit: 'engine_hours' },
-    { id: '00000000-0000-0000-0000-000000000004', category: 'Marine Vessels', name: 'Sport Fisher', tracking_unit: 'engine_hours' },
-    { id: '00000000-0000-0000-0000-000000000005', category: 'Marine Vessels', name: 'Panga / Work Boat', tracking_unit: 'engine_hours' },
-    { id: '00000000-0000-0000-0000-000000000006', category: 'Marine Vessels', name: 'Center Console', tracking_unit: 'engine_hours' },
-    { id: '00000000-0000-0000-0000-000000000007', category: 'Dredging Equipment', name: 'Hydraulic Dredge', tracking_unit: 'engine_hours' },
-    { id: '00000000-0000-0000-0000-000000000008', category: 'Dredging Equipment', name: 'Cutter Suction Dredge', tracking_unit: 'engine_hours' },
-    { id: '00000000-0000-0000-0000-000000000009', category: 'Heavy Equipment', name: 'Excavator', tracking_unit: 'engine_hours' },
-    { id: '00000000-0000-0000-0000-00000000000a', category: 'Heavy Equipment', name: 'Wheel Loader', tracking_unit: 'engine_hours' },
-    { id: '00000000-0000-0000-0000-00000000000b', category: 'Heavy Equipment', name: 'Bulldozer', tracking_unit: 'engine_hours' },
-    { id: '00000000-0000-0000-0000-00000000000c', category: 'Power Generation', name: 'Diesel Genset', tracking_unit: 'engine_hours' },
-    { id: '00000000-0000-0000-0000-00000000000d', category: 'Other', name: 'Custom / Other', tracking_unit: 'engine_hours' },
-  ];
+  const types = JSON.parse(fs.readFileSync(path.join(REPO_ROOT, 'seed', 'asset-types.json'), 'utf8'));
 
   for (const t of types) {
     try {

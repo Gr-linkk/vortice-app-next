@@ -20,6 +20,9 @@ class EquipmentIllustration extends StatelessWidget {
     final art = equipmentArtFor(assetTypeId: assetTypeId, typeName: typeName);
     final spanish = Localizations.localeOf(context).languageCode == 'es';
     final color = context.appColors.textPrimary;
+    // Standalone drawings have much finer source strokes than the atlas.
+    // Compensate after downsampling so category thumbnails retain readable ink.
+    final inkStrength = art.file == null ? 6.0 : 14.0;
     final crop = art.sourceRect;
     final scale = size * .92 / crop.longestSide;
     final sheetSize = EquipmentArt.sourceSize * scale;
@@ -64,14 +67,14 @@ class EquipmentIllustration extends StatelessWidget {
                         0,
                         0,
                         color.b * 255,
-                        -6,
+                        -inkStrength,
                         0,
-                        6,
+                        inkStrength,
                         0,
-                        -12,
+                        -2 * inkStrength,
                       ]),
                       child: Image.asset(
-                        EquipmentArt.assetPath,
+                        art.imagePath,
                         width: sheetSize,
                         height: sheetSize,
                         fit: BoxFit.fill,

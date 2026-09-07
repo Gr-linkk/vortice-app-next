@@ -1,4 +1,5 @@
 import 'package:vortice_app/core/app_dropdown_field.dart';
+import 'package:vortice_app/features/assets/asset_type_field.dart';
 import 'package:vortice_app/features/assurance/assurance_repository.dart';
 import 'package:vortice_app/core/user_feedback.dart';
 import 'package:flutter/material.dart';
@@ -158,21 +159,10 @@ class _EditAssetScreenState extends ConsumerState<EditAssetScreen> {
               assetTypesAsync.when(
                 loading: () => const LinearProgressIndicator(),
                 error: (_, __) => const SizedBox.shrink(),
-                data: (types) => AppDropdownField<String>(
-                  initialValue: _selectedAssetTypeId,
-                  decoration: InputDecoration(
-                    labelText: l10n.assetType,
-                    prefixIcon: const Icon(Icons.category_outlined),
-                  ),
-                  dropdownColor: context.appColors.surfaceVariant,
-                  items: types
-                      .map(
-                        (t) =>
-                            DropdownMenuItem(value: t.id, child: Text(t.name)),
-                      )
-                      .toList(),
+                data: (types) => AssetTypeField(
+                  types: types,
+                  selectedId: _selectedAssetTypeId,
                   onChanged: (v) => setState(() => _selectedAssetTypeId = v),
-                  validator: (v) => v == null ? l10n.fieldRequired : null,
                 ),
               ),
               const SizedBox(height: 16),
@@ -181,7 +171,7 @@ class _EditAssetScreenState extends ConsumerState<EditAssetScreen> {
                 textCapitalization: TextCapitalization.words,
                 decoration: InputDecoration(
                   labelText: l10n.assetName,
-                  prefixIcon: const Icon(Icons.directions_boat_outlined),
+                  prefixIcon: const Icon(Icons.label_outline),
                 ),
                 validator: (v) =>
                     (v == null || v.trim().isEmpty) ? l10n.fieldRequired : null,

@@ -121,69 +121,75 @@ void main() {
     }
   }
   for (final dark in [false, true]) {
-    testWidgets(
-      'generator linework renders without a paper box in ${dark ? 'dark' : 'light'}',
-      (tester) async {
-        final key = GlobalKey();
-        final theme = dark ? AppTheme.darkTheme : AppTheme.lightTheme;
-        await tester.pumpWidget(
-          MaterialApp(
-            theme: theme,
-            home: Scaffold(
-              body: Center(
-                child: RepaintBoundary(
-                  key: key,
-                  child: ColoredBox(
-                    color: theme.scaffoldBackgroundColor,
-                    child: const EquipmentIllustration(
-                      typeName: 'Diesel genset',
-                      size: 240,
+    for (final type in [
+      'Diesel genset',
+      'RIB / Inflatable Boat',
+      'Mobile Crane',
+      'Tower Crane',
+      'Davit',
+    ]) {
+      testWidgets(
+        '$type linework renders without a paper box in ${dark ? 'dark' : 'light'}',
+        (tester) async {
+          final key = GlobalKey();
+          final theme = dark ? AppTheme.darkTheme : AppTheme.lightTheme;
+          await tester.pumpWidget(
+            MaterialApp(
+              theme: theme,
+              home: Scaffold(
+                body: Center(
+                  child: RepaintBoundary(
+                    key: key,
+                    child: ColoredBox(
+                      color: theme.scaffoldBackgroundColor,
+                      child: EquipmentIllustration(typeName: type, size: 240),
                     ),
                   ),
                 ),
               ),
             ),
-          ),
-        );
-        await tester.runAsync(
-          () => precacheImage(
-            const AssetImage(EquipmentArt.assetPath),
-            key.currentContext!,
-          ),
-        );
-        await tester.pumpAndSettle();
-        final boundary =
-            key.currentContext!.findRenderObject()! as RenderRepaintBoundary;
-        final image = (await tester.runAsync(() => boundary.toImage()))!;
-        final pixels = (await tester.runAsync(() => image.toByteData()))!;
-        final background = theme.scaffoldBackgroundColor;
-        var ink = 0;
-        for (var y = 0; y < image.height; y++) {
-          for (var x = 0; x < image.width; x++) {
-            final offset = (y * image.width + x) * 4;
-            final matchesGround =
-                (pixels.getUint8(offset) - background.r * 255).abs() < 2 &&
-                (pixels.getUint8(offset + 1) - background.g * 255).abs() < 2 &&
-                (pixels.getUint8(offset + 2) - background.b * 255).abs() < 2;
-            if (!matchesGround) ink++;
-            if (x < 5 ||
-                x >= image.width - 5 ||
-                y < 5 ||
-                y >= image.height - 5) {
-              expect(
-                matchesGround,
-                isTrue,
-                reason: 'No background box at $x,$y',
-              );
+          );
+          await tester.runAsync(
+            () => precacheImage(
+              AssetImage(equipmentArtFor(typeName: type).imagePath),
+              key.currentContext!,
+            ),
+          );
+          await tester.pumpAndSettle();
+          final boundary =
+              key.currentContext!.findRenderObject()! as RenderRepaintBoundary;
+          final image = (await tester.runAsync(() => boundary.toImage()))!;
+          final pixels = (await tester.runAsync(() => image.toByteData()))!;
+          final background = theme.scaffoldBackgroundColor;
+          var ink = 0;
+          for (var y = 0; y < image.height; y++) {
+            for (var x = 0; x < image.width; x++) {
+              final offset = (y * image.width + x) * 4;
+              final matchesGround =
+                  (pixels.getUint8(offset) - background.r * 255).abs() < 2 &&
+                  (pixels.getUint8(offset + 1) - background.g * 255).abs() <
+                      2 &&
+                  (pixels.getUint8(offset + 2) - background.b * 255).abs() < 2;
+              if (!matchesGround) ink++;
+              if (x < 5 ||
+                  x >= image.width - 5 ||
+                  y < 5 ||
+                  y >= image.height - 5) {
+                expect(
+                  matchesGround,
+                  isTrue,
+                  reason: 'No background box at $x,$y',
+                );
+              }
             }
           }
-        }
-        expect(ink, greaterThan(500));
-        expect(ink, lessThan(image.width * image.height * .6));
-        image.dispose();
-        expect(tester.takeException(), isNull);
-      },
-    );
+          expect(ink, greaterThan(500));
+          expect(ink, lessThan(image.width * image.height * .6));
+          image.dispose();
+          expect(tester.takeException(), isNull);
+        },
+      );
+    }
   }
   test('all seeded types resolve without suffix collisions', () {
     final expected = [...EquipmentArt.values.take(12), EquipmentArt.other];
@@ -252,7 +258,7 @@ void main() {
       expect(image.width, image.height);
       expect(image.width, EquipmentArt.sourceSize.toInt());
       final pixels = (await image.toByteData())!;
-      for (final art in EquipmentArt.values) {
+      for (final art in EquipmentArt.values.where((art) => art.file == null)) {
         final crop = art.sourceRect;
         var transparent = 0;
         var ink = 0;

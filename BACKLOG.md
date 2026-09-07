@@ -7,6 +7,17 @@ without creating a new backlog item.
 
 ## Now
 
+### NOW-018 — Broader equipment catalog and complete category artwork
+
+Add practical small-boat, commercial-fishing and land-equipment types while
+preserving existing type IDs and assets. Every standard type must have a distinct
+bundled technical illustration, including in the add/edit type picker. Scope,
+catalog and acceptance: `docs/specs/NOW-018-equipment-catalog.md`.
+Implemented 19 additions (32 standard types total), including distinct marine,
+mobile and tower cranes plus davits. Clean analysis, 519 Flutter tests (204
+existing skips), 18 local SQL suites and native artwork/form checks pass.
+Build 21 and hosted activation are tracked separately in the spec.
+
 ### NOW-017 — Field Notes UI and saved appearance
 
 Garrett approved implementing the rendered UI audit and Field Notes concept.
