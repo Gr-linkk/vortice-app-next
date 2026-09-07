@@ -1,3 +1,4 @@
+import 'package:vortice_app/core/retryable_rpc.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:vortice_app/core/account_storage.dart';
 import 'package:vortice_app/core/constants.dart';
@@ -104,17 +105,12 @@ class OrgController extends StateNotifier<AsyncValue<void>> {
     state = const AsyncLoading();
     String? orgId;
     state = await AsyncValue.guard(() async {
-      final result = await supabase
-          .from(AppConstants.tClientOrgs)
-          .insert({'name': name, 'owner_profile_id': ownerProfileId})
-          .select('id')
-          .single();
-      orgId = result['id'] as String;
-      // Link owner profile to the new org
-      await supabase
-          .from(AppConstants.tProfiles)
-          .update({'org_id': orgId})
-          .eq('id', ownerProfileId);
+      orgId =
+          await authenticatedRetryableRpc().call('create_client_org', {
+                'p_name': name.trim(),
+                'p_owner': ownerProfileId,
+              })
+              as String;
       _ref.invalidate(clientOrgsProvider);
       _ref.invalidate(currentUserOrgProvider);
     });
@@ -171,13 +167,9 @@ class OrgController extends StateNotifier<AsyncValue<void>> {
     state = const AsyncLoading();
     bool success = false;
     state = await AsyncValue.guard(() async {
-      // First, null out all members' org_id
-      await supabase
-          .from(AppConstants.tProfiles)
-          .update({'org_id': null})
-          .eq('org_id', orgId);
-      // Then delete the org
-      await supabase.from(AppConstants.tClientOrgs).delete().eq('id', orgId);
+      await authenticatedRetryableRpc().call('delete_client_org', {
+        'p_org': orgId,
+      });
       _ref.invalidate(clientOrgsProvider);
       _ref.invalidate(orgMembersProvider(orgId));
       _ref.invalidate(currentUserOrgProvider);

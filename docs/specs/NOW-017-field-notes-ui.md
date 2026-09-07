@@ -40,5 +40,28 @@ selected filter contrast, status-message contrast, the Spanish operator headings
 and a truncated part-number label. Form tests expand optional fields and scroll
 lazy controls before asserting the existing save, validation and stale-edit rules.
 
-APK packaging follows integration of the concurrent NOW-016 workflow checkpoint.
+## Combined Build 20
+
+Integrated NOW-016 checkpoint `0c45fde`, preserving transactional saves, invoice
+snapshots/status guards, evidence recovery, and stale-edit protection. Guarded
+combined verification passes with clean analysis, 506 Flutter tests and 204
+existing skips (`work/verify-combined.txt`). Independent conflict review found
+no workflow regressions. NOW-016's unchanged database/deployment evidence remains
+recorded in its spec.
+
+Connected read-only audit passes 130 role/routes in light and 130 in dark across
+owner, employee, client admin, client mechanic, operator and client. There were
+no visible error texts, framework/provider failures, unfinished loaders or
+unexpected redirects. All 260 entry screenshots and results are under
+`outputs/NOW017/route-audit/`; sampled populated Home, Planning and form screens
+were visually inspected. The harness now retains production themes and supports
+an explicit audit appearance without saving user preferences.
+
+The guarded Android build produced `1.10.0+20`, package
+`com.example.vortice_app_next`, ARM64, with the existing Next signing certificate.
+APK inspection verified Next Supabase/Firebase configuration, bundled equipment
+art, notification service and password-recovery link. Evidence:
+`outputs/NOW-017-build-verified.json`. SHA-256:
+`e13e8c827745162207ef42c5baee232b729d517a64889296fbdadf9e4dca8136`.
+
 Physical phone appearance and interaction remain a separate acceptance step.

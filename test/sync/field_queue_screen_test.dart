@@ -103,11 +103,12 @@ void main() {
         ),
       );
       await tester.pumpAndSettle();
-      await tester.ensureVisible(find.byType(ExpansionTile));
-      await tester.tap(find.byType(ExpansionTile));
+      final title = find.text(language == 'es' ? 'Borrador del informe' : 'Report draft').hitTestable();
+      await tester.scrollUntilVisible(title, 200, scrollable: find.byType(Scrollable).first);
+      await tester.tap(title);
       await tester.pumpAndSettle();
       final details = find.byType(SelectableText);
-      await tester.ensureVisible(details);
+      await tester.scrollUntilVisible(details, 200, scrollable: find.byType(Scrollable).first);
       await tester.pumpAndSettle();
       expect(
         tester.widget<SelectableText>(details).data,

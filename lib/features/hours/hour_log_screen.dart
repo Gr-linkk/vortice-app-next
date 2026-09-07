@@ -186,7 +186,18 @@ class _HourLogFormState extends ConsumerState<_HourLogForm> {
           hours: double.parse(_hoursCtrl.text),
           notes: _notesCtrl.text.trim().isEmpty ? null : _notesCtrl.text.trim(),
         );
-    if (success && mounted) Navigator.pop(context);
+    if (!mounted) return;
+    if (success) {
+      Navigator.pop(context);
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            friendlyError(context, ref.read(hourLogControllerProvider).error),
+          ),
+        ),
+      );
+    }
   }
 
   @override
@@ -229,7 +240,10 @@ class _HourLogFormState extends ConsumerState<_HourLogForm> {
               ),
               validator: (v) {
                 if (v == null || v.trim().isEmpty) return l10n.fieldRequired;
-                if (double.tryParse(v) == null) return l10n.invalidNumber;
+                final reading = double.tryParse(v);
+                if (reading == null || !reading.isFinite || reading < 0) {
+                  return l10n.invalidNumber;
+                }
                 return null;
               },
             ),

@@ -56,12 +56,9 @@ void main() {
     response.complete('late');
     await assertion;
     active = 'a';
-    expect(
-      await cache.readThrough(
-        'job',
-        () async => throw TimeoutException('offline'),
-      ),
-      'old',
+    await expectLater(
+      cache.readThrough('job', () async => throw TimeoutException('offline')),
+      throwsA(isA<TimeoutException>()),
     );
   });
   test('account paths cannot alias or traverse another database', () {
@@ -71,5 +68,30 @@ void main() {
       accountStorageKey('a', 'draft'),
       isNot(accountStorageKey('b', 'draft')),
     );
+  });
+  test('expiry and authoritative removals preserve drafts', () async {
+    var time = DateTime.utc(2026, 1, 1);
+    final cache = AccountJsonCache('a', () => 'a', now: () => time);
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(accountStorageKey('a', 'draft'), 'unsent');
+    await cache.readThrough(
+      'list',
+      () async => ['one'],
+      derivedValues: (_) => {'item:one': 1},
+      replaceDerivedPrefix: 'item:',
+    );
+    await cache.readThrough(
+      'list',
+      () async => [],
+      replaceDerivedPrefix: 'item:',
+    );
+    expect(prefs.containsKey(accountStorageKey('a', 'cache:item:one')), false);
+    time = time.add(const Duration(hours: 25));
+    await expectLater(
+      cache.readThrough('list', () async => throw TimeoutException('offline')),
+      throwsA(isA<TimeoutException>()),
+    );
+    await invalidateAccountReadCaches('a');
+    expect(prefs.getString(accountStorageKey('a', 'draft')), 'unsent');
   });
 }

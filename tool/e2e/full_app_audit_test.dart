@@ -3,6 +3,8 @@
 import 'dart:convert';
 import 'dart:ffi' show DynamicLibrary;
 import 'dart:io';
+import 'dart:ui' as ui;
+import 'package:flutter/rendering.dart';
 import 'package:drift/native.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -86,12 +88,17 @@ void main() {
             }),
           ],
         );
+        final appearance =
+            Platform.environment['VORTICE_AUDIT_APPEARANCE'] ?? 'system';
+        final output = Directory('outputs/NOW017/route-audit/$appearance')
+          ..createSync(recursive: true);
+        final boundary = GlobalKey();
         tester.view.physicalSize = const Size(390, 844);
         tester.view.devicePixelRatio = 1;
         await tester.pumpWidget(
           UncontrolledProviderScope(
             container: container,
-            child: const AuditApp(),
+            child: RepaintBoundary(key: boundary, child: const AuditApp()),
           ),
         );
         final router = container.read(routerProvider);
@@ -113,7 +120,7 @@ void main() {
         }
 
         void save() {
-          File('outputs/NOW-010-routes.json').writeAsStringSync(
+          File('${output.path}/routes.json').writeAsStringSync(
             const JsonEncoder.withIndent('  ').convert(results),
           );
         }
@@ -206,6 +213,20 @@ void main() {
                     .length,
                 'labels': labels.take(60).toList(),
               });
+              final picture = await tester
+                  .renderObject<RenderRepaintBoundary>(find.byKey(boundary))
+                  .toImage(pixelRatio: 1);
+              final bytes = await picture.toByteData(
+                format: ui.ImageByteFormat.png,
+              );
+              final screenshot =
+                  '${results.length.toString().padLeft(3, '0')}-${role.name}-${route.replaceAll(RegExp(r'[^a-zA-Z0-9_-]'), '_')}.png';
+              await File(
+                '${output.path}/$screenshot',
+              ).writeAsBytes(bytes!.buffer.asUint8List());
+              picture.dispose();
+              results.last['screenshot'] = screenshot;
+              results.last['appearance'] = appearance;
               save();
               stdout.writeln(
                 'ROUTE ${role.name} $route -> ${errors.length} error texts, ${caught.length} framework errors',
@@ -235,7 +256,7 @@ void main() {
           isEmpty,
         );
         stdout.writeln(
-          'AUDIT ${results.length} routes saved to outputs/NOW-010-routes.json',
+          'AUDIT ${results.length} routes saved to ${output.path}/routes.json',
         );
       });
     },

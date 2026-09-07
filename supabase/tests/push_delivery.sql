@@ -50,9 +50,10 @@ select pg_temp.assert_true((select count(*)=1 from public.notifications where us
 reset role;
 do $$declare claims jsonb; first_claim jsonb;
 begin
- claims:=public.claim_push_deliveries(25);
+ select coalesce(jsonb_agg(c),'[]'::jsonb) into claims from jsonb_array_elements(public.claim_push_deliveries(100)) c
+ where c->>'user_id' in ('a0060000-0000-4000-8000-000000000001','a0060000-0000-4000-8000-000000000002');
  perform pg_temp.assert_true(jsonb_array_length(claims)=2,'one delivery per relevant registered device');
- perform pg_temp.assert_true(public.claim_push_deliveries(25)='[]'::jsonb,'concurrent worker cannot claim leased work');
+ perform pg_temp.assert_true(not exists(select 1 from jsonb_array_elements(public.claim_push_deliveries(100)) c where c->>'user_id' in ('a0060000-0000-4000-8000-000000000001','a0060000-0000-4000-8000-000000000002')),'concurrent worker cannot claim leased work');
  first_claim:=claims->0;
  perform public.finish_push_delivery((first_claim->>'id')::uuid,gen_random_uuid(),true);
  perform pg_temp.assert_true((select status='pending' from public.push_deliveries where id=(first_claim->>'id')::uuid),'wrong lease cannot acknowledge');

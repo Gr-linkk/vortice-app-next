@@ -8,6 +8,11 @@ import 'package:vortice_app/core/supabase_client.dart';
 import 'package:vortice_app/db/database.dart';
 import 'package:vortice_app/features/auth/auth_provider.dart';
 import 'field_work_queue.dart';
+import 'evidence_submission.dart';
+import 'package:drift/drift.dart' show Value;
+import 'package:vortice_app/features/service_reports/service_report_provider.dart';
+import 'package:vortice_app/features/service_requests/service_request_provider.dart';
+import 'sync_status.dart';
 import 'package:vortice_app/features/checklists/checklist_assignment_provider.dart';
 
 final fieldWorkQueueProvider = Provider<FieldWorkQueue?>((ref) {
@@ -28,6 +33,56 @@ final fieldWorkQueueProvider = Provider<FieldWorkQueue?>((ref) {
         'Authorization': 'Bearer $token',
       };
       final data = operation.payload;
+      if ([
+        'request_submission',
+        'report_submission',
+      ].contains(operation.kind)) {
+        final client = http.Client();
+        try {
+          await EvidenceSubmissionTransport(
+            client: client,
+            headers: headers,
+            checkAccount: queue.checkAccount,
+          ).send(operation);
+        } finally {
+          client.close();
+        }
+        queue.checkAccount();
+        if (operation.kind == 'report_submission') {
+          final report = await queue.db.serviceReportsDao.getById(
+            operation.subject,
+          );
+          if (report != null) {
+            final signature = (data['uploads'] as List)
+                .cast<Map>()
+                .where((u) => u['bucket'] == 'signatures')
+                .firstOrNull;
+            await queue.db.serviceReportsDao.upsert(
+              report
+                  .toCompanion(true)
+                  .copyWith(
+                    syncStatus: const Value(SyncStatusValues.synced),
+                    lastSyncedAt: Value(DateTime.now()),
+                    lastError: const Value(null),
+                    techSignatureUrl: Value(signature?['path'] as String?),
+                  ),
+            );
+          }
+          ref.invalidate(serviceReportsProvider);
+          ref.invalidate(
+            serviceReportsByWorkOrderProvider(
+              data['p_data']['work_order_id'] as String,
+            ),
+          );
+          ref.invalidate(serviceReportByIdProvider(operation.subject));
+          ref.invalidate(serviceReportPhotosProvider(operation.subject));
+        } else {
+          ref.invalidate(clientServiceRequestsProvider);
+          ref.invalidate(staffServiceRequestsProvider);
+          ref.invalidate(newServiceRequestCountProvider);
+        }
+        return;
+      }
       late http.Response response;
       if (operation.kind == 'upload') {
         final bucket = data['bucket'] as String;

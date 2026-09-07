@@ -371,5 +371,20 @@
   "tierManaged": "Managed",
   "tierPlanning": "Planning",
   "tierTelemetry": "Telemetry",
-  "tierPredictive": "Predictive"
+  "tierPredictive": "Predictive",
+  "issueInvoice": "Issue invoice",
+  "voidInvoice": "Void invoice",
+  "voidInvoiceReason": "Reason for voiding",
+  "invoiceIssueExplanation": "Issuing freezes these details and makes the invoice visible to the customer. It does not email or deliver a file.",
+  "invoiceSharingExplanation": "Share the PDF or Excel file separately. Sharing does not confirm receipt.",
+  "invoiceVoidedExplanation": "This invoice is void. Generate a new draft from the same work order to correct it. The original remains in history.",
+  "invoiceStatusDraft": "Draft",
+  "invoiceStatusIssued": "Issued",
+  "invoiceStatusPaid": "Paid",
+  "invoiceStatusVoided": "Void",
+  "invoiceStatusUpdated": "Invoice status updated.",
+  "invoiceFileError": "Could not create the invoice file. Refresh and retry.",
+  "invoiceRateError": "Live exchange rate unavailable. Try again when connected.",
+  "invoiceRateUpdated": "Exchange rate updated.",
+  "partsAdjustment": "Parts adjustment"
 }

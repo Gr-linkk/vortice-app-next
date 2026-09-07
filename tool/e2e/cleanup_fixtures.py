@@ -113,7 +113,16 @@ delete from public.operations_submissions where asset_id in ({ids});
 delete from public.coordination_mentions where post_id in ({posts});
 delete from public.coordination_acknowledgements where post_id in ({posts});
 delete from public.coordination_posts where asset_id in ({ids});
+-- Issued financial history is immutable in normal application use. This
+-- privileged fixture-only transaction restores its guard before committing.
+alter table public.invoices disable trigger invoice_closeout;
 delete from public.invoices where work_order_id in ({jobs});
+alter table public.invoices enable trigger invoice_closeout;
+delete from public.closeout_operations where
+ (kind='meter' and payload->>'asset' in (select id::text from public.assets where id in ({ids})))
+ or (kind='provider_save' and result in ({jobs}))
+ or (kind='request_submission' and result in (select id from public.service_requests where asset_id in ({ids})))
+ or (kind='report_submission' and result in (select id from public.service_reports where work_order_id in ({jobs})));
 delete from public.service_requests where asset_id in ({ids});
 delete from public.hour_logs where asset_id in ({ids}) or work_order_id in ({jobs});
 delete from public.maintenance_requests where asset_id in ({ids});

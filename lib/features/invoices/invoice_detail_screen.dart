@@ -139,13 +139,79 @@ class _InvoiceDetailScreenState extends ConsumerState<InvoiceDetailScreen> {
       ScaffoldMessenger.of(context)
         ..hideCurrentSnackBar()
         ..showSnackBar(
-          const SnackBar(content: Text('Could not create invoice file.')),
+          SnackBar(
+            content: Text(AppLocalizations.of(context).invoiceFileError),
+          ),
         );
     } finally {
       if (mounted) {
         setState(() => _isFileActionRunning = false);
       }
     }
+  }
+
+  Future<void> _changeStatus(InvoiceStatus status) async {
+    final l10n = AppLocalizations.of(context);
+    final reason = TextEditingController();
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(
+          status == InvoiceStatus.sent ? l10n.issueInvoice : l10n.voidInvoice,
+        ),
+        content: SingleChildScrollView(
+          child: status == InvoiceStatus.sent
+              ? Text(l10n.invoiceIssueExplanation)
+              : TextField(
+                  controller: reason,
+                  maxLines: 3,
+                  decoration: InputDecoration(
+                    labelText: l10n.voidInvoiceReason,
+                  ),
+                ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: Text(l10n.cancel),
+          ),
+          TextButton(
+            onPressed: () {
+              if (status == InvoiceStatus.voided &&
+                  reason.text.trim().isEmpty) {
+                return;
+              }
+              Navigator.pop(context, true);
+            },
+            child: Text(
+              status == InvoiceStatus.sent
+                  ? l10n.issueInvoice
+                  : l10n.voidInvoice,
+            ),
+          ),
+        ],
+      ),
+    );
+    final voidReason = reason.text.trim();
+    // The dialog route owns its field until the closing animation finishes.
+    Future<void>.delayed(const Duration(seconds: 1), reason.dispose);
+    if (confirmed != true || !mounted) return;
+    final success = await ref
+        .read(invoiceControllerProvider.notifier)
+        .updateStatus(widget.invoiceId, status, reason: voidReason);
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          success
+              ? l10n.invoiceStatusUpdated
+              : friendlyError(
+                  context,
+                  ref.read(invoiceControllerProvider).error,
+                ),
+        ),
+      ),
+    );
   }
 
   @override
@@ -180,7 +246,9 @@ class _InvoiceDetailScreenState extends ConsumerState<InvoiceDetailScreen> {
                 );
               },
             ),
-          if (isOwner)
+          if (isOwner &&
+              invoiceAsync.valueOrNull?.status == InvoiceStatus.draft &&
+              !isLoading)
             PopupMenuButton<String>(
               icon: const Icon(Icons.more_vert),
               onSelected: (value) async {
@@ -195,10 +263,10 @@ class _InvoiceDetailScreenState extends ConsumerState<InvoiceDetailScreen> {
                       SnackBar(
                         content: Text(
                           result == null
-                              ? 'Exchange rate refresh failed.'
+                              ? l10n.invoiceRateError
                               : result.isFallback
-                              ? 'Live exchange rate unavailable. Using fallback: 1 USD = ${result.rate.toStringAsFixed(4)} MXN.'
-                              : 'Exchange rate refreshed: 1 USD = ${result.rate.toStringAsFixed(4)} MXN.',
+                              ? l10n.invoiceRateError
+                              : l10n.invoiceRateUpdated,
                         ),
                       ),
                     );
@@ -283,7 +351,24 @@ class _InvoiceDetailScreenState extends ConsumerState<InvoiceDetailScreen> {
                       ),
                     ],
                   ),
-                ] else if (isOwner) ...[
+                ] else ...[
+                  if (isOwner && invoice.status == InvoiceStatus.draft)
+                    FilledButton.icon(
+                      onPressed: isLoading
+                          ? null
+                          : () => _changeStatus(InvoiceStatus.sent),
+                      icon: const Icon(Icons.receipt_long),
+                      label: Text(l10n.issueInvoice),
+                    ),
+                  if (invoice.status == InvoiceStatus.draft)
+                    Text(l10n.invoiceIssueExplanation),
+                  Text(
+                    invoice.status == InvoiceStatus.voided
+                        ? l10n.invoiceVoidedExplanation
+                        : l10n.invoiceSharingExplanation,
+                  ),
+                  if (invoice.voidReason != null) Text(invoice.voidReason!),
+                  const SizedBox(height: 12),
                   Row(
                     children: [
                       Expanded(
@@ -293,6 +378,7 @@ class _InvoiceDetailScreenState extends ConsumerState<InvoiceDetailScreen> {
                               : () => _runFileAction(() async {
                                   await InvoicePdfService.generateAndShare(
                                     invoice,
+                                    spanish: isSpanish(context),
                                   );
                                   return null;
                                 }),
@@ -308,6 +394,7 @@ class _InvoiceDetailScreenState extends ConsumerState<InvoiceDetailScreen> {
                               : () => _runFileAction(() async {
                                   await InvoiceExcelService.generateAndShare(
                                     invoice,
+                                    spanish: isSpanish(context),
                                   );
                                   return null;
                                 }),
@@ -328,6 +415,7 @@ class _InvoiceDetailScreenState extends ConsumerState<InvoiceDetailScreen> {
                                   final file =
                                       await InvoicePdfService.downloadAndOpen(
                                         invoice,
+                                        spanish: isSpanish(context),
                                       );
                                   return 'Downloaded PDF: ${file.path}';
                                 }),
@@ -344,6 +432,7 @@ class _InvoiceDetailScreenState extends ConsumerState<InvoiceDetailScreen> {
                                   final file =
                                       await InvoiceExcelService.downloadAndOpen(
                                         invoice,
+                                        spanish: isSpanish(context),
                                       );
                                   if (file == null) {
                                     throw StateError(
@@ -359,31 +448,49 @@ class _InvoiceDetailScreenState extends ConsumerState<InvoiceDetailScreen> {
                     ],
                   ),
                   const SizedBox(height: 8),
-                  if (invoice.status != InvoiceStatus.paid &&
-                      invoice.status != InvoiceStatus.voided)
+                  if (isOwner && invoice.status == InvoiceStatus.sent)
                     ElevatedButton.icon(
-                      onPressed: () async {
-                        final success = await ref
-                            .read(invoiceControllerProvider.notifier)
-                            .markAsPaid(widget.invoiceId);
-                        if (!context.mounted) return;
-                        ScaffoldMessenger.of(context)
-                          ..hideCurrentSnackBar()
-                          ..showSnackBar(
-                            SnackBar(
-                              content: Text(
-                                success
-                                    ? l10n.invoiceMarkedPaid
-                                    : 'Could not mark invoice paid.',
-                              ),
-                            ),
-                          );
-                      },
+                      onPressed: isLoading
+                          ? null
+                          : () async {
+                              final success = await ref
+                                  .read(invoiceControllerProvider.notifier)
+                                  .markAsPaid(widget.invoiceId);
+                              if (!context.mounted) return;
+                              ScaffoldMessenger.of(context)
+                                ..hideCurrentSnackBar()
+                                ..showSnackBar(
+                                  SnackBar(
+                                    content: Text(
+                                      success
+                                          ? l10n.invoiceMarkedPaid
+                                          : friendlyError(
+                                              context,
+                                              ref
+                                                  .read(
+                                                    invoiceControllerProvider,
+                                                  )
+                                                  .error,
+                                            ),
+                                    ),
+                                  ),
+                                );
+                            },
                       icon: const Icon(Icons.check_circle),
                       label: Text(l10n.markPaid),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: context.appColors.success,
                       ),
+                    ),
+                  if (isOwner &&
+                      (invoice.status == InvoiceStatus.draft ||
+                          invoice.status == InvoiceStatus.sent))
+                    OutlinedButton.icon(
+                      onPressed: isLoading
+                          ? null
+                          : () => _changeStatus(InvoiceStatus.voided),
+                      icon: const Icon(Icons.cancel_outlined),
+                      label: Text(l10n.voidInvoice),
                     ),
                 ],
               ],

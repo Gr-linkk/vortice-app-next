@@ -1005,4 +1005,54 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get tierPredictive => 'Predictivo';
+
+  @override
+  String get issueInvoice => 'Emitir factura';
+
+  @override
+  String get voidInvoice => 'Anular factura';
+
+  @override
+  String get voidInvoiceReason => 'Motivo de anulación';
+
+  @override
+  String get invoiceIssueExplanation =>
+      'La emisión fija estos detalles y muestra la factura al cliente. No envía un correo ni entrega un archivo.';
+
+  @override
+  String get invoiceSharingExplanation =>
+      'Comparta el archivo PDF o Excel por separado. Compartir no confirma su recepción.';
+
+  @override
+  String get invoiceVoidedExplanation =>
+      'Esta factura está anulada. Genere un nuevo borrador desde la misma orden para corregirla. La original permanece en el historial.';
+
+  @override
+  String get invoiceStatusDraft => 'Borrador';
+
+  @override
+  String get invoiceStatusIssued => 'Emitida';
+
+  @override
+  String get invoiceStatusPaid => 'Pagada';
+
+  @override
+  String get invoiceStatusVoided => 'Anulada';
+
+  @override
+  String get invoiceStatusUpdated => 'Estado de factura actualizado.';
+
+  @override
+  String get invoiceFileError =>
+      'No se pudo crear el archivo de factura. Actualice e intente de nuevo.';
+
+  @override
+  String get invoiceRateError =>
+      'Tipo de cambio actual no disponible. Intente de nuevo con conexión.';
+
+  @override
+  String get invoiceRateUpdated => 'Tipo de cambio actualizado.';
+
+  @override
+  String get partsAdjustment => 'Ajuste de repuestos';
 }

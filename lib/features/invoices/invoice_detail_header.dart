@@ -1,4 +1,5 @@
 import 'package:vortice_app/core/theme.dart';
+import 'package:vortice_app/core/user_feedback.dart';
 import 'package:flutter/material.dart';
 import 'package:vortice_app/features/invoices/invoice_detail_support.dart';
 import 'package:vortice_app/models/invoice.dart';
@@ -27,7 +28,7 @@ class InvoiceDetailHeader extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                'INVOICE',
+                isSpanish(context) ? 'FACTURA' : 'INVOICE',
                 style: TextStyle(
                   color: context.appColors.textSecondary,
                   fontSize: 13,
@@ -47,7 +48,10 @@ class InvoiceDetailHeader extends StatelessWidget {
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Text(
-                  invoice.status.name.toUpperCase(),
+                  invoiceStatusLabel(
+                    invoice.status,
+                    spanish: isSpanish(context),
+                  ).toUpperCase(),
                   style: TextStyle(
                     color: invoiceStatusColor(
                       context.appColors,
@@ -75,12 +79,12 @@ class InvoiceDetailHeader extends StatelessWidget {
             runSpacing: 8,
             children: [
               InvoiceDetailMetaItem(
-                label: 'Created',
+                label: isSpanish(context) ? 'Creada' : 'Created',
                 value: formatInvoiceDate(invoice.createdAt),
               ),
               if (invoice.paidAt != null)
                 InvoiceDetailMetaItem(
-                  label: 'Paid',
+                  label: isSpanish(context) ? 'Pagada' : 'Paid',
                   value: formatInvoiceDate(invoice.paidAt),
                 ),
             ],

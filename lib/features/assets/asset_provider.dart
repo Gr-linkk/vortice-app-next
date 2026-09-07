@@ -16,77 +16,52 @@ final assetsProvider = FutureProvider<List<Asset>>((ref) async {
   final db = ref.watch(databaseProvider);
   final dao = db.assetsDao;
 
-  Future<List<Asset>> cachedAssets() async {
-    final cached = await dao.getAll();
-    return cached
-        .map(
-          (asset) => Asset(
-            id: asset.id,
-            clientId: asset.clientId,
-            assetTypeId: asset.assetTypeId,
-            name: asset.name,
-            make: asset.make,
-            model: asset.model,
-            year: asset.year,
-            serialNumber: asset.serialNumber,
-            location: asset.location,
-            notes: asset.notes,
-            telemetryEnabled: asset.telemetryEnabled,
-            telemetrySource: asset.telemetrySource,
-            createdAt: asset.createdAt,
-            updatedAt: asset.updatedAt,
-          ),
-        )
-        .toList();
-  }
-
-  try {
-    final remote = await supabase
-        .from(AppConstants.tAssets)
-        .select()
-        .order('name');
-
-    final assets = (remote as List)
-        .map((e) => Asset.fromJson(e as Map<String, dynamic>))
-        .toList();
-
-    // A successful empty remote result is authoritative for the current user.
-    // Do not fall back to the unscoped local cache here, or a different login
-    // can see stale assets from a previous account.
-
-    // Persist to local cache
-    for (final asset
-        in db.belongsTo(supabase.auth.currentUser?.id) ? assets : <Asset>[]) {
-      await dao.upsert(
-        AssetsTableCompanion(
-          id: Value(asset.id),
-          clientId: Value(asset.clientId),
-          assetTypeId: Value(asset.assetTypeId),
-          name: Value(asset.name),
-          make: Value(asset.make),
-          model: Value(asset.model),
-          year: Value(asset.year),
-          serialNumber: Value(asset.serialNumber),
-          location: Value(asset.location),
-          notes: Value(asset.notes),
-          telemetryEnabled: Value(asset.telemetryEnabled),
-          telemetrySource: Value(asset.telemetrySource),
-          createdAt: Value(asset.createdAt),
-          updatedAt: Value(asset.updatedAt),
-        ),
+  final cacheAccount = supabase.auth.currentUser!.id;
+  final remote =
+      await AccountJsonCache(
+        cacheAccount,
+        () => supabase.auth.currentUser?.id,
+      ).readThrough(
+        'assets',
+        () => supabase
+            .from(AppConstants.tAssets)
+            .select()
+            .order('name')
+            .timeout(const Duration(seconds: 6)),
       );
-    }
 
-    return assets;
-  } catch (error) {
-    if (!db.belongsTo(supabase.auth.currentUser?.id) ||
-        !isConnectionFailure(error)) {
-      rethrow;
-    }
-    final cached = await cachedAssets();
-    if (cached.isNotEmpty) return cached;
-    rethrow;
+  final assets = (remote as List)
+      .map((e) => Asset.fromJson(e as Map<String, dynamic>))
+      .toList();
+
+  // A successful empty remote result is authoritative for the current user.
+  // Do not fall back to the unscoped local cache here, or a different login
+  // can see stale assets from a previous account.
+
+  // Persist to local cache
+  for (final asset
+      in db.belongsTo(supabase.auth.currentUser?.id) ? assets : <Asset>[]) {
+    await dao.upsert(
+      AssetsTableCompanion(
+        id: Value(asset.id),
+        clientId: Value(asset.clientId),
+        assetTypeId: Value(asset.assetTypeId),
+        name: Value(asset.name),
+        make: Value(asset.make),
+        model: Value(asset.model),
+        year: Value(asset.year),
+        serialNumber: Value(asset.serialNumber),
+        location: Value(asset.location),
+        notes: Value(asset.notes),
+        telemetryEnabled: Value(asset.telemetryEnabled),
+        telemetrySource: Value(asset.telemetrySource),
+        createdAt: Value(asset.createdAt),
+        updatedAt: Value(asset.updatedAt),
+      ),
+    );
   }
+
+  return assets;
 });
 
 /// Canonical asset visibility for screens and pickers.

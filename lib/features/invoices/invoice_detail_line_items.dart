@@ -1,10 +1,11 @@
+import 'package:vortice_app/core/user_feedback.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:vortice_app/l10n/app_localizations.dart';
 import 'package:vortice_app/core/theme.dart';
 import 'package:vortice_app/features/invoices/invoice_detail_support.dart';
 import 'package:vortice_app/features/invoices/invoice_parts_line_items_support.dart';
-import 'package:vortice_app/features/parts/parts_provider.dart';
+import 'package:vortice_app/features/invoices/invoice_export_context.dart';
 import 'package:vortice_app/models/invoice.dart';
 
 class InvoiceDetailLineItemsCard extends ConsumerWidget {
@@ -20,18 +21,13 @@ class InvoiceDetailLineItemsCard extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context);
-    final labourTotal = computeLabourTotal(
-      invoice.labourHours,
-      invoice.billableRateUsd,
-    );
-    final partsAsync = ref.watch(partsProvider(invoice.workOrderId));
-    final partLines = partsAsync.maybeWhen(
-      data: (parts) => buildInvoicePartLineItems(parts),
-      orElse: () => const <InvoicePartLineItem>[],
-    );
-    final partsTotalUsd = partLines.isNotEmpty
-        ? sumInvoicePartLineTotals(partLines)
-        : (invoice.partsTotalUsd ?? 0);
+    final labourTotal = invoice.labourTotalUsd ?? 0;
+    final partLines = invoice.exportSnapshot == null
+        ? const <InvoicePartLineItem>[]
+        : buildInvoicePartLineItems(
+            InvoiceExportContextService.fromSnapshot(invoice).invoiceParts,
+          );
+    final partsTotalUsd = invoice.partsTotalUsd ?? 0;
 
     return Container(
       padding: const EdgeInsets.all(16),
@@ -58,7 +54,10 @@ class InvoiceDetailLineItemsCard extends ConsumerWidget {
           InvoiceDetailLineItemRow(
             label: l10n.labour,
             detail:
-                '${invoice.labourHours?.toStringAsFixed(1) ?? 0} hrs @ ${formatInvoiceCurrency(invoice.billableRateUsd, mxn: showMxn)}/hr',
+                '${invoice.labourHours?.toStringAsFixed(1) ?? 0} hrs @ ${formatInvoiceCurrency(
+                  convertInvoiceAmount(invoice.billableRateUsd, showMxn: showMxn, exchangeRate: invoice.exchangeRate),
+                  mxn: showMxn,
+                )}/hr',
             amount: formatInvoiceCurrency(
               convertInvoiceAmount(
                 labourTotal,
@@ -75,7 +74,12 @@ class InvoiceDetailLineItemsCard extends ConsumerWidget {
                 padding: const EdgeInsets.only(bottom: 12),
                 child: InvoiceDetailLineItemRow(
                   label: formatInvoicePartLineLabel(line),
-                  detail: formatInvoicePartLineDetail(line),
+                  detail: formatInvoicePartLineDetail(
+                    line,
+                    spanish: isSpanish(context),
+                    exchangeRate: showMxn ? (invoice.exchangeRate ?? 1) : 1,
+                    currency: showMxn ? 'MXN' : 'USD',
+                  ),
                   amount: formatInvoiceCurrency(
                     convertInvoiceAmount(
                       line.lineTotalUsd,
@@ -87,6 +91,21 @@ class InvoiceDetailLineItemsCard extends ConsumerWidget {
                 ),
               ),
             ),
+            if ((partsTotalUsd - sumInvoicePartLineTotals(partLines)).abs() >
+                0.005)
+              InvoiceDetailLineItemRow(
+                label: isSpanish(context)
+                    ? 'Ajuste de piezas'
+                    : 'Parts adjustment',
+                amount: formatInvoiceCurrency(
+                  convertInvoiceAmount(
+                    partsTotalUsd - sumInvoicePartLineTotals(partLines),
+                    showMxn: showMxn,
+                    exchangeRate: invoice.exchangeRate,
+                  ),
+                  mxn: showMxn,
+                ),
+              ),
             InvoiceDetailLineItemRow(
               label: l10n.partsWithMarkup,
               amount: formatInvoiceCurrency(
@@ -114,7 +133,6 @@ class InvoiceDetailLineItemsCard extends ConsumerWidget {
           const SizedBox(height: 12),
           InvoiceDetailLineItemRow(
             label: l10n.consumables,
-            detail: '5% of labour',
             amount: formatInvoiceCurrency(
               convertInvoiceAmount(
                 invoice.consumablesTotalUsd,

@@ -8,7 +8,6 @@ import 'package:vortice_app/features/auth/auth_provider.dart';
 import 'package:vortice_app/features/checklists/checklist_provider.dart';
 import 'package:vortice_app/features/parts/pm_parts_provider.dart';
 import 'package:vortice_app/features/service_intervals/maintenance_work_order_draft.dart';
-import 'package:vortice_app/features/service_requests/service_request_provider.dart';
 import 'package:vortice_app/features/work_orders/create_work_order_form.dart';
 import 'package:vortice_app/features/work_orders/create_work_order_pm_parts_support.dart';
 import 'package:vortice_app/features/work_orders/create_work_order_support.dart';
@@ -154,18 +153,13 @@ class _CreateWorkOrderScreenState extends ConsumerState<CreateWorkOrderScreen> {
 
     final workOrderId = await ref
         .read(workOrderControllerProvider.notifier)
-        .createWorkOrder(data, assignedProfileIds: _selectedTechIds);
+        .createWorkOrder(
+          data,
+          assignedProfileIds: _selectedTechIds,
+          serviceRequestId: widget.initialDraft?.serviceRequestId,
+        );
 
     if (workOrderId != null) {
-      final serviceRequestId = widget.initialDraft?.serviceRequestId;
-      if (serviceRequestId != null) {
-        await ref
-            .read(serviceRequestControllerProvider.notifier)
-            .markGeneratedWorkOrder(
-              id: serviceRequestId,
-              workOrderId: workOrderId,
-            );
-      }
       if (mounted) {
         if (context.canPop()) {
           context.pop();

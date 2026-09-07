@@ -13,7 +13,6 @@ import 'package:sqlite3/open.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:vortice_app/app.dart';
 import 'package:vortice_app/core/router.dart';
-import 'package:vortice_app/core/theme.dart';
 import 'package:vortice_app/core/supabase_client.dart';
 import 'package:vortice_app/db/database.dart';
 import 'package:vortice_app/features/auth/auth_provider.dart';
@@ -39,52 +38,31 @@ Future<void> loadAuditFonts() async {
   }
 }
 
-// Use the production app's router, locale and localization configuration. The
-// only host adjustment is an explicit Android font instead of test-only Ahem.
+// Keep production palettes and settings; an explicit audit-only mode lets the
+// same read-only route audit render each appearance without saving a preference.
 class AuditApp extends ConsumerWidget {
   const AuditApp({super.key});
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final app = const VorticeApp().build(context, ref) as MaterialApp;
-    final theme = AppTheme.darkNavyTheme;
+    final mode = switch (Platform.environment['VORTICE_AUDIT_APPEARANCE']) {
+      'light' => ThemeMode.light,
+      'dark' => ThemeMode.dark,
+      'system' => ThemeMode.system,
+      null || '' => app.themeMode,
+      _ => throw StateError('Audit appearance must be light, dark, or system'),
+    };
     return MaterialApp.router(
+      title: app.title,
       routerConfig: app.routerConfig,
       locale: app.locale,
       supportedLocales: app.supportedLocales,
       localizationsDelegates: app.localizationsDelegates,
       debugShowCheckedModeBanner: false,
-      theme: theme.copyWith(
-        textTheme: theme.textTheme.apply(fontFamily: 'Roboto'),
-        primaryTextTheme: theme.primaryTextTheme.apply(fontFamily: 'Roboto'),
-        elevatedButtonTheme: ElevatedButtonThemeData(
-          style: theme.elevatedButtonTheme.style?.copyWith(
-            textStyle: WidgetStatePropertyAll(
-              theme.elevatedButtonTheme.style?.textStyle
-                  ?.resolve({})
-                  ?.copyWith(fontFamily: 'Roboto'),
-            ),
-          ),
-        ),
-        textButtonTheme: TextButtonThemeData(
-          style: theme.textButtonTheme.style?.copyWith(
-            textStyle: WidgetStatePropertyAll(
-              theme.textButtonTheme.style?.textStyle
-                  ?.resolve({})
-                  ?.copyWith(fontFamily: 'Roboto'),
-            ),
-          ),
-        ),
-        chipTheme: theme.chipTheme.copyWith(
-          labelStyle: theme.chipTheme.labelStyle?.copyWith(
-            fontFamily: 'Roboto',
-          ),
-        ),
-        appBarTheme: theme.appBarTheme.copyWith(
-          titleTextStyle: theme.appBarTheme.titleTextStyle?.copyWith(
-            fontFamily: 'Roboto',
-          ),
-        ),
-      ),
+      theme: app.theme,
+      darkTheme: app.darkTheme,
+      themeMode: mode,
+      builder: app.builder,
     );
   }
 }

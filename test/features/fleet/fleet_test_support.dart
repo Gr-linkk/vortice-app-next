@@ -197,7 +197,13 @@ class FixtureFleetRepository implements FleetRepository {
 
 Future<void> loadFleetScreenshotFonts() async {
   final root = Platform.environment['VORTICE_FLUTTER_FONTS'];
-  if (root == null) return;
+  if (root == null) {
+    final font = FontLoader('Roboto')
+      ..addFont(rootBundle.load('assets/fonts/Roboto-Regular.ttf'))
+      ..addFont(rootBundle.load('assets/fonts/Roboto-Bold.ttf'));
+    await font.load();
+    return;
+  }
   final font = FontLoader('Roboto');
   for (final name in [
     'Roboto-Regular.ttf',

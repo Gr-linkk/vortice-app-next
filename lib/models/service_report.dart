@@ -9,6 +9,7 @@ abstract class ServiceReport with _$ServiceReport {
   const factory ServiceReport({
     required String id,
     @JsonKey(name: 'work_order_id') required String workOrderId,
+    @JsonKey(name: 'evidence_pending') @Default(false) bool evidencePending,
     String? complaint,
     String? cause,
     String? correction,

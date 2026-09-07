@@ -59,77 +59,50 @@ final currentClientFleetAssetsProvider = FutureProvider<List<Asset>>((
   final db = ref.watch(databaseProvider);
   final account = ref.watch(sessionProvider)?.user.id;
 
-  Future<List<Asset>> cachedFleet() async {
-    final cached = await db.assetsDao.getAll();
-    return cached
-        .where((asset) => asset.clientId == ownerId)
-        .map(
-          (asset) => Asset(
-            id: asset.id,
-            clientId: asset.clientId,
-            assetTypeId: asset.assetTypeId,
-            name: asset.name,
-            make: asset.make,
-            model: asset.model,
-            year: asset.year,
-            serialNumber: asset.serialNumber,
-            location: asset.location,
-            notes: asset.notes,
-            telemetryEnabled: asset.telemetryEnabled,
-            telemetrySource: asset.telemetrySource,
-            createdAt: asset.createdAt,
-            updatedAt: asset.updatedAt,
-          ),
-        )
-        .toList();
-  }
-
-  try {
-    final remote = await supabase
-        .from(AppConstants.tAssets)
-        .select()
-        .eq('client_id', ownerId)
-        .order('name');
-
-    final assets = (remote as List)
-        .map((e) => Asset.fromJson(e as Map<String, dynamic>))
-        .toList();
-
-    for (final asset in assets) {
-      if (!db.belongsTo(account) || supabase.auth.currentUser?.id != account) {
-        throw const AccountChangedException();
-      }
-      await db.assetsDao.upsert(
-        AssetsTableCompanion(
-          id: Value(asset.id),
-          clientId: Value(asset.clientId),
-          assetTypeId: Value(asset.assetTypeId),
-          name: Value(asset.name),
-          make: Value(asset.make),
-          model: Value(asset.model),
-          year: Value(asset.year),
-          serialNumber: Value(asset.serialNumber),
-          location: Value(asset.location),
-          notes: Value(asset.notes),
-          telemetryEnabled: Value(asset.telemetryEnabled),
-          telemetrySource: Value(asset.telemetrySource),
-          createdAt: Value(asset.createdAt),
-          updatedAt: Value(asset.updatedAt),
-        ),
+  final cacheAccount = supabase.auth.currentUser!.id;
+  final remote =
+      await AccountJsonCache(
+        cacheAccount,
+        () => supabase.auth.currentUser?.id,
+      ).readThrough(
+        'fleet_assets:$ownerId',
+        () => supabase
+            .from(AppConstants.tAssets)
+            .select()
+            .eq('client_id', ownerId)
+            .order('name')
+            .timeout(const Duration(seconds: 6)),
       );
-    }
 
-    return assets;
-  } catch (error) {
-    if (!isConnectionFailure(error) ||
-        !db.belongsTo(account) ||
-        supabase.auth.currentUser?.id != account) {
-      rethrow;
+  final assets = (remote as List)
+      .map((e) => Asset.fromJson(e as Map<String, dynamic>))
+      .toList();
+
+  for (final asset in assets) {
+    if (!db.belongsTo(account) || supabase.auth.currentUser?.id != account) {
+      throw const AccountChangedException();
     }
-    final cached = await cachedFleet();
-    if (cached.isNotEmpty) return cached;
-    rethrow;
+    await db.assetsDao.upsert(
+      AssetsTableCompanion(
+        id: Value(asset.id),
+        clientId: Value(asset.clientId),
+        assetTypeId: Value(asset.assetTypeId),
+        name: Value(asset.name),
+        make: Value(asset.make),
+        model: Value(asset.model),
+        year: Value(asset.year),
+        serialNumber: Value(asset.serialNumber),
+        location: Value(asset.location),
+        notes: Value(asset.notes),
+        telemetryEnabled: Value(asset.telemetryEnabled),
+        telemetrySource: Value(asset.telemetrySource),
+        createdAt: Value(asset.createdAt),
+        updatedAt: Value(asset.updatedAt),
+      ),
+    );
   }
+
+  return assets;
 });
 
 Map<String, dynamic> clientTeamAssetRow(Asset asset) => {

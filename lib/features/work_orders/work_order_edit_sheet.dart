@@ -91,6 +91,7 @@ class _EditWorkOrderSheetState extends ConsumerState<EditWorkOrderSheet> {
           widget.workOrder.id,
           data,
           assignedProfileIds: _assignedTechIds,
+          expectedUpdatedAt: widget.workOrder.updatedAt,
         );
 
     if (success && mounted) {

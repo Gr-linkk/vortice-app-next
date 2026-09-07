@@ -1,3 +1,4 @@
+import 'package:vortice_app/core/user_feedback.dart';
 import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
@@ -26,12 +27,16 @@ class ServiceReportScreenState extends ConsumerState<ServiceReportScreen> {
   final _submitHandler = const ServiceReportSubmitHandler();
   final _picker = ImagePicker();
   late final ServiceReportDraftController _draft;
+  Object? _draftError;
+  bool _restoringDraft = true;
+  bool _submitting = false;
 
   @override
   void initState() {
     super.initState();
     _draft = ServiceReportDraftController(
       accountId: ref.read(sessionProvider)?.user.id ?? 'signed_out',
+      draftStorageKey: widget.draftStorageKey,
       initialWorkOrderId: widget.initialWorkOrderId,
       complaintController: _complaintCtrl,
       causeController: _causeCtrl,
@@ -44,8 +49,14 @@ class ServiceReportScreenState extends ConsumerState<ServiceReportScreen> {
     );
     _draft.selectedWorkOrderId = widget.initialWorkOrderId;
     WidgetsBinding.instance.addPostFrameCallback((_) async {
-      await _draft.load();
-      _draft.bindTextSaveListeners();
+      try {
+        await _draft.load();
+        if (!mounted) return;
+        _draft.bindTextSaveListeners();
+      } catch (error) {
+        _draftError = error;
+      }
+      if (mounted) setState(() => _restoringDraft = false);
     });
   }
 
@@ -68,34 +79,46 @@ class ServiceReportScreenState extends ConsumerState<ServiceReportScreen> {
   }
 
   Future<void> _submit() async {
-    final result = await _submitHandler.submit(
-      context: context,
-      ref: ref,
-      formKey: _formKey,
-      input: ServiceReportSubmitInput(
-        selectedWorkOrderId: _draft.selectedWorkOrderId,
-        pendingReportId: _draft.pendingReportId,
-        complaint: _complaintCtrl.text,
-        cause: _causeCtrl.text,
-        correction: _correctionCtrl.text,
-        collateral: _collateralCtrl.text,
-        comments: _commentsCtrl.text,
-        signatureBytes: _draft.signatureBytes,
-        photos: List<Uint8List>.from(_draft.photos),
-      ),
-      onSaveDraft: _draft.saveAll,
-      onDraftPersist: (reportId) async {
-        _draft.pendingReportId = reportId;
-        await _draft.saveAll();
-      },
-      onClearDraft: _draft.clear,
-    );
-    if (!mounted || result == null) return;
-    if (result.pendingReportId != null) {
-      setState(() => _draft.pendingReportId = result.pendingReportId);
-    }
-    if (result.shouldResetForm) {
-      setState(_draft.resetAfterSubmit);
+    if (_submitting) return;
+    setState(() => _submitting = true);
+    try {
+      final result = await _submitHandler.submit(
+        context: context,
+        ref: ref,
+        formKey: _formKey,
+        input: ServiceReportSubmitInput(
+          selectedWorkOrderId: _draft.selectedWorkOrderId,
+          pendingReportId: _draft.pendingReportId,
+          complaint: _complaintCtrl.text,
+          cause: _causeCtrl.text,
+          correction: _correctionCtrl.text,
+          collateral: _collateralCtrl.text,
+          comments: _commentsCtrl.text,
+          signatureBytes: _draft.signatureBytes,
+          photos: List<Uint8List>.from(_draft.photos),
+        ),
+        onSaveDraft: _draft.saveAll,
+        onDraftPersist: (reportId) async {
+          _draft.pendingReportId = reportId;
+          await _draft.saveAll();
+        },
+        onClearDraft: _draft.clear,
+      );
+      if (!mounted || result == null) return;
+      if (result.pendingReportId != null) {
+        setState(() => _draft.pendingReportId = result.pendingReportId);
+      }
+      if (result.shouldResetForm) {
+        setState(_draft.resetAfterSubmit);
+      }
+    } catch (error) {
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(friendlyError(context, error))));
+      }
+    } finally {
+      if (mounted) setState(() => _submitting = false);
     }
   }
 
@@ -121,7 +144,22 @@ class ServiceReportScreenState extends ConsumerState<ServiceReportScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final isLoading = ref.watch(serviceReportControllerProvider).isLoading;
+    final isLoading =
+        _restoringDraft ||
+        _submitting ||
+        ref.watch(serviceReportControllerProvider).isLoading;
+    if (_draftError != null) {
+      return Scaffold(
+        appBar: AppBar(),
+        body: Center(
+          child: Text(
+            isSpanish(context)
+                ? 'El borrador no se pudo leer. Se conserva en este dispositivo; pide ayuda antes de continuar.'
+                : 'The saved draft could not be read. It remains on this device; ask for help before continuing.',
+          ),
+        ),
+      );
+    }
     final profile = ref.watch(profileProvider).valueOrNull;
     final canSubmit = ServiceReportWorkflow.canCreateOrUpdateReport(
       profile?.role,
@@ -155,6 +193,19 @@ class ServiceReportScreenState extends ConsumerState<ServiceReportScreen> {
         commentsController: _commentsCtrl,
         photos: _draft.photos,
         onWorkOrderChanged: (value) {
+          if (_draft.pendingReportId != null &&
+              value != _draft.selectedWorkOrderId) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(
+                  isSpanish(context)
+                      ? 'Este informe pertenece a su orden original.'
+                      : 'This report belongs to its original work order.',
+                ),
+              ),
+            );
+            return;
+          }
           setState(() => _draft.selectedWorkOrderId = value);
           _draft.saveText();
         },

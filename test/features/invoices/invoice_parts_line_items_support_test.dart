@@ -19,7 +19,7 @@ void main() {
 
       expect(lines, hasLength(1));
       expect(lines.first.lineTotalUsd, 115);
-      expect(formatInvoicePartLineDetail(lines.first), '2 × \$50.00 + 15% markup');
+      expect(formatInvoicePartLineDetail(lines.first), '2 × \$50.00 USD + 15% markup');
       expect(
         formatInvoicePartLineLabel(lines.first),
         'Hydraulic hose (HH-100)',

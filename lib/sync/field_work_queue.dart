@@ -182,6 +182,41 @@ class FieldWorkQueue {
     }
   }
 
+  /// Remove only whole subjects whose last acknowledged operation is old.
+  /// Failed, pending and cancelled work remains available for recovery.
+  Future<int> cleanCompleted({DateTime? now}) async {
+    checkAccount();
+    if (_flushing != null) await _flushing;
+    final cutoff = (now ?? DateTime.now()).toUtc().subtract(
+      const Duration(days: 7),
+    );
+    return db.transaction(() async {
+      final rows = await (db.select(
+        db.syncOperationsTable,
+      )..where((t) => t.entityType.equals('field_work'))).get();
+      final groups = <String, List<SyncOperationsTableData>>{};
+      for (final row in rows) {
+        _operation(row);
+        (groups[row.entityRemoteId ?? row.id] ??= []).add(row);
+      }
+      var deleted = 0;
+      for (final group in groups.values) {
+        if (group.every(
+          (r) =>
+              r.status == 'synced' &&
+              r.updatedAt != null &&
+              r.updatedAt!.isBefore(cutoff),
+        )) {
+          checkAccount();
+          deleted += await (db.delete(
+            db.syncOperationsTable,
+          )..where((t) => t.id.isIn(group.map((r) => r.id)))).go();
+        }
+      }
+      return deleted;
+    });
+  }
+
   Future<void> archiveSubject(String subject) async {
     checkAccount();
     if (_flushing != null) await _flushing;

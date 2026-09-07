@@ -1,3 +1,4 @@
+import 'package:vortice_app/features/invoices/invoice_detail_support.dart';
 import 'dart:io';
 import 'package:excel/excel.dart';
 import 'package:path_provider/path_provider.dart';
@@ -11,9 +12,13 @@ import 'package:vortice_app/models/invoice.dart';
 class InvoiceExcelService {
   InvoiceExcelService._();
 
-  static Future<void> generateAndShare(Invoice invoice) async {
+  static Future<void> generateAndShare(
+    Invoice invoice, {
+    bool spanish = false,
+  }) async {
     final context = await InvoiceExportContextService.load(invoice);
-    final bytes = generateBytes(invoice, context: context);
+    invoice = context.currentInvoice ?? invoice;
+    final bytes = generateBytes(invoice, context: context, spanish: spanish);
     if (bytes == null) return;
 
     final dir = await getTemporaryDirectory();
@@ -35,9 +40,13 @@ class InvoiceExcelService {
     );
   }
 
-  static Future<File?> downloadAndOpen(Invoice invoice) async {
+  static Future<File?> downloadAndOpen(
+    Invoice invoice, {
+    bool spanish = false,
+  }) async {
     final context = await InvoiceExportContextService.load(invoice);
-    final bytes = generateBytes(invoice, context: context);
+    invoice = context.currentInvoice ?? invoice;
+    final bytes = generateBytes(invoice, context: context, spanish: spanish);
     if (bytes == null) return null;
 
     final file = await _writeDownloadFile(
@@ -54,7 +63,8 @@ class InvoiceExcelService {
     required String extension,
     required List<int> bytes,
   }) async {
-    final dir = await getDownloadsDirectory() ??
+    final dir =
+        await getDownloadsDirectory() ??
         await getApplicationDocumentsDirectory();
     final invoiceDir = Directory('${dir.path}/Vortice Invoices');
     await invoiceDir.create(recursive: true);
@@ -65,6 +75,7 @@ class InvoiceExcelService {
   static List<int>? generateBytes(
     Invoice invoice, {
     InvoiceExportContext? context,
+    bool spanish = false,
   }) {
     final excel = Excel.createExcel();
 
@@ -133,7 +144,11 @@ class InvoiceExcelService {
     // Header
     sheet.merge(CellIndex.indexByString('A1'), CellIndex.indexByString('D1'));
     final headerCell = sheet.cell(CellIndex.indexByString('A1'));
-    headerCell.value = TextCellValue('Vortice Mechanical - Invoice');
+    headerCell.value = TextCellValue(
+      (spanish
+          ? 'Vortice Mechanical - Factura'
+          : 'Vortice Mechanical - Invoice'),
+    );
     headerCell.cellStyle = headerStyle;
 
     // Invoice details
@@ -142,190 +157,280 @@ class InvoiceExcelService {
     void addLabelValue(String label, String value) {
       sheet
           .cell(CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: row))
-          .value = TextCellValue(label);
+          .value = TextCellValue(
+        label,
+      );
       sheet
-          .cell(CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: row))
-          .cellStyle = labelStyle;
+              .cell(CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: row))
+              .cellStyle =
+          labelStyle;
       sheet
           .cell(CellIndex.indexByColumnRow(columnIndex: 1, rowIndex: row))
-          .value = TextCellValue(value);
+          .value = TextCellValue(
+        value,
+      );
       sheet
-          .cell(CellIndex.indexByColumnRow(columnIndex: 1, rowIndex: row))
-          .cellStyle = valueStyle;
+              .cell(CellIndex.indexByColumnRow(columnIndex: 1, rowIndex: row))
+              .cellStyle =
+          valueStyle;
       row++;
     }
 
-    addLabelValue('Invoice Number:', invoice.invoiceNumber);
-    addLabelValue('Status:', invoice.status.name.toUpperCase());
-    addLabelValue('Created:', _formatDate(invoice.createdAt));
+    addLabelValue(
+      (spanish ? 'Número de factura:' : 'Invoice Number:'),
+      invoice.invoiceNumber,
+    );
+    addLabelValue(
+      (spanish ? 'Estado:' : 'Status:'),
+      invoiceStatusLabel(invoice.status, spanish: spanish).toUpperCase(),
+    );
+    addLabelValue(
+      (spanish ? 'Creada:' : 'Created:'),
+      _formatDate(invoice.sentAt ?? invoice.createdAt),
+    );
     if (invoice.paidAt != null) {
-      addLabelValue('Paid:', _formatDate(invoice.paidAt));
+      addLabelValue(
+        (spanish ? 'Pagada:' : 'Paid:'),
+        _formatDate(invoice.paidAt),
+      );
     }
     if (context != null) {
-      addLabelValue('Bill To:', context.billingLabel);
+      addLabelValue(
+        (spanish ? 'Facturar a:' : 'Bill To:'),
+        context.billingLabel,
+      );
       if (context.clientEmail != null) {
-        addLabelValue('Client Email:', context.clientEmail!);
+        addLabelValue(
+          (spanish ? 'Correo del cliente:' : 'Client Email:'),
+          context.clientEmail!,
+        );
       }
       if (context.clientPhone != null) {
-        addLabelValue('Client Phone:', context.clientPhone!);
+        addLabelValue(
+          (spanish ? 'Teléfono del cliente:' : 'Client Phone:'),
+          context.clientPhone!,
+        );
       }
-      addLabelValue('Work Order:', context.workOrderLabel);
-      addLabelValue('Asset:', context.assetLabel);
+      addLabelValue(
+        (spanish ? 'Orden de trabajo:' : 'Work Order:'),
+        context.workOrderLabel,
+      );
+      addLabelValue((spanish ? 'Equipo:' : 'Asset:'), context.assetLabel);
     }
 
     row += 2;
 
     // Line items header
-    sheet.merge(CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: row),
-        CellIndex.indexByColumnRow(columnIndex: 3, rowIndex: row));
-    final itemsHeader =
-        sheet.cell(CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: row));
-    itemsHeader.value = TextCellValue('LINE ITEMS');
+    sheet.merge(
+      CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: row),
+      CellIndex.indexByColumnRow(columnIndex: 3, rowIndex: row),
+    );
+    final itemsHeader = sheet.cell(
+      CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: row),
+    );
+    itemsHeader.value = TextCellValue((spanish ? 'CONCEPTOS' : 'LINE ITEMS'));
     itemsHeader.cellStyle = headerStyle;
     row++;
 
     // Column headers
     final colHeaders = [
-      'Description',
-      'Detail',
-      'Amount (USD)',
-      'Amount (MXN)'
+      (spanish ? 'Descripción' : 'Description'),
+      (spanish ? 'Detalle' : 'Detail'),
+      (spanish ? 'Importe (USD)' : 'Amount (USD)'),
+      (spanish ? 'Importe (MXN)' : 'Amount (MXN)'),
     ];
     for (var i = 0; i < colHeaders.length; i++) {
-      final cell =
-          sheet.cell(CellIndex.indexByColumnRow(columnIndex: i, rowIndex: row));
+      final cell = sheet.cell(
+        CellIndex.indexByColumnRow(columnIndex: i, rowIndex: row),
+      );
       cell.value = TextCellValue(colHeaders[i]);
       cell.cellStyle = colHeaderStyle;
     }
     row++;
 
     final labourTotal =
-        (invoice.labourHours ?? 0) * (invoice.billableRateUsd ?? 0);
+        invoice.labourTotalUsd ??
+        ((invoice.labourHours ?? 0) * (invoice.billableRateUsd ?? 0));
     final rate = invoice.exchangeRate ?? 1;
 
     void addLineItem(String desc, String? detail, double usd) {
       sheet
           .cell(CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: row))
-          .value = TextCellValue(desc);
+          .value = TextCellValue(
+        desc,
+      );
       sheet
-          .cell(CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: row))
-          .cellStyle = valueStyle;
+              .cell(CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: row))
+              .cellStyle =
+          valueStyle;
+      sheet
+              .cell(CellIndex.indexByColumnRow(columnIndex: 1, rowIndex: row))
+              .cellStyle =
+          valueStyle;
       sheet
           .cell(CellIndex.indexByColumnRow(columnIndex: 1, rowIndex: row))
-          .cellStyle = valueStyle;
-      sheet
-          .cell(CellIndex.indexByColumnRow(columnIndex: 1, rowIndex: row))
-          .value = TextCellValue(detail ?? '');
-      sheet
-          .cell(CellIndex.indexByColumnRow(columnIndex: 2, rowIndex: row))
-          .value = DoubleCellValue(usd);
+          .value = TextCellValue(
+        detail ?? '',
+      );
       sheet
           .cell(CellIndex.indexByColumnRow(columnIndex: 2, rowIndex: row))
-          .cellStyle = currencyStyle;
+          .value = DoubleCellValue(
+        usd,
+      );
+      sheet
+              .cell(CellIndex.indexByColumnRow(columnIndex: 2, rowIndex: row))
+              .cellStyle =
+          currencyStyle;
       sheet
           .cell(CellIndex.indexByColumnRow(columnIndex: 3, rowIndex: row))
-          .value = DoubleCellValue(usd * rate);
+          .value = DoubleCellValue(
+        usd * rate,
+      );
       sheet
-          .cell(CellIndex.indexByColumnRow(columnIndex: 3, rowIndex: row))
-          .cellStyle = currencyStyle;
+              .cell(CellIndex.indexByColumnRow(columnIndex: 3, rowIndex: row))
+              .cellStyle =
+          currencyStyle;
       row++;
     }
 
     addLineItem(
-      'Labour',
+      (spanish ? 'Mano de obra' : 'Labour'),
       '${invoice.labourHours?.toStringAsFixed(1) ?? 0} hrs @ \$${invoice.billableRateUsd?.toStringAsFixed(2) ?? '0.00'}/hr',
       labourTotal,
     );
-    final partLines = buildInvoicePartLineItems(context?.invoiceParts ?? const []);
+    final partLines = buildInvoicePartLineItems(
+      context?.invoiceParts ?? const [],
+    );
     if (partLines.isEmpty) {
-      addLineItem('Parts (with markup)', null, invoice.partsTotalUsd ?? 0);
+      addLineItem(
+        (spanish ? 'Piezas (con margen)' : 'Parts (with markup)'),
+        null,
+        invoice.partsTotalUsd ?? 0,
+      );
     } else {
       for (final line in partLines) {
         addLineItem(
           formatInvoicePartLineLabel(line),
-          formatInvoicePartLineDetail(line),
+          formatInvoicePartLineDetail(line, spanish: spanish),
           line.lineTotalUsd,
         );
       }
-      addLineItem(
-        'Parts (with markup)',
-        'Total',
-        sumInvoicePartLineTotals(partLines),
-      );
+      final adjustment =
+          (invoice.partsTotalUsd ?? 0) - sumInvoicePartLineTotals(partLines);
+      if (adjustment.abs() > 0.005) {
+        addLineItem(
+          (spanish ? 'Ajuste de piezas' : 'Parts adjustment'),
+          null,
+          adjustment,
+        );
+      }
     }
-    addLineItem('Consumables (5%)', null, invoice.consumablesTotalUsd ?? 0);
+    addLineItem(
+      (spanish ? 'Consumibles' : 'Consumables'),
+      null,
+      invoice.consumablesTotalUsd ?? 0,
+    );
 
     row += 2;
 
     // Summary
-    sheet.merge(CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: row),
-        CellIndex.indexByColumnRow(columnIndex: 3, rowIndex: row));
-    final summaryHeader =
-        sheet.cell(CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: row));
-    summaryHeader.value = TextCellValue('SUMMARY');
+    sheet.merge(
+      CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: row),
+      CellIndex.indexByColumnRow(columnIndex: 3, rowIndex: row),
+    );
+    final summaryHeader = sheet.cell(
+      CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: row),
+    );
+    summaryHeader.value = TextCellValue((spanish ? 'RESUMEN' : 'SUMMARY'));
     summaryHeader.cellStyle = headerStyle;
     row++;
 
     void addSummaryRow(String label, double usd, {bool isTotal = false}) {
       sheet
           .cell(CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: row))
-          .value = TextCellValue(label);
+          .value = TextCellValue(
+        label,
+      );
       sheet
           .cell(CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: row))
-          .cellStyle = isTotal ? totalStyle : labelStyle;
+          .cellStyle = isTotal
+          ? totalStyle
+          : labelStyle;
       sheet
           .cell(CellIndex.indexByColumnRow(columnIndex: 2, rowIndex: row))
-          .value = DoubleCellValue(usd);
+          .value = DoubleCellValue(
+        usd,
+      );
       sheet
           .cell(CellIndex.indexByColumnRow(columnIndex: 2, rowIndex: row))
-          .cellStyle = isTotal ? totalStyle : currencyStyle;
+          .cellStyle = isTotal
+          ? totalStyle
+          : currencyStyle;
       sheet
           .cell(CellIndex.indexByColumnRow(columnIndex: 3, rowIndex: row))
-          .value = DoubleCellValue(usd * rate);
+          .value = DoubleCellValue(
+        usd * rate,
+      );
       sheet
           .cell(CellIndex.indexByColumnRow(columnIndex: 3, rowIndex: row))
-          .cellStyle = isTotal ? totalStyle : currencyStyle;
+          .cellStyle = isTotal
+          ? totalStyle
+          : currencyStyle;
       row++;
     }
 
     addSummaryRow('Subtotal', invoice.subtotalUsd ?? 0);
-    addSummaryRow('IVA (${invoice.ivaPct.toStringAsFixed(0)}%)',
-        invoice.ivaTotalUsd ?? 0);
+    addSummaryRow(
+      'IVA (${invoice.ivaPct.toStringAsFixed(0)}%)',
+      invoice.ivaTotalUsd ?? 0,
+    );
 
     // Total row — full-width highlight
-    sheet.merge(CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: row),
-        CellIndex.indexByColumnRow(columnIndex: 1, rowIndex: row));
+    sheet.merge(
+      CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: row),
+      CellIndex.indexByColumnRow(columnIndex: 1, rowIndex: row),
+    );
     sheet
         .cell(CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: row))
-        .value = TextCellValue('TOTAL DUE');
+        .value = TextCellValue(
+      (spanish ? 'TOTAL' : 'TOTAL DUE'),
+    );
     sheet
-        .cell(CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: row))
-        .cellStyle = totalLabelStyle;
+            .cell(CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: row))
+            .cellStyle =
+        totalLabelStyle;
     sheet
         .cell(CellIndex.indexByColumnRow(columnIndex: 2, rowIndex: row))
-        .value = DoubleCellValue(invoice.totalUsd ?? 0);
+        .value = DoubleCellValue(
+      invoice.totalUsd ?? 0,
+    );
     sheet
-        .cell(CellIndex.indexByColumnRow(columnIndex: 2, rowIndex: row))
-        .cellStyle = totalStyle;
+            .cell(CellIndex.indexByColumnRow(columnIndex: 2, rowIndex: row))
+            .cellStyle =
+        totalStyle;
     sheet
         .cell(CellIndex.indexByColumnRow(columnIndex: 3, rowIndex: row))
-        .value = DoubleCellValue((invoice.totalUsd ?? 0) * rate);
+        .value = DoubleCellValue(
+      (invoice.totalUsd ?? 0) * rate,
+    );
     sheet
-        .cell(CellIndex.indexByColumnRow(columnIndex: 3, rowIndex: row))
-        .cellStyle = totalStyle;
+            .cell(CellIndex.indexByColumnRow(columnIndex: 3, rowIndex: row))
+            .cellStyle =
+        totalStyle;
     row++;
 
     row += 2;
 
     // Exchange rate
     sheet
-            .cell(CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: row))
-            .value =
-        TextCellValue(
-            'Exchange Rate: 1 USD = ${invoice.exchangeRate?.toStringAsFixed(4) ?? '-'} MXN');
-    sheet
         .cell(CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: row))
-        .cellStyle = exchangeRateStyle;
+        .value = TextCellValue(
+      '${spanish ? 'Tipo de cambio' : 'Exchange rate'}: 1 USD = ${invoice.exchangeRate?.toStringAsFixed(4) ?? '-'} MXN',
+    );
+    sheet
+            .cell(CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: row))
+            .cellStyle =
+        exchangeRateStyle;
 
     // Set column widths
     sheet.setColumnWidth(0, 25);

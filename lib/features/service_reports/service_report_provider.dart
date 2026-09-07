@@ -1,3 +1,6 @@
+import 'dart:typed_data';
+import 'package:vortice_app/sync/field_work_provider.dart';
+import 'package:vortice_app/sync/evidence_submission.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:vortice_app/core/constants.dart';
 import 'package:vortice_app/core/supabase_client.dart';
@@ -93,6 +96,36 @@ final serviceReportIndexProvider = FutureProvider.autoDispose
 class ServiceReportController extends StateNotifier<AsyncValue<void>> {
   final Ref _ref;
   ServiceReportController(this._ref) : super(const AsyncData(null));
+
+  Future<ServiceReportSubmitResult?> submitWithEvidence({
+    required String reportId,
+    required Map<String, dynamic> data,
+    required List<Uint8List> photos,
+    Uint8List? signature,
+  }) async {
+    state = const AsyncLoading();
+    ServiceReportSubmitResult? result;
+    state = await AsyncValue.guard(() async {
+      final queue = _ref.read(fieldWorkQueueProvider);
+      if (queue == null) throw StateError('Sign in before submitting');
+      final operation = await prepareEvidenceSubmission(
+        queue: queue,
+        kind: 'report',
+        record: reportId,
+        data: data,
+        photos: photos,
+        signature: signature,
+      );
+      result = await _ref
+          .read(serviceReportRepositoryProvider)
+          .queueWithEvidence(queue, operation);
+      _ref.invalidate(serviceReportsProvider);
+      _ref.invalidate(
+        serviceReportsByWorkOrderProvider(data['work_order_id'] as String),
+      );
+    });
+    return result;
+  }
 
   /// Creates a new service report locally first, then attempts remote sync.
   Future<ServiceReportSubmitResult?> createReport({

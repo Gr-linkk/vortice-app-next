@@ -367,5 +367,20 @@
   "tierManaged": "Gestionado",
   "tierPlanning": "Planificación",
   "tierTelemetry": "Telemetría",
-  "tierPredictive": "Predictivo"
+  "tierPredictive": "Predictivo",
+  "issueInvoice": "Emitir factura",
+  "voidInvoice": "Anular factura",
+  "voidInvoiceReason": "Motivo de anulación",
+  "invoiceIssueExplanation": "La emisión fija estos detalles y muestra la factura al cliente. No envía un correo ni entrega un archivo.",
+  "invoiceSharingExplanation": "Comparta el archivo PDF o Excel por separado. Compartir no confirma su recepción.",
+  "invoiceVoidedExplanation": "Esta factura está anulada. Genere un nuevo borrador desde la misma orden para corregirla. La original permanece en el historial.",
+  "invoiceStatusDraft": "Borrador",
+  "invoiceStatusIssued": "Emitida",
+  "invoiceStatusPaid": "Pagada",
+  "invoiceStatusVoided": "Anulada",
+  "invoiceStatusUpdated": "Estado de factura actualizado.",
+  "invoiceFileError": "No se pudo crear el archivo de factura. Actualice e intente de nuevo.",
+  "invoiceRateError": "Tipo de cambio actual no disponible. Intente de nuevo con conexión.",
+  "invoiceRateUpdated": "Tipo de cambio actualizado.",
+  "partsAdjustment": "Ajuste de repuestos"
 }

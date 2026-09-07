@@ -1,3 +1,5 @@
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:vortice_app/features/work_orders/work_order_controller.dart';
 import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/material.dart';
@@ -246,6 +248,19 @@ void main() {
               await h.tap(
                 find.widgetWithText(ElevatedButton, 'Mark Completed'),
               );
+              for (
+                var attempt = 0;
+                attempt < 30 &&
+                    h.container.read(workOrderControllerProvider).isLoading;
+                attempt++
+              ) {
+                await h.settle(2);
+              }
+              expect(
+                h.container.read(workOrderControllerProvider).hasError,
+                false,
+              );
+
               expect(
                 (await supabase
                     .from('work_orders')
@@ -292,7 +307,7 @@ void main() {
                   'created_by': supabase.auth.currentUser!.id,
                   'title': '$marker billing fixture',
                   'job_type': 'repair',
-                  'status': 'draft',
+                  'status': 'closed',
                 })
                 .select('id')
                 .single();
@@ -300,28 +315,18 @@ void main() {
             manifest['provider_job'] = providerJob;
             save();
           }
-          final invoice = generatedInvoice ?? const Uuid().v4();
+          final invoice =
+              generatedInvoice ??
+              await supabase.rpc(
+                    'generate_provider_invoice',
+                    params: {
+                      'p_work_order': providerJob,
+                      'p_exchange_rate': 17,
+                    },
+                  )
+                  as String;
           manifest['invoice'] = invoice;
           save();
-          if (generatedInvoice == null) {
-            await supabase.from('invoices').insert({
-              'id': invoice,
-              'work_order_id': providerJob,
-              'client_id': client,
-              'invoice_number': marker,
-              'status': 'draft',
-              'labour_hours': 2,
-              'billable_rate_usd': 80,
-              'labour_total_usd': 160,
-              'parts_total_usd': 0,
-              'consumables_total_usd': 8,
-              'subtotal_usd': 168,
-              'iva_total_usd': 26.88,
-              'total_usd': 194.88,
-              'exchange_rate': 17,
-              'total_mxn': 3312.96,
-            });
-          }
           await h.step(
             'invoice edit saves whole-number exchange rate correctly',
             () async {
@@ -362,6 +367,68 @@ void main() {
               if (find.text('Cancel').evaluate().isNotEmpty) {
                 await h.tap(find.text('Cancel'));
               }
+            },
+          );
+          await h.step(
+            'invoice issue, void, correction and payment complete through existing screens',
+            () async {
+              await h.go('/owner/invoices/$invoice');
+              await h.tap(find.widgetWithText(FilledButton, 'Issue invoice'));
+              await h.tap(find.widgetWithText(TextButton, 'Issue invoice'));
+              final issued = await supabase
+                  .from('invoices')
+                  .select()
+                  .eq('id', invoice)
+                  .single();
+              expect(issued['status'], 'sent');
+              expect(issued['sent_at'], isNotNull);
+              expect(issued['export_snapshot'], isNotNull);
+              await h.tap(find.widgetWithText(OutlinedButton, 'Void invoice'));
+              await h.fill(
+                h.field('Reason for voiding'),
+                '$marker correction acceptance',
+              );
+              await h.tap(find.widgetWithText(TextButton, 'Void invoice'));
+              expect(
+                (await supabase
+                    .from('invoices')
+                    .select('status')
+                    .eq('id', invoice)
+                    .single())['status'],
+                'void',
+              );
+              await h.go('/owner/work-orders/$providerJob');
+              await h.tap(
+                find.widgetWithText(ElevatedButton, 'Generate Invoice'),
+              );
+              final corrected = await supabase
+                  .from('invoices')
+                  .select()
+                  .eq('work_order_id', providerJob!)
+                  .eq('status', 'draft')
+                  .single();
+              final correctedId = corrected['id'] as String;
+              expect(correctedId, isNot(invoice));
+              manifest['corrected_invoice'] = correctedId;
+              save();
+              await h.go('/owner/invoices/$correctedId');
+              await h.tap(find.widgetWithText(FilledButton, 'Issue invoice'));
+              await h.tap(find.widgetWithText(TextButton, 'Issue invoice'));
+              await h.tap(
+                find.widgetWithText(
+                  ElevatedButton,
+                  AppLocalizationsEn().markPaid,
+                ),
+              );
+              expect(
+                (await supabase
+                    .from('invoices')
+                    .select('status')
+                    .eq('id', correctedId)
+                    .single())['status'],
+                'paid',
+              );
+              await h.screenshot('invoice-issued-paid');
             },
           );
           await h.step(

@@ -17,8 +17,17 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:vortice_app/core/user_feedback.dart';
 import 'field_work_provider.dart';
 import 'field_work_queue.dart';
+import 'evidence_recovery.dart';
+import 'package:vortice_app/features/service_reports/service_report_screen.dart';
+import 'package:vortice_app/features/service_requests/service_request_form_screen.dart';
 
 String _operationTitle(FieldOperation row, bool es) {
+  if (row.kind == 'request_submission') {
+    return es ? 'Solicitud de servicio' : 'Service request';
+  }
+  if (row.kind == 'report_submission') {
+    return es ? 'Informe y evidencias' : 'Report and evidence';
+  }
   if (row.kind == 'upload') return es ? 'Foto' : 'Photo';
   return switch (row.payload['p_action']) {
     'start' => es ? 'Inicio del trabajo' : 'Work started',
@@ -54,6 +63,12 @@ String _operationDetails(FieldOperation row, bool es) {
     }
   }
   for (final field in [
+    ('title', es ? 'Título' : 'Title'),
+    ('complaint', es ? 'Problema' : 'Complaint'),
+    ('cause', es ? 'Causa' : 'Cause'),
+    ('correction', es ? 'Corrección' : 'Correction'),
+    ('collateral', es ? 'Daño adicional' : 'Collateral'),
+    ('comments', es ? 'Comentarios' : 'Comments'),
     ('diagnosis', es ? 'Diagnóstico' : 'Diagnosis'),
     ('repair', es ? 'Reparación y pruebas' : 'Repair and test results'),
     ('notes', es ? 'Notas' : 'Notes'),
@@ -106,7 +121,9 @@ class _FieldSyncStatusState extends ConsumerState<FieldSyncStatus>
   Future<void> _retry() async {
     if (!mounted) return;
     try {
-      await ref.read(fieldWorkQueueProvider)?.flush();
+      final queue = ref.read(fieldWorkQueueProvider);
+      await queue?.flush();
+      await queue?.cleanCompleted();
     } catch (_) {}
   }
 
@@ -180,6 +197,15 @@ class FieldQueueScreen extends ConsumerWidget {
         padding: const EdgeInsets.all(16),
         children: [
           const OfflinePreparationButton(),
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 12),
+            child: Text(
+              es
+                  ? 'Sin conexión: consulta datos preparados durante un máximo de 24 horas y guarda informes, listas y evidencias. Facturas, asignaciones y cambios de empresa necesitan conexión. Los permisos se comprueban al reconectar. Los envíos confirmados se limpian después de 7 días; el trabajo pendiente o rechazado se conserva.'
+                  : 'Offline: view prepared records for up to 24 hours and save reports, checklists and evidence. Invoices, assignments and company changes need a connection. Access is checked when you reconnect. Confirmed uploads are cleaned after 7 days; pending or rejected work stays on this device.',
+            ),
+          ),
+
           Text(
             es
                 ? 'Los cambios pendientes se envían al abrir la app o mientras está en primer plano. Los errores conservan tus datos.'
@@ -222,6 +248,57 @@ class FieldQueueScreen extends ConsumerWidget {
                             fit: BoxFit.contain,
                           ),
                         SelectableText(_operationDetails(row, es)),
+                        for (final upload
+                            in (row.payload['uploads'] as List? ?? const []))
+                          Padding(
+                            padding: const EdgeInsets.only(top: 8),
+                            child: Image.memory(
+                              base64Decode(upload['bytes'] as String),
+                              height: 160,
+                              fit: BoxFit.contain,
+                              errorBuilder: (_, __, ___) => Text(
+                                es
+                                    ? 'Archivo guardado no visible'
+                                    : 'Stored file cannot be previewed',
+                              ),
+                            ),
+                          ),
+                        if ([
+                              'request_submission',
+                              'report_submission',
+                            ].contains(row.kind) &&
+                            (row.needsAttention || row.status == 'cancelled'))
+                          TextButton(
+                            onPressed: () async {
+                              final queue = ref.read(fieldWorkQueueProvider);
+                              if (queue == null) return;
+                              final key = await restoreSubmissionDraft(
+                                queue,
+                                row,
+                              );
+                              if (!context.mounted) return;
+                              await Navigator.of(context).push(
+                                MaterialPageRoute<void>(
+                                  builder: (_) =>
+                                      row.kind == 'request_submission'
+                                      ? ServiceRequestFormScreen(
+                                          draftStorageKey: key,
+                                        )
+                                      : ServiceReportScreen(
+                                          initialWorkOrderId:
+                                              row.payload['p_data']['work_order_id']
+                                                  as String,
+                                          draftStorageKey: key,
+                                        ),
+                                ),
+                              );
+                            },
+                            child: Text(
+                              es
+                                  ? 'Corregir envío guardado'
+                                  : 'Correct saved submission',
+                            ),
+                          ),
                         if (row.kind == 'apply_maintenance_field_action')
                           TextButton(
                             onPressed: () =>
@@ -231,7 +308,11 @@ class FieldQueueScreen extends ConsumerWidget {
                       ],
                     ),
                   ),
-                  if (row.needsAttention)
+                  if (row.needsAttention &&
+                      ![
+                        'request_submission',
+                        'report_submission',
+                      ].contains(row.kind))
                     TextButton(
                       onPressed: () async {
                         final confirmed = await showDialog<bool>(

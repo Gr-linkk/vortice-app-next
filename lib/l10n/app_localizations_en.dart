@@ -994,4 +994,54 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get tierPredictive => 'Predictive';
+
+  @override
+  String get issueInvoice => 'Issue invoice';
+
+  @override
+  String get voidInvoice => 'Void invoice';
+
+  @override
+  String get voidInvoiceReason => 'Reason for voiding';
+
+  @override
+  String get invoiceIssueExplanation =>
+      'Issuing freezes these details and makes the invoice visible to the customer. It does not email or deliver a file.';
+
+  @override
+  String get invoiceSharingExplanation =>
+      'Share the PDF or Excel file separately. Sharing does not confirm receipt.';
+
+  @override
+  String get invoiceVoidedExplanation =>
+      'This invoice is void. Generate a new draft from the same work order to correct it. The original remains in history.';
+
+  @override
+  String get invoiceStatusDraft => 'Draft';
+
+  @override
+  String get invoiceStatusIssued => 'Issued';
+
+  @override
+  String get invoiceStatusPaid => 'Paid';
+
+  @override
+  String get invoiceStatusVoided => 'Void';
+
+  @override
+  String get invoiceStatusUpdated => 'Invoice status updated.';
+
+  @override
+  String get invoiceFileError =>
+      'Could not create the invoice file. Refresh and retry.';
+
+  @override
+  String get invoiceRateError =>
+      'Live exchange rate unavailable. Try again when connected.';
+
+  @override
+  String get invoiceRateUpdated => 'Exchange rate updated.';
+
+  @override
+  String get partsAdjustment => 'Parts adjustment';
 }

@@ -106,8 +106,8 @@ select public.change_maintenance_job('a0060000-0000-4000-8000-000000000050',8,ge
 select pg_temp.assert_true((select (p->>'next_due_hours')::numeric=400 from jsonb_array_elements(public.maintenance_asset_context('a0060000-0000-4000-8000-000000000021')->'plans') p
  where p->>'id'='a0060000-0000-4000-8000-000000000042'),'reopening cannot advance service twice');
 select set_config('request.jwt.claim.sub','a0060000-0000-4000-8000-000000000005',true);
-select pg_temp.expect_error($q$insert into public.invoices(work_order_id,client_id,invoice_number)
- values('a0060000-0000-4000-8000-000000000030','a0060000-0000-4000-8000-000000000001','INTERNAL-DENIED')$q$,'row-level security');
+select pg_temp.expect_error($q$insert into public.invoices(work_order_id,client_id,invoice_number,labour_hours,billable_rate_usd,labour_total_usd,parts_total_usd,consumables_total_usd,exchange_rate)
+ values('a0060000-0000-4000-8000-000000000030','a0060000-0000-4000-8000-000000000001','INTERNAL-DENIED',0,60,0,0,0,20)$q$,'row-level security');
 select pg_temp.expect_error($q$insert into public.parts(work_order_id,description,quantity,unit_cost)
  values('a0060000-0000-4000-8000-000000000030','Bypass',1,5)$q$,'row-level security');
 -- Checklist snapshots and evidence are server-validated, not UI conventions.

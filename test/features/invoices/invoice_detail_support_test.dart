@@ -38,20 +38,20 @@ void main() {
       expect(isInvoiceEditingLocked(InvoiceStatus.paid), isTrue);
     });
 
-    test('allows draft and voided invoices', () {
+    test('only drafts can be edited', () {
       expect(isInvoiceEditingLocked(InvoiceStatus.draft), isFalse);
-      expect(isInvoiceEditingLocked(InvoiceStatus.voided), isFalse);
+      expect(isInvoiceEditingLocked(InvoiceStatus.voided), isTrue);
     });
   });
 
   group('canMarkInvoicePaidFromList', () {
-    test('allows owners to mark draft or sent invoices paid', () {
+    test('requires issue before owners can mark paid', () {
       expect(
         canMarkInvoicePaidFromList(
           role: UserRole.owner,
           status: InvoiceStatus.draft,
         ),
-        isTrue,
+        isFalse,
       );
       expect(
         canMarkInvoicePaidFromList(

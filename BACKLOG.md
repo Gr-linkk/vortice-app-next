@@ -14,9 +14,27 @@ Apply native light/dark themes, saved System/Light/Dark settings, fine offline
 equipment art, work-first Home, schedule-first Planning and form/navigation
 refinements. Preserve the concurrent NOW-016 workflow fixes. Scope and acceptance:
 `docs/specs/NOW-017-field-notes-ui.md`; accepted decision 0013.
-Native UI verification passes: clean analysis, 499 tests and 204 existing skips.
-Light/dark native renders include Spanish and enlarged text. Combined packaging
-with NOW-016 is pending; physical device acceptance is separate.
+Integrated NOW-016 and packaged Build 20 (`1.10.0+20`). Combined verification
+passes: clean analysis, 506 tests and 204 existing skips. Connected audits pass
+130 role/routes in each appearance. Native renders include Spanish and enlarged
+text. APK identity, signature and Next services are verified; physical device
+acceptance is separate. Garrett subsequently requested Build 20 in S24 Downloads.
+
+### NOW-016 — Existing workflow closeout
+
+Finish and stabilize existing invoicing, saves, evidence recovery, offline access,
+notifications and customer UI before adding features. Scope and fresh acceptance
+evidence: `docs/specs/NOW-016-existing-workflow-closeout.md`. Build and inspect an
+internal Android APK; do not transfer or publish it.
+
+Implemented and packaged as Build 19 (`1.9.1+19`). Four Next migrations and the
+event-specific notification titles are deployed. Clean analysis, 474 Flutter
+tests (204 existing skips), 17 local/hosted SQL suites, connected workflows and
+130 route checks passed; the saved workflow timing assertion was corrected and
+its full journey rerun successfully. Exact test fixtures were removed. APK
+identity/signature/hash are checked; no transfer or installation occurred.
+Garrett confirmed existing phone alert receipt. Build 19 physical acceptance is
+pending his morning testing; exact steps and release dependencies are in the spec.
 
 ### NOW-015 — Checklist builder and connected PM/pre-operation workflows
 

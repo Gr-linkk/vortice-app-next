@@ -2047,6 +2047,96 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Predictive'**
   String get tierPredictive;
+
+  /// No description provided for @issueInvoice.
+  ///
+  /// In en, this message translates to:
+  /// **'Issue invoice'**
+  String get issueInvoice;
+
+  /// No description provided for @voidInvoice.
+  ///
+  /// In en, this message translates to:
+  /// **'Void invoice'**
+  String get voidInvoice;
+
+  /// No description provided for @voidInvoiceReason.
+  ///
+  /// In en, this message translates to:
+  /// **'Reason for voiding'**
+  String get voidInvoiceReason;
+
+  /// No description provided for @invoiceIssueExplanation.
+  ///
+  /// In en, this message translates to:
+  /// **'Issuing freezes these details and makes the invoice visible to the customer. It does not email or deliver a file.'**
+  String get invoiceIssueExplanation;
+
+  /// No description provided for @invoiceSharingExplanation.
+  ///
+  /// In en, this message translates to:
+  /// **'Share the PDF or Excel file separately. Sharing does not confirm receipt.'**
+  String get invoiceSharingExplanation;
+
+  /// No description provided for @invoiceVoidedExplanation.
+  ///
+  /// In en, this message translates to:
+  /// **'This invoice is void. Generate a new draft from the same work order to correct it. The original remains in history.'**
+  String get invoiceVoidedExplanation;
+
+  /// No description provided for @invoiceStatusDraft.
+  ///
+  /// In en, this message translates to:
+  /// **'Draft'**
+  String get invoiceStatusDraft;
+
+  /// No description provided for @invoiceStatusIssued.
+  ///
+  /// In en, this message translates to:
+  /// **'Issued'**
+  String get invoiceStatusIssued;
+
+  /// No description provided for @invoiceStatusPaid.
+  ///
+  /// In en, this message translates to:
+  /// **'Paid'**
+  String get invoiceStatusPaid;
+
+  /// No description provided for @invoiceStatusVoided.
+  ///
+  /// In en, this message translates to:
+  /// **'Void'**
+  String get invoiceStatusVoided;
+
+  /// No description provided for @invoiceStatusUpdated.
+  ///
+  /// In en, this message translates to:
+  /// **'Invoice status updated.'**
+  String get invoiceStatusUpdated;
+
+  /// No description provided for @invoiceFileError.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not create the invoice file. Refresh and retry.'**
+  String get invoiceFileError;
+
+  /// No description provided for @invoiceRateError.
+  ///
+  /// In en, this message translates to:
+  /// **'Live exchange rate unavailable. Try again when connected.'**
+  String get invoiceRateError;
+
+  /// No description provided for @invoiceRateUpdated.
+  ///
+  /// In en, this message translates to:
+  /// **'Exchange rate updated.'**
+  String get invoiceRateUpdated;
+
+  /// No description provided for @partsAdjustment.
+  ///
+  /// In en, this message translates to:
+  /// **'Parts adjustment'**
+  String get partsAdjustment;
 }
 
 class _AppLocalizationsDelegate

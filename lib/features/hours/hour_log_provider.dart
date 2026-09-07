@@ -1,3 +1,4 @@
+import 'package:vortice_app/core/retryable_rpc.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:vortice_app/core/constants.dart';
 import 'package:vortice_app/core/supabase_client.dart';
@@ -6,8 +7,10 @@ import 'package:vortice_app/models/hour_log.dart';
 
 // ── Fetch hour logs for an engine ──────────────────────────────────────────
 
-final hourLogsForEngineProvider =
-    FutureProvider.family<List<HourLog>, String>((ref, engineId) async {
+final hourLogsForEngineProvider = FutureProvider.family<List<HourLog>, String>((
+  ref,
+  engineId,
+) async {
   final remote = await supabase
       .from(AppConstants.tHourLogs)
       .select()
@@ -34,22 +37,12 @@ class HourLogController extends StateNotifier<AsyncValue<void>> {
     state = const AsyncLoading();
     bool success = false;
     state = await AsyncValue.guard(() async {
-      final userId = supabase.auth.currentUser!.id;
-
-      await supabase.from(AppConstants.tHourLogs).insert({
-        'engine_id': engineId,
-        'logged_by': userId,
-        'hours': hours,
-        'source': 'manual',
-        'notes': notes,
-      }).timeout(const Duration(seconds: 4));
-
-      // Update engine current_hours
-      await supabase
-          .from(AppConstants.tAssetEngines)
-          .update({'current_hours': hours})
-          .eq('id', engineId)
-          .timeout(const Duration(seconds: 4));
+      await authenticatedRetryableRpc().call('record_manual_meter', {
+        'p_engine': engineId,
+        'p_asset': assetId,
+        'p_hours': hours,
+        'p_notes': notes,
+      }, captureTime: true);
 
       _ref.invalidate(hourLogsForEngineProvider(engineId));
       _ref.invalidate(enginesForAssetProvider(assetId));
@@ -61,5 +54,5 @@ class HourLogController extends StateNotifier<AsyncValue<void>> {
 
 final hourLogControllerProvider =
     StateNotifierProvider<HourLogController, AsyncValue<void>>((ref) {
-  return HourLogController(ref);
-});
+      return HourLogController(ref);
+    });

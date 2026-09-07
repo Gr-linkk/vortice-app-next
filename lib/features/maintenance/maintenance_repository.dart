@@ -55,18 +55,25 @@ class SupabaseMaintenanceRepository implements MaintenanceRepository {
       _rpc(name, params);
   @override
   Future<List<MaintenanceJob>> jobs({String? jobId, String? assetId}) async {
+    final params = {
+      if (jobId != null) 'p_job': jobId,
+      if (assetId != null) 'p_asset': assetId,
+    };
     final rows = maintenanceRows(
-      await _read('maintenance_jobs', {
-        if (jobId != null) 'p_job': jobId,
-        if (assetId != null) 'p_asset': assetId,
-      }),
+      cache == null
+          ? await _rpc('maintenance_jobs', params)
+          : await cache!.readThrough(
+              'maintenance_jobs:${jsonEncode(params)}',
+              () => _rpc('maintenance_jobs', params),
+              derivedValues: (data) => {
+                for (final row in maintenanceRows(data))
+                  'maintenance_jobs:${jsonEncode({'p_job': row['id']})}': [row],
+              },
+              replaceDerivedPrefix: jobId == null && assetId == null
+                  ? 'maintenance_jobs:{"p_job":'
+                  : null,
+            ),
     );
-    for (final row in rows) {
-      await cache?.save(
-        'maintenance_jobs:${jsonEncode({'p_job': row['id']})}',
-        [row],
-      );
-    }
     final operations = await queue?.list() ?? [];
     return rows
         .map((row) => projectMaintenanceFieldWork(row, operations))
