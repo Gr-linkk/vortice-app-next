@@ -301,6 +301,11 @@ abstract final class AppTheme {
         helperMaxLines: 4,
         errorMaxLines: 4,
       ),
+      floatingActionButtonTheme: FloatingActionButtonThemeData(
+        backgroundColor: c.primary,
+        foregroundColor: c.onPrimary,
+        extendedTextStyle: buttonText,
+      ),
       filledButtonTheme: FilledButtonThemeData(
         style: FilledButton.styleFrom(
           backgroundColor: c.primary,

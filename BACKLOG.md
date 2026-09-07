@@ -19,6 +19,9 @@ existing skips), 18 local SQL suites and native artwork/form checks pass.
 The catalog is active on Vortice Next; hosted checks confirm all 32 choices and
 preservation of the original 13 rows. Build 21 is delivered to S24 Downloads with
 matching SHA-256. Physical-device acceptance remains separate; see the spec.
+Follow-up adds LV / Light Vehicle and Highway Truck (34 types total) and fixes
+floating-button text/icon contrast throughout the app. Clean analysis, 535
+Flutter tests, and local/hosted catalog checks pass for Build 22; see the spec.
 
 ### NOW-017 — Field Notes UI and saved appearance
 

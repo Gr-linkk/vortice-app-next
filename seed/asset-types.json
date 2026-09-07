@@ -190,5 +190,17 @@
     "category": "Lifting Equipment",
     "name": "Davit",
     "tracking_unit": "engine_hours"
+  },
+  {
+    "id": "00000000-0000-0000-0000-000000000021",
+    "category": "Road Vehicles",
+    "name": "LV / Light Vehicle",
+    "tracking_unit": "engine_hours"
+  },
+  {
+    "id": "00000000-0000-0000-0000-000000000022",
+    "category": "Road Vehicles",
+    "name": "Highway Truck",
+    "tracking_unit": "engine_hours"
   }
 ]

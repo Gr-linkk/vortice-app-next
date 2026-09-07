@@ -33,7 +33,13 @@ enum EquipmentArt {
   roadRoller('Road Roller', 'Rodillo compactador', 'road-roller.png'),
   mobileCrane('Mobile Crane', 'Grúa móvil', 'mobile-crane.png'),
   towerCrane('Tower Crane', 'Grúa torre', 'tower-crane.png'),
-  davit('Davit', 'Pescante', 'davit.png');
+  davit('Davit', 'Pescante', 'davit.png'),
+  lightVehicle(
+    'LV / Light Vehicle',
+    'LV / Vehículo ligero',
+    'light-vehicle.png',
+  ),
+  highwayTruck('Highway Truck', 'Camión de carretera', 'highway-truck.png');
 
   const EquipmentArt(this.label, this.spanishLabel, [this.file]);
   final String label;
@@ -106,6 +112,8 @@ const _seedTypes = <String, EquipmentArt>{
   '00000000-0000-0000-0000-00000000001e': EquipmentArt.mobileCrane,
   '00000000-0000-0000-0000-00000000001f': EquipmentArt.towerCrane,
   '00000000-0000-0000-0000-000000000020': EquipmentArt.davit,
+  '00000000-0000-0000-0000-000000000021': EquipmentArt.lightVehicle,
+  '00000000-0000-0000-0000-000000000022': EquipmentArt.highwayTruck,
 };
 
 const _namedTypes = <String, EquipmentArt>{
@@ -149,6 +157,10 @@ const _namedTypes = <String, EquipmentArt>{
   'mobile crane': EquipmentArt.mobileCrane,
   'tower crane': EquipmentArt.towerCrane,
   'davit': EquipmentArt.davit,
+  'lv / light vehicle': EquipmentArt.lightVehicle,
+  'lv': EquipmentArt.lightVehicle,
+  'light vehicle': EquipmentArt.lightVehicle,
+  'highway truck': EquipmentArt.highwayTruck,
 };
 
 /// [typeName] must be the selected catalog type, never an asset's display name.

@@ -19,7 +19,9 @@ insert into expected_equipment values
  ('00000000-0000-0000-0000-00000000001d', 'Road Roller', 'Heavy Equipment'),
  ('00000000-0000-0000-0000-00000000001e', 'Mobile Crane', 'Lifting Equipment'),
  ('00000000-0000-0000-0000-00000000001f', 'Tower Crane', 'Lifting Equipment'),
- ('00000000-0000-0000-0000-000000000020', 'Davit', 'Lifting Equipment');
+ ('00000000-0000-0000-0000-000000000020', 'Davit', 'Lifting Equipment'),
+ ('00000000-0000-0000-0000-000000000021', 'LV / Light Vehicle', 'Road Vehicles'),
+ ('00000000-0000-0000-0000-000000000022', 'Highway Truck', 'Road Vehicles');
 do $$ begin
  if exists (select 1 from expected_equipment e left join public.asset_types t on t.id=e.id
   where t.id is null or t.name<>e.name or t.category<>e.category or t.tracking_unit<>'engine_hours')
@@ -31,7 +33,7 @@ select set_config('request.jwt.claim.sub','01800000-0000-0000-0000-000000000001'
 select set_config('request.jwt.claim.role','authenticated',true);
 select set_config('request.jwt.claims','{"sub":"01800000-0000-0000-0000-000000000001","role":"authenticated"}',true);
 do $$ begin
- if (select count(*) from public.asset_types t join expected_equipment e on e.id=t.id)<>19
+ if (select count(*) from public.asset_types t join expected_equipment e on e.id=t.id)<>21
  then raise exception 'Authenticated users must be able to select every new equipment type'; end if;
 end $$;
 reset role;

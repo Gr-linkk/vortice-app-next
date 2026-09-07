@@ -27,6 +27,29 @@ Add/edit asset type rows show the matching drawing beside the type name.
 
 ## Acceptance
 
+### Requested road-vehicle and button follow-up
+
+Added LV / Light Vehicle and Highway Truck as distinct Road Vehicles choices,
+bringing the standard catalog to 34. Both have dedicated bundled illustrations
+and stable IDs ending in 021 and 022. LV also resolves by its abbreviation.
+The additive migration preserves all 32 existing hosted rows. Tracking remains
+engine hours under the current maintenance model.
+
+The Add Asset floating button set a primary background without a matching
+foreground, producing unreadable inherited text and icons in both appearances.
+The shared floating-action-button theme now pairs primary with onPrimary. This
+also fixes the same pattern in clients, requests, work orders, hours, engines,
+parts, service intervals, organization codes and team actions. Default floating
+buttons use the same pair throughout maintenance, reports, invoices and faults.
+Regular filled, elevated, outlined and text buttons, including success/error
+variants, passed contrast checks before, during and after pressing.
+
+Build 22 (`1.11.1+22`) verification: clean analysis, 535 Flutter tests passed
+(204 existing skips), local and hosted catalog contracts passed. The regression
+first reproduced the incorrect foreground in both themes. Native light/dark
+render checks passed. Evidence: `outputs/NOW018-followup/`. Device acceptance
+remains separate from these automated checks.
+
 - Existing catalog rows and asset links are unchanged; applying the new seed
   again does not create duplicates or overwrite owner edits.
 - All 32 standard types have distinct mapped drawings, packaged in the app.

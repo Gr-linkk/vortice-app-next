@@ -17,7 +17,7 @@ void main() {
           .cast<Map<String, dynamic>>();
 
   test('every standard catalog type has its own stable ID and artwork', () {
-    expect(catalog, hasLength(32));
+    expect(catalog, hasLength(34));
     expect(catalog.map((row) => row['id']).toSet(), hasLength(catalog.length));
     final drawings = <EquipmentArt>{};
     for (final row in catalog) {
@@ -85,7 +85,7 @@ void main() {
       await font.load();
     });
     for (final dark in [false, true]) {
-      for (var page = 0; page < 4; page++) {
+      for (var page = 0; page < (catalog.length / 8).ceil(); page++) {
         testWidgets('catalog ${dark ? 'dark' : 'light'} page $page', (
           tester,
         ) async {
