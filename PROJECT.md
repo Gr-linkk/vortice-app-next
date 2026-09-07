@@ -62,6 +62,11 @@ activation and device review are tracked separately from the internal build.
 
 Detailed client-access terminology and rules live in `CONTEXT.md`.
 
+Scoped agent access is tracked in NOW-019 and decision 0014. Named, expiring
+fleet grants expose maintenance summaries and unassigned managed drafts through
+a restricted API and local MCP adapter. The More screen manages connections,
+owner MFA verification, revocation and activity. Hosted activation is separate.
+
 Field reliability, private evidence, Android notification delivery and password
 recovery are specified in `docs/specs/NOW-011-field-reliability.md`, with durable
 ownership and delivery rules in `docs/decisions/0008-field-reliability.md`.
