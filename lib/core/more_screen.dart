@@ -44,20 +44,6 @@ class _MoreScreenState extends ConsumerState<MoreScreen> {
         padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
         children: [
           ListTile(
-            leading: const Icon(Icons.settings_outlined),
-            title: Text(es ? 'Configuración' : 'Settings'),
-            subtitle: Text(
-              es
-                  ? 'Apariencia: claro, oscuro o sistema'
-                  : 'Appearance: Light, Dark or System',
-            ),
-            onTap: () => Navigator.of(context).push(
-              MaterialPageRoute<void>(
-                builder: (_) => const AppearanceSettingsScreen(),
-              ),
-            ),
-          ),
-          ListTile(
             leading: const Icon(Icons.cloud_upload_outlined),
             title: Text(
               es ? 'Guardado y sincronización' : 'Saved work and sync',
@@ -134,6 +120,39 @@ class _MoreScreenState extends ConsumerState<MoreScreen> {
           if (query.isEmpty) ...[
             const SizedBox(height: 20),
             Text(
+              es ? 'Configuración' : 'Settings',
+              style: Theme.of(context).textTheme.titleMedium,
+            ),
+            Card(
+              child: Column(
+                children: [
+                  ListTile(
+                    leading: const Icon(Icons.palette_outlined),
+                    title: Text(es ? 'Apariencia' : 'Appearance'),
+                    subtitle: Text(
+                      es ? 'Claro, oscuro o sistema' : 'Light, Dark or System',
+                    ),
+                    trailing: const Icon(Icons.chevron_right),
+                    onTap: () => Navigator.of(context).push(
+                      MaterialPageRoute<void>(
+                        builder: (_) => const AppearanceSettingsScreen(),
+                      ),
+                    ),
+                  ),
+                  ListTile(
+                    leading: const Icon(Icons.language),
+                    title: Text(es ? 'Idioma / Language' : 'Language / Idioma'),
+                    subtitle: Text(es ? 'Español' : 'English'),
+                    trailing: Text(es ? 'English' : 'Español'),
+                    onTap: () => ref
+                        .read(localeProvider.notifier)
+                        .setLocale(Locale(es ? 'en' : 'es')),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 20),
+            Text(
               es ? 'Tu cuenta' : 'Your account',
               style: Theme.of(context).textTheme.titleMedium,
             ),
@@ -144,15 +163,6 @@ class _MoreScreenState extends ConsumerState<MoreScreen> {
                     leading: const Icon(Icons.person_outline),
                     title: Text(profile.fullName),
                     subtitle: Text(profile.email),
-                  ),
-                  ListTile(
-                    leading: const Icon(Icons.language),
-                    title: Text(es ? 'Idioma / Language' : 'Language / Idioma'),
-                    subtitle: Text(es ? 'Español' : 'English'),
-                    trailing: Text(es ? 'English' : 'Español'),
-                    onTap: () => ref
-                        .read(localeProvider.notifier)
-                        .setLocale(Locale(es ? 'en' : 'es')),
                   ),
                   ListTile(
                     leading: const Icon(Icons.logout),
