@@ -45,8 +45,10 @@ class FixtureAgentRepository implements AgentAccessRepository {
   Future<Map<String, dynamic>> create(
     String fleet,
     String name,
-    bool drafts,
-  ) async {
+    bool drafts, {
+    bool documents = false,
+    bool management = false,
+  }) async {
     creations.add({'fleet': fleet, 'name': name, 'drafts': drafts});
     if (error != null) throw error!;
     if (pending != null) return pending!.future;

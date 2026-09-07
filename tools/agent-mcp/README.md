@@ -1,72 +1,78 @@
 # Vortice Next agent connector
 
-This local stdio MCP server requires Node 22+ and has no package dependencies.
-It connects only to the independent Next project through the narrow
-`agent_execute` API. It is not a remote HTTP MCP/OAuth server.
+Local stdio MCP, Node 22+, no package dependencies. Uses only the independent
+Next project. A vision-capable host is required to read scanned page images.
 
-## Activation order
+## Connect
 
-1. Review/test NOW-019 and deploy its migration to Next through the guarded
-   project workflow. The adapter does not deploy anything. Apply normal hosted
-   perimeter request limits before enabling client connections.
-2. Install a build containing Agent access. In **More > Agent access**, select
-   a fleet, name the connection, choose summaries or summaries plus drafts,
-   and authorize the named agent/provider to receive fleet data.
-   Owners must first verify with an authenticator. The screen supports TOTP
-   setup by manual key entry and existing TOTP factors. New MFA setup may sign
-   out other sessions; retain the authenticator for subsequent logins. Removing
-   the owner's verified factors blocks existing owner connections.
-3. Save the one-time connection key in your MCP host's secret configuration.
-   Do not paste it into a chat, repository, command argument, or shared config.
-   Review the chosen AI provider's retention and privacy settings first.
-4. Configure the host to run `node` with the absolute path to `server.mjs`.
-   Supply these environment variables using its secret facility:
+Deploy the migrations and `agent-document-page` function following
+`docs/specs/NOW-019-agent-access.md`, then install a build containing this work.
+In More > Agent access select the fleet, name the connection and choose separate
+permissions for work-order drafts, document/plan drafts and work management.
+Owners verify an authenticator. Save the one-time key in the trusted MCP host's
+secret configuration and run `node` with the absolute path to `server.mjs`.
 
-   - `VORTICE_NEXT_URL`: `https://hkjpojobdbbtjkhaudki.supabase.co`
-   - `VORTICE_NEXT_PUBLIC_KEY`: this project's publishable or legacy anon key
-   - `VORTICE_AGENT_TOKEN`: the scoped connection key
+Environment variables:
 
-The server refuses another project URL, service-role keys and redirects. It
-does not read a full user session or any database administrator credentials.
-No real keys belong in MCP JSON checked into source control. Environment storage
-inherits the security of the local host/user account; use a trusted machine.
+- `VORTICE_NEXT_URL`: `https://hkjpojobdbbtjkhaudki.supabase.co`
+- `VORTICE_NEXT_PUBLIC_KEY`: the Next publishable/anon key
+- `VORTICE_AGENT_TOKEN`: the scoped connection key
 
-## Tools and workflow
+Never put real keys in chat, command arguments or committed configuration. The
+adapter rejects another project, service-role keys and redirects. The image
+proxy's server-only Storage credential is never supplied to the host. This is
+manual stdio integration, not a remote HTTP MCP/OAuth server.
 
-`vortice_maintenance_summary({page: 0})` returns up to 25 assets per page with
-names, open managed work counts and up to 50 active hour-based plans each.
-Follow `next_page` until null. It does not estimate calendar due dates without
-usage data. More than 50 plans per asset must be reviewed in Vortice.
+## Tools
 
-`vortice_create_work_order_draft({operation_id, asset_id, title, ...})` creates
-an actual unassigned managed draft in **Work**. It supports job type, instructions,
-component, service plan, priority and expected materials. It cannot assign,
-schedule, complete, approve, invoice or edit permissions. Preserve the UUID and
-exact input on retries. Changed input with the same ID is rejected.
+| Tool suffix (all prefixed `vortice_`) | Purpose |
+| --- | --- |
+| `maintenance_summary` | Paginated equipment and hour-based plan summary |
+| `documents` | List uploaded source documents in the selected fleet |
+| `document_page` | Return one source page as native MCP image content |
+| `work_order_context` | Current component hours, meter dates, task baselines, approved services, open work, revisions, eligible people and published PM templates |
+| `create_checklist_draft` | Source-referenced PM/pre-op checklist for human publication |
+| `create_plan_draft` | Source-referenced hours-based plan proposal for human editing/activation |
+| `create_work_order_draft` | Unassigned managed work order, optionally using a published checklist |
+| `edit_work_order` | Edit complete scope before work starts |
+| `assign_work_order` | Assign an eligible person using the current revision |
+| `schedule_work_order` | Set schedule/assignee/priority; overlaps are rejected |
 
-Connection permissions are intersected with current authorizer access. Clients
-need the existing `pm_checklists` capability to create drafts. Owner connections
-are also confined to the selected fleet. Each key expires after seven days.
-There are at most ten live keys per user, 60 recorded actions per minute per key
-and 20 draft creations per rolling day per key. The platform still needs an
-external limit for unauthenticated/invalid-key traffic.
+Discover exact schemas through `tools/list`. Source tools need document permission;
+work management needs its separate opt-in. Permissions are intersected with the
+authorizer's current role and capabilities. No tool completes/signs/approves work,
+publishes procedures, activates plans, invoices, or changes access.
 
-## Disconnect and evidence
+## Manual-to-plan workflow
 
-The app lists connections and the most recent 100 activity events. Disconnect
-one connection, the selected fleet, or (owner only) all current connections.
-These actions revoke existing grants, not a permanent ban on creating new ones.
-In-flight SQL actions serialize with revocation; once disconnect returns,
-subsequent calls fail. Data already delivered to a third-party agent cannot be
-recalled. Disconnect does not delete valid work-order drafts.
+1. Upload clearly titled manual pages through the app's Maintenance documents.
+2. Read all relevant pages and `work_order_context` for the equipment. Follow
+   pagination/truncation warnings; never assume an omitted record does not exist.
+3. Compare manual intervals with current component hours and the matching task's
+   last service. Missing/stale readings or history need user verification. Do not
+   apply one task's baseline to all services. Never invent specifications.
+4. Submit checklist and plan drafts with page numbers and short exact quotes.
+   Optionally link a PM checklist proposal or an existing plan to update. Flag
+   calendar/mixed requirements in notes; automatic scheduling is hours-based.
+5. The person reviews source pages, edits/publishes the checklist, then reviews
+   and activates the plan in the app. New plans require an explicit last-service
+   baseline and confirmation of current hours. The agent cannot supply fictional
+   service history or bypass this review.
+6. With permission, create work, refresh its context, then assign or schedule it.
 
-The API can also be used directly via POST `/rest/v1/rpc/agent_execute`, using
-the public key in `apikey` and a JSON body containing `p_token`, `p_action`,
-`p_input`, and `p_operation` (UUID for drafts). Never put the connection key in
-the URL. Do not log request bodies containing it. HTTP 200 can contain an
-`error` envelope: callers must check it, as this MCP adapter does.
+All writes require a stable operation UUID. Preserve the exact UUID and payload
+after an uncertain response. Refresh a revision conflict before submitting a new
+intent. Edit/schedule tools replace their complete fields: read current values
+first and supply values to preserve; empty schedule strings clear those fields.
 
-Run adapter tests: `node --test tools/agent-mcp/server.test.mjs`.
-Run SQL tests: `bash scripts/test-database.sh supabase/tests/agent_access.sql`.
-Run local race tests: `bash tools/agent-mcp/test-concurrency.sh`.
-Run Flutter checks with the repository's guarded verification helper.
+## Disconnect and tests
+
+Keys expire in seven days. Disconnect one key, the selected fleet or all current
+keys (owner). SQL writes serialize against revocation. Already delivered data
+cannot be recalled. Disconnect does not remove valid drafts or scheduled work.
+Activity appears in the app with links to review drafts or open work orders.
+
+Run `node --test tools/agent-mcp/server.test.mjs supabase/functions/agent-document-page/handler.test.mjs`.
+Run `bash scripts/test-database.sh` and `bash tools/agent-mcp/test-concurrency.sh`.
+Run Flutter checks through `scripts/verify.cmd`. These tests do not prove a real
+MCP host, manual interpretation, hosted Edge/Storage or phone acceptance.

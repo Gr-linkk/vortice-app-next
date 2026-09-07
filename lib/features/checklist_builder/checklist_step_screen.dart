@@ -47,11 +47,13 @@ class _ChecklistStepScreenState extends State<ChecklistStepScreen> {
   void _save() {
     if (!_form.currentState!.validate()) return;
     Navigator.pop(context, <String, dynamic>{
+      ...widget.initial,
       'description_en': _text['description_en']!.text.trim(),
       'description_es': _text['description_es']!.text.trim(),
       'category': _text['category']!.text.trim(),
       'requires_photo': _photo,
       'definition': {
+        ...?widget.initial['definition'] as Map<String, dynamic>?,
         'input_type': _type,
         'critical': _critical,
         'allow_na': _na,

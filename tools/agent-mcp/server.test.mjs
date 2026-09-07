@@ -32,7 +32,7 @@ test('protocol initialization, discovery and notification silence', async () => 
   const handler = createHandler(configuration(env), () => { throw new Error('must not fetch'); });
   assert.equal((await handler(req('tools/list'))).error.code, -32000);
   assert.equal((await handler(init)).result.protocolVersion, '2025-11-25');
-  assert.equal((await handler(req('tools/list'))).result.tools.length, 2);
+  assert.equal((await handler(req('tools/list'))).result.tools.length, 10);
   assert.equal(await handler({ jsonrpc: '2.0', method: 'notifications/initialized' }), null);
   assert.equal((await handler(req('resources/read'))).error.code, -32601);
   assert.equal((await handler([])).error.code, -32600);
@@ -107,7 +107,7 @@ test('stdio supports fragmented UTF8, multiple messages and malformed JSON', asy
 });
 
 test('oversized unterminated input is stopped', async () => {
-  await assert.rejects(serve(Readable.from(['x'.repeat(16385)]), new PassThrough(), () => {}), /too large/);
+  await assert.rejects(serve(Readable.from(['x'.repeat(131073)]), new PassThrough(), () => {}), /too large/);
 });
 
 test('real process speaks MCP over stdin/stdout and cleanly rejects bad configuration', () => {
@@ -115,9 +115,72 @@ test('real process speaks MCP over stdin/stdout and cleanly rejects bad configur
   const result = spawnSync(process.execPath, [path], { env, encoding: 'utf8', input: `${JSON.stringify(init)}\n${JSON.stringify(req('tools/list'))}\n` });
   assert.equal(result.status, 0, result.stderr);
   assert.equal(result.stderr, '');
-  assert.equal(result.stdout.trim().split('\n').map(JSON.parse)[1].result.tools.length, 2);
+  assert.equal(result.stdout.trim().split('\n').map(JSON.parse)[1].result.tools.length, 10);
   const bad = spawnSync(process.execPath, [path], { env: { ...env, VORTICE_AGENT_TOKEN: 'bad-secret' }, encoding: 'utf8' });
   assert.equal(bad.status, 1);
   assert.ok(!bad.stderr.includes('bad-secret'));
   assert.equal(bad.stdout, '');
+});
+
+test('document page returns native MCP image content through the fixed proxy', async () => {
+  const calls = [];
+  const bytes = Buffer.from([137,80,78,71,13,10,26,10]);
+  const handler = createHandler(configuration(env), async (url, options) => {
+    calls.push({ url, body: JSON.parse(options.body) });
+    return new Response(bytes, { headers: { 'Content-Type': 'image/png' } });
+  });
+  await handler(init);
+  const response = await handler(req('tools/call', { name: 'vortice_document_page', arguments: { document_id: args.asset_id, page: 1 } }));
+  assert.equal(response.result.content[1].type, 'image');
+  assert.equal(response.result.content[1].data, bytes.toString('base64'));
+  assert.equal(calls[0].url, `${env.VORTICE_NEXT_URL}/functions/v1/agent-document-page`);
+  assert.equal(calls[0].body.token, env.VORTICE_AGENT_TOKEN);
+  assert.ok(!JSON.stringify(response).includes(env.VORTICE_AGENT_TOKEN));
+});
+
+test('source draft nested validation rejects injected fields and preserves quotes', async () => {
+  const calls = [];
+  const handler = createHandler(configuration(env), async (_, options) => {
+    calls.push(JSON.parse(options.body));
+    return Response.json({ data: { procedure_id: args.asset_id, status: 'draft' } });
+  });
+  await handler(init);
+  const input = { operation_id: args.operation_id, asset_id: args.asset_id, document_id: args.asset_id,
+    name: 'Cooling system', checklist_type: 'operator_daily', items: [{ description_en: 'Inspect coolant when cold', source_page: 1,
+      source_quote: 'Only open when cold', definition: { critical: true, input_type: 'check' } }] };
+  const call = arguments_ => handler(req('tools/call', { name: 'vortice_create_checklist_draft', arguments: arguments_ }));
+  assert.equal((await call({ ...input, items: [{ ...input.items[0], definition: { execute: 'delete_all' } }] })).error.code, -32602);
+  assert.equal((await call({ ...input, items: [{ ...input.items[0], source_page: 31 }] })).error.code, -32602);
+  assert.equal((await call({ ...input, items: [] })).error.code, -32602);
+  assert.equal(calls.length, 0);
+  assert.equal((await call(input)).result.isError, false);
+  assert.equal(calls[0].p_action, 'create_checklist_draft');
+  assert.equal(calls[0].p_input.items[0].source_quote, input.items[0].source_quote);
+  assert.equal(calls[0].p_operation, input.operation_id);
+});
+
+test('management tools require revisions and do not expose completion or overlap overrides', async () => {
+  const calls = [];
+  const handler = createHandler(configuration(env), async (_, options) => { calls.push(JSON.parse(options.body)); return Response.json({ data: {} }); });
+  await handler(init);
+  const input = { operation_id: args.operation_id, work_order_id: args.asset_id, revision: 4, assigned_to: args.asset_id };
+  assert.equal((await handler(req('tools/call', { name: 'vortice_assign_work_order', arguments: input }))).result.isError, false);
+  assert.equal(calls[0].p_input.revision, 4);
+  assert.equal(calls[0].p_action, 'assign_work_order');
+  assert.equal((await handler(req('tools/call', { name: 'vortice_assign_work_order', arguments: { ...input, revision: null } }))).error.code, -32602);
+  assert.equal((await handler(req('tools/call', { name: 'vortice_complete_work_order', arguments: input }))).error.code, -32602);
+});
+
+test('plan proposal accepts sourced hours but forbids invented equipment service history', async () => {
+  let body;
+  const handler = createHandler(configuration(env), async (_, options) => { body = JSON.parse(options.body); return Response.json({ data: { status:'draft' } }); });
+  await handler(init);
+  const input = { operation_id:args.operation_id,document_id:args.asset_id,asset_id:args.asset_id,engine_id:args.asset_id,
+    interval_label:'Cooling service',interval_hours:250,source_page:1,source_quote:'Service every 250 hours' };
+  const call = arguments_ => handler(req('tools/call',{name:'vortice_create_plan_draft',arguments:arguments_}));
+  assert.equal((await call({...input,last_service_hours:0})).error.code,-32602);
+  assert.equal((await call({...input,interval_hours:0})).error.code,-32602);
+  assert.equal((await call(input)).result.isError,false);
+  assert.equal(body.p_action,'create_plan_draft');
+  assert.equal(body.p_input.interval_hours,250);
 });

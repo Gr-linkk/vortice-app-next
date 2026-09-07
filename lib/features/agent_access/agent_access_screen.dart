@@ -5,6 +5,9 @@ import 'package:vortice_app/core/user_feedback.dart';
 import 'package:vortice_app/features/auth/auth_provider.dart';
 import 'package:vortice_app/models/profile.dart';
 import 'agent_access_repository.dart';
+import 'maintenance_documents_screen.dart';
+import 'agent_plan_review_screen.dart';
+import 'package:vortice_app/features/checklist_builder/checklist_builder_repository.dart';
 
 class AgentAccessScreen extends ConsumerWidget {
   const AgentAccessScreen({super.key});
@@ -35,6 +38,7 @@ class AgentAccessScreen extends ConsumerWidget {
       key: ValueKey(profile.id),
       repository: ref.watch(agentAccessRepositoryProvider),
       isOwner: profile.role == UserRole.owner,
+      onChecklistReview: () => ref.invalidate(checklistLibraryProvider),
     );
   }
 }
@@ -45,9 +49,11 @@ class AgentAccessPanel extends StatefulWidget {
     super.key,
     required this.repository,
     required this.isOwner,
+    this.onChecklistReview,
   });
   final AgentAccessRepository repository;
   final bool isOwner;
+  final VoidCallback? onChecklistReview;
 
   @override
   State<AgentAccessPanel> createState() => _AgentAccessPanelState();
@@ -62,6 +68,7 @@ class _AgentAccessPanelState extends State<AgentAccessPanel> {
   String? _secret;
   String? _error;
   bool _drafts = false;
+  bool _documents = false, _management = false;
   bool _trusted = false;
   bool _busy = false;
   int _generation = 0;
@@ -142,6 +149,8 @@ class _AgentAccessPanelState extends State<AgentAccessPanel> {
         _fleet!,
         _name.text.trim(),
         _drafts,
+        documents: _documents,
+        management: _management,
       );
       if (!mounted) return;
       setState(() {
@@ -284,19 +293,28 @@ class _AgentAccessPanelState extends State<AgentAccessPanel> {
 
   String _activity(Map<String, dynamic> event) => switch (event['outcome']) {
     'revoked' => t('Disconnected', 'Desconectado'),
-    'read' => t(
-      'Maintenance summary read',
-      'Resumen de mantenimiento consultado',
-    ),
+    'read' => t('Fleet information read', 'Información de flota consultada'),
     'replayed' => t(
-      'Draft retry; no duplicate created',
-      'Reintento de borrador sin duplicados',
+      'Retry; no duplicate change',
+      'Reintento sin cambios duplicados',
     ),
     'rejected' => t('Request rejected', 'Solicitud rechazada'),
     _ =>
       event['action'] == 'connection'
           ? t('Connected', 'Conectado')
-          : t('Work-order draft created', 'Borrador de orden creado'),
+          : event['action'] == 'create_plan_draft'
+          ? t(
+              'Maintenance plan ready for review',
+              'Plan de mantenimiento listo para revisar',
+            )
+          : event['action'] == 'create_checklist_draft'
+          ? t(
+              'Checklist draft ready for review',
+              'Borrador de lista listo para revisar',
+            )
+          : event['action'] == 'create_work_order_draft'
+          ? t('Work-order draft created', 'Borrador de orden creado')
+          : t('Work order updated', 'Orden de trabajo actualizada'),
   };
 
   @override
@@ -481,6 +499,31 @@ class _AgentAccessPanelState extends State<AgentAccessPanel> {
               ),
             ),
           const SizedBox(height: 12),
+          if (_fleet != null)
+            OutlinedButton.icon(
+              onPressed: _busy
+                  ? null
+                  : () => Navigator.push(
+                      context,
+                      MaterialPageRoute<void>(
+                        builder: (_) => MaintenanceDocumentsScreen(
+                          fleet: _fleet!,
+                          fleetName:
+                              rows(
+                                    'fleets',
+                                  ).firstWhere((f) => f['id'] == _fleet)['name']
+                                  as String,
+                        ),
+                      ),
+                    ),
+              icon: const Icon(Icons.document_scanner_outlined),
+              label: Text(
+                t(
+                  'Scan maintenance documents',
+                  'Escanear documentos de mantenimiento',
+                ),
+              ),
+            ),
           TextField(
             controller: _name,
             enabled: !_busy,
@@ -508,8 +551,49 @@ class _AgentAccessPanelState extends State<AgentAccessPanel> {
             ),
             subtitle: Text(
               t(
-                'Creates unassigned drafts for review in Work. Cannot assign, close work or issue invoices.',
-                'Crea borradores sin asignar para revisar en Trabajo. No puede asignar, cerrar órdenes ni emitir facturas.',
+                'Creates unassigned drafts for review in Work.',
+                'Crea borradores sin asignar para revisar en Trabajo.',
+              ),
+            ),
+          ),
+          SwitchListTile(
+            contentPadding: EdgeInsets.zero,
+            value: _documents,
+            onChanged: _busy
+                ? null
+                : (v) => setState(() {
+                    _documents = v;
+                    _trusted = false;
+                  }),
+            title: Text(
+              t(
+                'Allow documents and maintenance drafts',
+                'Permitir documentos y borradores de mantenimiento',
+              ),
+            ),
+            subtitle: Text(
+              t(
+                'Reads manuals and drafts maintenance plans, PM checks and pre-ops. You review, edit and activate them in the app.',
+                'Lee manuales y prepara planes, listas PM y preoperativas. Tú los revisas, editas y activas en la app.',
+              ),
+            ),
+          ),
+          SwitchListTile(
+            contentPadding: EdgeInsets.zero,
+            value: _management,
+            onChanged: _busy
+                ? null
+                : (v) => setState(() {
+                    _management = v;
+                    _trusted = false;
+                  }),
+            title: Text(
+              t('Allow work-order management', 'Permitir gestionar órdenes'),
+            ),
+            subtitle: Text(
+              t(
+                'Can assign staff, schedule work and edit scope before work starts. Cannot sign, approve completion or invoice.',
+                'Puede asignar personal, programar trabajo y editar el alcance antes de iniciar. No puede firmar, aprobar la finalización ni facturar.',
               ),
             ),
           ),
@@ -573,7 +657,7 @@ class _AgentAccessPanelState extends State<AgentAccessPanel> {
                               )?.isBefore(DateTime.now()) ==
                               true
                         ? t('Expired', 'Caducado')
-                        : '${connection['allow_drafts'] == true ? t('Summaries and drafts', 'Resúmenes y borradores') : t('Summaries only', 'Solo resúmenes')} · ${t('Expires', 'Caduca')} ${_date(connection['expires_at'])}',
+                        : '${t('Fleet maintenance', 'Mantenimiento de flota')}${connection['allow_drafts'] == true ? t(' · Work drafts', ' · Borradores de órdenes') : ''}${connection['allow_documents'] == true ? t(' · Documents', ' · Documentos') : ''}${connection['allow_management'] == true ? t(' · Management', ' · Gestión') : ''} · ${t('Expires', 'Caduca')} ${_date(connection['expires_at'])}',
                   ].join('\n'),
                 ),
                 trailing: connection['revoked_at'] == null
@@ -601,8 +685,23 @@ class _AgentAccessPanelState extends State<AgentAccessPanel> {
               subtitle: Text(_date(event['created_at'])),
               onTap: event['result_id'] == null
                   ? null
-                  : () =>
-                        context.push('/maintenance/jobs/${event['result_id']}'),
+                  : () {
+                      if (event['action'] == 'create_plan_draft') {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute<void>(
+                            builder: (_) => AgentPlanReviewScreen(
+                              id: event['result_id'] as String,
+                            ),
+                          ),
+                        );
+                      } else if (event['action'] == 'create_checklist_draft') {
+                        widget.onChecklistReview?.call();
+                        context.push('/checklist-library');
+                      } else {
+                        context.push('/maintenance/jobs/${event['result_id']}');
+                      }
+                    },
               trailing: event['result_id'] == null
                   ? null
                   : const Icon(Icons.chevron_right),

@@ -9,7 +9,13 @@ abstract class AgentAccessRepository {
   Future<Map<String, dynamic>> prepareOwnerVerification();
   Future<void> verifyOwner(String factor, String code);
   Future<Map<String, dynamic>> load();
-  Future<Map<String, dynamic>> create(String fleet, String name, bool drafts);
+  Future<Map<String, dynamic>> create(
+    String fleet,
+    String name,
+    bool drafts, {
+    bool documents = false,
+    bool management = false,
+  });
   Future<void> revoke({String? connection, String? fleet, bool all = false});
 }
 
@@ -47,12 +53,16 @@ class SupabaseAgentAccessRepository implements AgentAccessRepository {
   Future<Map<String, dynamic>> create(
     String fleet,
     String name,
-    bool drafts,
-  ) async => Map<String, dynamic>.from(
-    await _call('create_agent_connection', {
+    bool drafts, {
+    bool documents = false,
+    bool management = false,
+  }) async => Map<String, dynamic>.from(
+    await _call('create_agent_workflow_connection', {
           'p_client': fleet,
           'p_label': name,
           'p_allow_drafts': drafts,
+          'p_allow_documents': documents,
+          'p_allow_management': management,
         })
         as Map,
   );

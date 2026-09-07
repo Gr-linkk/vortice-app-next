@@ -11,6 +11,7 @@ import 'package:vortice_app/features/maintenance/maintenance_repository.dart';
 import 'checklist_builder_repository.dart';
 import 'checklist_preview_screen.dart';
 import 'checklist_step_screen.dart';
+import 'package:vortice_app/features/agent_access/maintenance_documents_screen.dart';
 
 class ChecklistEditorScreen extends ConsumerStatefulWidget {
   const ChecklistEditorScreen({
@@ -236,7 +237,9 @@ class _ChecklistEditorScreenState extends ConsumerState<ChecklistEditorScreen> {
             padding: const EdgeInsets.all(20),
             children: [
               Text(
-                widget.catalog['client_id'] == null
+                (widget.procedure?['client_id'] ??
+                            widget.catalog['client_id']) ==
+                        null
                     ? (es
                           ? 'Biblioteca del propietario · plantillas compartidas'
                           : 'Owner library · shared starter templates')
@@ -346,6 +349,15 @@ class _ChecklistEditorScreenState extends ConsumerState<ChecklistEditorScreen> {
                 ),
               const SizedBox(height: 16),
               const Divider(),
+              if (_data['source_document_id'] != null)
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  child: Text(
+                    es
+                        ? 'Borrador del agente basado en ${_data['source_document_title']}. Verifica cada página, instrucción, límite y advertencia antes de publicar. Las citas aún no están verificadas.'
+                        : 'Agent draft from ${_data['source_document_title']}. Verify every source page, instruction, limit and warning before publishing. Quotes have not been independently verified.',
+                  ),
+                ),
               const SizedBox(height: 16),
               Text(
                 '${es ? 'Pasos' : 'Steps'} (${_steps.length}/100)',
@@ -373,6 +385,31 @@ class _ChecklistEditorScreenState extends ConsumerState<ChecklistEditorScreen> {
                         ),
                         if ((_steps[i]['category'] as String? ?? '').isNotEmpty)
                           Text(_steps[i]['category'] as String),
+                        if (_steps[i]['definition']?['source_document_id'] !=
+                            null) ...[
+                          Text(
+                            '${es ? 'Cita fuente' : 'Source quote'}: ${_steps[i]['definition']['source_quote']}',
+                          ),
+                          TextButton.icon(
+                            icon: const Icon(Icons.description_outlined),
+                            label: Text(
+                              '${es ? 'Ver página' : 'View source page'} ${_steps[i]['definition']['source_page']}',
+                            ),
+                            onPressed: () => Navigator.push(
+                              context,
+                              MaterialPageRoute<void>(
+                                builder: (_) => MaintenanceSourcePageScreen(
+                                  document:
+                                      _steps[i]['definition']['source_document_id']
+                                          as String,
+                                  page:
+                                      _steps[i]['definition']['source_page']
+                                          as int,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
                         Wrap(
                           spacing: 4,
                           children: [

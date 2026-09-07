@@ -1,2 +1,5 @@
 [functions.push-delivery]
 verify_jwt = false
+
+[functions.agent-document-page]
+verify_jwt = false

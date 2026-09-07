@@ -38,3 +38,7 @@ Arbitrary scripts, conditional forms, document/AI import and automatic complianc
 or safety certification are outside this slice. Physical camera permissions,
 device installation and real-world offline/device behavior require separate
 device evidence from automated connected tests.
+
+The later authorized NOW-019 extension (decision 0014) adds document-backed
+drafting and allows owner review of company-private source procedures. It keeps
+this decision's human publication and immutable execution rules.

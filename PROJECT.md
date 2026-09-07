@@ -63,9 +63,12 @@ activation and device review are tracked separately from the internal build.
 Detailed client-access terminology and rules live in `CONTEXT.md`.
 
 Scoped agent access is tracked in NOW-019 and decision 0014. Named, expiring
-fleet grants expose maintenance summaries and unassigned managed drafts through
-a restricted API and local MCP adapter. The More screen manages connections,
-owner MFA verification, revocation and activity. Hosted activation is separate.
+fleet grants expose maintenance context and optional work drafts through a
+restricted API and local MCP adapter. Separate permissions cover private manual
+pages, reviewed checklist/plan proposals and checked work assignment, scheduling
+and scope edits. Plans combine manuals, current hours and task-specific service
+history; users review and tweak them in the app. More manages scanning,
+connections, owner MFA, revocation and activity. Hosted activation is separate.
 
 Field reliability, private evidence, Android notification delivery and password
 recovery are specified in `docs/specs/NOW-011-field-reliability.md`, with durable

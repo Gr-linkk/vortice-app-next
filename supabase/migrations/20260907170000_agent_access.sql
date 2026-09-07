@@ -6,6 +6,8 @@ create table public.agent_connections (
  label text not null check(length(label) between 1 and 80),
  token_hash text not null unique,
  allow_drafts boolean not null default false,
+ allow_documents boolean not null default false,
+ allow_management boolean not null default false,
  created_at timestamptz not null default clock_timestamp(),
  expires_at timestamptz not null default clock_timestamp()+interval '7 days',
  revoked_at timestamptz
@@ -19,6 +21,7 @@ create table public.agent_activity (
  operation_id uuid,
  input_hash text,
  result_id uuid,
+ result jsonb,
  created_at timestamptz not null default clock_timestamp()
 );
 create index agent_activity_recent on public.agent_activity(connection_id,created_at desc);
@@ -52,7 +55,7 @@ begin
  where public.agent_can_manage_fleet(a.client_id)) x),
  'connections_truncated',(select count(*)>200 from public.agent_connections where public.agent_can_manage_fleet(client_id)),
  'connections',(select coalesce(jsonb_agg(x order by (x.revoked_at is null and x.expires_at>now()) desc,x.created_at desc),'[]') from (
- select c.id,c.actor_id,p.full_name actor_name,c.client_id,c.label,c.allow_drafts,c.created_at,c.expires_at,c.revoked_at
+ select c.id,c.actor_id,p.full_name actor_name,c.client_id,c.label,c.allow_drafts,c.allow_documents,c.allow_management,c.created_at,c.expires_at,c.revoked_at
  from public.agent_connections c join public.profiles p on p.id=c.actor_id where public.agent_can_manage_fleet(c.client_id)
  order by (c.revoked_at is null and c.expires_at>now()) desc,c.created_at desc limit 200) x),
  'activity',(select coalesce(jsonb_agg(x order by x.id desc),'[]') from (
@@ -130,7 +133,7 @@ begin
    if exists(select 1 from public.profiles where id=conn.actor_id and role='owner')
      and not exists(select 1 from auth.mfa_factors where user_id=conn.actor_id and status='verified')
    then raise exception 'Access denied'; end if;
-   if p_input is null or jsonb_typeof(p_input)<>'object' or octet_length(p_input::text)>12000
+   if p_input is null or jsonb_typeof(p_input)<>'object' or octet_length(p_input::text)>96000
    then raise exception 'Invalid input'; end if;
    if p_action='maintenance_summary' then
      if exists(select 1 from jsonb_object_keys(p_input) k where k not in ('page')) then raise exception 'Invalid input'; end if;
@@ -154,7 +157,7 @@ begin
      if not conn.allow_drafts then raise exception 'Draft permission required'; end if;
      if p_operation is null then raise exception 'Operation ID required'; end if;
      if exists(select 1 from jsonb_object_keys(p_input) k where k not in
-       ('asset_id','title','description','job_type','service_interval_id','engine_id','priority','expected_materials'))
+       ('asset_id','title','description','job_type','service_interval_id','engine_id','priority','expected_materials','checklist_template_id'))
      then raise exception 'Invalid input'; end if;
      if exists(select 1 from jsonb_each(p_input) e where jsonb_typeof(e.value)<>'string') then raise exception 'Invalid input'; end if;
      if not (p_input ? 'asset_id') or not (p_input ? 'title') then raise exception 'Asset and title required'; end if;
@@ -166,7 +169,7 @@ begin
      select * into prior from public.agent_activity where connection_id=conn.id
      and operation_id=p_operation and outcome='created';
      if prior.id is not null then
-       if prior.input_hash is distinct from fingerprint then raise exception 'Operation ID used with different input'; end if;
+       if prior.action<>'create_work_order_draft' or prior.input_hash is distinct from fingerprint then raise exception 'Operation ID used with different input'; end if;
        answer:=jsonb_build_object('work_order_id',prior.result_id,'replayed',true);
      else
        if (select count(*) from public.agent_activity where connection_id=conn.id and outcome='created'
@@ -175,20 +178,31 @@ begin
        job:=public.create_maintenance_job(gen_random_uuid(),p_input);
        answer:=jsonb_build_object('work_order_id',job,'status','draft','replayed',false);
      end if;
+   elsif p_action in ('documents','document_page','create_checklist_draft','create_plan_draft','work_order_context','assign_work_order','schedule_work_order','edit_work_order') then
+     answer:=public.agent_workflow_action(conn,p_action,p_input,p_operation);
    else raise exception 'Unknown action'; end if;
  exception when others then
    -- Never expose database internals, identifiers from other fleets or submitted text.
    failure:=case when sqlerrm in ('Access denied','Invalid input','Invalid page','Unknown action',
+   'Document permission required','Management permission required','Each step needs a source page and quote','Daily action limit reached','Revision required',
    'Draft permission required','Operation ID required','Asset and title required',
    'Operation ID used with different input','Daily draft limit reached') then sqlerrm
    else 'Request rejected; check the work-order fields and current permissions' end;
  end;
  perform set_config('request.jwt.claim.sub',coalesce(old_sub,''),true);
  perform set_config('request.jwt.claims',coalesce(old_claims,''),true);
- insert into public.agent_activity(connection_id,actor_id,action,outcome,operation_id,input_hash,result_id)
- values(conn.id,conn.actor_id,case when p_action in ('maintenance_summary','create_work_order_draft') then p_action else 'unknown' end,
- case when failure is not null then 'rejected' when job is not null then 'created' when prior.id is not null then 'replayed' else 'read' end,
- p_operation,case when job is not null then fingerprint end,case when failure is null then coalesce(job,prior.result_id) end);
+ -- Successful advanced writes already stored their result atomically. Reads,
+ -- rejected attempts and exact retries get one additional activity entry.
+ if p_action not in ('create_checklist_draft','create_plan_draft','assign_work_order','schedule_work_order','edit_work_order')
+   or failure is not null or coalesce((answer->>'replayed')::boolean,false) then
+  insert into public.agent_activity(connection_id,actor_id,action,outcome,operation_id,input_hash,result_id)
+  values(conn.id,conn.actor_id,case when p_action in ('maintenance_summary','create_work_order_draft','documents','document_page',
+   'create_checklist_draft','create_plan_draft','work_order_context','assign_work_order','schedule_work_order','edit_work_order') then p_action else 'unknown' end,
+  case when failure is not null then 'rejected' when job is not null then 'created'
+   when prior.id is not null or coalesce((answer->>'replayed')::boolean,false) then 'replayed' else 'read' end,
+  p_operation,case when job is not null then fingerprint end,
+  case when failure is null then coalesce(job,prior.result_id,(answer->>'work_order_id')::uuid,(answer->>'procedure_id')::uuid,(answer->>'plan_draft_id')::uuid) end);
+ end if;
  if failure is not null then return jsonb_build_object('error',failure); end if;
  return jsonb_build_object('data',answer);
 end $$;

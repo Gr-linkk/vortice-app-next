@@ -9,17 +9,19 @@ without creating a new backlog item.
 
 ### NOW-019 — Scoped agent access
 
-Build fleet-scoped maintenance summaries and unassigned work-order drafts through
-a restricted API and local MCP adapter, with in-app connection management,
-expiry, revocation and activity history. Preserve live role/capability checks.
+Build fleet-scoped agent access through a restricted API and local MCP adapter.
+Scan/import manuals, combine them with component hours and task-specific service
+history, and produce editable PM/pre-op and maintenance-plan drafts. Users
+review/publish/apply in the app. Separate permissions allow creating work drafts
+and assigning, scheduling or editing work. Preserve live role/capability checks,
+expiry, revocation and activity history.
 Scope and acceptance: `docs/specs/NOW-019-agent-access.md`; decision 0014.
 Implementation is isolated from concurrent equipment/UI and stress-test work.
 Hosted activation and real agent/device acceptance remain separate.
 
-Implemented locally on `codex/now-019-agent-access`: guarded analysis is clean,
-520 Flutter tests pass (204 existing skips), all 18 local SQL suites pass, eight
-MCP tests pass, and simultaneous retry/revocation checks pass. Owner key creation
-requires MFA. Integration with concurrent work and hosted activation are pending.
+Implemented locally on `codex/now-019-agent-access`; see the spec for current
+verification evidence. Owner key creation requires MFA. Integration with
+concurrent work, hosted activation and real agent/device acceptance are pending.
 
 ### NOW-017 — Field Notes UI and saved appearance
 
