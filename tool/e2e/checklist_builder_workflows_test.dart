@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
+import 'audit_output.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:uuid/uuid.dart';
@@ -34,7 +35,7 @@ void main() {
           'procedures': [pmProcedure],
         };
         void save() => File(
-          'outputs/NOW-015-fixture-$marker.json',
+          auditOutputPath('NOW-015-fixture-$marker.json'),
         ).writeAsStringSync(jsonEncode(manifest));
         void remember(String id) {
           (manifest['procedures'] as List).add(id);
@@ -515,11 +516,7 @@ void main() {
           FlutterError.onError = originalError;
           await h.close();
         }
-        expect(
-          h.issues,
-          isEmpty,
-          reason: 'See outputs/NOW-010-builder015.json',
-        );
+        expect(h.issues, isEmpty, reason: 'See the connected audit output');
       });
     },
     timeout: const Timeout(Duration(minutes: 20)),

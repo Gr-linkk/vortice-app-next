@@ -64,6 +64,8 @@ class OrgCodeScreen extends ConsumerWidget {
       floatingActionButton: FloatingActionButton(
         onPressed: () => _showCreateSheet(context, ref, l10n),
         backgroundColor: context.appColors.primary,
+        foregroundColor: context.appColors.onPrimary,
+        tooltip: l10n.createOrgCode,
         child: const Icon(Icons.add),
       ),
     );
@@ -160,7 +162,10 @@ class _OrgCodeTile extends StatelessWidget {
               ),
               child: Icon(Icons.vpn_key, color: roleColor, size: 22),
             ),
-            title: Row(
+            title: Wrap(
+              spacing: 8,
+              runSpacing: 4,
+              crossAxisAlignment: WrapCrossAlignment.center,
               children: [
                 Text(
                   code.code,
@@ -169,7 +174,6 @@ class _OrgCodeTile extends StatelessWidget {
                     letterSpacing: 1.5,
                   ),
                 ),
-                const SizedBox(width: 8),
                 Container(
                   padding: const EdgeInsets.symmetric(
                     horizontal: 6,

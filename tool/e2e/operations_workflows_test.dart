@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
+import 'audit_output.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:uuid/uuid.dart';
@@ -25,7 +26,7 @@ void main() {
           'asset_name': name,
         };
         void save() => File(
-          'outputs/NOW-010-fixture-$marker.json',
+          auditOutputPath('NOW-010-fixture-$marker.json'),
         ).writeAsStringSync(jsonEncode(manifest));
         save();
         String? job, fault, repairJob;
@@ -360,7 +361,7 @@ void main() {
           save();
           await h.close();
         }
-        File('outputs/NOW-010-operations.json').writeAsStringSync(
+        File(auditOutputPath('NOW-010-operations.json')).writeAsStringSync(
           const JsonEncoder.withIndent(
             '  ',
           ).convert({'steps': h.steps, 'issues': h.issues}),

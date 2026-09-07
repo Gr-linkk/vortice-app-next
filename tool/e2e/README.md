@@ -1,60 +1,113 @@
-# Connected workflow audit
+﻿# Connected workflow audit
 
-These tests run real Flutter screens, authentication and hosted Next persistence.
-They are deliberately outside `test/`: ordinary verification must not create
-hosted records or require development account credentials.
+These tests render real Flutter screens with hosted Next authentication and
+persistence. They are outside `test/`: ordinary verification must not create
+hosted records or need development passwords. Saved journeys can create test
+push notifications for registered development devices; run them only with that
+authorization. They do not prove physical Android or inbox delivery.
 
-Run from this repository root with the verified Flutter runtime. Set
-`VORTICE_E2E_CONFIG` to the existing Next configuration file (without copying
-credentials) and `VORTICE_FLUTTER_FONTS` to the Flutter SDK's
-`bin/cache/artifacts/material_fonts` directory. The configuration must contain
-the Next URL, anon key and the existing `DEV_LOGIN_PASSWORDS` JSON map. Tests
-refuse a different Supabase URL. Create ignored `outputs/` before the first run.
+## Select one run directory
 
-```sh
-flutter test tool/e2e/full_app_audit_test.dart --dart-define-from-file="$VORTICE_E2E_CONFIG" --reporter expanded
-flutter test tool/e2e/saved_workflows_test.dart --dart-define-from-file="$VORTICE_E2E_CONFIG" --reporter expanded
-flutter test tool/e2e/operations_workflows_test.dart --dart-define-from-file="$VORTICE_E2E_CONFIG" --reporter expanded
-flutter test tool/e2e/custody_workflows_test.dart --dart-define-from-file="$VORTICE_E2E_CONFIG" --reporter expanded
-flutter test tool/e2e/field_reliability_test.dart --dart-define-from-file="$VORTICE_E2E_CONFIG" --reporter expanded
-flutter test tool/e2e/direct_workflows_test.dart --dart-define-from-file="$VORTICE_E2E_CONFIG" --reporter expanded
-```
-
-Run sequentially. Accounts are the existing owner, technician, company manager,
-company mechanic, operator and second-company development accounts. The saved
-journeys create synthetic `E2E-010`/`E2E-011`/`E2E-012` records and manifest files in `outputs/`.
-Some steps continue after a failure to collect independent findings; each test
-still fails if any recorded step fails. Route results include redirects and
-visible labels, so inspect the report as well as the final test exit status.
-
-The test host uses disposable preferences and, for the full router journeys,
-an in-memory local database. Custody tests substitute only the photo picker with
-`fixtures/evidence.png`; its actual uploaded bytes and cross-company access are
-checked. This is not physical Android camera, permission, keyboard or share UI
-coverage. See the current audit specification for precise coverage and open bugs.
-
-The field reliability test uses account-owned SQLite files, closes/reopens them,
-and simulates lost connectivity and acknowledgements around the real production
-sender. It verifies live photo bytes, immutable replay, atomic operator history,
-Back/draft recovery and cross-company denial. `recovery_contract.py` separately
-exercises actual recovery with a disposable auth account, without sending email.
-
-The direct-workflow journey exercises fault planning, asset-scoped work discovery,
-mechanic reporting, supervisor approval and explicit fault verification. The saved
-provider journey enters assigned service work through the combined Work list and
-uses Continue service report before completing and invoicing it. Run cleanup after
-a failed attempt before retrying: an interrupted journey can leave a synthetic
-labour timer active, and each mechanic may have only one running timer.
-
-After the tests, inspect the generated manifests and run the guarded cleanup
-with the already authenticated Supabase CLI available on PATH:
+Run from the verified independent repository root with the configured Flutter
+runtime. Reference the existing Next config; do not copy credentials. It must
+contain the exact Next URL, anon key and `DEV_LOGIN_PASSWORDS` JSON map. Set fonts
+to the Flutter SDK's `bin/cache/artifacts/material_fonts` directory.
 
 ```sh
-python3 tool/e2e/cleanup_fixtures.py
+export VORTICE_E2E_CONFIG=/absolute/path/to/config/vortice-next.local.json
+export VORTICE_FLUTTER_FONTS=/absolute/path/to/flutter/bin/cache/artifacts/material_fonts
+mkdir -p outputs/e2e
+export VORTICE_E2E_OUTPUT="$(mktemp -d outputs/e2e/run-XXXXXXXX)"
 ```
 
-Cleanup checks the independent origin, the linked Next project, exact manifest
-UUIDs and asset names; removes their dependent records and exact Storage paths;
-and checks unrelated counts. It obtains the Next Storage service key in process
-memory only. If cleanup fails, retain the manifests and resolve the reported
-failure; do not delete broad name prefixes or unrelated records.
+Every connected test writes its manifests, step reports and screenshots into
+`VORTICE_E2E_OUTPUT`. Existing filenames are retained. Without the variable,
+tests retain the legacy `outputs/` location, but cleanup never implicitly scans
+that historical directory. Use a fresh directory for every attempt.
+
+## Rendered route and accessibility audit
+
+```sh
+VORTICE_AUDIT_APPEARANCE=light flutter test tool/e2e/full_app_audit_test.dart --dart-define-from-file="$VORTICE_E2E_CONFIG" --reporter expanded
+VORTICE_AUDIT_APPEARANCE=dark flutter test tool/e2e/full_app_audit_test.dart --dart-define-from-file="$VORTICE_E2E_CONFIG" --reporter expanded
+VORTICE_AUDIT_APPEARANCE=dark VORTICE_AUDIT_LOCALE=es VORTICE_AUDIT_TEXT_SCALE=2 flutter test tool/e2e/full_app_audit_test.dart --dart-define-from-file="$VORTICE_E2E_CONFIG" --reporter expanded
+```
+
+Appearance supports light/dark/system; locale supports en/es (default en); text
+scale must be positive (default1). Preferences are disposable. Results record
+and assert the actual rendered locale and text scale, fail on provider/framework
+errors including overflows, inspect English/Spanish error labels and check for
+unfinished loaders. Screenshots and `routes.json` live under
+`$VORTICE_E2E_OUTPUT/route-audit/<appearance>/<locale>-<scale>x/`.
+
+The route inventory opens top-level/new-item screens and the first visible asset
+for six roles. Recorded redirects need review; route entry is not completion of
+a saved workflow or proof of every role-denial rule.
+
+## Save, reopen, execute and deny access
+
+Run sequentially. These use existing owner, technician, company manager,
+company mechanic, operator and second-company development accounts with uniquely
+marked synthetic assets.
+
+```sh
+for test in saved_workflows operations_workflows custody_workflows field_reliability direct_workflows planning_workflows internal_work_orders checklist_builder_workflows; do
+  flutter test "tool/e2e/${test}_test.dart" --dart-define-from-file="$VORTICE_E2E_CONFIG" --reporter expanded || break
+done
+```
+
+Inspect final exit status and step reports. Some steps continue after a failure
+to collect independent findings; a completed step can still contain a failed
+check in `issues`. A file only passes when its exit code is zero and issues are
+empty. The tap helper waits for transient overlays but retains hit-test checks.
+
+The journeys cover provider billing, maintenance/fault review, explicit fault
+verification, custody/renewals, schedule conflicts, internal work, checklist
+publication/versioning and cross-company data/evidence denial. Fixture setup and
+some persistence assertions use API calls; these are connected test-host journeys.
+Custody substitutes the photo picker with `fixtures/evidence.png` and verifies
+actual uploaded bytes. Field reliability uses account-owned SQLite files,
+closes/reopens them, and simulates lost connectivity/acknowledgements around the
+production sender. It does not kill a physical Android process.
+
+`recovery_contract.py` separately tests recovery with a disposable auth account
+and no email. It does not prove app deep-link handling or inbox delivery.
+
+## Exact cleanup
+
+After a failed file, inspect its evidence and clean up **before retrying**: a
+synthetic labour timer can otherwise affect the next run. Keep the authenticated
+Supabase CLI on PATH, inspect the selected run's manifests, then execute:
+
+```sh
+python3 tool/e2e/cleanup_fixtures.py --manifest-dir "$VORTICE_E2E_OUTPUT"
+```
+
+The environment variable is also accepted when `--manifest-dir` is omitted.
+There is no implicit historical-directory fallback. Legacy manifests still work
+when deliberately selected with `--manifest-dir outputs`; inspect which manifests
+that directory contains first. `--receipt /path/to/new-receipt.json` selects a
+receipt path; existing receipts are refused. By default each cleanup gets a
+unique timestamped receipt in the run directory. A started receipt preserves the
+before snapshot if cleanup fails; only `status: complete` proves the final checks.
+
+For an isolated worktree whose direct network connection is unavailable,
+`--connection-root /absolute/path/to/another-next-checkout` reuses its existing
+Supabase CLI linkage. Both roots must have the sole independent origin and exact
+Next project reference. Only CLI SQL queries use that connection root; manifests,
+SQL and receipts remain in the selected run. No connection credentials are copied.
+
+Cleanup validates exact UUID/name pairs, rejects outside-template references
+including NULL-asset records, deletes only exact evidence paths and dependent
+fixture records, restores the invoice immutability trigger within its transaction,
+and compares unrelated counts. The Storage service key stays in process memory.
+On failure retain manifests/receipt/SQL and investigate; do not delete broad
+prefixes. Offline cleanup-option checks:
+
+```sh
+python3 tool/e2e/cleanup_options_test.py
+```
+
+Physical camera/permission prompts, mobile process-kill recovery and actual push
+receipt/taps remain separate device acceptance. This harness does not measure
+production-scale load capacity.

@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:ffi' show DynamicLibrary;
 import 'dart:io';
+import 'audit_output.dart';
 import 'dart:ui' as ui;
 import 'package:drift/native.dart';
 import 'package:flutter/material.dart';
@@ -199,6 +200,8 @@ class ConnectedHarness {
       await settle(2);
       await tester.ensureVisible(target.last);
       await tester.pump();
+      // Finish the scroll/snackbar exit before testing the target hit path.
+      await settle(3);
     }
     expect(
       target.last.hitTestable(),
@@ -253,7 +256,7 @@ class ConnectedHarness {
       stdout.writeln('STEP FAILED $label: $error');
       await screenshot('$report-failure-${steps.length}');
     }
-    File('outputs/NOW-010-$report.json').writeAsStringSync(
+    File(auditOutputPath('NOW-010-$report.json')).writeAsStringSync(
       const JsonEncoder.withIndent(
         '  ',
       ).convert({'steps': steps, 'issues': issues}),
@@ -266,9 +269,11 @@ class ConnectedHarness {
     if (render == null) return;
     final image = await render.toImage();
     final data = await image.toByteData(format: ui.ImageByteFormat.png);
-    Directory('outputs/screenshots/audit010').createSync(recursive: true);
+    Directory(
+      auditOutputPath('screenshots/audit010'),
+    ).createSync(recursive: true);
     File(
-      'outputs/screenshots/audit010/$name.png',
+      auditOutputPath('screenshots/audit010/$name.png'),
     ).writeAsBytesSync(data!.buffer.asUint8List());
     image.dispose();
   }

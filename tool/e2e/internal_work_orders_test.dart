@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
+import 'audit_output.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:uuid/uuid.dart';
@@ -25,7 +26,7 @@ void main() {
           'asset_name': name,
         };
         void save() => File(
-          'outputs/NOW-014-fixture-$marker.json',
+          auditOutputPath('NOW-014-fixture-$marker.json'),
         ).writeAsStringSync(jsonEncode(manifest));
         save();
         String? order;
@@ -71,6 +72,7 @@ void main() {
                 h.field('Instructions'),
                 '$marker Prepare the generator bay and check access',
               );
+              await h.tap(find.text('Optional details'));
               await h.select('Component (optional)', 'Generator');
               await h.select('Assigned to', mechanic['name'] as String);
               await h.fill(
@@ -116,7 +118,8 @@ void main() {
               expect(saved.revision, 1);
               expect(saved.expectedMaterials, contains('Torque wrench'));
               await h.go('/maintenance/planning?assetId=$asset');
-              await h.tap(find.widgetWithText(ChoiceChip, 'Unscheduled'));
+              await h.tap(find.byKey(const ValueKey('planning-collection')));
+              await h.tap(find.text('Unscheduled'));
               await h.reveal(find.text('$marker Mounting inspection'));
               expect(find.text('Inspection'), findsOneWidget);
               await h.screenshot('internal014-planning');
@@ -229,11 +232,7 @@ void main() {
           FlutterError.onError = originalError;
           await h.close();
         }
-        expect(
-          h.issues,
-          isEmpty,
-          reason: 'See outputs/NOW-010-internal014.json',
-        );
+        expect(h.issues, isEmpty, reason: 'See the connected audit output');
       });
     },
     timeout: const Timeout(Duration(minutes: 12)),

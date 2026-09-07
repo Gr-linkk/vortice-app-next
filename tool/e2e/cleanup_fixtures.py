@@ -1,14 +1,41 @@
-import json, subprocess, urllib.request, uuid
+import argparse, json, os, subprocess, urllib.request, uuid
+from datetime import datetime, timezone
 from pathlib import Path
-root=Path.cwd()
-def cli(*args):
-    return subprocess.run(args,check=True,capture_output=True,text=True).stdout
-assert cli('git','remote','get-url','origin').strip()=='https://github.com/Gr-linkk/vortice-app-next.git'
-assert (root/'supabase/.temp/project-ref').read_text().strip()=='hkjpojobdbbtjkhaudki'
+
+parser=argparse.ArgumentParser(description='Remove exact connected-test fixtures from one explicit run directory.')
+parser.add_argument('--manifest-dir', type=Path, default=os.environ.get('VORTICE_E2E_OUTPUT'),
+    help='Run output directory; defaults only to VORTICE_E2E_OUTPUT, never all historical outputs.')
+parser.add_argument('--receipt', type=Path, help='New cleanup receipt path; must not already exist.')
+parser.add_argument('--connection-root', type=Path,
+    help='Optional verified Next checkout whose existing CLI linkage should be reused.')
+args=parser.parse_args()
+if args.manifest_dir is None:
+    parser.error('Specify --manifest-dir or VORTICE_E2E_OUTPUT (use --manifest-dir outputs explicitly for legacy manifests).')
+manifest_dir=args.manifest_dir.resolve()
+if not manifest_dir.is_dir():
+    parser.error('Manifest directory must already exist.')
+receipt=(args.receipt or manifest_dir/f"cleanup-{datetime.now(timezone.utc):%Y%m%dT%H%M%SZ}-{uuid.uuid4().hex[:8]}.json").resolve()
+if receipt.exists():
+    parser.error('Receipt already exists; choose a new path to preserve prior evidence.')
+root=Path.cwd().resolve()
+connection_root=(args.connection_root or root).resolve()
+
+def cli(*args, cwd=root):
+    return subprocess.run(args,cwd=cwd,check=True,capture_output=True,text=True).stdout
+
+def verify_repository(directory):
+    assert Path(cli('git','rev-parse','--show-toplevel',cwd=directory).strip()).resolve()==directory
+    assert cli('git','remote',cwd=directory).split()==['origin']
+    assert cli('git','remote','get-url','origin',cwd=directory).strip()=='https://github.com/Gr-linkk/vortice-app-next.git'
+    assert (directory/'supabase/.temp/project-ref').read_text().strip()=='hkjpojobdbbtjkhaudki'
+
+verify_repository(root)
+verify_repository(connection_root)
 assets={}
 builder_markers=set()
 for pattern in ['NOW-010-fixture-*.json','NOW-010-custody-live-*.json','NOW-011-fixture-*.json','NOW-012-fixture-*.json','NOW-013-fixture-*.json','NOW-014-fixture-*.json','NOW-015-fixture-*.json']:
-    for file in (root/'outputs').glob(pattern):
+    for file in manifest_dir.glob(pattern):
+        assert file.resolve().parent==manifest_dir, 'Manifest must belong to the selected run directory'
         item=json.loads(file.read_text(encoding='utf-8-sig'))
         assert item['marker'].startswith(('E2E-010','E2E-011','E2E-012','E2E-013','E2E-014','E2E-015'))
         if item['marker'].startswith('E2E-015-'):
@@ -18,10 +45,11 @@ for pattern in ['NOW-010-fixture-*.json','NOW-010-custody-live-*.json','NOW-011-
         if item.get('asset'):
             assets[str(uuid.UUID(item['asset']))]=item.get('asset_name','E2E-010 Custody inspection crane')
 assert assets
+query_file=manifest_dir/f'cleanup-query-{uuid.uuid4().hex}.sql'
 ids=','.join("'"+a+"'::uuid" for a in sorted(assets))
 def query(sql):
-    (root/'work/cleanup010-query.sql').write_text(sql)
-    return json.loads(cli('supabase','db','query','--linked','--file','work/cleanup010-query.sql','--output','json'))
+    query_file.write_text(sql,encoding='utf-8')
+    return json.loads(cli('supabase','db','query','--linked','--file',str(query_file),'--output','json',cwd=connection_root))
 marker_values=','.join(repr(m) for m in sorted(builder_markers)) or "''"
 procedures=query(f"select p.id,p.draft->>'name' as name,u.email from public.checklist_procedures p join public.profiles u on u.id=p.created_by where split_part(p.draft->>'name',' ',1) in ({marker_values})")
 for item in procedures:
@@ -43,7 +71,7 @@ sql=f"""select jsonb_build_object(
  'unrelated_assets',(select count(*) from public.assets where id not in ({ids})),
  'unrelated_operator_runs',(select count(*) from public.operator_checklist_runs where asset_id not in ({ids})),
  'unrelated_operator_submissions',(select count(*) from public.operations_submissions where asset_id not in ({ids})),
- 'unrelated_work',(select count(*) from public.work_orders where asset_id not in ({ids})),
+ 'unrelated_work',(select count(*) from public.work_orders where asset_id is null or asset_id not in ({ids})),
  'unrelated_requests',(select count(*) from public.service_requests where asset_id is null or asset_id not in ({ids})),
  'unrelated_templates',(select count(*) from public.checklist_templates where procedure_id is null or procedure_id not in ({procedure_ids})),
  'unrelated_procedures',(select count(*) from public.checklist_procedures where id not in ({procedure_ids})),
@@ -55,26 +83,30 @@ before=query(sql)[0]['manifest']
 for item in before['assets'] or []: assert assets[item['id']]==item['name']
 objects=before['objects'] or []
 active_assets={item['id'] for item in before['assets'] or []}
-for file in (root/'outputs').glob('NOW-010-custody-live-*.json'):
-    fixture=json.loads(file.read_text())
+for file in manifest_dir.glob('NOW-010-custody-live-*.json'):
+    fixture=json.loads(file.read_text(encoding='utf-8-sig'))
     if fixture['asset'] not in active_assets: continue
     for name in fixture['objects']:
         item={'bucket_id':'inspection-evidence','name':name}
         if item not in objects: objects.append(item)
-probe_file=root/'outputs/NOW-010-photo-probe-manifest.json'
+probe_file=manifest_dir/'NOW-010-photo-probe-manifest.json'
 if probe_file.exists():
-    probe=json.loads(probe_file.read_text())
+    assert probe_file.resolve().parent==manifest_dir, 'Probe must belong to the selected run directory'
+    probe=json.loads(probe_file.read_text(encoding='utf-8-sig'))
     item={key:probe[key] for key in ['bucket_id','name']}
     if probe['asset'] in active_assets and item not in objects: objects.append(item)
 # Reject references outside the fixture before deleting any media.
 query(f"""do $$ begin
- if exists(select 1 from public.work_orders where checklist_template_id in ({templates}) and asset_id not in ({ids}))
-  or exists(select 1 from public.saved_checklists where template_id in ({templates}) and asset_id not in ({ids}))
+ if exists(select 1 from public.work_orders where checklist_template_id in ({templates}) and (asset_id is null or asset_id not in ({ids})))
+  or exists(select 1 from public.saved_checklists where template_id in ({templates}) and (asset_id is null or asset_id not in ({ids})))
   or exists(select 1 from public.checklist_assignments where template_id in ({templates}) and (asset_id is null or asset_id not in ({ids})))
-  or exists(select 1 from public.asset_service_intervals where checklist_template_id in ({templates}) and asset_id not in ({ids}))
+  or exists(select 1 from public.asset_service_intervals where checklist_template_id in ({templates}) and (asset_id is null or asset_id not in ({ids})))
   or exists(select 1 from public.checklist_procedures where id not in ({procedure_ids}) and draft->>'source_template_id' in (select id::text from public.checklist_templates where procedure_id in ({procedure_ids})))
  then raise exception 'Fixture checklist is referenced outside the test'; end if;
 end $$;""")
+receipt.parent.mkdir(parents=True,exist_ok=True)
+with receipt.open('x',encoding='utf-8') as output:
+    json.dump({'status':'started','manifest_dir':str(manifest_dir),'assets':assets,'procedures':procedures,'objects':objects,'before':before},output,indent=2)
 keys=json.loads(cli('supabase','projects','api-keys','--project-ref','hkjpojobdbbtjkhaudki','--output','json'))
 key=next(k['api_key'] for k in keys if k['name']=='service_role')
 for item in objects:
@@ -95,10 +127,10 @@ posts=f'select id from public.coordination_posts where asset_id in ({ids})'
 cleanup=f"""begin;
 do $$ begin
  if exists(select 1 from public.assets where {guard}) then raise exception 'Fixture identity mismatch'; end if;
- if exists(select 1 from public.work_orders where checklist_template_id in ({templates}) and asset_id not in ({ids}))
-  or exists(select 1 from public.saved_checklists where template_id in ({templates}) and asset_id not in ({ids}))
+ if exists(select 1 from public.work_orders where checklist_template_id in ({templates}) and (asset_id is null or asset_id not in ({ids})))
+  or exists(select 1 from public.saved_checklists where template_id in ({templates}) and (asset_id is null or asset_id not in ({ids})))
   or exists(select 1 from public.checklist_assignments where template_id in ({templates}) and (asset_id is null or asset_id not in ({ids})))
-  or exists(select 1 from public.asset_service_intervals where checklist_template_id in ({templates}) and asset_id not in ({ids}))
+  or exists(select 1 from public.asset_service_intervals where checklist_template_id in ({templates}) and (asset_id is null or asset_id not in ({ids})))
   or exists(select 1 from public.checklist_procedures where id not in ({procedure_ids}) and draft->>'source_template_id' in (select id::text from public.checklist_templates where procedure_id in ({procedure_ids})))
  then raise exception 'Fixture checklist is referenced outside the test'; end if;
 end $$;
@@ -149,5 +181,9 @@ after=query(sql)[0]['manifest']
 assert not after['assets'] and not after['objects'] and not after['work_ids'] and not after['request_ids']
 for name in before:
     if name.startswith('unrelated_'): assert before[name]==after[name],name
-(root/'outputs/NOW-010-cleanup.json').write_text(json.dumps({'assets':assets,'removed_objects':objects,'before':before,'after':after},indent=2))
+with receipt.open('w',encoding='utf-8') as output:
+    json.dump({'status':'complete','manifest_dir':str(manifest_dir),'assets':assets,'procedures':procedures,'removed_objects':objects,'before':before,'after':after},output,indent=2)
+query_file.unlink()
 print(f'PASS cleanup: {len(active_assets)} exact E2E-010/011/012/013/014/015 assets, {len(procedures)} fixture procedures, {len(objects)} evidence objects; unrelated counts preserved')
+
+print(f'Receipt: {receipt}')

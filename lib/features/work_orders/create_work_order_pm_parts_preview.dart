@@ -10,6 +10,7 @@ class CreateWorkOrderPmPartsPreview extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final es = Localizations.localeOf(context).languageCode == 'es';
     return Padding(
       padding: const EdgeInsets.only(top: 16),
       child: ref
@@ -38,12 +39,14 @@ class CreateWorkOrderPmPartsPreview extends ConsumerWidget {
                           size: 18,
                         ),
                         const SizedBox(width: 8),
-                        Text(
-                          'Parts required',
-                          style: TextStyle(
-                            color: context.appColors.textPrimary,
-                            fontSize: 13,
-                            fontWeight: FontWeight.w600,
+                        Expanded(
+                          child: Text(
+                            es ? 'Piezas necesarias' : 'Parts required',
+                            style: TextStyle(
+                              color: context.appColors.textPrimary,
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
+                            ),
                           ),
                         ),
                       ],
@@ -53,7 +56,7 @@ class CreateWorkOrderPmPartsPreview extends ConsumerWidget {
                       (part) => Padding(
                         padding: const EdgeInsets.only(left: 26, bottom: 4),
                         child: Text(
-                          '• ${part.description} — ${part.qty} ${part.unit ?? 'ea'}',
+                          '• ${part.description} — ${part.qty} ${part.unit ?? (es ? 'ud.' : 'ea')}',
                           style: TextStyle(
                             color: context.appColors.textSecondary,
                             fontSize: 12,

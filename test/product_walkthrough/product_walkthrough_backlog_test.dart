@@ -4,38 +4,43 @@ import 'package:vortice_app/product_walkthrough/product_walkthrough_coverage.dar
 import 'package:vortice_app/product_walkthrough/product_walkthrough_verifiers.dart';
 
 void main() {
-  group('Product walkthrough scoreboard', () {
-    test('reports backlog coverage summary', () {
-      final summary = summarizeProductWalkthroughCoverage();
+  group(
+    'Product walkthrough scoreboard',
+    () {
+      test('reports backlog coverage summary', () {
+        final summary = summarizeProductWalkthroughCoverage();
 
-      // ignore: avoid_print
-      print(
-        'Product walkthrough backlog: ${summary.failing.length} failing / '
-        '${summary.total} total checks',
-      );
-
-      for (final check in summary.failing.take(20)) {
         // ignore: avoid_print
-        print('  FAIL ${check.id}: ${check.description}');
-      }
-      if (summary.failing.length > 20) {
-        // ignore: avoid_print
-        print('  ... and ${summary.failing.length - 20} more');
-      }
-
-      expect(summary.total, 203);
-      expect(summary.passing.length + summary.failing.length, 203);
-    });
-
-    for (final check in productWalkthroughChecks) {
-      test('${check.id} ${check.description}', () {
-        expect(
-          verifyProductWalkthroughCheck(check.backlogId, check.checkIndex),
-          isTrue,
-          reason:
-              'Backlog ${check.backlogId} check ${check.checkIndex}: ${check.description}',
+        print(
+          'Product walkthrough backlog: ${summary.failing.length} failing / '
+          '${summary.total} total checks',
         );
+
+        for (final check in summary.failing.take(20)) {
+          // ignore: avoid_print
+          print('  FAIL ${check.id}: ${check.description}');
+        }
+        if (summary.failing.length > 20) {
+          // ignore: avoid_print
+          print('  ... and ${summary.failing.length - 20} more');
+        }
+
+        expect(summary.total, 203);
+        expect(summary.passing.length + summary.failing.length, 203);
       });
-    }
-  }, skip: 'Run explicitly: flutter test test/product_walkthrough/product_walkthrough_backlog_test.dart');
+
+      for (final check in productWalkthroughChecks) {
+        test('${check.id} ${check.description}', () {
+          expect(
+            verifyProductWalkthroughCheck(check.backlogId, check.checkIndex),
+            isTrue,
+            reason:
+                'Backlog ${check.backlogId} check ${check.checkIndex}: ${check.description}',
+          );
+        });
+      }
+    },
+    skip:
+        'Archived declaration checks are intentionally skipped; they are not execution coverage.',
+  );
 }

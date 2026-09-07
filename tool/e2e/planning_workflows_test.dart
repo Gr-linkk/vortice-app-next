@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
+import 'audit_output.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:uuid/uuid.dart';
@@ -27,7 +28,7 @@ void main() {
           'asset_name': name,
         };
         void save() => File(
-          'outputs/NOW-013-fixture-$marker.json',
+          auditOutputPath('NOW-013-fixture-$marker.json'),
         ).writeAsStringSync(jsonEncode(manifest));
         save();
         String? job, second;
@@ -82,7 +83,8 @@ void main() {
             'existing service interval becomes planned work and opens booking',
             () async {
               await h.go('/maintenance/planning?assetId=$asset');
-              await h.tap(find.widgetWithText(ChoiceChip, 'Service plans'));
+              await h.tap(find.byKey(const ValueKey('planning-collection')));
+              await h.tap(find.text('Service plans'));
               await h.tap(find.widgetWithText(FilledButton, 'Plan service'));
               await h.fill(
                 h.field('Work order title'),
@@ -126,6 +128,8 @@ void main() {
               expect(saved.dueDate, isNotNull);
               expect(saved.status, 'assigned');
               await h.go('/maintenance/planning?assetId=$asset');
+              await h.tap(find.byKey(const ValueKey('planning-collection')));
+              await h.tap(find.text('Schedule'));
               await h.tap(find.widgetWithText(ChoiceChip, 'Month'));
               await h.reveal(find.text('$marker Generator service'));
               await h.screenshot('planning013-month');
@@ -238,7 +242,8 @@ void main() {
               expect(data.plans.single.data['next_due_hours'], 500);
               expect(data.plans.single.hasJob, isFalse);
               await h.go('/maintenance/planning?assetId=$asset');
-              await h.tap(find.widgetWithText(ChoiceChip, 'Service plans'));
+              await h.tap(find.byKey(const ValueKey('planning-collection')));
+              await h.tap(find.text('Service plans'));
               await h.reveal(find.text('Plan service'));
               await h.screenshot('planning013-next-service');
             },
@@ -267,11 +272,7 @@ void main() {
           FlutterError.onError = originalError;
           await h.close();
         }
-        expect(
-          h.issues,
-          isEmpty,
-          reason: 'See outputs/NOW-010-planning013.json',
-        );
+        expect(h.issues, isEmpty, reason: 'See the connected audit output');
       });
     },
     timeout: const Timeout(Duration(minutes: 12)),
