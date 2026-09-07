@@ -8,6 +8,8 @@ import 'package:vortice_app/core/app_navigation.dart';
 import 'package:vortice_app/core/constants.dart';
 import 'package:vortice_app/core/user_feedback.dart';
 import 'package:vortice_app/features/auth/auth_provider.dart';
+import 'package:vortice_app/features/agent_access/agent_access_screen.dart';
+import 'package:vortice_app/models/profile.dart';
 
 class MoreScreen extends ConsumerStatefulWidget {
   const MoreScreen({super.key});
@@ -148,6 +150,26 @@ class _MoreScreenState extends ConsumerState<MoreScreen> {
                         .read(localeProvider.notifier)
                         .setLocale(Locale(es ? 'en' : 'es')),
                   ),
+                  if ([
+                    UserRole.owner,
+                    UserRole.client,
+                    UserRole.clientAdmin,
+                  ].contains(profile.role))
+                    ListTile(
+                      leading: const Icon(Icons.smart_toy_outlined),
+                      title: Text(es ? 'Acceso de agentes' : 'Agent access'),
+                      subtitle: Text(
+                        es
+                            ? 'Conexiones, permisos y actividad'
+                            : 'Connections, permissions and activity',
+                      ),
+                      trailing: const Icon(Icons.chevron_right),
+                      onTap: () => Navigator.of(context).push(
+                        MaterialPageRoute<void>(
+                          builder: (_) => const AgentAccessScreen(),
+                        ),
+                      ),
+                    ),
                 ],
               ),
             ),

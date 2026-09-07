@@ -12,6 +12,10 @@ create table auth.users (
  id uuid primary key, email text,
  raw_user_meta_data jsonb default '{}',raw_app_meta_data jsonb default '{}'
 );
+create table auth.mfa_factors (
+ id uuid primary key, user_id uuid references auth.users(id),
+ factor_type text, status text
+);
 create function auth.uid() returns uuid language sql stable as $$
  select nullif(current_setting('request.jwt.claim.sub',true),'')::uuid
 $$;

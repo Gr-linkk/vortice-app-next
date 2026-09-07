@@ -16,10 +16,13 @@ class MaintenanceSetupScreen extends ConsumerStatefulWidget {
     this.assetId,
     this.initial = const {},
     this.catalog = const {},
+    this.reviewedSave,
   });
   final String kind;
   final String? assetId;
   final Map<String, dynamic> initial, catalog;
+  final Future<void> Function(String operation, Map<String, dynamic> data)?
+  reviewedSave;
   @override
   ConsumerState<MaintenanceSetupScreen> createState() =>
       _MaintenanceSetupScreenState();
@@ -33,6 +36,7 @@ class _MaintenanceSetupScreenState
   late Map<String, dynamic> _values;
   MaintenanceWrite? _pending;
   bool _busy = false, _dirty = false;
+  bool _reviewedReadings = false;
   Object? _error;
   @override
   void initState() {
@@ -74,29 +78,40 @@ class _MaintenanceSetupScreenState
 
   Future<void> _save() async {
     if (!_form.currentState!.validate()) return;
+    if (widget.reviewedSave != null && !_reviewedReadings) return;
     _pending ??= MaintenanceWrite({
       ..._values,
       for (final e in _text.entries) e.key: e.value.text.trim(),
+      if (widget.reviewedSave != null) ...{
+        'source_reviewed': true,
+        'review_current_hours': maintenanceRows(widget.catalog['components'])
+            .where((e) => e['id'] == _values['engine_id'])
+            .firstOrNull?['current_hours'],
+      },
     });
     setState(() {
       _busy = true;
       _error = null;
     });
     try {
-      await ref
-          .read(maintenanceRepositoryProvider)
-          .setup(
-            _pending!.id,
-            widget.kind,
-            _id,
-            (widget.initial[widget.kind == 'plan'
-                            ? 'revision'
-                            : 'maintenance_revision']
-                        as num?)
-                    ?.toInt() ??
-                0,
-            _pending!.data,
-          );
+      if (widget.reviewedSave != null) {
+        await widget.reviewedSave!(_pending!.id, _pending!.data);
+      } else {
+        await ref
+            .read(maintenanceRepositoryProvider)
+            .setup(
+              _pending!.id,
+              widget.kind,
+              _id,
+              (widget.initial[widget.kind == 'plan'
+                              ? 'revision'
+                              : 'maintenance_revision']
+                          as num?)
+                      ?.toInt() ??
+                  0,
+              _pending!.data,
+            );
+      }
       if (mounted) {
         refreshMaintenance(ref, assetsChanged: true);
         Navigator.pop(context, true);
@@ -141,7 +156,12 @@ class _MaintenanceSetupScreenState
             ? const TextInputType.numberWithOptions(decimal: true)
             : TextInputType.text,
         decoration: InputDecoration(labelText: es ? spanish : en),
-        onChanged: (_) => _dirty = true,
+        onChanged: (_) {
+          _dirty = true;
+          if (widget.reviewedSave != null) {
+            setState(() => _reviewedReadings = false);
+          }
+        },
         validator: (v) => required && (v?.trim().isEmpty ?? true)
             ? (es ? 'Campo requerido' : 'Required')
             : number &&
@@ -174,10 +194,13 @@ class _MaintenanceSetupScreenState
             .toList(),
         onChanged:
             frozen ||
-                (key == 'engine_id' && widget.initial['engine_id'] != null)
+                (key == 'engine_id' &&
+                    widget.initial['id'] != null &&
+                    widget.initial['engine_id'] != null)
             ? null
             : (v) => setState(() {
                 _values[key] = v;
+                _reviewedReadings = false;
                 if (key == 'engine_id') {
                   final selected = maintenanceRows(widget.catalog['templates'])
                       .where((t) => t['id'] == _values['checklist_template_id'])
@@ -298,7 +321,12 @@ class _MaintenanceSetupScreenState
                   'Last service meter',
                   'Horas del último servicio',
                   number: true,
-                  readOnly: widget.initial['last_service_hours'] != null,
+                  readOnly:
+                      widget.initial['id'] != null &&
+                      (widget.initial['last_service_hours']
+                              ?.toString()
+                              .isNotEmpty ??
+                          false),
                 ),
                 select(
                   'checklist_template_id',
@@ -331,8 +359,25 @@ class _MaintenanceSetupScreenState
                   padding: const EdgeInsets.only(bottom: 16),
                   child: Text(maintenanceError(_error!, es)),
                 ),
+              if (widget.reviewedSave != null)
+                CheckboxListTile(
+                  contentPadding: EdgeInsets.zero,
+                  controlAffinity: ListTileControlAffinity.leading,
+                  value: _reviewedReadings,
+                  onChanged: frozen
+                      ? null
+                      : (v) => setState(() => _reviewedReadings = v ?? false),
+                  title: Text(
+                    es
+                        ? 'Verifiqué el manual, las horas actuales y el historial de este servicio.'
+                        : 'I verified the manual, current hours and this task’s service history.',
+                  ),
+                ),
               FilledButton(
-                onPressed: _busy ? null : _save,
+                onPressed:
+                    _busy || (widget.reviewedSave != null && !_reviewedReadings)
+                    ? null
+                    : _save,
                 child: Text(
                   _busy
                       ? (es ? 'Guardando…' : 'Saving…')

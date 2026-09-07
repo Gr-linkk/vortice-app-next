@@ -27,6 +27,22 @@ Follow-up adds LV / Light Vehicle and Highway Truck (34 types total) and fixes
 floating-button text/icon contrast throughout the app. Clean analysis, 535
 Flutter tests, and local/hosted catalog checks pass for Build 22; see the spec.
 
+### NOW-019 — Scoped agent access
+
+Build fleet-scoped agent access through a restricted API and local MCP adapter.
+Scan/import manuals, combine them with component hours and task-specific service
+history, and produce editable PM/pre-op and maintenance-plan drafts. Users
+review/publish/apply in the app. Separate permissions allow creating work drafts
+and assigning, scheduling or editing work. Preserve live role/capability checks,
+expiry, revocation and activity history.
+Scope and acceptance: `docs/specs/NOW-019-agent-access.md`; decision 0014.
+Implementation is isolated from concurrent equipment/UI and stress-test work.
+Hosted activation and real agent/device acceptance remain separate.
+
+Implemented locally on `codex/now-019-agent-access`; see the spec for current
+verification evidence. Owner key creation requires MFA. Integration with
+concurrent work, hosted activation and real agent/device acceptance are pending.
+
 ### NOW-017 — Field Notes UI and saved appearance
 
 Garrett approved implementing the rendered UI audit and Field Notes concept.

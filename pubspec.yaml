@@ -45,6 +45,7 @@ dependencies:
 
   # Image picking & processing
   image_picker: ^1.1.2
+  file_selector: ^1.0.3
 
   # PDF generation
   pdf: ^3.11.1
