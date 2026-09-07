@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
+import 'audit_output.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -57,10 +58,10 @@ void main() {
         };
         void record() {
           File(
-            'outputs/NOW-010-custody-live-manifest.json',
+            auditOutputPath('NOW-010-custody-live-manifest.json'),
           ).writeAsStringSync(jsonEncode(manifest));
           File(
-            'outputs/NOW-010-custody-live-$asset.json',
+            auditOutputPath('NOW-010-custody-live-$asset.json'),
           ).writeAsStringSync(jsonEncode(manifest));
         }
 

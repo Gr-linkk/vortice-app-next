@@ -3,14 +3,11 @@ import 'package:vortice_app/features/work_orders/work_order_completion_policy.da
 import 'package:vortice_app/features/work_orders/work_order_detail_actions_policy.dart';
 import 'package:vortice_app/l10n/app_localizations_en.dart';
 import 'package:vortice_app/models/work_order.dart';
-import 'package:vortice_app/product_walkthrough/product_walkthrough_verifiers.dart';
-
-import '../workflow_test_support.dart';
 
 /// Backlog: A004, A005, A006
 /// Walkthrough order: work order detail -> service report -> close/status
 void main() {
-  workflowTddGroup('wo_lifecycle', 'WO lifecycle (A004, A005, A006)', () {
+  group('WO lifecycle (A004, A005, A006)', () {
     group('A004 service report section 4 wording', () {
       test('uses Contingent damage instead of Secondary damage', () {
         final l10n = AppLocalizationsEn();
@@ -55,26 +52,21 @@ void main() {
           isTrue,
         );
       });
-
-      test('keeps submitted service reports linked from work order detail', () {
-        expect(
-          verifyProductWalkthroughCheck('A005', 3),
-          isTrue,
-          reason: 'Backlog A005-3',
-        );
-      });
     });
 
     group('A006 status transitions stay coherent with completion rules', () {
-      test('legacy detail policy still exposes mark completed on in progress', () {
-        expect(
-          WorkOrderDetailActionsPolicy.canCompleteWorkOrder(
-            canManageStatus: true,
-            status: WorkOrderStatus.inProgress,
-          ),
-          isTrue,
-        );
-      });
+      test(
+        'legacy detail policy still exposes mark completed on in progress',
+        () {
+          expect(
+            WorkOrderDetailActionsPolicy.canCompleteWorkOrder(
+              canManageStatus: true,
+              status: WorkOrderStatus.inProgress,
+            ),
+            isTrue,
+          );
+        },
+      );
 
       test('completion policy stays aligned with mandatory service report', () {
         expect(

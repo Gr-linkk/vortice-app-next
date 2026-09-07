@@ -1,11 +1,9 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:vortice_app/features/checklists/pm_checklist_workflow_policy.dart';
 
-import '../workflow_test_support.dart';
-
 /// Backlog: A002, A003, A010, A020, A034
 void main() {
-  workflowTddGroup('pm_checklist', 'PM checklist workflow (A002, A003, A010, A020, A034)', () {
+  group('PM checklist workflow (A002, A003, A010, A020, A034)', () {
     test('A002 create work order supports freestyle parts notes', () {
       expect(
         PmChecklistWorkflowPolicy.createWorkOrderSupportsFreestylePartsNotes(),
@@ -56,10 +54,7 @@ void main() {
     });
 
     test('A020 transient errors queue for sync', () {
-      expect(
-        PmChecklistWorkflowPolicy.transientErrorsQueueForSync(),
-        isTrue,
-      );
+      expect(PmChecklistWorkflowPolicy.transientErrorsQueueForSync(), isTrue);
     });
 
     test('A034 checklist history prefers human completed-by names', () {

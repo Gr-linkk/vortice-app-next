@@ -12,8 +12,6 @@ class ClientFieldWorkflowPolicy {
   static bool clientMechanicCanSeeChecklistHistory() =>
       AssetWorkflowPolicy.canSeeChecklistHistory(UserRole.clientMechanic);
 
-  static bool checklistNotesAreDistinctFromServiceReportAuthoring() => true;
-
   static bool checklistHistoryPrefersHumanCompletedByNames() {
     return formatChecklistCompletedByDisplay(
           completedByName: 'Alex Mechanic',
@@ -21,8 +19,4 @@ class ClientFieldWorkflowPolicy {
         ) ==
         'Alex Mechanic';
   }
-
-  static bool operatorChecklistRunShowsAssetContext() => true;
-
-  static bool operatorOfflineDraftIsPersistedLocally() => true;
 }

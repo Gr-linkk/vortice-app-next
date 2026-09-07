@@ -1,6 +1,9 @@
 do $$ begin
  if exists(select 1 from public.now008_report_upgrade_snapshot old
-  left join public.service_reports s on s.id=old.id where (to_jsonb(s)-'managed_job_id') is distinct from old.original)
+  left join public.service_reports s on s.id=old.id
+  -- Later migrations may add columns, but every original value must survive.
+  where s.id is null or exists(select 1 from jsonb_each(old.original) field
+   where to_jsonb(s)->field.key is distinct from field.value))
   then raise exception 'Report content or timestamps changed during upgrade'; end if;
  if (select count(*) from public.asset_history_entries)<>(select original_count from public.now008_history_upgrade_snapshot)
   then raise exception 'Upgrade created artificial history entries'; end if;

@@ -9,8 +9,6 @@ import 'package:vortice_app/models/saved_checklist.dart';
 class ClientAccessWorkflowPolicy {
   const ClientAccessWorkflowPolicy._();
 
-  static bool clientAssetsAreScoped() => true;
-
   static bool clientWorkOrderRoutesRedirectToDashboard() {
     return resolveRouteAccessRedirect(
           role: UserRole.client,
@@ -23,12 +21,9 @@ class ClientAccessWorkflowPolicy {
   static bool ownerCanManageClientAssetVisibility() =>
       AssetWorkflowPolicy.canManageAsset(UserRole.owner);
 
-  static bool clientCanRunChecklistsWithoutEditingTemplates() {
-    return AssetWorkflowPolicy.canStartClientChecklist(UserRole.clientMechanic) &&
-        !_clientCanEditChecklistTemplates();
+  static bool clientMechanicCanStartChecklist() {
+    return AssetWorkflowPolicy.canStartClientChecklist(UserRole.clientMechanic);
   }
-
-  static bool _clientCanEditChecklistTemplates() => false;
 
   static bool clientCanViewButNotAuthorServiceReports() {
     return ServiceReportWorkflow.canViewReport(UserRole.client) &&
@@ -52,6 +47,4 @@ class ClientAccessWorkflowPolicy {
     return !AssetWorkflowPolicy.canSeeMaintenancePlan(UserRole.operator) &&
         !AssetWorkflowPolicy.canSeeMaintenancePlan(UserRole.clientOperator);
   }
-
-  static bool clientTeamUsesScopedAssetAccess() => clientAssetsAreScoped();
 }

@@ -1,22 +1,9 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:vortice_app/features/invoices/invoice_detail_support.dart';
-import 'package:vortice_app/features/invoices/invoice_parts_line_items_policy.dart';
-
-import '../workflow_test_support.dart';
 
 /// Backlog: A007, A008
 void main() {
-  workflowTddGroup('invoice', 'Invoice workflow (A007, A008)', () {
-    group('A007 itemized parts on invoice detail and export', () {
-      test('invoice detail exposes itemized parts lines', () {
-        expect(InvoicePartsLineItemsPolicy.detailShowsItemizedPartsLines(), isTrue);
-      });
-
-      test('invoice export exposes itemized parts lines', () {
-        expect(InvoicePartsLineItemsPolicy.exportShowsItemizedPartsLines(), isTrue);
-      });
-    });
-
+  group('Invoice workflow (A007, A008)', () {
     group('A008 currency conversion regression', () {
       test('USD labour converts to MXN with documented exchange rate', () {
         const hours = 2.0;

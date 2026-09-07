@@ -131,14 +131,16 @@ class _TelemetryHistoryScreenState extends ConsumerState<TelemetryHistoryScreen>
                   color: context.appColors.textSecondary,
                 ),
                 const SizedBox(width: 8),
-                Text(
-                  '${formatTelemetryDate(_dateRange.start)} - ${formatTelemetryDate(_dateRange.end)}',
-                  style: TextStyle(
-                    color: context.appColors.textSecondary,
-                    fontSize: 13,
+                Expanded(
+                  child: Text(
+                    '${formatTelemetryDate(_dateRange.start)} - ${formatTelemetryDate(_dateRange.end)}',
+                    style: TextStyle(
+                      color: context.appColors.textSecondary,
+                      fontSize: 13,
+                    ),
                   ),
                 ),
-                const Spacer(),
+                const SizedBox(width: 8),
                 TextButton(
                   onPressed: _selectDateRange,
                   child: Text(l10n.change),

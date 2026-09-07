@@ -63,6 +63,7 @@ class CreateWorkOrderForm extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context);
+    final es = Localizations.localeOf(context).languageCode == 'es';
     final assetsAsync = ref.watch(visibleAssetsProvider);
     final selectedAssetForAssignment = assetsAsync.valueOrNull
         ?.where((asset) => asset.id == selectedAssetId)
@@ -77,7 +78,10 @@ class CreateWorkOrderForm extends ConsumerWidget {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           // ── JOB DETAILS ───────────────────────────────────────
-          createWorkOrderSectionHeader(context, 'JOB DETAILS'),
+          createWorkOrderSectionHeader(
+            context,
+            es ? 'DETALLES DEL TRABAJO' : 'JOB DETAILS',
+          ),
           const SizedBox(height: 8),
           TextFormField(
             controller: titleCtrl,
@@ -156,16 +160,18 @@ class CreateWorkOrderForm extends ConsumerWidget {
                         const SizedBox(height: 16),
                         AppDropdownField<String?>(
                           initialValue: selectedEngineId,
-                          decoration: const InputDecoration(
-                            labelText: 'Engine / Position',
-                            prefixIcon: Icon(Icons.settings_outlined),
+                          decoration: InputDecoration(
+                            labelText: es
+                                ? 'Motor / Posición'
+                                : 'Engine / Position',
+                            prefixIcon: const Icon(Icons.settings_outlined),
                           ),
                           dropdownColor: context.appColors.surfaceVariant,
                           items: [
                             DropdownMenuItem(
                               value: null,
                               child: Text(
-                                'None',
+                                es ? 'Ninguno' : 'None',
                                 style: TextStyle(
                                   color: context.appColors.textSecondary,
                                 ),
@@ -179,7 +185,7 @@ class CreateWorkOrderForm extends ConsumerWidget {
                                 child: Text(
                                   label != null && label.isNotEmpty
                                       ? label
-                                      : suggestedEngineLabel(kind),
+                                      : _localizedEngineLabel(kind, es),
                                 ),
                               );
                             }),
@@ -194,7 +200,7 @@ class CreateWorkOrderForm extends ConsumerWidget {
           // ── CHECKLIST TEMPLATE ──────────────────────────────────
           const SizedBox(height: 8),
           Text(
-            'Checklist Template',
+            es ? 'Plantilla de lista de verificación' : 'Checklist Template',
             style: Theme.of(context).textTheme.titleSmall,
           ),
           const SizedBox(height: 8),
@@ -208,7 +214,9 @@ class CreateWorkOrderForm extends ConsumerWidget {
                   ),
                 ),
                 error: (_, __) => Text(
-                  'Could not load templates',
+                  es
+                      ? 'No se pudieron cargar las plantillas'
+                      : 'Could not load templates',
                   style: TextStyle(color: context.appColors.error),
                 ),
                 data: (templates) {
@@ -231,7 +239,9 @@ class CreateWorkOrderForm extends ConsumerWidget {
                     initialValue: selectedValue,
                     isExpanded: true,
                     decoration: InputDecoration(
-                      hintText: 'Optional — assign a checklist',
+                      hintText: es
+                          ? 'Opcional: asignar una lista'
+                          : 'Optional — assign a checklist',
                       hintStyle: TextStyle(
                         color: context.appColors.textSecondary,
                         fontSize: 14,
@@ -260,7 +270,7 @@ class CreateWorkOrderForm extends ConsumerWidget {
                       DropdownMenuItem<String?>(
                         value: null,
                         child: Text(
-                          'None',
+                          es ? 'Ninguna' : 'None',
                           style: TextStyle(
                             color: context.appColors.textSecondary,
                           ),
@@ -292,7 +302,10 @@ class CreateWorkOrderForm extends ConsumerWidget {
 
           // ── ASSIGNMENT ────────────────────────────────────────
           const SizedBox(height: 24),
-          createWorkOrderSectionHeader(context, 'ASSIGNMENT'),
+          createWorkOrderSectionHeader(
+            context,
+            es ? 'ASIGNACIÓN' : 'ASSIGNMENT',
+          ),
           const SizedBox(height: 8),
           assignableProfilesAsync.when(
             loading: () => const Center(child: CircularProgressIndicator()),
@@ -308,7 +321,7 @@ class CreateWorkOrderForm extends ConsumerWidget {
                         (employee['full_name'] as String?)?.trim().isNotEmpty ==
                             true
                         ? employee['full_name'] as String
-                        : 'Unnamed tech',
+                        : (es ? 'Técnico sin nombre' : 'Unnamed tech'),
                   )
                   .toList();
 
@@ -320,8 +333,10 @@ class CreateWorkOrderForm extends ConsumerWidget {
                     icon: const Icon(Icons.people_outline),
                     label: Text(
                       selectedNames.isEmpty
-                          ? 'Assign technicians'
-                          : 'Assigned (${selectedNames.length})',
+                          ? (es ? 'Asignar técnicos' : 'Assign technicians')
+                          : (es
+                                ? 'Asignados (${selectedNames.length})'
+                                : 'Assigned (${selectedNames.length})'),
                     ),
                   ),
                   if (selectedNames.isNotEmpty) ...[
@@ -337,7 +352,9 @@ class CreateWorkOrderForm extends ConsumerWidget {
                     Padding(
                       padding: const EdgeInsets.only(top: 8),
                       child: Text(
-                        'No technicians assigned yet',
+                        es
+                            ? 'Aún no hay técnicos asignados'
+                            : 'No technicians assigned yet',
                         style: TextStyle(
                           color: context.appColors.textSecondary,
                         ),
@@ -350,7 +367,10 @@ class CreateWorkOrderForm extends ConsumerWidget {
 
           // ── SCHEDULING ────────────────────────────────────────
           const SizedBox(height: 24),
-          createWorkOrderSectionHeader(context, 'SCHEDULING'),
+          createWorkOrderSectionHeader(
+            context,
+            es ? 'PROGRAMACIÓN' : 'SCHEDULING',
+          ),
           const SizedBox(height: 8),
           InkWell(
             onTap: onPickScheduledDate,
@@ -383,16 +403,18 @@ class CreateWorkOrderForm extends ConsumerWidget {
             controller: hoursCtrl,
             validator: (v) => validateWorkOrderHours(v, l10n),
             keyboardType: const TextInputType.numberWithOptions(decimal: true),
-            decoration: const InputDecoration(
-              labelText: 'Current Engine Hours',
-              hintText: 'e.g. 1250.5',
-              prefixIcon: Icon(Icons.timer_outlined),
+            decoration: InputDecoration(
+              labelText: es
+                  ? 'Horas actuales del motor'
+                  : 'Current Engine Hours',
+              hintText: es ? 'p. ej., 1250.5' : 'e.g. 1250.5',
+              prefixIcon: const Icon(Icons.timer_outlined),
             ),
           ),
 
           // ── NOTES ─────────────────────────────────────────────
           const SizedBox(height: 24),
-          createWorkOrderSectionHeader(context, 'NOTES'),
+          createWorkOrderSectionHeader(context, es ? 'NOTAS' : 'NOTES'),
           const SizedBox(height: 8),
           TextFormField(
             controller: descCtrl,
@@ -408,9 +430,13 @@ class CreateWorkOrderForm extends ConsumerWidget {
             controller: partsCtrl,
             maxLines: 4,
             textCapitalization: TextCapitalization.sentences,
-            decoration: const InputDecoration(
-              labelText: 'Parts / Materials Expected',
-              hintText: 'e.g. Oil filter, impeller, zincs...',
+            decoration: InputDecoration(
+              labelText: es
+                  ? 'Piezas / Materiales previstos'
+                  : 'Parts / Materials Expected',
+              hintText: es
+                  ? 'p. ej., filtro de aceite, impulsor, ánodos...'
+                  : 'e.g. Oil filter, impeller, zincs...',
               alignLabelWithHint: true,
             ),
           ),
@@ -432,4 +458,16 @@ class CreateWorkOrderForm extends ConsumerWidget {
       ),
     );
   }
+}
+
+String _localizedEngineLabel(String? kind, bool es) {
+  if (!es) return suggestedEngineLabel(kind);
+  return switch (normalizeEngineKind(kind)) {
+    'port' => 'Motor de babor',
+    'starboard' => 'Motor de estribor',
+    'wing' => 'Motor de apoyo',
+    'generator' => 'Generador',
+    'auxiliary' => 'Motor auxiliar',
+    _ => 'Motor principal',
+  };
 }

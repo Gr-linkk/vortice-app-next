@@ -8,14 +8,12 @@ typedef ChecklistItemPhotoUrlLists = Map<String, List<String>>;
 List<Uint8List> checklistPhotosForItem(
   ChecklistItemPhotoLists photos,
   String itemId,
-) =>
-    photos[itemId] ?? const [];
+) => photos[itemId] ?? const [];
 
 List<String> checklistPhotoUrlsForItem(
   ChecklistItemPhotoUrlLists photoUrls,
   String itemId,
-) =>
-    photoUrls[itemId] ?? const [];
+) => photoUrls[itemId] ?? const [];
 
 void appendChecklistPhoto(
   ChecklistItemPhotoLists photos,
@@ -56,8 +54,6 @@ bool checklistItemHasPhotoEvidence({
       checklistPhotoUrlsForItem(photoUrls, itemId).isNotEmpty;
 }
 
-bool checklistAttachmentsAppendInsteadOfReplace() => true;
-
 String serializeChecklistPhotoUrls(List<String> urls) {
   final cleaned = urls.where((url) => url.trim().isNotEmpty).toList();
   if (cleaned.isEmpty) return '';
@@ -71,7 +67,10 @@ List<String> parseChecklistPhotoUrls(String? raw) {
   if (trimmed.startsWith('[')) {
     try {
       final decoded = jsonDecode(trimmed) as List;
-      return decoded.whereType<String>().where((url) => url.isNotEmpty).toList();
+      return decoded
+          .whereType<String>()
+          .where((url) => url.isNotEmpty)
+          .toList();
     } catch (_) {
       return [trimmed];
     }
@@ -79,12 +78,15 @@ List<String> parseChecklistPhotoUrls(String? raw) {
   return [trimmed];
 }
 
-Map<String, List<String>> encodePhotoListsCache(ChecklistItemPhotoLists photos) {
+Map<String, List<String>> encodePhotoListsCache(
+  ChecklistItemPhotoLists photos,
+) {
   final encoded = <String, List<String>>{};
   for (final entry in photos.entries) {
     if (entry.value.isEmpty) continue;
-    encoded[entry.key] =
-        entry.value.map((bytes) => base64Encode(bytes)).toList(growable: false);
+    encoded[entry.key] = entry.value
+        .map((bytes) => base64Encode(bytes))
+        .toList(growable: false);
   }
   return encoded;
 }

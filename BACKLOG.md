@@ -7,6 +7,10 @@ without creating a new backlog item.
 
 ## Now
 
+September 7 stress-audit corrections to NOW-016/NOW-017 are isolated from the
+concurrent UI task on `codex/stress-audit-fixes`. Scope and verification:
+`docs/specs/2026-09-07-stress-audit-fixes.md`.
+
 ### NOW-018 — Broader equipment catalog and complete category artwork
 
 Add practical small-boat, commercial-fishing and land-equipment types while

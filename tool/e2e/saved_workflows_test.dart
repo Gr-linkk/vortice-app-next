@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:vortice_app/features/work_orders/work_order_controller.dart';
 import 'dart:convert';
 import 'dart:io';
+import 'audit_output.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:uuid/uuid.dart';
@@ -29,7 +30,7 @@ void main() {
           'asset_name': assetName,
         };
         void save() => File(
-          'outputs/NOW-010-fixture-$marker.json',
+          auditOutputPath('NOW-010-fixture-$marker.json'),
         ).writeAsStringSync(jsonEncode(manifest));
         save();
         String? asset, client, request, providerJob, generatedInvoice;
@@ -509,7 +510,7 @@ void main() {
           save();
           await h.close();
         }
-        expect(h.issues, isEmpty, reason: 'See outputs/NOW-010-journeys.json');
+        expect(h.issues, isEmpty, reason: 'See the connected audit output');
       });
     },
     timeout: const Timeout(Duration(minutes: 12)),

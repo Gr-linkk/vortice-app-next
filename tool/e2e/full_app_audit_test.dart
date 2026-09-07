@@ -13,13 +13,17 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:sqlite3/open.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:vortice_app/core/app_navigation.dart';
+import 'package:vortice_app/core/constants.dart';
 import 'package:vortice_app/core/router.dart';
 import 'package:vortice_app/core/supabase_client.dart';
 import 'package:vortice_app/db/database.dart';
 import 'package:vortice_app/features/auth/auth_provider.dart';
 import 'connected_harness.dart' show loadAuditFonts, AuditApp;
+import 'audit_output.dart';
 
 class _AuditFailures extends ProviderObserver {
+  final failures = <String>[];
+
   @override
   void providerDidFail(
     ProviderBase<Object?> provider,
@@ -27,6 +31,7 @@ class _AuditFailures extends ProviderObserver {
     StackTrace stackTrace,
     ProviderContainer container,
   ) {
+    failures.add('${provider.name ?? provider.runtimeType}: $error');
     stdout.writeln(
       'PROVIDER FAILURE ${provider.name ?? provider.runtimeType}: $error\n$stackTrace',
     );
@@ -46,9 +51,23 @@ void main() {
     (tester) async {
       await tester.runAsync(() async {
         HttpOverrides.global = null;
+        final locale = Platform.environment['VORTICE_AUDIT_LOCALE'] ?? 'en';
+        final textScale = double.tryParse(
+          Platform.environment['VORTICE_AUDIT_TEXT_SCALE'] ?? '1',
+        );
+        if (!['en', 'es'].contains(locale) ||
+            textScale == null ||
+            !textScale.isFinite ||
+            textScale <= 0) {
+          throw StateError(
+            'Audit requires locale en/es and a positive text scale',
+          );
+        }
         // Connected test host; stored preferences are deliberately disposable.
         // ignore: invalid_use_of_visible_for_testing_member
-        SharedPreferences.setMockInitialValues({});
+        SharedPreferences.setMockInitialValues({
+          AppConstants.prefLocale: locale,
+        });
         await loadAuditFonts();
         final config =
             jsonDecode(
@@ -72,8 +91,9 @@ void main() {
           ),
         );
         final databases = <String, AppDatabase>{};
+        final observer = _AuditFailures();
         final container = ProviderContainer(
-          observers: [_AuditFailures()],
+          observers: [observer],
           overrides: [
             databaseProvider.overrideWith((ref) {
               final account =
@@ -90,11 +110,13 @@ void main() {
         );
         final appearance =
             Platform.environment['VORTICE_AUDIT_APPEARANCE'] ?? 'system';
-        final output = Directory('outputs/NOW017/route-audit/$appearance')
-          ..createSync(recursive: true);
+        final output = Directory(
+          auditOutputPath('route-audit/$appearance/$locale-${textScale}x'),
+        )..createSync(recursive: true);
         final boundary = GlobalKey();
         tester.view.physicalSize = const Size(390, 844);
         tester.view.devicePixelRatio = 1;
+        tester.platformDispatcher.textScaleFactorTestValue = textScale;
         await tester.pumpWidget(
           UncontrolledProviderScope(
             container: container,
@@ -185,6 +207,7 @@ void main() {
             }
             for (final route in routes) {
               caught.clear();
+              final failureStart = observer.failures.length;
               router.go(route);
               await settle();
               final labels = tester
@@ -195,18 +218,27 @@ void main() {
               final errors = labels
                   .where(
                     (e) => RegExp(
-                      r'exception|does not exist|permission denied|error|failed|could not|try again',
+                      r'exception|does not exist|permission denied|error|failed|could not|try again|excepción|permiso denegado|no se pudo|reintentar',
                       caseSensitive: false,
                     ).hasMatch(e),
                   )
                   .toList();
               results.add({
+                'locale': Localizations.localeOf(
+                  tester.element(find.byType(Scaffold).first),
+                ).languageCode,
+                'textScale':
+                    MediaQuery.textScalerOf(
+                      tester.element(find.byType(Scaffold).first),
+                    ).scale(10) /
+                    10,
                 'role': role.name,
                 'account': email,
                 'requested': route,
                 'actual': router.routeInformationProvider.value.uri.path,
                 'errors': errors,
                 'frameworkErrors': List<String>.from(caught),
+                'providerErrors': observer.failures.skip(failureStart).toList(),
                 'loading': find
                     .byType(CircularProgressIndicator)
                     .evaluate()
@@ -244,8 +276,23 @@ void main() {
           await Supabase.instance.dispose();
           tester.view.resetPhysicalSize();
           tester.view.resetDevicePixelRatio();
+          tester.platformDispatcher.clearTextScaleFactorTestValue();
         }
         expect(results, isNotEmpty);
+        expect(
+          observer.failures,
+          isEmpty,
+          reason: 'No hidden provider failures',
+        );
+        expect(
+          results.every(
+            (row) =>
+                row['locale'] == locale &&
+                ((row['textScale'] as double) - textScale).abs() < 0.000001,
+          ),
+          isTrue,
+          reason: 'Every screen must use the requested locale and text scale',
+        );
         expect(
           results.where((row) => (row['frameworkErrors'] as List).isNotEmpty),
           isEmpty,

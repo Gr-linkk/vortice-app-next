@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
+import 'audit_output.dart';
 import 'package:drift/native.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -28,7 +29,7 @@ void main() {
         final asset = const Uuid().v4(), name = '$marker Field vessel';
         final manifest = {'marker': marker, 'asset': asset, 'asset_name': name};
         void save() => File(
-          'outputs/NOW-011-fixture-$marker.json',
+          auditOutputPath('NOW-011-fixture-$marker.json'),
         ).writeAsStringSync(jsonEncode(manifest));
         save();
         final photo = base64Decode(
