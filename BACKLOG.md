@@ -14,8 +14,13 @@ uses local manuals where available. Hosted demo data is populated and 130 role
 and route checks pass. The existing Ellicott identity, components and history are
 retained. Follow-up located the WSL unit manual, verified its cover serial and
 ladder-servicing page, and added source pages plus a linked checklist/plan/job.
-Four focused company-manager screen checks pass. Scope, saved evidence and demo
-entrypoints: `docs/specs/NOW-021-demo-population.md`.
+Four focused company-manager screen checks pass. The requested heavy-use
+expansion now includes 32 assets, 154 work orders, 124 operator checklist runs,
+89 reports, 52 inspection requirements and 31 invoices. Mechanics, both operator
+profiles, inspection attachments, parts, faults and histories are populated.
+The expanded data passes 130 route checks and seven focused screen checks;
+pre-expansion rows were preserved. Scope, saved evidence and demo entrypoints:
+`docs/specs/NOW-021-demo-population.md`.
 
 ### NOW-020 — Simplify existing code without losing behavior
 

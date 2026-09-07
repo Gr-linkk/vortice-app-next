@@ -98,3 +98,67 @@ visually checked. Evidence: `manual-before.json`, `manual-receipt.json`,
 `manual-apply.json`, `manual-ui.log`, `NOW-010-manual-demo.json`, and screenshots
 in the same local demo output directory. Only three relevant source pages were
 imported; this is not a bulk import of the entire library.
+
+## Heavy-use expansion
+
+Garrett then requested the whole app populated as if heavily used, explicitly
+including mechanics, operators and checklists. The September 7 expansion adds
+24 labeled demo assets across the two existing client organizations, preserving
+their access boundaries and every record present before this expansion.
+
+Current backend totals after population:
+
+| Area | Total | Added in this expansion |
+| --- | ---: | ---: |
+| Assets / components | 32 / 58 | 24 / 52 |
+| Work orders | 154 | 120 |
+| Operator checklist runs / answers | 124 / 380 | 120 / 360 |
+| Checklist assignments | 89 | 88 |
+| Saved maintenance and operator checklists | 146 | 140 |
+| Service reports | 89 | 80 |
+| Inspection requirements / attached submissions | 52 / 60 | 48 / 56 |
+| Invoices | 31 | 24 |
+| Meter entries | 391 | 384 |
+| Faults | 49 | 42 |
+| Service plans | 44 | 36 |
+| Stock items / catalog items | 49 / 48 | 40 / 40 |
+| Asset history entries | 1,770 | 1,641 |
+
+The scenarios cover draft, assigned, active, waiting, review and closed work;
+completed mechanic reports and checklists; 44 completed operator assignments
+and 44 additional pending assignments; flagged operator runs linked to faults;
+fault investigation, job linkage and resolution; parts usage, low/out-of-stock
+inventory, requests and handovers. Both existing operator profiles have data.
+New published generic demo procedures are samples, not manufacturer guidance.
+
+Inspections include current, approaching expiry, expired, awaiting review and
+returned records, with eight requirements retaining a previous approved version.
+All 56 added attachments are stored images explicitly labeled as sample records;
+they do not claim an actual inspection or certification. New invoice states
+include six each of draft, sent, paid and void; these are simulated database
+states, with no invoice delivery or payment. Three new demo assets have 288
+static synthetic telemetry readings and sample alerts, not live sensor feeds.
+
+All data phases passed transaction rollback validation before commit. The
+40-table before/after comparison found no missing or changed pre-existing rows.
+No labour timer is running. Exact new-notification checks found zero unread
+push-eligible notifications and zero push-delivery rows. Demo inspection
+milestones were reserved as read in the same transaction to prevent later demo
+reminders; existing push-device registration and preferences were preserved.
+
+The connected audit passed 130 routes across six roles in English/light mode.
+Seven focused screen checks cover inspections, asset history, completed operator
+history, mechanic work, checklist library, provider report and operator
+assignments. Rendered dashboard, planning, inspection and history screens were
+visually checked. The second operator profile has no configured test password,
+so its separate login was not tested. These checks do not constitute physical
+phone acceptance. This expansion changes data only and requires no new APK.
+
+Reopen or refresh the app. Start with Planning, Work orders, Fleet inspections,
+operator Home and the Ellicott checklist history's Operations tab. Evidence and
+the screenshot gallery are in ignored `outputs/demo-heavy-2026-09-07/`:
+`demo-preview.html`, `verification.json`, before/after snapshots, exact-ID phase
+manifests and SQL, attachment receipts, audit logs and rendered screenshots.
+One-time preparation scripts are saved there for traceability. They are not a
+reusable seed command; any future cleanup must use exact saved IDs and check
+for subsequent user edits before removing data.
