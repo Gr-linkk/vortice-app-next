@@ -144,8 +144,8 @@ class _AssuranceScreenState extends ConsumerState<AssuranceScreen> {
                                     icon: const Icon(Icons.move_down),
                                     label: Text(
                                       es
-                                          ? 'Registrar traslado'
-                                          : 'Record transfer',
+                                          ? 'Actualizar ubicación y responsable'
+                                          : 'Update location & responsibility',
                                     ),
                                   ),
                               ],
@@ -154,7 +154,9 @@ class _AssuranceScreenState extends ConsumerState<AssuranceScreen> {
                         ),
                         ExpansionTile(
                           title: Text(
-                            es ? 'Historial de traslados' : 'Transfer history',
+                            es
+                                ? 'Historial de ubicación y responsable'
+                                : 'Location & responsibility history',
                           ),
                           children: [
                             if (maintenanceRows(data['transfers']).isEmpty)
@@ -162,8 +164,8 @@ class _AssuranceScreenState extends ConsumerState<AssuranceScreen> {
                                 padding: const EdgeInsets.all(16),
                                 child: Text(
                                   es
-                                      ? 'No hay traslados registrados.'
-                                      : 'No transfers recorded.',
+                                      ? 'No hay cambios de ubicación o responsable registrados.'
+                                      : 'No location or responsibility changes recorded.',
                                 ),
                               ),
                             for (final event in maintenanceRows(

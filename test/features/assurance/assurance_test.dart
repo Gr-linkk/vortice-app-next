@@ -145,10 +145,10 @@ void main() {
     (tester) async {
       final fixture = AssuranceFixture()..fail = true;
       await pump(tester, const AssuranceScreen(asset: 'asset'), fixture);
-      await tapVisible(tester, find.text('Record transfer'));
+      await tapVisible(tester, find.text('Update location & responsibility'));
       await tapVisible(
         tester,
-        find.widgetWithText(FilledButton, 'Record transfer'),
+        find.widgetWithText(FilledButton, 'Save changes'),
       );
       expect(fixture.calls, isEmpty);
       await tester.enterText(
@@ -165,7 +165,7 @@ void main() {
       );
       await tapVisible(
         tester,
-        find.widgetWithText(FilledButton, 'Record transfer'),
+        find.widgetWithText(FilledButton, 'Save changes'),
       );
       expect(find.textContaining('Could not confirm'), findsOneWidget);
       expect(
@@ -179,7 +179,7 @@ void main() {
       expect(fixture.calls[0].operation, fixture.calls[1].operation);
       expect(fixture.calls[0].data, fixture.calls[1].data);
       expect(find.text('E2E-009 Dry store'), findsOneWidget);
-      await tapVisible(tester, find.text('Record transfer'));
+      await tapVisible(tester, find.text('Update location & responsibility'));
       expect(
         tester
             .widget<TextFormField>(find.byKey(const ValueKey('site')))
@@ -234,7 +234,7 @@ void main() {
       {...sampleInspection(), 'can_manage': false, 'can_submit': false},
     ];
     await pump(tester, const AssuranceScreen(asset: 'asset'), fixture);
-    expect(find.text('Record transfer'), findsNothing);
+    expect(find.text('Update location & responsibility'), findsNothing);
     expect(find.text('Add inspection'), findsNothing);
     expect(find.text('Submit renewal'), findsNothing);
   });
@@ -253,6 +253,19 @@ void main() {
       );
       expect(tester.takeException(), isNull);
       await captureFleet(tester, 'assurance-${es ? 'es' : 'en'}-320-large');
+      await tapVisible(
+        tester,
+        find.text(
+          es
+              ? 'Actualizar ubicación y responsable'
+              : 'Update location & responsibility',
+        ),
+      );
+      await captureFleet(
+        tester,
+        'equipment-update-${es ? 'es' : 'en'}-320-large',
+      );
+      expect(tester.takeException(), isNull);
     });
     testWidgets('renewal form validates real dates and missing evidence $es', (
       tester,

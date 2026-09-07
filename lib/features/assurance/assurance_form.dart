@@ -200,7 +200,7 @@ class _AssuranceFormState extends ConsumerState<AssuranceForm> {
   Widget build(BuildContext context) {
     final es = isSpanish(context), frozen = _busy || _pending != null;
     final title = switch (widget.action) {
-      'transfer' => es ? 'Registrar traslado' : 'Record transfer',
+      'transfer' => es ? 'Actualizar equipo' : 'Update equipment',
       'create' => es ? 'Añadir inspección' : 'Add inspection',
       'submit' => es ? 'Enviar renovación' : 'Submit renewal',
       'approve' => es ? 'Aprobar renovación' : 'Approve renewal',
@@ -332,6 +332,12 @@ class _AssuranceFormState extends ConsumerState<AssuranceForm> {
               padding: const EdgeInsets.all(20),
               children: [
                 if (widget.action == 'transfer') ...[
+                  Text(
+                    es
+                        ? 'Actualiza dónde está el equipo, quién es responsable y si está activo, almacenado o retirado.'
+                        : 'Update where the equipment is, who is responsible, and whether it is active, stored or retired.',
+                  ),
+                  const SizedBox(height: 16),
                   field(
                     'site',
                     'Site / location',
@@ -340,13 +346,13 @@ class _AssuranceFormState extends ConsumerState<AssuranceForm> {
                     max: 200,
                   ),
                   select(
-                    es ? 'Persona responsable' : 'Responsible person',
+                    es ? 'Responsable' : 'Responsible person',
                     _person,
                     maintenanceRows(widget.catalog['people']),
                     (v) => _person = v,
                   ),
                   select(
-                    es ? 'Estado del ciclo de vida' : 'Lifecycle',
+                    es ? 'Estado del equipo' : 'Equipment status',
                     _lifecycle,
                     [
                       for (final s in ['active', 'stored', 'retired'])
@@ -354,7 +360,7 @@ class _AssuranceFormState extends ConsumerState<AssuranceForm> {
                     ],
                     (v) => _lifecycle = v!,
                   ),
-                  field('reason', 'Reason for transfer', 'Motivo del traslado'),
+                  field('reason', 'Reason for change', 'Motivo del cambio'),
                 ],
                 if (widget.action == 'create') ...[
                   field(
@@ -451,6 +457,8 @@ class _AssuranceFormState extends ConsumerState<AssuranceForm> {
                         ? (es ? 'Guardando…' : 'Saving…')
                         : _pending != null
                         ? (es ? 'Reintentar guardado' : 'Retry save')
+                        : widget.action == 'transfer'
+                        ? (es ? 'Guardar cambios' : 'Save changes')
                         : title,
                   ),
                 ),

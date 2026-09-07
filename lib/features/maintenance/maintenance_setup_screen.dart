@@ -244,8 +244,8 @@ class _MaintenanceSetupScreenState
                     padding: const EdgeInsets.only(bottom: 16),
                     child: Text(
                       es
-                          ? 'Usa Registrar traslado en Custodia e inspecciones para cambiar la ubicación.'
-                          : 'Use Record transfer in Custody & inspections to change the location.',
+                          ? 'Usa Actualizar ubicación y responsable en Custodia e inspecciones para cambiar la ubicación.'
+                          : 'Use Update location & responsibility in Custody & inspections to change the location.',
                     ),
                   ),
               ] else if (widget.kind == 'component') ...[

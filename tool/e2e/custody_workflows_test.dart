@@ -194,21 +194,21 @@ void main() {
           await settle();
         }
 
-        await waitFor(find.text('Record transfer'));
-        await tap(find.text('Record transfer'));
+        await waitFor(find.text('Update location & responsibility'));
+        await tap(find.text('Update location & responsibility'));
         await field('site', 'E2E-010 North workshop');
         await tap(find.byType(DropdownButtonFormField<String>).first);
         final context = await repo.context(asset);
         final person = (context['people'] as List).first as Map;
         await tap(find.text(person['name'] as String).last);
         await field('reason', 'E2E-010 Move for annual inspection');
-        await tap(find.widgetWithText(FilledButton, 'Record transfer'));
+        await tap(find.widgetWithText(FilledButton, 'Save changes'));
         await settle();
         final saved = await repo.context(asset);
         expect((saved['custody'] as Map)['site'], 'E2E-010 North workshop');
         expect((saved['transfers'] as List).length, 1);
         await waitFor(find.text('E2E-010 North workshop'));
-        await tap(find.text('Record transfer'));
+        await tap(find.text('Update location & responsibility'));
         await waitFor(find.byKey(const ValueKey('site')));
         expect(
           tester
@@ -232,7 +232,7 @@ void main() {
         record();
         stdout.writeln('PASS connected inspection registration and reopen');
         await switchAccount('client_mechanic@vortice.dev');
-        expect(find.text('Record transfer'), findsNothing);
+        expect(find.text('Update location & responsibility'), findsNothing);
         Future<void> submit(String result, String expiry) async {
           await tap(find.text('Submit renewal'));
           await field('inspected_on', '2026-09-01');
@@ -294,7 +294,7 @@ void main() {
           'PASS connected second renewal updates current certificate only after approval',
         );
         await switchAccount('operator@vortice.dev');
-        expect(find.text('Record transfer'), findsNothing);
+        expect(find.text('Update location & responsibility'), findsNothing);
         expect(find.text('Submit renewal'), findsNothing);
         expect((await repo.inspections(asset)).length, 1);
         stdout.writeln(

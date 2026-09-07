@@ -88,3 +88,13 @@ Detailed local evidence: `outputs/NOW-009-verification.log`,
 `outputs/NOW-009-hosted-contracts.log`, `outputs/NOW-009-live-workflows.log`,
 `outputs/NOW-009-cleanup.json`, `outputs/screenshots/assurance/` and
 `outputs/NOW-009-build-notes.md`.
+
+## Naming clarification — 2026-09-07
+
+Following phone review, rename Record transfer to Update location & responsibility.
+The form uses Update equipment, Equipment status, Reason for change and Save changes,
+with matching Spanish copy and a brief explanation. Location-edit guidance and
+history labels use the same vocabulary. This is a wording-only change; custody
+history and permissions remain the same. Eight focused checks pass, including
+320-pixel English/Spanish renders at 150% text size. Included in the next APK.
+

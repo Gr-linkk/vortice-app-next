@@ -262,8 +262,8 @@ class _EditAssetScreenState extends ConsumerState<EditAssetScreen> {
               if (custody.valueOrNull?['custody'] != null)
                 Text(
                   isSpanish(context)
-                      ? 'Usa Registrar traslado en Custodia e inspecciones para cambiar la ubicación.'
-                      : 'Use Record transfer in Custody & inspections to change the location.',
+                      ? 'Usa Actualizar ubicación y responsable en Custodia e inspecciones para cambiar la ubicación.'
+                      : 'Use Update location & responsibility in Custody & inspections to change the location.',
                 ),
               const SizedBox(height: 24),
               OutlinedButton.icon(
