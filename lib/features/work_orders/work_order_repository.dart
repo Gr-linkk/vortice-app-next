@@ -1,3 +1,4 @@
+import 'package:supabase_flutter/supabase_flutter.dart' show SupabaseClient;
 import 'package:drift/drift.dart' show Value;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:vortice_app/core/constants.dart';
@@ -12,88 +13,85 @@ final workOrderRepositoryProvider = Provider<WorkOrderRepository>((ref) {
 });
 
 class WorkOrderRepository {
-  WorkOrderRepository(this._db);
-
+  WorkOrderRepository(this._db, {SupabaseClient? client})
+    : _client = client ?? supabase;
   final AppDatabase _db;
-  bool get _ownsCache => _db.belongsTo(supabase.auth.currentUser?.id);
-
-  Future<List<WorkOrder>> listWorkOrders() async {
-    final cached = (await _db.workOrdersDao.getAll()).map(_fromRow).toList();
-
-    try {
-      final remote = await supabase
-          .from(AppConstants.tWorkOrders)
-          .select()
-          .order('created_at', ascending: false);
-
-      final orders = (remote as List)
-          .map((e) => WorkOrder.fromJson(e as Map<String, dynamic>))
-          .toList();
-
-      if (orders.isNotEmpty && _ownsCache) {
-        await _db.workOrdersDao.upsertAll(orders.map(_toCompanion).toList());
-      }
-
-      return orders;
-    } catch (error) {
-      if (_ownsCache && isConnectionFailure(error) && cached.isNotEmpty) {
-        return cached;
-      }
-      rethrow;
+  final SupabaseClient _client;
+  AccountJsonCache get _cache => AccountJsonCache(
+    _db.accountId ?? 'signed_out',
+    () => _client.auth.currentUser?.id,
+  );
+  void _check() {
+    if (!_db.belongsTo(_client.auth.currentUser?.id)) {
+      throw const AccountChangedException();
     }
   }
 
-  Future<WorkOrder?> getWorkOrderById(String id) async {
-    final cachedRow = await _db.workOrdersDao.getById(id);
-    final cached = cachedRow == null ? null : _fromRow(cachedRow);
+  Future<List<WorkOrder>> listWorkOrders() async {
+    _check();
+    final raw = await _cache.readThrough(
+      'provider_work_orders',
+      () async {
+        final rows = <Map<String, dynamic>>[];
+        for (var offset = 0; ; offset += 500) {
+          final page = await _client
+              .from(AppConstants.tWorkOrders)
+              .select()
+              .order('id')
+              .range(offset, offset + 499);
+          _check();
+          rows.addAll(page);
+          if (page.length < 500) break;
+        }
+        final orders = rows.map(WorkOrder.fromJson).toList();
+        await _db.transaction(() async {
+          final ids = orders.map((o) => o.id).toSet();
+          for (final old in await _db.workOrdersDao.getAll()) {
+            if (!ids.contains(old.id)) {
+              await _db.workOrdersDao.deleteById(old.id);
+            }
+          }
+          await _db.workOrdersDao.upsertAll(orders.map(_toCompanion).toList());
+        });
+        return rows;
+      },
+      derivedValues: (data) => {
+        for (final row in data as List) 'provider_work_order:${row['id']}': row,
+      },
+      replaceDerivedPrefix: 'provider_work_order:',
+    );
+    final orders = (raw as List)
+        .map((r) => WorkOrder.fromJson(Map<String, dynamic>.from(r as Map)))
+        .toList();
+    orders.sort(
+      (a, b) => (b.createdAt ?? DateTime(1970)).compareTo(
+        a.createdAt ?? DateTime(1970),
+      ),
+    );
+    return orders;
+  }
 
-    try {
-      final data = await supabase
+  Future<WorkOrder?> getWorkOrderById(String id) async {
+    _check();
+    final data = await _cache.readThrough('provider_work_order:$id', () async {
+      final row = await _client
           .from(AppConstants.tWorkOrders)
           .select()
           .eq('id', id)
           .maybeSingle();
-
-      if (data == null) return null;
-
-      final workOrder = WorkOrder.fromJson(data);
-      if (_ownsCache) await _db.workOrdersDao.upsert(_toCompanion(workOrder));
-      return workOrder;
-    } catch (error) {
-      if (_ownsCache && isConnectionFailure(error) && cached != null) {
-        return cached;
+      _check();
+      if (row == null) {
+        await _db.workOrdersDao.deleteById(id);
+      } else {
+        await _db.workOrdersDao.upsert(_toCompanion(WorkOrder.fromJson(row)));
       }
-      rethrow;
-    }
+      return row;
+    });
+    return data == null
+        ? null
+        : WorkOrder.fromJson(Map<String, dynamic>.from(data as Map));
   }
 }
-
-WorkOrder _fromRow(WorkOrdersTableData row) => WorkOrder(
-  id: row.id,
-  assetId: row.assetId,
-  engineId: row.engineId,
-  clientId: row.clientId,
-  assignedTo: row.assignedTo,
-  createdBy: row.createdBy,
-  checklistTemplateId: row.checklistTemplateId,
-  checklistTemplateVersion: row.checklistTemplateVersion,
-  jobType: _parseJobType(row.jobType),
-  title: row.title,
-  description: row.description,
-  status: _parseStatus(row.status),
-  scheduledDate: row.scheduledDate,
-  startedAt: row.startedAt,
-  completedAt: row.completedAt,
-  hoursAtStart: row.hoursAtStart,
-  hoursAtEnd: row.hoursAtEnd,
-  labourHours: row.labourHours,
-  billableRate: row.billableRate,
-  wageRate: row.wageRate,
-  notesInternal: row.notesInternal,
-  onHoldReason: row.onHoldReason,
-  createdAt: row.createdAt,
-  updatedAt: row.updatedAt,
-);
 
 WorkOrdersTableCompanion _toCompanion(WorkOrder workOrder) =>
     WorkOrdersTableCompanion(
@@ -122,17 +120,3 @@ WorkOrdersTableCompanion _toCompanion(WorkOrder workOrder) =>
       createdAt: Value(workOrder.createdAt),
       updatedAt: Value(workOrder.updatedAt),
     );
-
-WorkOrderJobType _parseJobType(String value) {
-  for (final jobType in WorkOrderJobType.values) {
-    if (jobType.dbValue == value) return jobType;
-  }
-  return WorkOrderJobType.repair;
-}
-
-WorkOrderStatus _parseStatus(String value) {
-  for (final status in WorkOrderStatus.values) {
-    if (status.dbValue == value) return status;
-  }
-  return WorkOrderStatus.draft;
-}

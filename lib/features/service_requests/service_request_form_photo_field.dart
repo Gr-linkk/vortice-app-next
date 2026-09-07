@@ -1,3 +1,4 @@
+import 'package:vortice_app/features/service_requests/service_request_form_support.dart';
 import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
@@ -27,7 +28,7 @@ class ServiceRequestFormPhotoField extends StatelessWidget {
               child: OutlinedButton.icon(
                 onPressed: onAddPhotos,
                 icon: const Icon(Icons.photo_library_outlined),
-                label: const Text('Gallery'),
+                label: Text(requestText(context, 'Gallery')),
               ),
             ),
             const SizedBox(width: 10),
@@ -35,7 +36,7 @@ class ServiceRequestFormPhotoField extends StatelessWidget {
               child: OutlinedButton.icon(
                 onPressed: onTakePhoto,
                 icon: const Icon(Icons.photo_camera_outlined),
-                label: const Text('Camera'),
+                label: Text(requestText(context, 'Camera')),
               ),
             ),
           ],

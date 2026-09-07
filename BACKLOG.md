@@ -7,6 +7,22 @@ without creating a new backlog item.
 
 ## Now
 
+### NOW-016 — Existing workflow closeout
+
+Finish and stabilize existing invoicing, saves, evidence recovery, offline access,
+notifications and customer UI before adding features. Scope and fresh acceptance
+evidence: `docs/specs/NOW-016-existing-workflow-closeout.md`. Build and inspect an
+internal Android APK; do not transfer or publish it.
+
+Implemented and packaged as Build 19 (`1.9.1+19`). Four Next migrations and the
+event-specific notification titles are deployed. Clean analysis, 474 Flutter
+tests (204 existing skips), 17 local/hosted SQL suites, connected workflows and
+130 route checks passed; the saved workflow timing assertion was corrected and
+its full journey rerun successfully. Exact test fixtures were removed. APK
+identity/signature/hash are checked; no transfer or installation occurred.
+Garrett confirmed existing phone alert receipt. Build 19 physical acceptance is
+pending his morning testing; exact steps and release dependencies are in the spec.
+
 ### NOW-015 — Checklist builder and connected PM/pre-operation workflows
 
 Implemented the checklist builder Garrett approved for client companies and

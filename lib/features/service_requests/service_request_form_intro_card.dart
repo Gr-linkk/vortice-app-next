@@ -1,3 +1,4 @@
+import 'package:vortice_app/features/service_requests/service_request_form_support.dart';
 import 'package:flutter/material.dart';
 import 'package:vortice_app/core/theme.dart';
 
@@ -13,15 +14,15 @@ class ServiceRequestFormIntroCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(14),
         border: Border.all(color: AppColors.primary.withValues(alpha: 0.35)),
       ),
-      child: const Row(
+      child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(Icons.support_agent_outlined, color: AppColors.primary),
-          SizedBox(width: 12),
+          const Icon(Icons.support_agent_outlined, color: AppColors.primary),
+          const SizedBox(width: 12),
           Expanded(
             child: Text(
-              'Send Vórtice the key details so we can prepare faster and build the work order from clean information.',
-              style: TextStyle(color: AppColors.textPrimary, height: 1.35),
+              requestText(context, 'Send Vórtice the key details so we can prepare faster and build the work order from clean information.'),
+              style: const TextStyle(color: AppColors.textPrimary, height: 1.35),
             ),
           ),
         ],

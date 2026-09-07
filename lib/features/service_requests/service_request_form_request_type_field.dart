@@ -21,7 +21,7 @@ class ServiceRequestFormRequestTypeField extends StatelessWidget {
       children: ServiceRequestKind.values
           .map(
             (kind) => ChoiceChip(
-              label: Text(kind.label),
+              label: Text(requestText(context, kind.label)),
               selected: kind == value,
               showCheckmark: false,
               avatar: Icon(

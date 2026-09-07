@@ -4,22 +4,27 @@ import 'package:vortice_app/models/invoice.dart';
 import 'package:vortice_app/models/profile.dart';
 
 Color invoiceStatusColor(InvoiceStatus status) => switch (status) {
-      InvoiceStatus.paid => AppColors.success,
-      InvoiceStatus.sent => AppColors.warning,
-      InvoiceStatus.draft => AppColors.textSecondary,
-      InvoiceStatus.voided => AppColors.error,
+  InvoiceStatus.paid => AppColors.success,
+  InvoiceStatus.sent => AppColors.warning,
+  InvoiceStatus.draft => AppColors.textSecondary,
+  InvoiceStatus.voided => AppColors.error,
+};
+
+String invoiceStatusLabel(InvoiceStatus status, {required bool spanish}) =>
+    switch (status) {
+      InvoiceStatus.draft => spanish ? 'Borrador' : 'Draft',
+      InvoiceStatus.sent => spanish ? 'Emitida' : 'Issued',
+      InvoiceStatus.paid => spanish ? 'Pagada' : 'Paid',
+      InvoiceStatus.voided => spanish ? 'Anulada' : 'Voided',
     };
 
 bool isInvoiceEditingLocked(InvoiceStatus status) =>
-    status == InvoiceStatus.sent || status == InvoiceStatus.paid;
+    status != InvoiceStatus.draft;
 
 bool canMarkInvoicePaidFromList({
   required UserRole? role,
   required InvoiceStatus status,
-}) =>
-    role == UserRole.owner &&
-    status != InvoiceStatus.paid &&
-    status != InvoiceStatus.voided;
+}) => role == UserRole.owner && status == InvoiceStatus.sent;
 
 String formatInvoiceCurrency(double? value, {bool mxn = false}) {
   if (value == null) return mxn ? '\$0.00 MXN' : '\$0.00 USD';

@@ -29,6 +29,10 @@ class WorkOrderCompletionPolicy {
   }
 
   static bool isSubmittedServiceReport(ServiceReport report) {
+    if (report.evidencePending ||
+        report.syncStatus != SyncStatusValues.synced) {
+      return false;
+    }
     if (report.signedAt != null) return true;
 
     final hasBody = [

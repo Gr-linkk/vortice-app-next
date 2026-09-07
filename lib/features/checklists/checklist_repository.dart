@@ -41,75 +41,41 @@ class ChecklistRepository {
     }
   }
 
+  AccountJsonCache get _cache => AccountJsonCache(
+    supabase.auth.currentUser!.id,
+    () => supabase.auth.currentUser?.id,
+  );
+
   Future<List<ChecklistTemplate>> listTemplates() async {
     _checkAccount();
-    final cached = (await _db.checklistsDao.getAllTemplates())
-        .map(_templateFromRow)
-        .toList();
-
-    try {
-      final remote = await supabase
+    final remote = await _cache.readThrough(
+      'checklist_templates',
+      () => supabase
           .from(AppConstants.tChecklistTemplates)
           .select()
           .order('name')
-          .timeout(const Duration(seconds: 6));
-      _checkAccount();
-
-      final templates = (remote as List)
-          .map((e) => ChecklistTemplate.fromJson(e as Map<String, dynamic>))
-          .toList();
-
-      for (final template in templates) {
-        await _db.checklistsDao.upsertTemplate(_templateToCompanion(template));
-      }
-
-      return templates;
-    } catch (error) {
-      _checkAccount();
-      if (!isConnectionFailure(error) ||
-          !_db.belongsTo(supabase.auth.currentUser?.id)) {
-        rethrow;
-      }
-      if (cached.isNotEmpty) return cached;
-      rethrow;
-    }
+          .timeout(const Duration(seconds: 6)),
+    );
+    return (remote as List)
+        .map((e) => ChecklistTemplate.fromJson(Map<String, dynamic>.from(e)))
+        .toList();
   }
 
   Future<List<ChecklistItem>> listItemsForTemplate(String templateId) async {
     _checkAccount();
-    final cached = (await _db.checklistsDao.getItemsForTemplate(
-      templateId,
-    )).map(_itemFromRow).toList();
-
-    try {
-      final remote = await supabase
+    final remote = await _cache.readThrough(
+      'checklist_items:$templateId',
+      () => supabase
           .from(AppConstants.tChecklistItems)
           .select()
           .eq('template_id', templateId)
           .order('sort_order')
-          .timeout(const Duration(seconds: 6));
-      _checkAccount();
-
-      final items = (remote as List)
-          .map((e) => ChecklistItem.fromJson(e as Map<String, dynamic>))
-          .where(isAllowedChecklistItem)
-          .toList();
-
-      for (final item in items) {
-        await _db.checklistsDao.upsertItem(_itemToCompanion(item));
-      }
-
-      return items;
-    } catch (error) {
-      _checkAccount();
-      if (!isConnectionFailure(error) ||
-          !_db.belongsTo(supabase.auth.currentUser?.id)) {
-        rethrow;
-      }
-      final allowedCached = cached.where(isAllowedChecklistItem).toList();
-      if (allowedCached.isNotEmpty) return allowedCached;
-      rethrow;
-    }
+          .timeout(const Duration(seconds: 6)),
+    );
+    return (remote as List)
+        .map((e) => ChecklistItem.fromJson(Map<String, dynamic>.from(e)))
+        .where(isAllowedChecklistItem)
+        .toList();
   }
 
   Future<void> cacheSnapshot(WorkOrderChecklistSnapshot snapshot) async {
@@ -136,11 +102,14 @@ class ChecklistRepository {
     )).map(_responseFromRow).toList();
 
     try {
-      final remote = await supabase
-          .from(AppConstants.tChecklistResponses)
-          .select()
-          .eq('work_order_id', workOrderId)
-          .timeout(const Duration(seconds: 6));
+      final remote = await _cache.readThrough(
+        'checklist_responses:$workOrderId',
+        () => supabase
+            .from(AppConstants.tChecklistResponses)
+            .select()
+            .eq('work_order_id', workOrderId)
+            .timeout(const Duration(seconds: 6)),
+      );
       _checkAccount();
 
       final responses = (remote as List)
@@ -178,28 +147,16 @@ class ChecklistRepository {
           !_db.belongsTo(supabase.auth.currentUser?.id)) {
         rethrow;
       }
-      if (cached.isNotEmpty) return cached;
+      final unsent = cached
+          .where((r) => r.syncStatus != SyncStatusValues.synced)
+          .toList();
+      if (unsent.isNotEmpty) return unsent;
       rethrow;
     }
   }
 
-  Future<bool> hasResponsesForWorkOrder(String workOrderId) async {
-    _checkAccount();
-    if (await _db.checklistsDao.hasResponsesForWorkOrder(workOrderId)) {
-      return true;
-    }
-
-    try {
-      final remote = await supabase
-          .from(AppConstants.tChecklistResponses)
-          .select('id')
-          .eq('work_order_id', workOrderId)
-          .limit(1);
-      return (remote as List).isNotEmpty;
-    } catch (_) {
-      return false;
-    }
-  }
+  Future<bool> hasResponsesForWorkOrder(String workOrderId) async =>
+      (await listResponsesForWorkOrder(workOrderId)).isNotEmpty;
 
   Future<void> submitBatchResponses({
     required String workOrderId,
@@ -372,29 +329,6 @@ class ChecklistRepository {
   }
 }
 
-ChecklistTemplate _templateFromRow(
-  ChecklistTemplatesTableData row,
-) => ChecklistTemplate(
-  id: row.id,
-  assetTypeId: row.assetTypeId,
-  checklistType: row.checklistType,
-  intervalHours: row.intervalHours,
-  intervalLabel: row.intervalLabel,
-  name: row.name,
-  description: row.description,
-  version: row.version,
-  isActive: row.isActive,
-  sourceDocId: row.sourceDocId,
-  createdBy: row.createdBy,
-  procedureId: (jsonDecode(row.scopeJson) as Map)['procedure_id'] as String?,
-  clientId: (jsonDecode(row.scopeJson) as Map)['client_id'] as String?,
-  scopeAssetId: (jsonDecode(row.scopeJson) as Map)['scope_asset_id'] as String?,
-  scopeEngineId:
-      (jsonDecode(row.scopeJson) as Map)['scope_engine_id'] as String?,
-  createdAt: row.createdAt,
-  updatedAt: row.updatedAt,
-);
-
 ChecklistTemplatesTableCompanion _templateToCompanion(
   ChecklistTemplate template,
 ) => ChecklistTemplatesTableCompanion(
@@ -419,18 +353,6 @@ ChecklistTemplatesTableCompanion _templateToCompanion(
   createdBy: Value(template.createdBy),
   createdAt: Value(template.createdAt),
   updatedAt: Value(template.updatedAt),
-);
-
-ChecklistItem _itemFromRow(ChecklistItemsTableData row) => ChecklistItem(
-  id: row.id,
-  templateId: row.templateId,
-  descriptionEn: row.descriptionEn,
-  descriptionEs: row.descriptionEs,
-  category: row.category,
-  requiresPhoto: row.requiresPhoto,
-  sortOrder: row.sortOrder,
-  definition: Map<String, dynamic>.from(jsonDecode(row.definitionJson) as Map),
-  createdAt: row.createdAt,
 );
 
 ChecklistItemsTableCompanion _itemToCompanion(ChecklistItem item) =>

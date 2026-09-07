@@ -28,7 +28,7 @@ class InvoiceScreen extends ConsumerWidget {
         .from(AppConstants.tWorkOrders)
         .select('id, title, status')
         .inFilter('status', [
-          WorkOrderStatus.pendingReview.dbValue,
+          WorkOrderStatus.invoiced.dbValue,
           WorkOrderStatus.closed.dbValue,
         ]);
 
@@ -208,8 +208,8 @@ class InvoiceScreen extends ConsumerWidget {
                   ...paid.map((i) => _InvoiceTile(invoice: i)),
                 ],
                 if (voided.isNotEmpty) ...[
-                  const _SectionHeader(
-                    label: 'VOIDED',
+                  _SectionHeader(
+                    label: isSpanish(context) ? 'ANULADAS' : 'VOIDED',
                     color: AppColors.textSecondary,
                   ),
                   ...voided.map((i) => _InvoiceTile(invoice: i)),

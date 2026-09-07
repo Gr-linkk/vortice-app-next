@@ -3,8 +3,13 @@ import 'package:vortice_app/features/service_reports/service_report_screen_state
 
 class ServiceReportScreen extends ConsumerStatefulWidget {
   final String? initialWorkOrderId;
+  final String? draftStorageKey;
 
-  const ServiceReportScreen({super.key, this.initialWorkOrderId});
+  const ServiceReportScreen({
+    super.key,
+    this.initialWorkOrderId,
+    this.draftStorageKey,
+  });
 
   @override
   ConsumerState<ServiceReportScreen> createState() =>

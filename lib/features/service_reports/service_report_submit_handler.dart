@@ -1,3 +1,5 @@
+import 'package:uuid/uuid.dart';
+import 'package:vortice_app/core/user_feedback.dart';
 import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
@@ -7,7 +9,6 @@ import 'package:vortice_app/core/theme.dart';
 import 'package:vortice_app/core/app_navigation.dart';
 import 'package:vortice_app/features/auth/auth_provider.dart';
 import 'package:vortice_app/features/service_reports/service_report_provider.dart';
-import 'package:vortice_app/features/service_reports/service_report_repository.dart';
 import 'package:vortice_app/features/service_reports/service_report_screen_support.dart';
 import 'package:vortice_app/features/service_reports/service_report_submit_support.dart';
 import 'package:vortice_app/l10n/app_localizations.dart';
@@ -74,163 +75,67 @@ class ServiceReportSubmitHandler {
       return null;
     }
 
+    final reportId = input.pendingReportId ?? const Uuid().v4();
+    // Persist the identity and bytes before the first network attempt.
+    await onDraftPersist(reportId);
     await onSaveDraft();
-
-    String? signatureUrl;
-    if (input.signatureBytes != null) {
-      try {
-        signatureUrl = await uploadServiceReportSignature(
-          signatureBytes: input.signatureBytes!,
-          selectedWorkOrderId: input.selectedWorkOrderId,
-        );
-      } catch (_) {
-        if (context.mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text(serviceReportSignatureFailedMessage),
-              backgroundColor: AppColors.error,
-            ),
-          );
-        }
-        return null;
-      }
-    }
-
-    final payload = buildServiceReportPayload(
-      selectedWorkOrderId: input.selectedWorkOrderId,
-      complaint: input.complaint,
-      cause: input.cause,
-      correction: input.correction,
-      collateral: input.collateral,
-      comments: input.comments,
-      signatureUrl: signatureUrl,
-    );
-
-    if (input.pendingReportId != null) {
-      try {
-        await updatePendingServiceReport(
-          reportId: input.pendingReportId!,
-          payload: payload,
-        );
-      } catch (_) {
-        if (context.mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text(serviceReportSubmitFailedMessage),
-              backgroundColor: AppColors.error,
-            ),
-          );
-        }
-        return null;
-      }
-    }
-
-    final selectedWorkOrderId = input.selectedWorkOrderId;
-    if (selectedWorkOrderId == null) {
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(AppLocalizations.of(context).selectWorkOrder),
-            backgroundColor: AppColors.error,
+    final result = await ref
+        .read(serviceReportControllerProvider.notifier)
+        .submitWithEvidence(
+          reportId: reportId,
+          data: buildServiceReportPayload(
+            selectedWorkOrderId: input.selectedWorkOrderId,
+            complaint: input.complaint,
+            cause: input.cause,
+            correction: input.correction,
+            collateral: input.collateral,
+            comments: input.comments,
           ),
+          photos: input.photos,
+          signature: input.signatureBytes,
         );
-      }
-      return null;
-    }
-
-    final submitResult = input.pendingReportId == null
-        ? await ref
-              .read(serviceReportControllerProvider.notifier)
-              .createReport(
-                workOrderId: selectedWorkOrderId,
-                complaint: input.complaint.trim().isNotEmpty
-                    ? input.complaint.trim()
-                    : null,
-                cause: input.cause.trim().isNotEmpty
-                    ? input.cause.trim()
-                    : null,
-                correction: input.correction.trim().isNotEmpty
-                    ? input.correction.trim()
-                    : null,
-                collateral: input.collateral.trim().isNotEmpty
-                    ? input.collateral.trim()
-                    : null,
-                comments: input.comments.trim().isNotEmpty
-                    ? input.comments.trim()
-                    : null,
-                techSignatureUrl: signatureUrl,
-              )
-        : ServiceReportSubmitResult(
-            reportId: input.pendingReportId!,
-            synced: true,
-          );
-    final reportId = submitResult?.reportId;
-
-    if (reportId != null) {
-      await onDraftPersist(reportId);
-      var photosUploaded = true;
-      if (input.photos.isNotEmpty) {
-        try {
-          await uploadServiceReportPhotos(
-            serviceReportId: reportId,
-            photos: input.photos,
-          );
-        } catch (_) {
-          photosUploaded = false;
-        }
-      }
-      final outcome = resolveServiceReportSubmitOutcome(
-        reportId: reportId,
-        photosUploaded: photosUploaded,
-        hadPhotos: input.photos.isNotEmpty,
-        reportSynced: submitResult?.synced ?? false,
-      );
-      if (outcome == null || !context.mounted) return null;
+    if (result != null) {
+      // The account-owned outbox now contains the complete text/media bundle.
+      // Clearing the editor cannot erase rejected or interrupted submissions.
+      await onClearDraft();
+      if (!context.mounted) return null;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            outcome.showPhotosPendingWarning
-                ? serviceReportPhotosPendingMessage
-                : outcome.showReportPendingWarning
-                ? (Localizations.localeOf(context).languageCode == 'es'
-                      ? 'Guardado en este dispositivo. Sincronización pendiente.'
-                      : 'Saved on this device. Sync pending.')
-                : AppLocalizations.of(context).reportSubmitted,
+            result.synced
+                ? AppLocalizations.of(context).reportSubmitted
+                : isSpanish(context)
+                ? 'Guardado en este dispositivo. Revisa Guardado y sincronización.'
+                : 'Saved on this device. Check Saved work and sync.',
           ),
-          backgroundColor:
-              outcome.showPhotosPendingWarning ||
-                  outcome.showReportPendingWarning
-              ? AppColors.warning
-              : AppColors.success,
         ),
       );
-      if (outcome.shouldResetForm) {
-        formKey.currentState!.reset();
-        await onClearDraft();
-        if (context.mounted) {
-          if (context.canPop()) {
-            context.pop();
-          } else {
-            final profile = ref.read(profileProvider).valueOrNull;
-            context.go(
-              profile == null
-                  ? '/login'
-                  : '${roleRoutePrefix(profile.role)}/work-orders/${input.selectedWorkOrderId}',
-            );
-          }
-        }
+      formKey.currentState!.reset();
+      if (context.canPop()) {
+        context.pop();
+      } else {
+        final profile = ref.read(profileProvider).valueOrNull;
+        context.go(
+          profile == null
+              ? '/login'
+              : '${roleRoutePrefix(profile.role)}/work-orders/${input.selectedWorkOrderId}',
+        );
       }
-      return ServiceReportSubmitResultState(
-        pendingReportId: outcome.pendingReportId,
-        shouldResetForm: outcome.shouldResetForm,
-        shouldPop: outcome.shouldPop,
+      return const ServiceReportSubmitResultState(
+        shouldResetForm: true,
+        shouldPop: true,
       );
     }
 
     if (context.mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(serviceReportSubmitFailedMessage),
+        SnackBar(
+          content: Text(
+            friendlyError(
+              context,
+              ref.read(serviceReportControllerProvider).error,
+            ),
+          ),
           backgroundColor: AppColors.error,
         ),
       );

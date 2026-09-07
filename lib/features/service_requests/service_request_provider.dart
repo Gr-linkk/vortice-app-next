@@ -1,7 +1,9 @@
 import 'dart:typed_data';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:supabase_flutter/supabase_flutter.dart' show FileOptions;
+import 'package:uuid/uuid.dart';
+import 'package:vortice_app/sync/field_work_provider.dart';
+import 'package:vortice_app/sync/evidence_submission.dart';
 import 'package:vortice_app/core/constants.dart';
 import 'package:vortice_app/core/supabase_client.dart';
 import 'package:vortice_app/features/auth/auth_provider.dart';
@@ -73,6 +75,7 @@ class ServiceRequestController extends StateNotifier<AsyncValue<void>> {
   final Ref _ref;
 
   Future<ServiceRequestSubmitResult> submitRequest({
+    String? requestId,
     required String requestTypeLabel,
     required String description,
     required String contactPhoneOrWhatsapp,
@@ -99,40 +102,30 @@ class ServiceRequestController extends StateNotifier<AsyncValue<void>> {
         throw Exception('Unable to resolve client account for this request.');
       }
 
-      final inserted = await supabase
-          .from(AppConstants.tServiceRequests)
-          .insert({
-            'client_id': clientId,
-            if (assetId != null) 'asset_id': assetId,
-            if (otherAssetName?.trim().isNotEmpty == true)
-              'other_asset_name': otherAssetName!.trim(),
-            'title': requestTypeLabel.trim(),
-            'request_type': _requestTypeValue(requestTypeLabel),
-            'description': description.trim(),
-            'contact_phone_or_whatsapp': contactPhoneOrWhatsapp.trim(),
-            if (engineHours != null) 'engine_hours': engineHours,
-            'urgency': 'normal',
-            'status': 'new',
-          })
-          .select('id')
-          .single();
-
-      final requestId = inserted['id'] as String;
-
-      if (photos.isNotEmpty) {
-        try {
-          final photoUrls = await _uploadServiceRequestPhotos(
-            requestId: requestId,
-            photos: photos,
-          );
-          await supabase
-              .from(AppConstants.tServiceRequests)
-              .update({'photo_urls': photoUrls})
-              .eq('id', requestId);
-        } catch (_) {
-          warning = 'Request sent, but photos could not be attached.';
-        }
-      }
+      final queue = _ref.read(fieldWorkQueueProvider);
+      if (queue == null) throw StateError('Sign in before submitting');
+      final operation = await prepareEvidenceSubmission(
+        queue: queue,
+        kind: 'request',
+        record: requestId ?? const Uuid().v4(),
+        data: {
+          'client_id': clientId,
+          'asset_id': assetId,
+          'other_asset_name': otherAssetName?.trim(),
+          'title': requestTypeLabel.trim(),
+          'request_type': _requestTypeValue(requestTypeLabel),
+          'description': description.trim(),
+          'contact_phone_or_whatsapp': contactPhoneOrWhatsapp.trim(),
+          'engine_hours': engineHours,
+        },
+        photos: photos,
+      );
+      await queue.enqueue(operation);
+      await queue.flush(retryFailed: true);
+      final saved = (await queue.list()).singleWhere(
+        (row) => row.id == operation.id,
+      );
+      if (!saved.synced) warning = 'pending';
 
       _ref.invalidate(clientServiceRequestsProvider);
       _ref.invalidate(staffServiceRequestsProvider);
@@ -140,27 +133,6 @@ class ServiceRequestController extends StateNotifier<AsyncValue<void>> {
       success = true;
     });
     return ServiceRequestSubmitResult(success: success, warning: warning);
-  }
-
-  Future<List<String>> _uploadServiceRequestPhotos({
-    required String requestId,
-    required List<Uint8List> photos,
-  }) async {
-    final urls = <String>[];
-    for (var i = 0; i < photos.length; i++) {
-      final ts = DateTime.now().millisecondsSinceEpoch;
-      final path = '$requestId/${i}_$ts.jpg';
-      await supabase.storage
-          .from(AppConstants.bucketServiceRequestPhotos)
-          .uploadBinary(
-            path,
-            photos[i],
-            fileOptions: const FileOptions(contentType: 'image/jpeg'),
-          )
-          .timeout(const Duration(seconds: 6));
-      urls.add(path);
-    }
-    return urls;
   }
 
   Future<bool> updateStatus(String id, ServiceRequestStatus status) async {
@@ -179,34 +151,6 @@ class ServiceRequestController extends StateNotifier<AsyncValue<void>> {
             'status': status == ServiceRequestStatus.resolved
                 ? 'resolved'
                 : 'declined',
-            'handled_at': DateTime.now().toIso8601String(),
-            'handled_by': profile.id,
-          })
-          .eq('id', id);
-
-      _ref.invalidate(clientServiceRequestsProvider);
-      _ref.invalidate(staffServiceRequestsProvider);
-      _ref.invalidate(newServiceRequestCountProvider);
-      success = true;
-    });
-    return success;
-  }
-
-  Future<bool> markGeneratedWorkOrder({
-    required String id,
-    required String workOrderId,
-  }) async {
-    state = const AsyncLoading();
-    var success = false;
-    state = await AsyncValue.guard(() async {
-      final profile = await _ref.read(profileProvider.future);
-      if (profile == null) throw Exception('Not authenticated');
-
-      await supabase
-          .from(AppConstants.tServiceRequests)
-          .update({
-            'status': 'resolved',
-            'generated_work_order_id': workOrderId,
             'handled_at': DateTime.now().toIso8601String(),
             'handled_by': profile.id,
           })

@@ -17,9 +17,9 @@ class InvoiceService {
   /// Fetches the current USD to MXN exchange rate from exchangerate-api.com
   static Future<ExchangeRateResult> fetchExchangeRateResult() async {
     try {
-      final response = await http.get(
-        Uri.parse('https://api.exchangerate-api.com/v4/latest/USD'),
-      );
+      final response = await http
+          .get(Uri.parse('https://api.exchangerate-api.com/v4/latest/USD'))
+          .timeout(const Duration(seconds: 8));
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body) as Map<String, dynamic>;
         final rates = data['rates'] as Map<String, dynamic>;
@@ -53,7 +53,8 @@ class InvoiceService {
 
   /// Calculates all invoice amounts from a work order
   static Future<InvoiceCalculation> calculateFromWorkOrder(
-      String workOrderId) async {
+    String workOrderId,
+  ) async {
     // Fetch work order
     final woData = await supabase
         .from(AppConstants.tWorkOrders)
@@ -157,37 +158,20 @@ class InvoiceService {
 
   /// Creates an invoice in the database from a work order
   static Future<String> createFromWorkOrder(String workOrderId) async {
-    final calc = await calculateFromWorkOrder(workOrderId);
-    final invoiceNumber = await generateInvoiceNumber();
-
-    final result = await supabase
-        .from(AppConstants.tInvoices)
-        .insert({
-          'work_order_id': calc.workOrderId,
-          'client_id': calc.clientId,
-          'invoice_number': invoiceNumber,
-          'status': 'draft',
-          'labour_hours': calc.labourHours,
-          'billable_rate_usd': calc.billableRate,
-          'labour_total_usd': calc.labourTotal,
-          'parts_total_usd': calc.partsTotal,
-          'consumables_total_usd': calc.consumablesTotal,
-          'subtotal_usd': calc.subtotal,
-          'iva_pct': calc.ivaPct,
-          'iva_total_usd': calc.ivaTotal,
-          'total_usd': calc.totalUsd,
-          'exchange_rate': calc.exchangeRate,
-          'total_mxn': calc.totalMxn,
-        })
-        .select('id')
-        .single();
-
-    // Update work order status to invoiced
-    await supabase.from(AppConstants.tWorkOrders).update({
-      'status': 'invoiced',
-    }).eq('id', workOrderId);
-
-    return result['id'] as String;
+    final exchangeRate = await fetchExchangeRateResult();
+    if (exchangeRate.isFallback) {
+      throw StateError(
+        'Live exchange rate unavailable. Retry invoice generation when connected.',
+      );
+    }
+    return await supabase.rpc(
+          'generate_provider_invoice',
+          params: {
+            'p_work_order': workOrderId,
+            'p_exchange_rate': exchangeRate.rate,
+          },
+        )
+        as String;
   }
 
   /// Updates an existing invoice with new line item values
@@ -200,9 +184,13 @@ class InvoiceService {
     double? consumablesTotal,
     String? notes,
   }) async {
-    if ([labourHours, billableRate, labourTotal, partsTotal, consumablesTotal]
-        .whereType<double>()
-        .any((value) => !value.isFinite || value < 0)) {
+    if ([
+      labourHours,
+      billableRate,
+      labourTotal,
+      partsTotal,
+      consumablesTotal,
+    ].whereType<double>().any((value) => !value.isFinite || value < 0)) {
       throw ArgumentError('Invoice amounts must be finite and non-negative.');
     }
     // Recalculate totals if any line item changes
@@ -219,7 +207,8 @@ class InvoiceService {
     final currentConsumablesTotal =
         consumablesTotal ?? invoiceData['consumables_total_usd'] as double?;
 
-    final subtotal = (currentLabourTotal ?? 0) +
+    final subtotal =
+        (currentLabourTotal ?? 0) +
         (currentPartsTotal ?? 0) +
         (currentConsumablesTotal ?? 0);
     final ivaTotal = subtotal * _ivaPct;
@@ -229,25 +218,35 @@ class InvoiceService {
         invoiceData['exchange_rate'] as double? ?? await fetchExchangeRate();
     final totalMxn = totalUsd * exchangeRate;
 
-    await supabase.from(AppConstants.tInvoices).update({
-      if (labourHours != null) 'labour_hours': labourHours,
-      if (billableRate != null) 'billable_rate_usd': billableRate,
-      if (labourTotal != null) 'labour_total_usd': labourTotal,
-      if (partsTotal != null) 'parts_total_usd': partsTotal,
-      if (consumablesTotal != null) 'consumables_total_usd': consumablesTotal,
-      'subtotal_usd': subtotal,
-      'iva_total_usd': ivaTotal,
-      'total_usd': totalUsd,
-      'total_mxn': totalMxn,
-      if (notes != null) 'notes': notes,
-      'updated_at': DateTime.now().toIso8601String(),
-    }).eq('id', invoiceId);
+    await supabase
+        .from(AppConstants.tInvoices)
+        .update({
+          if (labourHours != null) 'labour_hours': labourHours,
+          if (billableRate != null) 'billable_rate_usd': billableRate,
+          if (labourTotal != null) 'labour_total_usd': labourTotal,
+          if (partsTotal != null) 'parts_total_usd': partsTotal,
+          if (consumablesTotal != null)
+            'consumables_total_usd': consumablesTotal,
+          'subtotal_usd': subtotal,
+          'iva_total_usd': ivaTotal,
+          'total_usd': totalUsd,
+          'total_mxn': totalMxn,
+          if (notes != null) 'notes': notes,
+          'updated_at': DateTime.now().toIso8601String(),
+        })
+        .eq('id', invoiceId);
   }
 
   /// Refreshes exchange rate for an invoice
   static Future<ExchangeRateResult> refreshExchangeRate(
-      String invoiceId) async {
+    String invoiceId,
+  ) async {
     final exchangeRate = await fetchExchangeRateResult();
+    if (exchangeRate.isFallback) {
+      throw StateError(
+        'Live exchange rate unavailable. Try again when connected.',
+      );
+    }
     final invoiceData = await supabase
         .from(AppConstants.tInvoices)
         .select('total_usd')
@@ -257,11 +256,14 @@ class InvoiceService {
     final totalUsd = invoiceData['total_usd'] as double? ?? 0;
     final totalMxn = totalUsd * exchangeRate.rate;
 
-    await supabase.from(AppConstants.tInvoices).update({
-      'exchange_rate': exchangeRate.rate,
-      'total_mxn': totalMxn,
-      'updated_at': DateTime.now().toIso8601String(),
-    }).eq('id', invoiceId);
+    await supabase
+        .from(AppConstants.tInvoices)
+        .update({
+          'exchange_rate': exchangeRate.rate,
+          'total_mxn': totalMxn,
+          'updated_at': DateTime.now().toIso8601String(),
+        })
+        .eq('id', invoiceId);
 
     return exchangeRate;
   }
@@ -271,16 +273,13 @@ class ExchangeRateResult {
   final double rate;
   final bool isFallback;
 
-  const ExchangeRateResult._({
-    required this.rate,
-    required this.isFallback,
-  });
+  const ExchangeRateResult._({required this.rate, required this.isFallback});
 
   const ExchangeRateResult.live(double rate)
-      : this._(rate: rate, isFallback: false);
+    : this._(rate: rate, isFallback: false);
 
   const ExchangeRateResult.fallback(double rate)
-      : this._(rate: rate, isFallback: true);
+    : this._(rate: rate, isFallback: true);
 }
 
 /// Holds all calculated invoice values

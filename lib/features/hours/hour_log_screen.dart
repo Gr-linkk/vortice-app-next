@@ -44,8 +44,10 @@ class HourLogScreen extends ConsumerWidget {
         data: (logs) {
           if (logs.isEmpty) {
             return Center(
-              child: Text(l10n.noHourLogs,
-                  style: const TextStyle(color: AppColors.textSecondary)),
+              child: Text(
+                l10n.noHourLogs,
+                style: const TextStyle(color: AppColors.textSecondary),
+              ),
             );
           }
           return RefreshIndicator(
@@ -68,7 +70,10 @@ class HourLogScreen extends ConsumerWidget {
   }
 
   void _showLogSheet(
-      BuildContext context, WidgetRef ref, AppLocalizations l10n) {
+    BuildContext context,
+    WidgetRef ref,
+    AppLocalizations l10n,
+  ) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -76,10 +81,7 @@ class HourLogScreen extends ConsumerWidget {
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
       ),
-      builder: (ctx) => _HourLogForm(
-        engineId: engineId,
-        assetId: assetId,
-      ),
+      builder: (ctx) => _HourLogForm(engineId: engineId, assetId: assetId),
     );
   }
 }
@@ -112,17 +114,29 @@ class _HourLogTile extends StatelessWidget {
         subtitle: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(dateStr,
-                style: const TextStyle(
-                    color: AppColors.textSecondary, fontSize: 11)),
+            Text(
+              dateStr,
+              style: const TextStyle(
+                color: AppColors.textSecondary,
+                fontSize: 11,
+              ),
+            ),
             if (log.source != null)
-              Text('Source: ${log.source}',
-                  style: const TextStyle(
-                      color: AppColors.textSecondary, fontSize: 11)),
+              Text(
+                'Source: ${log.source}',
+                style: const TextStyle(
+                  color: AppColors.textSecondary,
+                  fontSize: 11,
+                ),
+              ),
             if (log.notes != null && log.notes!.isNotEmpty)
-              Text(log.notes!,
-                  style: const TextStyle(
-                      color: AppColors.textSecondary, fontSize: 12)),
+              Text(
+                log.notes!,
+                style: const TextStyle(
+                  color: AppColors.textSecondary,
+                  fontSize: 12,
+                ),
+              ),
           ],
         ),
         isThreeLine: true,
@@ -156,13 +170,26 @@ class _HourLogFormState extends ConsumerState<_HourLogForm> {
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
 
-    final success = await ref.read(hourLogControllerProvider.notifier).logHours(
+    final success = await ref
+        .read(hourLogControllerProvider.notifier)
+        .logHours(
           engineId: widget.engineId,
           assetId: widget.assetId,
           hours: double.parse(_hoursCtrl.text),
           notes: _notesCtrl.text.trim().isEmpty ? null : _notesCtrl.text.trim(),
         );
-    if (success && mounted) Navigator.pop(context);
+    if (!mounted) return;
+    if (success) {
+      Navigator.pop(context);
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            friendlyError(context, ref.read(hourLogControllerProvider).error),
+          ),
+        ),
+      );
+    }
   }
 
   @override
@@ -173,7 +200,11 @@ class _HourLogFormState extends ConsumerState<_HourLogForm> {
 
     return Padding(
       padding: EdgeInsets.fromLTRB(
-          16, 16, 16, MediaQuery.of(context).viewInsets.bottom + 16),
+        16,
+        16,
+        16,
+        MediaQuery.of(context).viewInsets.bottom + 16,
+      ),
       child: Form(
         key: _formKey,
         child: Column(
@@ -191,19 +222,20 @@ class _HourLogFormState extends ConsumerState<_HourLogForm> {
               ),
             ),
             const SizedBox(height: 16),
-            Text(
-              l10n.logHours,
-              style: Theme.of(context).textTheme.titleLarge,
-            ),
+            Text(l10n.logHours, style: Theme.of(context).textTheme.titleLarge),
             const SizedBox(height: 16),
             TextFormField(
               controller: _hoursCtrl,
               decoration: InputDecoration(labelText: l10n.currentHours),
-              keyboardType:
-                  const TextInputType.numberWithOptions(decimal: true),
+              keyboardType: const TextInputType.numberWithOptions(
+                decimal: true,
+              ),
               validator: (v) {
                 if (v == null || v.trim().isEmpty) return l10n.fieldRequired;
-                if (double.tryParse(v) == null) return l10n.invalidNumber;
+                final reading = double.tryParse(v);
+                if (reading == null || !reading.isFinite || reading < 0) {
+                  return l10n.invalidNumber;
+                }
                 return null;
               },
             ),

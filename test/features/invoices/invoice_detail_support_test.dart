@@ -20,20 +20,20 @@ void main() {
       expect(isInvoiceEditingLocked(InvoiceStatus.paid), isTrue);
     });
 
-    test('allows draft and voided invoices', () {
+    test('only drafts can be edited', () {
       expect(isInvoiceEditingLocked(InvoiceStatus.draft), isFalse);
-      expect(isInvoiceEditingLocked(InvoiceStatus.voided), isFalse);
+      expect(isInvoiceEditingLocked(InvoiceStatus.voided), isTrue);
     });
   });
 
   group('canMarkInvoicePaidFromList', () {
-    test('allows owners to mark draft or sent invoices paid', () {
+    test('requires issue before owners can mark paid', () {
       expect(
         canMarkInvoicePaidFromList(
           role: UserRole.owner,
           status: InvoiceStatus.draft,
         ),
-        isTrue,
+        isFalse,
       );
       expect(
         canMarkInvoicePaidFromList(
@@ -54,10 +54,7 @@ void main() {
         UserRole.operator,
       ]) {
         expect(
-          canMarkInvoicePaidFromList(
-            role: role,
-            status: InvoiceStatus.sent,
-          ),
+          canMarkInvoicePaidFromList(role: role, status: InvoiceStatus.sent),
           isFalse,
           reason: '$role should not see owner invoice payment actions',
         );
@@ -96,24 +93,15 @@ void main() {
 
   group('convertInvoiceAmount', () {
     test('returns zero for null USD', () {
-      expect(
-        convertInvoiceAmount(null, showMxn: false, exchangeRate: 20),
-        0,
-      );
+      expect(convertInvoiceAmount(null, showMxn: false, exchangeRate: 20), 0);
     });
 
     test('returns USD unchanged when not showing MXN', () {
-      expect(
-        convertInvoiceAmount(10, showMxn: false, exchangeRate: 20),
-        10,
-      );
+      expect(convertInvoiceAmount(10, showMxn: false, exchangeRate: 20), 10);
     });
 
     test('multiplies by exchange rate when showing MXN', () {
-      expect(
-        convertInvoiceAmount(10, showMxn: true, exchangeRate: 20.5),
-        205,
-      );
+      expect(convertInvoiceAmount(10, showMxn: true, exchangeRate: 20.5), 205);
     });
   });
 
@@ -138,10 +126,7 @@ void main() {
     });
 
     test('formats day/month/year', () {
-      expect(
-        formatInvoiceDate(DateTime(2026, 6, 12)),
-        '12/6/2026',
-      );
+      expect(formatInvoiceDate(DateTime(2026, 6, 12)), '12/6/2026');
     });
   });
 }

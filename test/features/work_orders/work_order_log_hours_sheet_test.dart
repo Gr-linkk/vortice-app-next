@@ -14,6 +14,7 @@ class RecordingController extends WorkOrderController {
     String id,
     Map<String, dynamic> data, {
     List<String>? assignedProfileIds,
+    DateTime? expectedUpdatedAt,
   }) async {
     updates.add(data);
     return false;

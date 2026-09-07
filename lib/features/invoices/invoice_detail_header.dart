@@ -1,3 +1,4 @@
+import 'package:vortice_app/core/user_feedback.dart';
 import 'package:flutter/material.dart';
 import 'package:vortice_app/features/invoices/invoice_detail_support.dart';
 import 'package:vortice_app/models/invoice.dart';
@@ -25,24 +26,30 @@ class InvoiceDetailHeader extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text(
-                'INVOICE',
-                style: TextStyle(
+              Text(
+                isSpanish(context) ? 'FACTURA' : 'INVOICE',
+                style: const TextStyle(
                   color: Color(0xFF93C5FD),
                   fontSize: 13,
                   letterSpacing: 1.2,
                 ),
               ),
               Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 4,
+                ),
                 decoration: BoxDecoration(
-                  color: invoiceStatusColor(invoice.status)
-                      .withValues(alpha: 0.2),
+                  color: invoiceStatusColor(
+                    invoice.status,
+                  ).withValues(alpha: 0.2),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Text(
-                  invoice.status.name.toUpperCase(),
+                  invoiceStatusLabel(
+                    invoice.status,
+                    spanish: isSpanish(context),
+                  ).toUpperCase(),
                   style: TextStyle(
                     color: invoiceStatusColor(invoice.status),
                     fontSize: 11,
@@ -67,12 +74,12 @@ class InvoiceDetailHeader extends StatelessWidget {
             runSpacing: 8,
             children: [
               InvoiceDetailMetaItem(
-                label: 'Created',
+                label: isSpanish(context) ? 'Creada' : 'Created',
                 value: formatInvoiceDate(invoice.createdAt),
               ),
               if (invoice.paidAt != null)
                 InvoiceDetailMetaItem(
-                  label: 'Paid',
+                  label: isSpanish(context) ? 'Pagada' : 'Paid',
                   value: formatInvoiceDate(invoice.paidAt),
                 ),
             ],
@@ -106,7 +113,9 @@ class InvoiceDetailMetaItem extends StatelessWidget {
           TextSpan(
             text: value,
             style: const TextStyle(
-                color: Colors.white, fontWeight: FontWeight.w600),
+              color: Colors.white,
+              fontWeight: FontWeight.w600,
+            ),
           ),
         ],
       ),

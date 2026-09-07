@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:math';
+import 'package:vortice_app/sync/field_work_queue.dart';
 import 'package:vortice_app/core/account_storage.dart';
 
 import 'package:drift/drift.dart' show Value;
@@ -62,18 +63,55 @@ class ServiceReportRepository {
 
   final _readableReportIds = <String>{};
 
+  Future<ServiceReportSubmitResult> queueWithEvidence(
+    FieldWorkQueue queue,
+    FieldOperation operation,
+  ) async {
+    _checkAccount();
+    if (operation.synced) {
+      return ServiceReportSubmitResult(
+        reportId: operation.subject,
+        synced: true,
+      );
+    }
+    final data = Map<String, dynamic>.from(operation.payload['p_data'] as Map);
+    final existing = await _db.serviceReportsDao.getById(operation.subject);
+    final report = ServiceReport.fromJson({
+      ...data,
+      'id': operation.subject,
+      'created_at': (existing?.createdAt ?? DateTime.now())
+          .toUtc()
+          .toIso8601String(),
+      'updated_at': DateTime.now().toUtc().toIso8601String(),
+    });
+    await _db.transaction(() async {
+      await _db.serviceReportsDao.upsert(
+        _toCompanion(report, syncStatus: SyncStatusValues.queuedBundle),
+      );
+      await queue.enqueue(operation);
+    });
+    await queue.flush(retryFailed: true);
+    final saved = (await queue.list()).singleWhere(
+      (row) => row.id == operation.id,
+    );
+    return ServiceReportSubmitResult(
+      reportId: operation.subject,
+      synced: saved.synced,
+    );
+  }
+
   List<ServiceReport> _readableCache(List<ServiceReport> reports) =>
-      !_db.belongsTo(_client.auth.currentUser?.id)
-      ? []
-      : _canAuthor
-      ? reports
-      : reports
-            .where(
-              (report) =>
-                  report.syncStatus == SyncStatusValues.synced &&
-                  _readableReportIds.contains(report.id),
-            )
-            .toList();
+      _canAuthor && _db.belongsTo(_client.auth.currentUser?.id)
+      ? reports.where((r) => r.syncStatus != SyncStatusValues.synced).toList()
+      : [];
+
+  Future<dynamic> _read(String key, Future<dynamic> Function() fetch) =>
+      _db.accountId == null
+      ? fetch()
+      : AccountJsonCache(
+          _db.accountId!,
+          () => _client.auth.currentUser?.id,
+        ).readThrough('reports:$key', fetch);
 
   Future<List<ServiceReport>> listAll() async {
     await syncPendingServiceReports();
@@ -81,9 +119,12 @@ class ServiceReportRepository {
         .map(_fromRow)
         .toList();
     try {
-      final remote = await _client
-          .rpc('provider_service_reports')
-          .timeout(const Duration(seconds: 4));
+      final remote = await _read(
+        'all',
+        () => _client
+            .rpc('provider_service_reports')
+            .timeout(const Duration(seconds: 4)),
+      );
       return _cacheAndMergeRemote(remote as List, cached);
     } catch (error) {
       _checkAccount();
@@ -99,9 +140,12 @@ class ServiceReportRepository {
     final cachedRow = await _db.serviceReportsDao.getById(reportId);
     final cached = cachedRow == null ? null : _fromRow(cachedRow);
     try {
-      final rows = await _client
-          .rpc('provider_service_reports', params: {'p_report': reportId})
-          .timeout(const Duration(seconds: 4));
+      final rows = await _read(
+        'id:$reportId',
+        () => _client
+            .rpc('provider_service_reports', params: {'p_report': reportId})
+            .timeout(const Duration(seconds: 4)),
+      );
       _checkAccount();
       if ((rows as List).isEmpty) {
         _readableReportIds.remove(reportId);
@@ -141,12 +185,15 @@ class ServiceReportRepository {
       workOrderId,
     )).map(_fromRow).toList();
     try {
-      final remote = await _client
-          .rpc(
-            'provider_service_reports',
-            params: {'p_work_order': workOrderId},
-          )
-          .timeout(const Duration(seconds: 4));
+      final remote = await _read(
+        'work:$workOrderId',
+        () => _client
+            .rpc(
+              'provider_service_reports',
+              params: {'p_work_order': workOrderId},
+            )
+            .timeout(const Duration(seconds: 4)),
+      );
       return _cacheAndMergeRemote(remote as List, cached);
     } catch (error) {
       _checkAccount();
@@ -163,9 +210,12 @@ class ServiceReportRepository {
       assetId,
     )).map(_fromRow).toList();
     try {
-      final remote = await _client
-          .rpc('provider_service_reports', params: {'p_asset': assetId})
-          .timeout(const Duration(seconds: 4));
+      final remote = await _read(
+        'asset:$assetId',
+        () => _client
+            .rpc('provider_service_reports', params: {'p_asset': assetId})
+            .timeout(const Duration(seconds: 4)),
+      );
       return _cacheAndMergeRemote(remote as List, cached);
     } catch (error) {
       _checkAccount();
@@ -331,6 +381,9 @@ class ServiceReportRepository {
     final pendingRows = await _db.serviceReportsDao.listPendingSync();
     var syncedCount = 0;
     for (final row in pendingRows) {
+      // The field outbox owns this text/media transaction; legacy text retries
+      // must not overwrite an already accepted signature or photo manifest.
+      if (row.syncStatus == SyncStatusValues.queuedBundle) continue;
       if (reportId != null && row.id != reportId) continue;
       if (workOrderId != null && row.workOrderId != workOrderId) continue;
       final report = _fromRow(row);

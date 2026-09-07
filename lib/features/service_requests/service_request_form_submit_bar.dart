@@ -1,3 +1,4 @@
+import 'package:vortice_app/features/service_requests/service_request_form_support.dart';
 import 'package:flutter/material.dart';
 import 'package:vortice_app/core/theme.dart';
 
@@ -31,7 +32,7 @@ class ServiceRequestFormSubmitBar extends StatelessWidget {
                 ),
               )
             : const Icon(Icons.send_outlined),
-        label: const Text('Send Request'),
+        label: Text(requestText(context, 'Send Request')),
         style: ElevatedButton.styleFrom(
           padding: const EdgeInsets.symmetric(vertical: 16),
         ),

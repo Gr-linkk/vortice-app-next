@@ -20,9 +20,9 @@ class ServiceRequestFormAssetField extends StatelessWidget {
   Widget build(BuildContext context) {
     return AppDropdownField<String>(
       initialValue: value,
-      decoration: const InputDecoration(
-        hintText: 'Select asset',
-        prefixIcon: Icon(Icons.directions_boat_outlined),
+      decoration: InputDecoration(
+        hintText: requestText(context, 'Select asset'),
+        prefixIcon: const Icon(Icons.directions_boat_outlined),
       ),
       dropdownColor: AppColors.surfaceVariant,
       items: [
@@ -32,13 +32,13 @@ class ServiceRequestFormAssetField extends StatelessWidget {
             child: Text(asset.name),
           ),
         ),
-        const DropdownMenuItem<String>(
+        DropdownMenuItem<String>(
           value: kServiceRequestOtherAssetValue,
-          child: Text('Other'),
+          child: Text(requestText(context, 'Other')),
         ),
       ],
       onChanged: onChanged,
-      validator: validateServiceRequestAssetSelection,
+      validator: (value) { final error = validateServiceRequestAssetSelection(value); return error == null ? null : requestText(context, error); },
     );
   }
 }

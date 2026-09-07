@@ -159,7 +159,9 @@ class AuthController extends StateNotifier<AsyncValue<void>> {
   Future<void> signOut() async {
     state = const AsyncLoading();
     state = await AsyncValue.guard(() async {
+      final account = supabase.auth.currentUser?.id;
       await PushNotifications.instance.detach();
+      if (account != null) await invalidateAccountReadCaches(account);
       await supabase.auth.signOut();
     });
   }

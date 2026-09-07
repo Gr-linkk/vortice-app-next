@@ -230,13 +230,13 @@ void main() {
       );
     });
 
-    test('canGenerateInvoice allows owner on review-ready states only', () {
+    test('canGenerateInvoice requires completed work', () {
       expect(
         WorkOrderDetailActionsPolicy.canGenerateInvoice(
           isOwner: true,
           status: WorkOrderStatus.pendingReview,
         ),
-        isTrue,
+        isFalse,
       );
       expect(
         WorkOrderDetailActionsPolicy.canGenerateInvoice(

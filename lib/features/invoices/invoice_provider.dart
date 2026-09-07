@@ -17,8 +17,10 @@ final invoicesProvider = FutureProvider<List<Invoice>>((ref) async {
       .toList();
 });
 
-final invoiceByIdProvider =
-    FutureProvider.family<Invoice?, String>((ref, id) async {
+final invoiceByIdProvider = FutureProvider.family<Invoice?, String>((
+  ref,
+  id,
+) async {
   if (await ref.watch(profileProvider.future) == null) return null;
   final data = await supabase
       .from(AppConstants.tInvoices)
@@ -33,39 +35,26 @@ class InvoiceController extends StateNotifier<AsyncValue<void>> {
   final Ref _ref;
   InvoiceController(this._ref) : super(const AsyncData(null));
 
-  Future<bool> createInvoice(Map<String, dynamic> data) async {
-    state = const AsyncLoading();
-    bool success = false;
-    state = await AsyncValue.guard(() async {
-      await supabase.from(AppConstants.tInvoices).insert(data);
-      _ref.invalidate(invoicesProvider);
-      success = true;
-    });
-    return success;
-  }
-
   Future<bool> markAsPaid(String invoiceId) async {
-    state = const AsyncLoading();
-    bool success = false;
-    state = await AsyncValue.guard(() async {
-      await supabase.from(AppConstants.tInvoices).update({
-        'status': InvoiceStatus.paid.dbValue,
-        'paid_at': DateTime.now().toIso8601String(),
-      }).eq('id', invoiceId);
-      _ref.invalidate(invoicesProvider);
-      _ref.invalidate(invoiceByIdProvider(invoiceId));
-      success = true;
-    });
-    return success;
+    return updateStatus(invoiceId, InvoiceStatus.paid);
   }
 
-  Future<bool> updateStatus(String invoiceId, InvoiceStatus status) async {
+  Future<bool> updateStatus(
+    String invoiceId,
+    InvoiceStatus status, {
+    String? reason,
+  }) async {
     state = const AsyncLoading();
     bool success = false;
     state = await AsyncValue.guard(() async {
-      await supabase.from(AppConstants.tInvoices).update({
-        'status': status.dbValue,
-      }).eq('id', invoiceId);
+      await supabase.rpc(
+        'change_invoice_status',
+        params: {
+          'p_invoice': invoiceId,
+          'p_status': status.dbValue,
+          'p_reason': reason,
+        },
+      );
       _ref.invalidate(invoicesProvider);
       _ref.invalidate(invoiceByIdProvider(invoiceId));
       success = true;
@@ -130,5 +119,5 @@ class InvoiceController extends StateNotifier<AsyncValue<void>> {
 
 final invoiceControllerProvider =
     StateNotifierProvider<InvoiceController, AsyncValue<void>>((ref) {
-  return InvoiceController(ref);
-});
+      return InvoiceController(ref);
+    });

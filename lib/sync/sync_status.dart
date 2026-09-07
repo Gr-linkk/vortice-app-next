@@ -6,6 +6,7 @@ enum SyncStatus {
   synced(SyncStatusValues.synced),
   pendingCreate(SyncStatusValues.pendingCreate),
   pendingUpdate(SyncStatusValues.pendingUpdate),
+  queuedBundle(SyncStatusValues.queuedBundle),
   pendingDelete(SyncStatusValues.pendingDelete),
   syncing(SyncStatusValues.syncing),
   failed(SyncStatusValues.failed),
@@ -16,15 +17,16 @@ enum SyncStatus {
   final String dbValue;
 
   static SyncStatus fromDbValue(String value) => SyncStatus.values.firstWhere(
-        (status) => status.dbValue == value,
-        orElse: () => SyncStatus.failed,
-      );
+    (status) => status.dbValue == value,
+    orElse: () => SyncStatus.failed,
+  );
 }
 
 abstract final class SyncStatusValues {
   static const synced = 'synced';
   static const pendingCreate = 'pending_create';
   static const pendingUpdate = 'pending_update';
+  static const queuedBundle = 'queued_bundle';
   static const pendingDelete = 'pending_delete';
   static const syncing = 'syncing';
   static const failed = 'failed';

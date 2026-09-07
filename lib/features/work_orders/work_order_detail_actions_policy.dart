@@ -6,15 +6,13 @@ class WorkOrderDetailActionsPolicy {
   static bool showsActionsSection({
     required bool canManageStatus,
     required bool canOpenChecklist,
-  }) =>
-      canManageStatus || canOpenChecklist;
+  }) => canManageStatus || canOpenChecklist;
 
   static bool canUseChecklist({
     required bool isOwnerOrEmployee,
     required bool isAssignedContributor,
     required bool pmChecklistsAllowed,
-  }) =>
-      (isOwnerOrEmployee || isAssignedContributor) && pmChecklistsAllowed;
+  }) => (isOwnerOrEmployee || isAssignedContributor) && pmChecklistsAllowed;
 
   static bool canOpenChecklist({
     required bool canUseChecklist,
@@ -36,20 +34,17 @@ class WorkOrderDetailActionsPolicy {
   static bool canCompleteWorkOrder({
     required bool canManageStatus,
     required WorkOrderStatus status,
-  }) =>
-      canManageStatus && status == WorkOrderStatus.inProgress;
+  }) => canManageStatus && (status == WorkOrderStatus.inProgress || status == WorkOrderStatus.pendingReview);
 
   static bool canReopenWorkOrder({
     required bool canManageStatus,
     required WorkOrderStatus status,
-  }) =>
-      canManageStatus && status == WorkOrderStatus.closed;
+  }) => canManageStatus && status == WorkOrderStatus.closed;
 
   static bool canGenerateInvoice({
     required bool isOwner,
     required WorkOrderStatus status,
   }) =>
       isOwner &&
-      (status == WorkOrderStatus.pendingReview ||
-          status == WorkOrderStatus.closed);
+      (status == WorkOrderStatus.invoiced || status == WorkOrderStatus.closed);
 }

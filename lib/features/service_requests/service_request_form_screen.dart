@@ -1,3 +1,8 @@
+import 'dart:convert';
+import 'package:uuid/uuid.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:vortice_app/core/account_storage.dart';
+import 'package:vortice_app/features/auth/auth_provider.dart';
 import 'package:vortice_app/core/user_feedback.dart';
 import 'package:vortice_app/core/unsaved_form_guard.dart';
 import 'dart:typed_data';
@@ -19,7 +24,11 @@ import 'package:vortice_app/features/service_requests/service_request_provider.d
 import 'package:vortice_app/models/service_request.dart';
 
 class ServiceRequestFormScreen extends ConsumerStatefulWidget {
-  const ServiceRequestFormScreen({super.key});
+  const ServiceRequestFormScreen({
+    super.key,
+    this.draftStorageKey = 'service_request_draft',
+  });
+  final String draftStorageKey;
 
   @override
   ConsumerState<ServiceRequestFormScreen> createState() =>
@@ -38,6 +47,86 @@ class _ServiceRequestFormScreenState
 
   ServiceRequestKind _kind = ServiceRequestKind.breakdown;
   String? _assetSelection;
+
+  String _requestId = const Uuid().v4();
+  late final String _account;
+  String get _draftKey => accountStorageKey(_account, widget.draftStorageKey);
+  bool _restoring = true;
+  bool _submitting = false;
+  Object? _draftError;
+
+  @override
+  void initState() {
+    super.initState();
+    _account = ref.read(sessionProvider)?.user.id ?? 'signed_out';
+    _restoreDraft();
+  }
+
+  Future<void> _restoreDraft() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final raw = prefs.getString(_draftKey);
+      if (!mounted || ref.read(sessionProvider)?.user.id != _account) return;
+      if (raw != null) {
+        final data = jsonDecode(raw) as Map;
+        _requestId = data['id'] as String? ?? _requestId;
+        _assetSelection =
+            data['asset_id'] as String? ?? kServiceRequestOtherAssetValue;
+        _otherAssetCtrl.text = data['other_asset_name'] as String? ?? '';
+        _descriptionCtrl.text = data['description'] as String? ?? '';
+        _contactCtrl.text = data['contact_phone_or_whatsapp'] as String? ?? '';
+        _engineHoursCtrl.text = data['engine_hours']?.toString() ?? '';
+        _kind =
+            ServiceRequestKind.values
+                .where((k) => k.label == data['title'])
+                .firstOrNull ??
+            ServiceRequestKind.otherIssue;
+        _photos.addAll(
+          (data['photos'] as List? ?? const []).cast<String>().map(
+            base64Decode,
+          ),
+        );
+      }
+    } catch (error) {
+      _draftError = error;
+      // Retain the unreadable draft; never replace it with a blank submission.
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              isSpanish(context)
+                  ? 'No se pudo leer el borrador guardado. Sigue en este dispositivo.'
+                  : 'The saved draft could not be read. It remains on this device.',
+            ),
+          ),
+        );
+      }
+      if (mounted) setState(() => _restoring = false);
+      return;
+    }
+    if (mounted) setState(() => _restoring = false);
+  }
+
+  Future<void> _saveDraft() async {
+    if (ref.read(sessionProvider)?.user.id != _account) {
+      throw const AccountChangedException();
+    }
+    final prefs = await SharedPreferences.getInstance();
+    final saved = await prefs.setString(
+      _draftKey,
+      jsonEncode({
+        'id': _requestId,
+        'asset_id': resolveServiceRequestAssetId(_assetSelection),
+        'other_asset_name': _otherAssetCtrl.text,
+        'description': _descriptionCtrl.text,
+        'contact_phone_or_whatsapp': _contactCtrl.text,
+        'engine_hours': _engineHoursCtrl.text,
+        'title': _kind.label,
+        'photos': _photos.map(base64Encode).toList(),
+      }),
+    );
+    if (!saved) throw StateError('Could not preserve this request for retry');
+  }
 
   @override
   void dispose() {
@@ -80,54 +169,95 @@ class _ServiceRequestFormScreenState
   }
 
   Future<void> _submit() async {
-    if (!_formKey.currentState!.validate()) return;
+    if (_submitting || !_formKey.currentState!.validate()) return;
+    setState(() => _submitting = true);
+    try {
+      await _saveDraft();
+      final result = await ref
+          .read(serviceRequestControllerProvider.notifier)
+          .submitRequest(
+            requestId: _requestId,
+            requestTypeLabel: _kind.label,
+            description: _descriptionCtrl.text,
+            contactPhoneOrWhatsapp: _contactCtrl.text,
+            assetId: resolveServiceRequestAssetId(_assetSelection),
+            otherAssetName: resolveServiceRequestOtherAssetName(
+              _assetSelection,
+              _otherAssetCtrl.text,
+            ),
+            engineHours: parseServiceRequestEngineHours(_engineHoursCtrl.text),
+            photos: _photos,
+          );
 
-    final result = await ref
-        .read(serviceRequestControllerProvider.notifier)
-        .submitRequest(
-          requestTypeLabel: _kind.label,
-          description: _descriptionCtrl.text,
-          contactPhoneOrWhatsapp: _contactCtrl.text,
-          assetId: resolveServiceRequestAssetId(_assetSelection),
-          otherAssetName: resolveServiceRequestOtherAssetName(
-            _assetSelection,
-            _otherAssetCtrl.text,
+      if (!mounted) return;
+      if (result.success) {
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.remove(_draftKey);
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              result.warning == null
+                  ? (isSpanish(context)
+                        ? 'Solicitud enviada.'
+                        : 'Request submitted.')
+                  : (isSpanish(context)
+                        ? 'Guardado en este dispositivo. Revisa Guardado y sincronización.'
+                        : 'Saved on this device. Check Saved work and sync.'),
+            ),
+            backgroundColor: result.warning == null
+                ? AppColors.success
+                : AppColors.warning,
           ),
-          engineHours: parseServiceRequestEngineHours(_engineHoursCtrl.text),
-          photos: _photos,
         );
+        if (context.canPop()) {
+          context.pop();
+        } else {
+          context.go('/client/service-requests');
+        }
+        return;
+      }
 
-    if (!mounted) return;
-    if (result.success) {
+      final error = ref.read(serviceRequestControllerProvider).error;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(result.warning ?? 'Request sent to Vórtice.'),
-          backgroundColor: result.warning == null
-              ? AppColors.success
-              : AppColors.warning,
+          content: Text(friendlyError(context, error)),
+          backgroundColor: AppColors.error,
         ),
       );
-      if (context.canPop()) {
-        context.pop();
-      } else {
-        context.go('/client/service-requests');
+    } catch (error) {
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(friendlyError(context, error))));
       }
-      return;
+    } finally {
+      if (mounted) setState(() => _submitting = false);
     }
-
-    final error = ref.read(serviceRequestControllerProvider).error;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(friendlyError(context, error)),
-        backgroundColor: AppColors.error,
-      ),
-    );
   }
 
   @override
   Widget build(BuildContext context) {
+    if (_draftError != null) {
+      return Scaffold(
+        appBar: AppBar(),
+        body: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Text(
+              isSpanish(context)
+                  ? 'No se pudo leer el borrador. Se conserva en este dispositivo; pide ayuda antes de continuar.'
+                  : 'The draft could not be read. It remains on this device; ask for help before continuing.',
+            ),
+          ),
+        ),
+      );
+    }
     final assetsAsync = ref.watch(visibleAssetsProvider);
-    final isLoading = ref.watch(serviceRequestControllerProvider).isLoading;
+    final isLoading =
+        _restoring ||
+        _submitting ||
+        ref.watch(serviceRequestControllerProvider).isLoading;
 
     return UnsavedFormGuard(
       controllers: [
@@ -151,7 +281,7 @@ class _ServiceRequestFormScreenState
           leading: const FormBackButton(
             fallbackRoute: '/client/service-requests',
           ),
-          title: const Text('Request Service'),
+          title: Text(requestText(context, 'Request Service')),
         ),
         body: SafeArea(
           child: Form(
@@ -171,8 +301,8 @@ class _ServiceRequestFormScreenState
                           onRetry: () => ref.invalidate(visibleAssetsProvider),
                         ),
                         data: (assets) => ServiceRequestFormCard(
-                          title: 'Machine',
-                          subtitle: 'Pick the asset this request is for.',
+                          title: requestText(context, 'Machine'),
+                          subtitle: requestText(context, 'Pick the asset this request is for.'),
                           child: ServiceRequestFormAssetField(
                             assets: assets,
                             value: _assetSelection,
@@ -184,14 +314,14 @@ class _ServiceRequestFormScreenState
                       if (_isOtherAsset) ...[
                         const SizedBox(height: 12),
                         ServiceRequestFormCard(
-                          title: 'Other asset',
+                          title: requestText(context, 'Other asset'),
                           child: TextFormField(
                             controller: _otherAssetCtrl,
                             textInputAction: TextInputAction.next,
-                            decoration: const InputDecoration(
+                            decoration: InputDecoration(
                               hintText:
-                                  'Machine name, unit number, or description',
-                              prefixIcon: Icon(Icons.directions_boat_outlined),
+                                  requestText(context, 'Machine name, unit number, or description'),
+                              prefixIcon: const Icon(Icons.directions_boat_outlined),
                             ),
                             validator: (value) =>
                                 validateServiceRequestOtherAssetName(
@@ -203,8 +333,8 @@ class _ServiceRequestFormScreenState
                       ],
                       const SizedBox(height: 12),
                       ServiceRequestFormCard(
-                        title: 'Request type',
-                        subtitle: 'Choose the closest match.',
+                        title: requestText(context, 'Request type'),
+                        subtitle: requestText(context, 'Choose the closest match.'),
                         child: ServiceRequestFormRequestTypeField(
                           value: _kind,
                           onChanged: (value) => setState(() => _kind = value),
@@ -212,59 +342,59 @@ class _ServiceRequestFormScreenState
                       ),
                       const SizedBox(height: 12),
                       ServiceRequestFormCard(
-                        title: 'Engine hours',
+                        title: requestText(context, 'Engine hours'),
                         subtitle:
-                            'Optional, but this will prefill the work order if you know it.',
+                            requestText(context, 'Optional, but this will prefill the work order if you know it.'),
                         child: TextFormField(
                           controller: _engineHoursCtrl,
                           keyboardType: const TextInputType.numberWithOptions(
                             decimal: true,
                           ),
                           textInputAction: TextInputAction.next,
-                          decoration: const InputDecoration(
-                            hintText: 'e.g. 1250.5',
-                            prefixIcon: Icon(Icons.timer_outlined),
+                          decoration: InputDecoration(
+                            hintText: requestText(context, 'e.g. 1250.5'),
+                            prefixIcon: const Icon(Icons.timer_outlined),
                           ),
-                          validator: validateServiceRequestEngineHours,
+                          validator: (value) { final error = validateServiceRequestEngineHours(value); return error == null ? null : requestText(context, error); },
                         ),
                       ),
                       const SizedBox(height: 12),
                       ServiceRequestFormCard(
-                        title: 'Details',
+                        title: requestText(context, 'Details'),
                         subtitle:
-                            'Add symptoms, warning signs, leaks or damage, unusual noises, when it started, and anything else that helps the technician prepare.',
+                            requestText(context, 'Add symptoms, warning signs, leaks or damage, unusual noises, when it started, and anything else that helps the technician prepare.'),
                         child: TextFormField(
                           controller: _descriptionCtrl,
                           minLines: 5,
                           maxLines: 8,
                           textCapitalization: TextCapitalization.sentences,
-                          decoration: const InputDecoration(
-                            hintText: 'Describe the issue or service needed...',
+                          decoration: InputDecoration(
+                            hintText: requestText(context, 'Describe the issue or service needed...'),
                             alignLabelWithHint: true,
                           ),
-                          validator: validateServiceRequestDescription,
+                          validator: (value) { final error = validateServiceRequestDescription(value); return error == null ? null : requestText(context, error); },
                         ),
                       ),
                       const SizedBox(height: 12),
                       ServiceRequestFormCard(
-                        title: 'Contact',
-                        subtitle: 'Best number for a call or WhatsApp message.',
+                        title: requestText(context, 'Contact'),
+                        subtitle: requestText(context, 'Best number for a call or WhatsApp message.'),
                         child: TextFormField(
                           controller: _contactCtrl,
                           keyboardType: TextInputType.phone,
                           textInputAction: TextInputAction.done,
-                          decoration: const InputDecoration(
-                            hintText: 'Phone number or WhatsApp',
-                            prefixIcon: Icon(Icons.phone_outlined),
+                          decoration: InputDecoration(
+                            hintText: requestText(context, 'Phone number or WhatsApp'),
+                            prefixIcon: const Icon(Icons.phone_outlined),
                           ),
-                          validator: validateServiceRequestContact,
+                          validator: (value) { final error = validateServiceRequestContact(value); return error == null ? null : requestText(context, error); },
                         ),
                       ),
                       const SizedBox(height: 12),
                       ServiceRequestFormCard(
-                        title: 'Photos',
+                        title: requestText(context, 'Photos'),
                         subtitle:
-                            'Optional, but helpful for leaks, damage, alarms, or access.',
+                            requestText(context, 'Optional, but helpful for leaks, damage, alarms, or access.'),
                         child: ServiceRequestFormPhotoField(
                           photos: _photos,
                           onAddPhotos: _pickPhotos,

@@ -1,3 +1,4 @@
+import 'package:vortice_app/core/account_storage.dart';
 import 'dart:ffi';
 import 'dart:io';
 import 'package:drift/drift.dart' show Value;
@@ -48,11 +49,11 @@ void main() {
         final repo = WorkOrderRepository(db);
         await expectLater(
           repo.getWorkOrderById('private-a'),
-          throwsA(isA<http.ClientException>()),
+          throwsA(isA<AccountChangedException>()),
         );
         await expectLater(
           repo.listWorkOrders(),
-          throwsA(isA<http.ClientException>()),
+          throwsA(isA<AccountChangedException>()),
         );
         expect(
           await db.workOrdersDao.getById('private-a'),

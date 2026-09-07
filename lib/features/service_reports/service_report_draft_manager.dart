@@ -9,8 +9,8 @@ class ServiceReportDraftKeys {
 
   static String draftKey(String? initialWorkOrderId) =>
       initialWorkOrderId?.isNotEmpty == true
-          ? 'service_report_draft_$initialWorkOrderId'
-          : 'service_report_draft';
+      ? 'service_report_draft_$initialWorkOrderId'
+      : 'service_report_draft';
 
   static String draftMediaKey(String? initialWorkOrderId) =>
       '${draftKey(initialWorkOrderId)}_media';
@@ -88,9 +88,9 @@ class ServiceReportDraftManager {
         photos: photos,
       );
     } catch (_) {
-      await prefs.remove(draftKey);
-      await prefs.remove(draftMediaKey);
-      return null;
+      throw const FormatException(
+        'Saved report could not be read; the original draft remains on this device.',
+      );
     }
   }
 
@@ -120,7 +120,7 @@ class ServiceReportDraftManager {
       return;
     }
 
-    await prefs.setString(
+    await _retain(prefs,
       draftKey,
       jsonEncode(
         ServiceReportDraftCodec.textPayload(
@@ -150,7 +150,7 @@ class ServiceReportDraftManager {
       return;
     }
 
-    await prefs.setString(
+    await _retain(prefs,
       draftMediaKey,
       jsonEncode(
         ServiceReportDraftCodec.mediaPayload(
@@ -168,5 +168,11 @@ class ServiceReportDraftManager {
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove(draftKey);
     await prefs.remove(draftMediaKey);
+  }
+}
+
+Future<void> _retain(SharedPreferences prefs, String key, String value) async {
+  if (!await prefs.setString(key, value)) {
+    throw StateError('Could not retain the report draft on this device.');
   }
 }

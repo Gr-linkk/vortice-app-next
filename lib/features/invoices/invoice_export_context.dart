@@ -4,6 +4,7 @@ import 'package:vortice_app/models/invoice.dart';
 import 'package:vortice_app/models/part.dart';
 
 class InvoiceExportContext {
+  final Invoice? currentInvoice;
   final String? clientName;
   final String? clientEmail;
   final String? clientPhone;
@@ -14,6 +15,7 @@ class InvoiceExportContext {
   final List<Part> invoiceParts;
 
   const InvoiceExportContext({
+    this.currentInvoice,
     this.clientName,
     this.clientEmail,
     this.clientPhone,
@@ -44,92 +46,38 @@ class InvoiceExportContextService {
   const InvoiceExportContextService._();
 
   static Future<InvoiceExportContext> load(Invoice invoice) async {
-    String? clientName;
-    String? clientEmail;
-    String? clientPhone;
-    String? workOrderTitle;
-    String? assetId;
-    String? assetName;
-    String? assetMakeModel;
-    String? assetSerialNumber;
+    // Re-read through RLS before exporting so a stale screen cannot export
+    // after access is revoked. Never rebuild issued documents from live parts.
+    final current = await supabase
+        .from(AppConstants.tInvoices)
+        .select()
+        .eq('id', invoice.id)
+        .single();
+    return fromSnapshot(Invoice.fromJson(current));
+  }
 
-    try {
-      final profile = await supabase
-          .from(AppConstants.tProfiles)
-          .select('full_name,email,phone')
-          .eq('id', invoice.clientId)
-          .maybeSingle();
-      clientName = _trimToNull(profile?['full_name'] as String?);
-      clientEmail = _trimToNull(profile?['email'] as String?);
-      clientPhone = _trimToNull(profile?['phone'] as String?);
-    } catch (_) {
-      // Export should still succeed if optional context is unavailable.
+  static InvoiceExportContext fromSnapshot(Invoice invoice) {
+    final snapshot = invoice.exportSnapshot;
+    if (snapshot == null) {
+      throw StateError(
+        'Invoice snapshot unavailable. Refresh before exporting.',
+      );
     }
-
-    try {
-      final workOrder = await supabase
-          .from(AppConstants.tWorkOrders)
-          .select('title,asset_id')
-          .eq('id', invoice.workOrderId)
-          .maybeSingle();
-      workOrderTitle = _trimToNull(workOrder?['title'] as String?);
-      assetId = _trimToNull(workOrder?['asset_id'] as String?);
-    } catch (_) {
-      // Export should still succeed if optional context is unavailable.
-    }
-
-    if (assetId != null) {
-      try {
-        final asset = await supabase
-            .from(AppConstants.tAssets)
-            .select('name,make,model,serial_number')
-            .eq('id', assetId)
-            .maybeSingle();
-        assetName = _trimToNull(asset?['name'] as String?);
-        final make = _trimToNull(asset?['make'] as String?);
-        final model = _trimToNull(asset?['model'] as String?);
-        assetMakeModel = [make, model]
-            .whereType<String>()
-            .where((value) => value.isNotEmpty)
-            .join(' ');
-        assetMakeModel = _trimToNull(assetMakeModel);
-        assetSerialNumber = _trimToNull(asset?['serial_number'] as String?);
-      } catch (_) {
-        // Export should still succeed if optional context is unavailable.
-      }
-    }
-
-    var invoiceParts = const <Part>[];
-    try {
-      final partsData = await supabase
-          .from(AppConstants.tParts)
-          .select()
-          .eq('work_order_id', invoice.workOrderId)
-          .order('created_at');
-      invoiceParts = (partsData as List)
-          .map((e) => Part.fromJson(e as Map<String, dynamic>))
-          .toList();
-    } catch (_) {
-      // Export should still succeed if optional parts are unavailable.
-    }
-
     return InvoiceExportContext(
-      clientName: clientName,
-      clientEmail: clientEmail,
-      clientPhone: clientPhone,
-      workOrderTitle: workOrderTitle,
-      assetName: assetName,
-      assetMakeModel: assetMakeModel,
-      assetSerialNumber: assetSerialNumber,
-      invoiceParts: invoiceParts,
+      currentInvoice: invoice,
+      clientName: snapshot['client_name'] as String?,
+      clientEmail: snapshot['client_email'] as String?,
+      clientPhone: snapshot['client_phone'] as String?,
+      workOrderTitle: snapshot['work_order_title'] as String?,
+      assetName: snapshot['asset_name'] as String?,
+      assetMakeModel: snapshot['asset_make_model'] as String?,
+      assetSerialNumber: snapshot['asset_serial_number'] as String?,
+      invoiceParts: (snapshot['parts'] as List? ?? const [])
+          .map((part) => Part.fromJson(Map<String, dynamic>.from(part as Map)))
+          .toList(),
     );
   }
 }
 
 String _fallback(String? value, String fallback) =>
     value == null || value.trim().isEmpty ? fallback : value.trim();
-
-String? _trimToNull(String? value) {
-  final trimmed = value?.trim();
-  return trimmed == null || trimmed.isEmpty ? null : trimmed;
-}

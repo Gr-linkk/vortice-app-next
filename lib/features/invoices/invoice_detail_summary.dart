@@ -24,7 +24,8 @@ class InvoiceDetailSummaryCard extends StatelessWidget {
         color: const Color(0xFF0F1722),
         borderRadius: BorderRadius.circular(14),
         border: const Border.fromBorderSide(
-            BorderSide(color: AppColors.cardBorder)),
+          BorderSide(color: AppColors.cardBorder),
+        ),
       ),
       child: Column(
         children: [
@@ -64,7 +65,9 @@ class InvoiceDetailSummaryCard extends StatelessWidget {
               child: Text(
                 '(${formatInvoiceCurrency(invoice.totalMxn, mxn: true)})',
                 style: const TextStyle(
-                    color: AppColors.textSecondary, fontSize: 12),
+                  color: AppColors.textSecondary,
+                  fontSize: 12,
+                ),
               ),
             ),
           if (invoice.exchangeRate != null)
@@ -73,7 +76,9 @@ class InvoiceDetailSummaryCard extends StatelessWidget {
               child: Text(
                 '${l10n.exchangeRate}: 1 USD = ${invoice.exchangeRate!.toStringAsFixed(4)} MXN',
                 style: const TextStyle(
-                    color: AppColors.textSecondary, fontSize: 11),
+                  color: AppColors.textSecondary,
+                  fontSize: 11,
+                ),
               ),
             ),
         ],
@@ -104,8 +109,9 @@ class InvoiceDetailSummaryRow extends StatelessWidget {
           Text(
             label,
             style: TextStyle(
-              color:
-                  isGrand ? const Color(0xFF60A5FA) : AppColors.textSecondary,
+              color: isGrand
+                  ? const Color(0xFF60A5FA)
+                  : AppColors.textSecondary,
               fontSize: isGrand ? 18 : 14,
               fontWeight: isGrand ? FontWeight.w900 : FontWeight.normal,
             ),

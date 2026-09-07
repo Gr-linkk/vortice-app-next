@@ -4,10 +4,14 @@ part 'invoice.freezed.dart';
 part 'invoice.g.dart';
 
 enum InvoiceStatus {
-  @JsonValue('draft') draft,
-  @JsonValue('sent') sent,
-  @JsonValue('paid') paid,
-  @JsonValue('void') voided; // 'void' is a Dart keyword
+  @JsonValue('draft')
+  draft,
+  @JsonValue('sent')
+  sent,
+  @JsonValue('paid')
+  paid,
+  @JsonValue('void')
+  voided; // 'void' is a Dart keyword
 
   String get dbValue => switch (this) {
     InvoiceStatus.voided => 'void',
@@ -34,6 +38,8 @@ abstract class Invoice with _$Invoice {
     @JsonKey(name: 'total_usd') double? totalUsd,
     @JsonKey(name: 'exchange_rate') double? exchangeRate,
     @JsonKey(name: 'total_mxn') double? totalMxn,
+    @JsonKey(name: 'export_snapshot') Map<String, dynamic>? exportSnapshot,
+    @JsonKey(name: 'void_reason') String? voidReason,
     String? notes,
     @JsonKey(name: 'pdf_url') String? pdfUrl,
     @JsonKey(name: 'xlsx_url') String? xlsxUrl,
@@ -43,5 +49,6 @@ abstract class Invoice with _$Invoice {
     @JsonKey(name: 'updated_at') DateTime? updatedAt,
   }) = _Invoice;
 
-  factory Invoice.fromJson(Map<String, dynamic> json) => _$InvoiceFromJson(json);
+  factory Invoice.fromJson(Map<String, dynamic> json) =>
+      _$InvoiceFromJson(json);
 }

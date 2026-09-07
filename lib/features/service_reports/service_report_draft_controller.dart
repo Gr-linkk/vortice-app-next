@@ -9,6 +9,7 @@ class ServiceReportDraftController {
   ServiceReportDraftController({
     required this.initialWorkOrderId,
     this.accountId = 'signed_out',
+    this.draftStorageKey,
     required this.complaintController,
     required this.causeController,
     required this.correctionController,
@@ -19,6 +20,7 @@ class ServiceReportDraftController {
 
   final String? initialWorkOrderId;
   final String accountId;
+  final String? draftStorageKey;
   final TextEditingController complaintController;
   final TextEditingController causeController;
   final TextEditingController correctionController;
@@ -38,11 +40,13 @@ class ServiceReportDraftController {
 
   String get draftKey => accountStorageKey(
     accountId,
-    ServiceReportDraftKeys.draftKey(initialWorkOrderId),
+    draftStorageKey ?? ServiceReportDraftKeys.draftKey(initialWorkOrderId),
   );
   String get draftMediaKey => accountStorageKey(
     accountId,
-    ServiceReportDraftKeys.draftMediaKey(initialWorkOrderId),
+    draftStorageKey == null
+        ? ServiceReportDraftKeys.draftMediaKey(initialWorkOrderId)
+        : '${draftStorageKey}_media',
   );
 
   Iterable<TextEditingController> get _textControllers => [

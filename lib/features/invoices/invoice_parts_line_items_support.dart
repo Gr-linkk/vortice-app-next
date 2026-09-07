@@ -39,13 +39,18 @@ InvoicePartLineItem _partToLineItem(Part part) {
 double sumInvoicePartLineTotals(List<InvoicePartLineItem> items) =>
     items.fold(0.0, (sum, item) => sum + item.lineTotalUsd);
 
-String formatInvoicePartLineDetail(InvoicePartLineItem item) {
+String formatInvoicePartLineDetail(
+  InvoicePartLineItem item, {
+  bool spanish = false,
+  double exchangeRate = 1,
+  String currency = 'USD',
+}) {
   final qty = item.quantity == item.quantity.roundToDouble()
       ? item.quantity.toStringAsFixed(0)
       : item.quantity.toStringAsFixed(2);
-  final unit = item.unitCostUsd.toStringAsFixed(2);
+  final unit = (item.unitCostUsd * exchangeRate).toStringAsFixed(2);
   final markup = item.markupPct.toStringAsFixed(0);
-  return '$qty × \$$unit + $markup% markup';
+  return '$qty × \$$unit $currency + $markup% ${spanish ? 'margen' : 'markup'}';
 }
 
 String formatInvoicePartLineLabel(InvoicePartLineItem item) {

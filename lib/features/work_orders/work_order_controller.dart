@@ -1,35 +1,12 @@
+import 'package:vortice_app/core/retryable_rpc.dart';
+import 'package:vortice_app/features/service_requests/service_request_provider.dart';
 import 'dart:async';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:vortice_app/core/constants.dart';
 import 'package:vortice_app/core/supabase_client.dart';
-import 'package:vortice_app/features/checklists/work_order_checklist_snapshot_repository.dart';
 import 'package:vortice_app/features/work_orders/work_order_read_providers.dart';
 import 'package:vortice_app/models/work_order.dart';
-
-Future<void> trySyncChecklistSnapshot(
-  String workOrderId,
-  String? templateId,
-) async {
-  try {
-    final payload =
-        await workOrderChecklistSnapshotRepository.trySyncForWorkOrderTemplate(
-      workOrderId: workOrderId,
-      templateId: templateId,
-    );
-    final version = (payload?['template_version'] as num?)?.toInt();
-    if (version != null) {
-      await supabase
-          .from(AppConstants.tWorkOrders)
-          .update({'checklist_template_version': version}).eq(
-        'id',
-        workOrderId,
-      );
-    }
-  } catch (_) {
-    // Snapshot support is best-effort until every environment has the table.
-  }
-}
 
 class WorkOrderController extends StateNotifier<AsyncValue<void>> {
   final Ref _ref;
@@ -38,39 +15,22 @@ class WorkOrderController extends StateNotifier<AsyncValue<void>> {
   Future<String?> createWorkOrder(
     Map<String, dynamic> data, {
     List<String> assignedProfileIds = const [],
+    String? serviceRequestId,
   }) async {
     state = const AsyncLoading();
     String? createdWorkOrderId;
     state = await AsyncValue.guard(() async {
-      final workOrder = await supabase
-          .from(AppConstants.tWorkOrders)
-          .insert(data)
-          .select('id')
-          .single()
-          .timeout(const Duration(seconds: 4));
-
-      final workOrderId = workOrder['id'] as String;
+      final workOrderId =
+          await authenticatedRetryableRpc().call('save_provider_work_order', {
+                'p_data': data,
+                'p_assignees': assignedProfileIds,
+                'p_request': serviceRequestId,
+              })
+              as String;
       final engineId = data['engine_id'] as String?;
-      final checklistTemplateId = data['checklist_template_id'] as String?;
-
-      if (assignedProfileIds.isNotEmpty) {
-        await supabase
-            .from(AppConstants.tWorkOrderAssignments)
-            .insert(
-              assignedProfileIds
-                  .map(
-                    (profileId) => {
-                      'work_order_id': workOrderId,
-                      'profile_id': profileId,
-                      'role': 'tech',
-                    },
-                  )
-                  .toList(),
-            )
-            .timeout(const Duration(seconds: 4));
-      }
-
-      await trySyncChecklistSnapshot(workOrderId, checklistTemplateId);
+      _ref.invalidate(clientServiceRequestsProvider);
+      _ref.invalidate(staffServiceRequestsProvider);
+      _ref.invalidate(newServiceRequestCountProvider);
 
       _ref.invalidate(workOrdersProvider);
       _ref.invalidate(workOrderByIdProvider(workOrderId));
@@ -109,51 +69,35 @@ class WorkOrderController extends StateNotifier<AsyncValue<void>> {
     String id,
     Map<String, dynamic> data, {
     List<String>? assignedProfileIds,
+    DateTime? expectedUpdatedAt,
   }) async {
     state = const AsyncLoading();
     bool success = false;
     state = await AsyncValue.guard(() async {
       final previous = await supabase
           .from(AppConstants.tWorkOrders)
-          .select('engine_id')
+          .select('engine_id,updated_at')
           .eq('id', id)
           .maybeSingle();
-      await supabase
-          .from(AppConstants.tWorkOrders)
-          .update(data)
-          .eq('id', id)
-          .timeout(const Duration(seconds: 4));
-
-      final hasChecklistUpdate = data.containsKey('checklist_template_id');
-      final nextChecklistTemplateId =
-          hasChecklistUpdate ? data['checklist_template_id'] as String? : null;
-
       if (assignedProfileIds != null) {
+        await authenticatedRetryableRpc().call('save_provider_work_order', {
+          'p_work_order': id,
+          'p_data': data,
+          'p_assignees': assignedProfileIds,
+          'p_expected_updated_at':
+              expectedUpdatedAt?.toUtc().toIso8601String() ??
+              previous?['updated_at'],
+        });
+      } else {
+        // A single replacement write remains atomic for the existing hours form.
+        // Select the result so revoked access cannot masquerade as a saved edit.
         await supabase
-            .from(AppConstants.tWorkOrderAssignments)
-            .delete()
-            .eq('work_order_id', id);
-
-        if (assignedProfileIds.isNotEmpty) {
-          await supabase
-              .from(AppConstants.tWorkOrderAssignments)
-              .insert(
-                assignedProfileIds
-                    .map(
-                      (profileId) => {
-                        'work_order_id': id,
-                        'profile_id': profileId,
-                        'role': 'tech',
-                      },
-                    )
-                    .toList(),
-              )
-              .timeout(const Duration(seconds: 4));
-        }
-      }
-
-      if (hasChecklistUpdate) {
-        await trySyncChecklistSnapshot(id, nextChecklistTemplateId);
+            .from(AppConstants.tWorkOrders)
+            .update(data)
+            .eq('id', id)
+            .select('id')
+            .single()
+            .timeout(const Duration(seconds: 10));
       }
 
       _ref.invalidate(workOrdersProvider);
@@ -174,22 +118,11 @@ class WorkOrderController extends StateNotifier<AsyncValue<void>> {
   }
 
   Future<bool> assignTo(String workOrderId, String userId) async {
-    state = const AsyncLoading();
-    bool success = false;
-    state = await AsyncValue.guard(() async {
-      await supabase
-          .from(AppConstants.tWorkOrders)
-          .update({
-            'assigned_to': userId,
-            'status': WorkOrderStatus.assigned.dbValue,
-          })
-          .eq('id', workOrderId)
-          .timeout(const Duration(seconds: 4));
-      _ref.invalidate(workOrdersProvider);
-      _ref.invalidate(workOrderByIdProvider(workOrderId));
-      success = true;
-    });
-    return success;
+    return updateWorkOrder(
+      workOrderId,
+      {'assigned_to': userId},
+      assignedProfileIds: [userId],
+    );
   }
 
   Future<bool> reopenStatus(String id) async {
@@ -214,5 +147,5 @@ class WorkOrderController extends StateNotifier<AsyncValue<void>> {
 
 final workOrderControllerProvider =
     StateNotifierProvider<WorkOrderController, AsyncValue<void>>((ref) {
-  return WorkOrderController(ref);
-});
+      return WorkOrderController(ref);
+    });

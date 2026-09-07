@@ -73,7 +73,7 @@ void main() {
     await tester.tap(find.byType(DropdownButtonFormField<String>).first);
     await tester.pumpAndSettle();
     await captureFleet(tester, 'form-service-asset-menu-es-large');
-    await tester.tap(find.text('Other').last);
+    await tester.tap(find.text('Otro').last);
     await tester.pumpAndSettle();
     expect(requestedAsset, isNotNull);
     await tester.tap(find.byType(DropdownButtonFormField<String>).last);
