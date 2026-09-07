@@ -6,6 +6,8 @@ import 'package:vortice_app/core/theme.dart';
 import 'package:vortice_app/features/checklists/checklist_support.dart';
 import 'package:vortice_app/features/checklists/checklist_sync_banner.dart';
 import 'package:vortice_app/models/checklist_item.dart';
+import 'package:vortice_app/features/checklists/checklist_answer_fields.dart';
+import 'package:vortice_app/features/service_reports/service_report_media.dart';
 
 class ChecklistItemWidget extends StatefulWidget {
   final ChecklistItem item;
@@ -64,8 +66,10 @@ class _ChecklistItemWidgetState extends State<ChecklistItemWidget> {
   }
 
   Future<void> _pickPhoto() async {
-    final file =
-        await _picker.pickImage(source: ImageSource.gallery, imageQuality: 70);
+    final file = await _picker.pickImage(
+      source: ImageSource.gallery,
+      imageQuality: 70,
+    );
     if (file != null) {
       final bytes = await file.readAsBytes();
       widget.onPhotoAppended(bytes);
@@ -73,8 +77,10 @@ class _ChecklistItemWidgetState extends State<ChecklistItemWidget> {
   }
 
   Future<void> _takePhoto() async {
-    final file =
-        await _picker.pickImage(source: ImageSource.camera, imageQuality: 70);
+    final file = await _picker.pickImage(
+      source: ImageSource.camera,
+      imageQuality: 70,
+    );
     if (file != null) {
       final bytes = await file.readAsBytes();
       widget.onPhotoAppended(bytes);
@@ -84,10 +90,61 @@ class _ChecklistItemWidgetState extends State<ChecklistItemWidget> {
   @override
   Widget build(BuildContext context) {
     final status = widget.status;
+    if (widget.item.definition.isNotEmpty) {
+      return Card(
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              ChecklistAnswerFields(
+                item: widget.item.toJson(),
+                result: status,
+                value: widget.note,
+                onResult: widget.onStatusChanged,
+                onValue: widget.onNoteChanged,
+              ),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  for (var i = 0; i < widget.uploadedPhotoUrls.length; i++)
+                    _ChecklistPhotoTile(
+                      child: ChecklistPhotoPreview(
+                        photo: null,
+                        photoUrl: widget.uploadedPhotoUrls[i],
+                      ),
+                      onRemove: () => widget.onUploadedPhotoRemoved(i),
+                    ),
+                  for (var i = 0; i < widget.localPhotos.length; i++)
+                    _ChecklistPhotoTile(
+                      child: ChecklistPhotoPreview(
+                        photo: widget.localPhotos[i],
+                        photoUrl: null,
+                      ),
+                      onRemove: () => widget.onLocalPhotoRemoved(i),
+                    ),
+                ],
+              ),
+              ChecklistEvidenceActions(
+                requiredPhoto: widget.item.requiresPhoto,
+                onGallery: _pickPhoto,
+                onCamera: _takePhoto,
+              ),
+              if (syncStatusChipLabel(widget.syncStatus) != null)
+                ChecklistItemSyncChip(syncStatus: widget.syncStatus!),
+            ],
+          ),
+        ),
+      );
+    }
     final showDetail =
-        status == 'alert' || status == 'monitor' || status == 'action';
-    final hasPhotos = widget.localPhotos.isNotEmpty ||
-        widget.uploadedPhotoUrls.isNotEmpty;
+        status == 'alert' ||
+        status == 'monitor' ||
+        status == 'action' ||
+        widget.item.requiresPhoto;
+    final hasPhotos =
+        widget.localPhotos.isNotEmpty || widget.uploadedPhotoUrls.isNotEmpty;
 
     return Card(
       margin: const EdgeInsets.only(bottom: 10),
@@ -100,8 +157,10 @@ class _ChecklistItemWidgetState extends State<ChecklistItemWidget> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Expanded(
-                  child: Text(widget.item.descriptionEn,
-                      style: Theme.of(context).textTheme.titleSmall),
+                  child: Text(
+                    widget.item.descriptionEn,
+                    style: Theme.of(context).textTheme.titleSmall,
+                  ),
                 ),
                 if (syncStatusChipLabel(widget.syncStatus) != null) ...[
                   const SizedBox(width: 8),
@@ -111,11 +170,14 @@ class _ChecklistItemWidgetState extends State<ChecklistItemWidget> {
             ),
             if (widget.item.descriptionEs != null) ...[
               const SizedBox(height: 2),
-              Text(widget.item.descriptionEs!,
-                  style: const TextStyle(
-                      color: AppColors.textSecondary,
-                      fontSize: 12,
-                      fontStyle: FontStyle.italic)),
+              Text(
+                widget.item.descriptionEs!,
+                style: const TextStyle(
+                  color: AppColors.textSecondary,
+                  fontSize: 12,
+                  fontStyle: FontStyle.italic,
+                ),
+              ),
             ],
             const SizedBox(height: 12),
             Row(
@@ -144,8 +206,9 @@ class _ChecklistItemWidgetState extends State<ChecklistItemWidget> {
                   value: 'action',
                   current: status,
                   color: AppColors.error,
-                  onTap: () => widget
-                      .onStatusChanged(status == 'action' ? null : 'action'),
+                  onTap: () => widget.onStatusChanged(
+                    status == 'action' ? null : 'action',
+                  ),
                 ),
                 const SizedBox(width: 8),
                 ChecklistStatusButton(
@@ -172,10 +235,14 @@ class _ChecklistItemWidgetState extends State<ChecklistItemWidget> {
                           decoration: const InputDecoration(
                             hintText: 'Describe issue / action required',
                             hintStyle: TextStyle(
-                                color: AppColors.textSecondary, fontSize: 12),
+                              color: AppColors.textSecondary,
+                              fontSize: 12,
+                            ),
                             isDense: true,
                             contentPadding: EdgeInsets.symmetric(
-                                horizontal: 10, vertical: 8),
+                              horizontal: 10,
+                              vertical: 8,
+                            ),
                           ),
                           onChanged: widget.onNoteChanged,
                         ),
@@ -185,9 +252,11 @@ class _ChecklistItemWidgetState extends State<ChecklistItemWidget> {
                             scrollDirection: Axis.horizontal,
                             child: Row(
                               children: [
-                                for (var i = 0;
-                                    i < widget.uploadedPhotoUrls.length;
-                                    i++)
+                                for (
+                                  var i = 0;
+                                  i < widget.uploadedPhotoUrls.length;
+                                  i++
+                                )
                                   Padding(
                                     padding: const EdgeInsets.only(right: 8),
                                     child: _ChecklistPhotoTile(
@@ -199,9 +268,11 @@ class _ChecklistItemWidgetState extends State<ChecklistItemWidget> {
                                           widget.onUploadedPhotoRemoved(i),
                                     ),
                                   ),
-                                for (var i = 0;
-                                    i < widget.localPhotos.length;
-                                    i++)
+                                for (
+                                  var i = 0;
+                                  i < widget.localPhotos.length;
+                                  i++
+                                )
                                   Padding(
                                     padding: const EdgeInsets.only(right: 8),
                                     child: _ChecklistPhotoTile(
@@ -222,24 +293,32 @@ class _ChecklistItemWidgetState extends State<ChecklistItemWidget> {
                             OutlinedButton.icon(
                               onPressed: _pickPhoto,
                               icon: const Icon(Icons.photo_library, size: 16),
-                              label: const Text('Gallery',
-                                  style: TextStyle(fontSize: 12)),
+                              label: const Text(
+                                'Gallery',
+                                style: TextStyle(fontSize: 12),
+                              ),
                               style: OutlinedButton.styleFrom(
                                 minimumSize: Size.zero,
                                 padding: const EdgeInsets.symmetric(
-                                    horizontal: 10, vertical: 6),
+                                  horizontal: 10,
+                                  vertical: 6,
+                                ),
                               ),
                             ),
                             const SizedBox(width: 6),
                             OutlinedButton.icon(
                               onPressed: _takePhoto,
                               icon: const Icon(Icons.camera_alt, size: 16),
-                              label: const Text('Camera',
-                                  style: TextStyle(fontSize: 12)),
+                              label: const Text(
+                                'Camera',
+                                style: TextStyle(fontSize: 12),
+                              ),
                               style: OutlinedButton.styleFrom(
                                 minimumSize: Size.zero,
                                 padding: const EdgeInsets.symmetric(
-                                    horizontal: 10, vertical: 6),
+                                  horizontal: 10,
+                                  vertical: 6,
+                                ),
                               ),
                             ),
                           ],
@@ -259,10 +338,7 @@ class _ChecklistPhotoTile extends StatelessWidget {
   final Widget child;
   final VoidCallback onRemove;
 
-  const _ChecklistPhotoTile({
-    required this.child,
-    required this.onRemove,
-  });
+  const _ChecklistPhotoTile({required this.child, required this.onRemove});
 
   @override
   Widget build(BuildContext context) {
@@ -298,12 +374,7 @@ class ChecklistPhotoPreview extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (photo != null) {
-      return Image.memory(
-        photo!,
-        width: 60,
-        height: 60,
-        fit: BoxFit.cover,
-      );
+      return Image.memory(photo!, width: 60, height: 60, fit: BoxFit.cover);
     }
 
     final url = photoUrl;
@@ -311,12 +382,12 @@ class ChecklistPhotoPreview extends StatelessWidget {
       return const ChecklistPhotoPlaceholder();
     }
 
-    return Image.network(
-      url,
+    return ServiceReportImage(
+      bucket: 'service-report-photos',
+      reference: url,
       width: 60,
       height: 60,
       fit: BoxFit.cover,
-      errorBuilder: (_, __, ___) => const ChecklistPhotoPlaceholder(),
     );
   }
 }
@@ -331,11 +402,7 @@ class ChecklistPhotoPlaceholder extends StatelessWidget {
       height: 60,
       color: AppColors.surfaceVariant,
       alignment: Alignment.center,
-      child: const Icon(
-        Icons.photo,
-        size: 20,
-        color: AppColors.textSecondary,
-      ),
+      child: const Icon(Icons.photo, size: 20, color: AppColors.textSecondary),
     );
   }
 }
@@ -372,8 +439,9 @@ class ChecklistStatusButton extends StatelessWidget {
                 : AppColors.surfaceVariant,
             borderRadius: BorderRadius.circular(8),
             border: Border.all(
-                color: selected ? color : AppColors.divider,
-                width: selected ? 1.5 : 1),
+              color: selected ? color : AppColors.divider,
+              width: selected ? 1.5 : 1,
+            ),
           ),
           alignment: Alignment.center,
           child: Text(

@@ -28,58 +28,60 @@ class OperatorChecklistRunHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(12),
+    return Material(
       color: AppColors.surface,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text('Run details', style: Theme.of(context).textTheme.titleSmall),
-          const SizedBox(height: 8),
-          Text(
-            'Asset: $assetLabel',
-            style: Theme.of(context).textTheme.bodySmall,
-          ),
-          Text(
-            'Checklist: $checklistLabel',
-            style: Theme.of(context).textTheme.bodySmall,
-          ),
-          Text(
-            'Completed by: $completedByLabel',
-            style: Theme.of(context).textTheme.bodySmall,
-          ),
-          ListTile(
-            dense: true,
-            contentPadding: EdgeInsets.zero,
-            title: const Text('Date/time'),
-            subtitle: Text(formatChecklistDateTime(completedAt)),
-            trailing: const Icon(Icons.edit_calendar, size: 18),
-            onTap: onPickCompletedAt,
-          ),
-          TextField(
-            controller: hoursController,
-            keyboardType: const TextInputType.numberWithOptions(decimal: true),
-            decoration: const InputDecoration(
-              labelText: 'Current hours (optional)',
-              isDense: true,
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Run details', style: Theme.of(context).textTheme.titleSmall),
+            const SizedBox(height: 8),
+            Text(
+              'Asset: $assetLabel',
+              style: Theme.of(context).textTheme.bodySmall,
             ),
-            onChanged: (value) =>
-                onHoursChanged(double.tryParse(value.trim())),
-          ),
-          const SizedBox(height: 8),
-          TextField(
-            controller: notesController,
-            maxLines: 2,
-            decoration: const InputDecoration(
-              labelText: 'General notes (optional)',
-              isDense: true,
+            Text(
+              'Checklist: $checklistLabel',
+              style: Theme.of(context).textTheme.bodySmall,
             ),
-            onChanged: (value) => onNotesChanged(
-              value.trim().isEmpty ? null : value.trim(),
+            Text(
+              'Completed by: $completedByLabel',
+              style: Theme.of(context).textTheme.bodySmall,
             ),
-          ),
-        ],
+            ListTile(
+              dense: true,
+              contentPadding: EdgeInsets.zero,
+              title: const Text('Date/time'),
+              subtitle: Text(formatChecklistDateTime(completedAt)),
+              trailing: const Icon(Icons.edit_calendar, size: 18),
+              onTap: onPickCompletedAt,
+            ),
+            TextField(
+              controller: hoursController,
+              keyboardType: const TextInputType.numberWithOptions(
+                decimal: true,
+              ),
+              decoration: const InputDecoration(
+                labelText: 'Current hours (optional)',
+                isDense: true,
+              ),
+              onChanged: (value) =>
+                  onHoursChanged(double.tryParse(value.trim())),
+            ),
+            const SizedBox(height: 8),
+            TextField(
+              controller: notesController,
+              maxLines: 2,
+              decoration: const InputDecoration(
+                labelText: 'General notes (optional)',
+                isDense: true,
+              ),
+              onChanged: (value) =>
+                  onNotesChanged(value.trim().isEmpty ? null : value.trim()),
+            ),
+          ],
+        ),
       ),
     );
   }

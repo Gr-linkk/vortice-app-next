@@ -13,8 +13,10 @@ abstract class ChecklistItem with _$ChecklistItem {
     String? category,
     @JsonKey(name: 'requires_photo') @Default(false) bool requiresPhoto,
     @JsonKey(name: 'sort_order') @Default(0) int sortOrder,
+    @Default(<String, dynamic>{}) Map<String, dynamic> definition,
     @JsonKey(name: 'created_at') DateTime? createdAt,
   }) = _ChecklistItem;
 
-  factory ChecklistItem.fromJson(Map<String, dynamic> json) => _$ChecklistItemFromJson(json);
+  factory ChecklistItem.fromJson(Map<String, dynamic> json) =>
+      _$ChecklistItemFromJson(json);
 }

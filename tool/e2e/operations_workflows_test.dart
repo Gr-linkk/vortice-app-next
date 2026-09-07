@@ -28,7 +28,7 @@ void main() {
           'outputs/NOW-010-fixture-$marker.json',
         ).writeAsStringSync(jsonEncode(manifest));
         save();
-        String? job, fault;
+        String? job, fault, repairJob;
         final originalError = FlutterError.onError;
         FlutterError.onError = (e) {
           h.issues.add(e.exceptionAsString());
@@ -80,9 +80,10 @@ void main() {
               if (job == null) throw StateError('No created job');
               await h.login('client_mechanic@vortice.dev');
               await h.go('/maintenance/jobs/$job');
-              await h.tap(find.text('Start labour'));
+              await h.tap(find.text('Start work'));
               await h.tap(find.widgetWithText(TextButton, 'Pause'));
-              await h.tap(find.text('Block'));
+              await h.tap(find.byTooltip('More actions'));
+              await h.tap(find.text('Block work'));
               await h.fill(
                 h.field('Reason / note'),
                 '$marker Waiting for seal',
@@ -113,9 +114,13 @@ void main() {
               expect(saved.labour.length, 2);
             },
           );
-          Future<void> report(String suffix, String action) async {
-            await h.go('/maintenance/jobs/$job');
-            await h.tap(find.text('Report & submit'));
+          Future<void> report(
+            String suffix,
+            String action, {
+            String? target,
+          }) async {
+            await h.go('/maintenance/jobs/${target ?? job}');
+            await h.tap(find.text('Continue work report'));
             await h.fill(h.field('Findings'), '$marker Worn seal $suffix');
             await h.fill(
               h.field('Work performed and results'),
@@ -134,7 +139,7 @@ void main() {
               if (job == null) throw StateError('No created job');
               await report('draft', 'Save draft');
               await h.go('/maintenance/jobs/$job');
-              await h.tap(find.text('Report & submit'));
+              await h.tap(find.text('Continue work report'));
               expect(
                 tester.widget<TextField>(h.field('Findings')).controller!.text,
                 '$marker Worn seal draft',
@@ -152,8 +157,12 @@ void main() {
               );
             },
           );
-          Future<void> review(String label, String note) async {
-            await h.go('/maintenance/jobs/$job');
+          Future<void> review(
+            String label,
+            String note, {
+            String? target,
+          }) async {
+            await h.go('/maintenance/jobs/${target ?? job}');
             await h.tap(find.text(label));
             await h.fill(h.field('Reason / note'), note);
             await h.tap(find.widgetWithText(FilledButton, 'Confirm'));
@@ -164,7 +173,10 @@ void main() {
             () async {
               if (job == null) throw StateError('No created job');
               await h.login('paradise@vortice.dev');
-              await review('Return', '$marker Add pressure reading');
+              await review(
+                'Return for changes',
+                '$marker Add pressure reading',
+              );
               await h.login('client_mechanic@vortice.dev');
               await report('100 psi', 'Submit for review');
               await h.login('paradise@vortice.dev');
@@ -200,19 +212,15 @@ void main() {
               save();
               await h.login('paradise@vortice.dev');
               await h.go('/fleet/faults/$fault');
-              await h.tap(find.text('Acknowledge'));
-              await h.fill(
-                h.field('Note / reason'),
-                '$marker Scheduled diagnostic',
-              );
-              await h.tap(find.byType(FilledButton).last);
-              await h.tap(find.text('Assign repair'));
+              await h.tap(find.text('Plan repair'));
               await h.select('Assigned to', mechanic['name'] as String);
-              await h.fill(
-                h.field('Note / reason'),
-                '$marker Assigned mechanic',
+              await h.tap(
+                find.widgetWithText(FilledButton, 'Create & open work order'),
               );
-              await h.tap(find.byType(FilledButton).last);
+              repairJob = (await fleet.faults(
+                faultId: fault,
+              )).single.workOrderId;
+              expect(repairJob, isNotNull);
               expect(
                 (await fleet.faults(faultId: fault)).single.assignedTo,
                 mechanic['id'],
@@ -221,6 +229,9 @@ void main() {
           );
           Future<void> faultAction(String label, String note) async {
             await h.go('/fleet/faults/$fault');
+            if (find.text(label).evaluate().isEmpty) {
+              await h.tap(find.byTooltip('More actions'));
+            }
             await h.tap(find.text(label));
             await h.fill(h.field('Note / reason'), note);
             await h.tap(find.byType(FilledButton).last);
@@ -231,16 +242,24 @@ void main() {
             () async {
               if (fault == null) throw StateError('No created fault');
               await h.login('client_mechanic@vortice.dev');
-              await faultAction('Start repair', '$marker Inspection started');
+              await h.go('/maintenance/jobs/$repairJob');
+              await h.tap(find.text('Start work'));
+              await h.tap(find.widgetWithText(TextButton, 'Pause'));
               await faultAction(
                 'Add progress note',
                 '$marker Fasteners checked',
               );
-              await faultAction(
+              await report(
+                'Vibration corrected',
                 'Submit for review',
-                '$marker Vibration corrected',
+                target: repairJob,
               );
               await h.login('paradise@vortice.dev');
+              await review(
+                'Approve & complete',
+                '$marker Repair checked',
+                target: repairJob,
+              );
               await faultAction(
                 'Verify & resolve',
                 '$marker Operational test passed',

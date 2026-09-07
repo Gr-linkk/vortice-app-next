@@ -1,5 +1,7 @@
 import 'package:vortice_app/core/app_dropdown_field.dart';
 import 'package:flutter/material.dart';
+import 'package:vortice_app/features/checklists/asset_checklist_template_filter.dart';
+import 'package:vortice_app/core/user_feedback.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:vortice_app/core/theme.dart';
 import 'package:vortice_app/l10n/app_localizations.dart';
@@ -93,21 +95,39 @@ class OperatorChecklistSelectionStep extends StatelessWidget {
             ),
             data: (templates) {
               final operatorTemplates = templates
-                  .where((t) => t.checklistType == 'operator_daily')
+                  .where(
+                    (t) =>
+                        selectedAsset != null &&
+                        checklistTemplateMatches(
+                          t,
+                          kind: 'operator_daily',
+                          assetId: selectedAsset?['id'] as String?,
+                          assetTypeId:
+                              selectedAsset?['asset_type_id'] as String?,
+                          clientId: selectedAsset?['client_id'] as String?,
+                        ),
+                  )
                   .toList();
+              if (operatorTemplates.isEmpty) {
+                return Text(
+                  selectedAsset == null
+                      ? (isSpanish(context)
+                            ? 'Selecciona el equipo primero.'
+                            : 'Select equipment first.')
+                      : (isSpanish(context)
+                            ? 'No hay una lista previa publicada para este equipo. Pide al responsable que publique una.'
+                            : 'No published pre-operation checklist matches this equipment. Ask your manager to publish one.'),
+                );
+              }
               return AppDropdownField<String>(
                 initialValue: selectedTemplate?.id,
                 decoration: const InputDecoration(),
                 dropdownColor: AppColors.surfaceVariant,
-                items:
-                    (operatorTemplates.isEmpty ? templates : operatorTemplates)
-                        .map(
-                          (t) => DropdownMenuItem(
-                            value: t.id,
-                            child: Text(t.name),
-                          ),
-                        )
-                        .toList(),
+                items: operatorTemplates
+                    .map(
+                      (t) => DropdownMenuItem(value: t.id, child: Text(t.name)),
+                    )
+                    .toList(),
                 hint: Text(
                   l10n.selectTemplate,
                   style: const TextStyle(color: AppColors.textSecondary),

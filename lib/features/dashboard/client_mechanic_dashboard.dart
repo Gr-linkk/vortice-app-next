@@ -34,6 +34,8 @@ final mechanicAvailableChecklistsProvider =
         final assetTemplates = templatesForAssetChecklist(
           templates: pmTemplates,
           assetTypeId: asset.assetTypeId,
+          assetId: asset.id,
+          clientId: asset.clientId,
         );
         for (final template in assetTemplates) {
           options.add(

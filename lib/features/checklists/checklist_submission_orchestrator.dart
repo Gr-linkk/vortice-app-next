@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'dart:convert';
 import 'dart:typed_data';
+import 'package:vortice_app/features/checklists/checklist_answer_fields.dart';
 import 'package:uuid/uuid.dart';
 import 'package:vortice_app/sync/field_work_queue.dart';
 import 'package:vortice_app/sync/field_work_provider.dart';
@@ -257,6 +258,8 @@ class OperationsChecklistSubmission {
     required double? currentHours,
     required String? generalNotes,
     String? operationId,
+    String? assignmentId,
+    DateTime? startedAt,
     Map<String, Uint8List?> photos = const {},
   }) async {
     validateOperationsChecklist(
@@ -271,6 +274,8 @@ class OperationsChecklistSubmission {
         'asset_id': assetId,
         'template_id': template.id,
         'template_version': template.version,
+        'assignment_id': assignmentId,
+        'started_at': (startedAt ?? submittedAt).toUtc().toIso8601String(),
         'run_type': runType,
         'completed_at': submittedAt.toUtc().toIso8601String(),
         'responses': responses,
@@ -325,6 +330,15 @@ void validateOperationsChecklist(
           'n/a',
         }.contains(responses[item.id]),
       )) {
+    throw const OperationsChecklistValidationException('answers');
+  }
+  if (items.any(
+    (item) => !checklistAnswerValid(
+      item.definition,
+      responses[item.id],
+      notes[item.id] ?? '',
+    ),
+  )) {
     throw const OperationsChecklistValidationException('answers');
   }
   if (responses.keys.any((id) => !items.any((item) => item.id == id))) {

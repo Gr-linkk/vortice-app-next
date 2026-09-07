@@ -9,13 +9,18 @@ without creating a new backlog item.
 
 ### NOW-015 — Checklist builder and connected PM/pre-operation workflows
 
-Garrett requested a checklist investigation and complete builder workflow for
-client companies and the owner. The audited scope is in
-`docs/specs/NOW-015-checklist-builder.md`: company template ownership, drafts and
-immutable publications, PM integration, assigned pre-op completion, failed-check
-follow-up and retained evidence/history. Investigation is complete; implementation
-and connected acceptance remain outstanding. Shared owner starters with private
-client copies are a proposed default pending user preference.
+Implemented the checklist builder Garrett approved for client companies and
+the owner. Shared starters and private company copies support drafts, immutable
+publications, rich steps, PM plans/work orders and assigned pre-operation checks.
+Failed pre-op results connect to faults, corrective work and explicit verification.
+Scope and evidence: `docs/specs/NOW-015-checklist-builder.md`; decision 0012.
+
+All three Next migrations are active, with 14 local and 14 hosted SQL suites
+passing. Connected acceptance passes 54 workflow checks and 130 role/route checks.
+Guarded verification passes with clean analysis, 467 tests passed and 204 existing
+skips. Build 18 (`1.9.0+18`) is packaged and its Next identity/signature and
+checksum are verified. Physical phone installation and
+camera/permission checks remain separate from automated evidence.
 
 ### NOW-014 — Company internal work orders
 

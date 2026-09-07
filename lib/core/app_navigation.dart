@@ -68,6 +68,16 @@ List<AppDestination> toolDestinations(UserRole role) {
   final staff = role == UserRole.owner || role == UserRole.employee;
   final admin = role == UserRole.client || role == UserRole.clientAdmin;
   return [
+    if (role == UserRole.owner || admin)
+      const AppDestination(
+        'Checklist library',
+        'Listas de revisión',
+        Icons.playlist_add_check,
+        '/checklist-library',
+        description: 'Build PM procedures and pre-operation checks',
+        descriptionEs:
+            'Crear procedimientos de mantenimiento y revisiones antes de operar',
+      ),
     const AppDestination(
       'Fleet inspections',
       'Inspecciones de la flota',

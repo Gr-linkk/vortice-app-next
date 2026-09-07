@@ -13,6 +13,7 @@ bool isAllowedChecklistItemDescription(String descriptionEn) {
 }
 
 bool isAllowedChecklistItem(ChecklistItem item) =>
+    item.definition['authored'] == true ||
     isAllowedChecklistItemDescription(item.descriptionEn);
 
 bool shouldPreserveLocalChecklistResponse(ChecklistResponse response) =>
@@ -38,13 +39,13 @@ List<ChecklistResponse> mergeResponsesPreferUnsynced({
 Iterable<ChecklistResponse> remoteChecklistResponsesSafeToUpsert({
   required List<ChecklistResponse> remoteResponses,
   required Map<String, ChecklistResponse> localUnsyncedByItem,
-}) =>
-    remoteResponses.where(
-      (response) => !localUnsyncedByItem.containsKey(response.checklistItemId),
-    );
+}) => remoteResponses.where(
+  (response) => !localUnsyncedByItem.containsKey(response.checklistItemId),
+);
 
-String pendingChecklistSyncStatus({required bool hasExisting}) =>
-    hasExisting ? SyncStatusValues.pendingUpdate : SyncStatusValues.pendingCreate;
+String pendingChecklistSyncStatus({required bool hasExisting}) => hasExisting
+    ? SyncStatusValues.pendingUpdate
+    : SyncStatusValues.pendingCreate;
 
 ChecklistResponse buildChecklistResponse({
   required String id,
@@ -60,23 +61,22 @@ ChecklistResponse buildChecklistResponse({
   String syncStatus = SyncStatusValues.synced,
   DateTime? lastSyncedAt,
   String? lastError,
-}) =>
-    ChecklistResponse(
-      id: id,
-      workOrderId: workOrderId,
-      checklistItemId: checklistItemId,
-      completed: status == 'pass',
-      notes: notes?.isNotEmpty == true ? notes : null,
-      photoUrl: photoUrl,
-      responseStatus: status,
-      completedBy: completedBy,
-      completedAt: completedAt,
-      createdAt: createdAt,
-      syncStatus: syncStatus,
-      updatedAt: updatedAt,
-      lastSyncedAt: lastSyncedAt,
-      lastError: lastError,
-    );
+}) => ChecklistResponse(
+  id: id,
+  workOrderId: workOrderId,
+  checklistItemId: checklistItemId,
+  completed: status == 'pass',
+  notes: notes?.isNotEmpty == true ? notes : null,
+  photoUrl: photoUrl,
+  responseStatus: status,
+  completedBy: completedBy,
+  completedAt: completedAt,
+  createdAt: createdAt,
+  syncStatus: syncStatus,
+  updatedAt: updatedAt,
+  lastSyncedAt: lastSyncedAt,
+  lastError: lastError,
+);
 
 Map<String, dynamic> checklistResponseToRemoteRow(ChecklistResponse response) =>
     {

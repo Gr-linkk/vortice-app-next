@@ -59,6 +59,7 @@ class SavedChecklistsRepository {
             'description_es': item.descriptionEs,
             'category': item.category,
             'sort_order': item.sortOrder,
+            'definition': item.definition,
             'response': _normalizeResponseStatus(responses[item.id]!),
             'note': notes[item.id],
             'photo_url': photoUrls[item.id],

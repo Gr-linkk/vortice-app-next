@@ -18,6 +18,10 @@ abstract class ChecklistTemplate with _$ChecklistTemplate {
     @JsonKey(name: 'is_active') @Default(true) bool isActive,
     @JsonKey(name: 'source_doc_id') String? sourceDocId,
     @JsonKey(name: 'created_by') String? createdBy,
+    @JsonKey(name: 'procedure_id') String? procedureId,
+    @JsonKey(name: 'client_id') String? clientId,
+    @JsonKey(name: 'scope_asset_id') String? scopeAssetId,
+    @JsonKey(name: 'scope_engine_id') String? scopeEngineId,
     @JsonKey(name: 'created_at') DateTime? createdAt,
     @JsonKey(name: 'updated_at') DateTime? updatedAt,
   }) = _ChecklistTemplate;

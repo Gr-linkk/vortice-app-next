@@ -178,6 +178,15 @@ class _MaintenanceSetupScreenState
             ? null
             : (v) => setState(() {
                 _values[key] = v;
+                if (key == 'engine_id') {
+                  final selected = maintenanceRows(widget.catalog['templates'])
+                      .where((t) => t['id'] == _values['checklist_template_id'])
+                      .firstOrNull;
+                  if (selected?['scope_engine_id'] != null &&
+                      selected!['scope_engine_id'] != v) {
+                    _values['checklist_template_id'] = null;
+                  }
+                }
                 _dirty = true;
               }),
         validator: (v) => required && v == null
@@ -295,7 +304,13 @@ class _MaintenanceSetupScreenState
                   'checklist_template_id',
                   'Checklist (optional)',
                   'Lista (opcional)',
-                  maintenanceRows(widget.catalog['templates']),
+                  maintenanceRows(widget.catalog['templates'])
+                      .where(
+                        (t) =>
+                            t['scope_engine_id'] == null ||
+                            t['scope_engine_id'] == _values['engine_id'],
+                      )
+                      .toList(),
                   'name',
                   required: false,
                 ),

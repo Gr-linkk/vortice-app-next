@@ -1,9 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:vortice_app/core/theme.dart';
-import 'package:vortice_app/features/auth/auth_provider.dart';
+import 'package:go_router/go_router.dart';
 import 'package:vortice_app/features/checklists/checklist_assignment_provider.dart';
-import 'package:vortice_app/features/orgs/org_admin_assign_checklist_sheet.dart';
 import 'package:vortice_app/features/orgs/org_admin_support.dart';
 
 class OrgAdminChecklistsTab extends ConsumerWidget {
@@ -14,11 +13,10 @@ class OrgAdminChecklistsTab extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final assignmentsAsync = ref.watch(orgChecklistAssignmentsProvider);
-    final profile = ref.watch(profileProvider).valueOrNull;
 
     return Scaffold(
       floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => _showAssignSheet(context, orgId, profile?.id ?? ''),
+        onPressed: () => context.push('/checklist-library'),
         icon: const Icon(Icons.add),
         label: const Text('Assign Checklist'),
       ),
@@ -36,15 +34,24 @@ class OrgAdminChecklistsTab extends ConsumerWidget {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(Icons.checklist_outlined,
-                      size: 56, color: AppColors.textSecondary),
+                  Icon(
+                    Icons.checklist_outlined,
+                    size: 56,
+                    color: AppColors.textSecondary,
+                  ),
                   SizedBox(height: 12),
-                  Text('No checklists assigned yet.',
-                      style: TextStyle(color: AppColors.textSecondary)),
+                  Text(
+                    'No checklists assigned yet.',
+                    style: TextStyle(color: AppColors.textSecondary),
+                  ),
                   SizedBox(height: 4),
-                  Text('Tap + to assign a PM or pre-op checklist to your team.',
-                      style: TextStyle(
-                          color: AppColors.textSecondary, fontSize: 12)),
+                  Text(
+                    'Open the checklist library to assign a pre-operation check or create a maintenance job.',
+                    style: TextStyle(
+                      color: AppColors.textSecondary,
+                      fontSize: 12,
+                    ),
+                  ),
                 ],
               ),
             );
@@ -61,8 +68,9 @@ class OrgAdminChecklistsTab extends ConsumerWidget {
               final assignee = a['assignee'] as Map<String, dynamic>?;
               final status = a['status'] as String? ?? 'pending';
               final isPM = template?['checklist_type'] == 'pm';
-              final statusColor =
-                  orgAdminChecklistAssignmentStatusColor(status);
+              final statusColor = orgAdminChecklistAssignmentStatusColor(
+                status,
+              );
               return Card(
                 child: ListTile(
                   leading: CircleAvatar(
@@ -87,11 +95,15 @@ class OrgAdminChecklistsTab extends ConsumerWidget {
                       if (asset?['name'] != null) asset!['name'] as String,
                     ].join(' • '),
                     style: const TextStyle(
-                        color: AppColors.textSecondary, fontSize: 12),
+                      color: AppColors.textSecondary,
+                      fontSize: 12,
+                    ),
                   ),
                   trailing: Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 4,
+                    ),
                     decoration: BoxDecoration(
                       color: statusColor.withValues(alpha: 0.15),
                       borderRadius: BorderRadius.circular(6),
@@ -99,9 +111,10 @@ class OrgAdminChecklistsTab extends ConsumerWidget {
                     child: Text(
                       status.replaceAll('_', ' ').toUpperCase(),
                       style: TextStyle(
-                          color: statusColor,
-                          fontSize: 10,
-                          fontWeight: FontWeight.bold),
+                        color: statusColor,
+                        fontSize: 10,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                   ),
                 ),
@@ -109,25 +122,6 @@ class OrgAdminChecklistsTab extends ConsumerWidget {
             },
           );
         },
-      ),
-    );
-  }
-
-  void _showAssignSheet(
-    BuildContext context,
-    String orgId,
-    String assignedBy,
-  ) {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: AppColors.surface,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
-      ),
-      builder: (_) => OrgAdminAssignChecklistSheet(
-        orgId: orgId,
-        assignedBy: assignedBy,
       ),
     );
   }

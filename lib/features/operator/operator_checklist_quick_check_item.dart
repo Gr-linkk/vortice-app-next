@@ -5,6 +5,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:vortice_app/core/theme.dart';
 import 'package:vortice_app/features/operator/operator_checklist_status_button.dart';
 import 'package:vortice_app/models/checklist_item.dart';
+import 'package:vortice_app/features/checklists/checklist_answer_fields.dart';
 
 class OperatorChecklistQuickCheckItem extends StatefulWidget {
   final ChecklistItem item;
@@ -57,22 +58,72 @@ class _OperatorChecklistQuickCheckItemState
   }
 
   Future<void> _pickPhoto() async {
-    final file =
-        await _picker.pickImage(source: ImageSource.gallery, imageQuality: 70);
+    final file = await _picker.pickImage(
+      source: ImageSource.gallery,
+      imageQuality: 70,
+    );
     if (file != null) widget.onPhotoChanged(await file.readAsBytes());
   }
 
   Future<void> _takePhoto() async {
-    final file =
-        await _picker.pickImage(source: ImageSource.camera, imageQuality: 70);
+    final file = await _picker.pickImage(
+      source: ImageSource.camera,
+      imageQuality: 70,
+    );
     if (file != null) widget.onPhotoChanged(await file.readAsBytes());
   }
 
   @override
   Widget build(BuildContext context) {
     final status = widget.response;
+    if (widget.item.definition.isNotEmpty) {
+      return Card(
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              ChecklistAnswerFields(
+                item: widget.item.toJson(),
+                result: status,
+                value: widget.note,
+                onResult: widget.onChanged,
+                onValue: widget.onNoteChanged,
+              ),
+              if (widget.photo != null)
+                Padding(
+                  padding: const EdgeInsets.only(top: 12),
+                  child: Row(
+                    children: [
+                      Image.memory(
+                        widget.photo!,
+                        width: 72,
+                        height: 72,
+                        fit: BoxFit.cover,
+                      ),
+                      IconButton(
+                        onPressed: () => widget.onPhotoChanged(null),
+                        icon: const Icon(Icons.close),
+                        tooltip: 'Remove photo',
+                      ),
+                    ],
+                  ),
+                ),
+              ChecklistEvidenceActions(
+                requiredPhoto: widget.item.requiresPhoto,
+                onGallery: _pickPhoto,
+                onCamera: _takePhoto,
+              ),
+            ],
+          ),
+        ),
+      );
+    }
     final showDetail =
-        status == 'alert' || status == 'monitor' || status == 'action';
+        status == 'alert' ||
+        status == 'monitor' ||
+        status == 'action' ||
+        widget.item.requiresPhoto;
 
     return Card(
       margin: const EdgeInsets.symmetric(vertical: 4, horizontal: 4),
@@ -93,8 +144,8 @@ class _OperatorChecklistQuickCheckItemState
                   value: 'pass',
                   current: status,
                   color: AppColors.success,
-                  onTap: () => widget
-                      .onChanged(status == 'pass' ? null : 'pass'),
+                  onTap: () =>
+                      widget.onChanged(status == 'pass' ? null : 'pass'),
                 ),
                 const SizedBox(width: 6),
                 OperatorChecklistStatusButton(
@@ -112,8 +163,8 @@ class _OperatorChecklistQuickCheckItemState
                   value: 'action',
                   current: status,
                   color: AppColors.error,
-                  onTap: () => widget
-                      .onChanged(status == 'action' ? null : 'action'),
+                  onTap: () =>
+                      widget.onChanged(status == 'action' ? null : 'action'),
                 ),
                 const SizedBox(width: 6),
                 OperatorChecklistStatusButton(
@@ -121,8 +172,7 @@ class _OperatorChecklistQuickCheckItemState
                   value: 'n/a',
                   current: status,
                   color: AppColors.textSecondary,
-                  onTap: () =>
-                      widget.onChanged(status == 'n/a' ? null : 'n/a'),
+                  onTap: () => widget.onChanged(status == 'n/a' ? null : 'n/a'),
                 ),
               ],
             ),

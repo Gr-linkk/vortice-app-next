@@ -218,6 +218,7 @@ class CreateWorkOrderForm extends ConsumerWidget {
                   final filtered = checklistTemplatesForAsset(
                     templates,
                     selectedAsset,
+                    engineId: selectedEngineId,
                   );
                   final selectedTemplateStillVisible = filtered.any(
                     (t) => t.id == selectedChecklistTemplateId,

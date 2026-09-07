@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:vortice_app/features/checklists/asset_checklist_template_filter.dart';
 import 'package:vortice_app/core/theme.dart';
 import 'package:vortice_app/models/asset.dart';
 import 'package:vortice_app/models/checklist_template.dart';
@@ -21,26 +22,20 @@ Widget createWorkOrderSectionHeader(String title) {
 
 List<ChecklistTemplate> checklistTemplatesForAsset(
   List<ChecklistTemplate> templates,
-  Asset? asset,
-) {
-  final activeMaintenance = templates
-      .where((template) =>
-          template.isActive &&
-          (template.checklistType == 'pm' ||
-              template.checklistType == 'maintenance'))
-      .toList();
-
-  final assetTypeId = asset?.assetTypeId;
-  if (assetTypeId != null) {
-    final assetSpecific = activeMaintenance
-        .where((template) => template.assetTypeId == assetTypeId)
-        .toList()
-      ..sort(compareChecklistTemplates);
-    if (assetSpecific.isNotEmpty) return assetSpecific;
-  }
-
-  return activeMaintenance
-      .where((template) => template.assetTypeId == null)
+  Asset? asset, {
+  String? engineId,
+}) {
+  return templates
+      .where(
+        (template) => checklistTemplateMatches(
+          template,
+          kind: 'pm',
+          assetId: asset?.id,
+          assetTypeId: asset?.assetTypeId,
+          clientId: asset?.clientId,
+          engineId: engineId,
+        ),
+      )
       .toList()
     ..sort(compareChecklistTemplates);
 }
@@ -51,18 +46,21 @@ int compareChecklistTemplates(ChecklistTemplate a, ChecklistTemplate b) {
   final hoursCompare = aHours.compareTo(bHours);
   if (hoursCompare != 0) return hoursCompare;
 
-  final labelCompare =
-      (a.intervalLabel ?? '').compareTo(b.intervalLabel ?? '');
+  final labelCompare = (a.intervalLabel ?? '').compareTo(b.intervalLabel ?? '');
   if (labelCompare != 0) return labelCompare;
 
   return a.name.compareTo(b.name);
 }
 
 int? hoursFromTemplate(ChecklistTemplate template) {
-  final candidates =
-      [template.intervalLabel, template.name].whereType<String>().join(' ');
-  final match = RegExp(r'(\d+)\s*(?:hr|hour|hours|h)\b', caseSensitive: false)
-      .firstMatch(candidates);
+  final candidates = [
+    template.intervalLabel,
+    template.name,
+  ].whereType<String>().join(' ');
+  final match = RegExp(
+    r'(\d+)\s*(?:hr|hour|hours|h)\b',
+    caseSensitive: false,
+  ).firstMatch(candidates);
   return match == null ? null : int.tryParse(match.group(1)!);
 }
 
@@ -70,8 +68,8 @@ String checklistTemplateLabel(ChecklistTemplate template) {
   final prefix = template.intervalLabel?.trim().isNotEmpty == true
       ? template.intervalLabel!.trim()
       : template.intervalHours != null
-          ? '${template.intervalHours} HR'
-          : null;
+      ? '${template.intervalHours} HR'
+      : null;
   if (prefix == null || template.name.contains(prefix)) return template.name;
   return '$prefix — ${template.name}';
 }

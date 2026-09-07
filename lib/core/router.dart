@@ -10,6 +10,7 @@ import 'package:vortice_app/features/maintenance/maintenance_create_screen.dart'
 import 'package:vortice_app/features/maintenance/maintenance_job_screen.dart';
 import 'package:vortice_app/features/maintenance/maintenance_asset_screen.dart';
 import 'package:flutter/material.dart';
+import 'package:vortice_app/features/checklist_builder/checklist_library_screen.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:vortice_app/core/app_shell.dart';
@@ -191,6 +192,10 @@ final routerProvider = Provider<GoRouter>((ref) {
           GoRoute(
             path: '/notifications',
             builder: (_, _) => const NotificationsScreen(),
+          ),
+          GoRoute(
+            path: '/checklist-library',
+            builder: (_, _) => const ChecklistLibraryScreen(),
           ),
           GoRoute(
             path: '/fleet/overview',
@@ -606,6 +611,7 @@ final routerProvider = Provider<GoRouter>((ref) {
             builder: (_, state) => _OperatorChecklistCapabilityGate(
               initialAssetId: state.uri.queryParameters['assetId'],
               initialTemplateId: state.uri.queryParameters['templateId'],
+              initialAssignmentId: state.uri.queryParameters['assignmentId'],
             ),
           ),
           GoRoute(
@@ -654,10 +660,12 @@ class _OperatorChecklistCapabilityGate extends ConsumerWidget {
   const _OperatorChecklistCapabilityGate({
     required this.initialAssetId,
     required this.initialTemplateId,
+    this.initialAssignmentId,
   });
 
   final String? initialAssetId;
   final String? initialTemplateId;
+  final String? initialAssignmentId;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -692,6 +700,7 @@ class _OperatorChecklistCapabilityGate extends ConsumerWidget {
       allowedBuilder: (_) => OperatorChecklistScreen(
         initialAssetId: initialAssetId,
         initialTemplateId: initialTemplateId,
+        initialAssignmentId: initialAssignmentId,
       ),
       blockedBuilder: (_) => Scaffold(
         appBar: AppBar(title: const Text('Checklist')),

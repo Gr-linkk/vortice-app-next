@@ -1,3 +1,4 @@
+import 'package:vortice_app/features/checklists/checklist_answer_fields.dart';
 import 'package:vortice_app/core/user_feedback.dart';
 import 'package:vortice_app/core/account_storage.dart';
 import 'dart:async';
@@ -202,7 +203,20 @@ class _ChecklistScreenBodyState extends ConsumerState<ChecklistScreenBody> {
     if (templateId == null) return;
 
     final templates = ref.read(checklistTemplatesProvider).valueOrNull ?? [];
-    final match = templates.where((t) => t.id == templateId).firstOrNull;
+    final match = templates
+        .where(
+          (t) =>
+              t.id == templateId &&
+              (!widget.clientHistoryOnly ||
+                  checklistTemplateMatches(
+                    t,
+                    kind: 'pm',
+                    assetId: widget.assetId,
+                    assetTypeId: widget.assetTypeId,
+                    clientId: widget.assetClientId,
+                  )),
+        )
+        .firstOrNull;
     if (match != null && mounted) {
       setState(() {
         _selectedTemplate = match;
@@ -265,6 +279,8 @@ class _ChecklistScreenBodyState extends ConsumerState<ChecklistScreenBody> {
               ? templatesForAssetChecklist(
                   templates: allTemplates,
                   assetTypeId: widget.assetTypeId,
+                  assetId: widget.assetId,
+                  clientId: widget.assetClientId,
                 )
               : allTemplates;
 
@@ -436,6 +452,29 @@ class _ChecklistScreenBodyState extends ConsumerState<ChecklistScreenBody> {
     final List<ChecklistItem> items =
         snapshotItems ??
         await ref.read(checklistItemsProvider(_selectedTemplate!.id).future);
+    if (items.any(
+      (item) =>
+          !checklistAnswerValid(
+            item.definition,
+            _responses[item.id],
+            _notes[item.id] ?? '',
+          ) ||
+          (item.requiresPhoto &&
+              parseChecklistPhotoUrls(photoUrls[item.id]).isEmpty),
+    )) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              isSpanish(context)
+                  ? 'Completa cada paso y añade las fotos requeridas.'
+                  : 'Complete every step and add required photos.',
+            ),
+          ),
+        );
+      }
+      return;
+    }
     if (widget.clientHistoryOnly) {
       await ref
           .read(clientChecklistSubmissionProvider)

@@ -8,6 +8,7 @@ import 'package:vortice_app/core/supabase_client.dart';
 import 'package:vortice_app/db/database.dart';
 import 'package:vortice_app/features/auth/auth_provider.dart';
 import 'field_work_queue.dart';
+import 'package:vortice_app/features/checklists/checklist_assignment_provider.dart';
 
 final fieldWorkQueueProvider = Provider<FieldWorkQueue?>((ref) {
   final account = ref.watch(sessionProvider)?.user.id;
@@ -103,6 +104,11 @@ final fieldWorkQueueProvider = Provider<FieldWorkQueue?>((ref) {
               'Upload rejected (${response.statusCode})',
           code: failure['code']?.toString(),
         );
+      }
+      queue.checkAccount();
+      if (operation.kind == 'submit_operations_checklist') {
+        ref.invalidate(myChecklistAssignmentsProvider);
+        ref.invalidate(orgChecklistAssignmentsProvider);
       }
     },
   );

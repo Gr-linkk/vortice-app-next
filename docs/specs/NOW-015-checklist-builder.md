@@ -2,12 +2,14 @@
 
 ## Status
 
-Garrett requested an investigation of checklists to prepare a builder for client
-companies and the owner, covering PM and pre-operation checks, with the whole
-workflow accounted for. This is the audited implementation scope, not a delivered
-builder. Audit base: `2d14395`. Existing visual language and service isolation apply.
+Garrett approved implementation after the checklist investigation. The native
+builder and connected PM/pre-operation paths are implemented and pass connected
+acceptance and guarded verification. Build 18 (`1.9.0+18`) is packaged and verified. The three
+Next migrations are active and all 14 local and hosted SQL suites pass. Audit base: `2d14395`.
+Existing visual language and service isolation apply. Decision 0012 records the
+accepted publication, authorship and execution rules.
 
-## Verified current implementation and gaps
+## Investigation baseline and gaps addressed
 
 - `checklist_templates` and `checklist_items` support PM and `operator_daily`,
   asset type, ordered instructions, Spanish text, categories and required photos.
@@ -39,12 +41,12 @@ builder. Audit base: `2d14395`. Existing visual language and service isolation a
   builder must not silently hide authored steps. Replace this heuristic with
   explicit supported item types; approvals remain workflow actions.
 
-## Proposed product rules
+## Accepted product rules
 
-Working default: the owner publishes shared starters; client managers create
+The owner publishes shared starters; client managers create
 private company templates or copy a starter and customize it. Copies remain
-independent with source/version attribution. The user was asked whether entirely
-separate libraries are preferred; no answer is recorded yet. Owner access to
+independent with source/version attribution. This working default is included in
+the approved implementation scope. Owner access to
 client copies follows existing fleet access and never silently changes a client's
 published procedure. Mechanics/operators execute the relevant published checks;
 authoring belongs to managers under existing company and capability rules.
@@ -116,3 +118,65 @@ Audit verification: 54 existing checklist/operator/field-queue tests pass in
 `outputs/checklist-builder-audit-tests.log`. This is baseline evidence, not proof
 of the proposed builder or missing connections. No app/backend changes were made
 during this investigation.
+
+## Implementation and connected evidence (2026-09-07)
+
+The Checklist library is available from More for managers. Authoring includes
+draft/reload/retry, publishing, copying, archiving, preview and equipment/component
+scope. Immutable publication IDs and frozen job snapshots preserve old work while
+new starts use the latest publication. Authored instructions, including signature
+wording, remain visible. Numeric/text rules and required evidence are validated
+by the server as well as the app.
+
+The direct review found and fixed a capability-read policy gap: company operators
+could submit through the server but the native gate could not read their company's
+enabled switches. Company members now read only their own switches and cannot
+change them. The connected audit also corrected the operator header's Material
+surface, readable history timestamps and Spanish history text. Older workflow
+tests were updated for the accepted work-order labels and actions; the route
+audit now uses the same account-isolated database model as the app.
+
+Connected Next-only acceptance passes 54 workflow checks across eight suites:
+6 builder, 6 direct fault/work-order, 4 field reliability, 6 internal work-order,
+9 operations/handover, 7 planning, 9 provider/request/invoice, and 7 custody and
+inspection checks. A separate audit passes 130 routes across six accounts with
+no visible errors, loading failures or framework errors. Final per-suite evidence
+is in `outputs/NOW-010-{builder015,direct012,field011,internal014,operations,
+planning013,journeys,routes}.json`; custody evidence is in
+`outputs/NOW-015-regression.log`. Retried affected suites are recorded in
+`outputs/NOW-015-retry.log`, `outputs/NOW-015-operations.log` and
+`outputs/NOW-015-connected.log`.
+The consolidated final check summary is
+`outputs/NOW-015-connected-verification.json`.
+
+Builder tests cover exact lost-acknowledgement retry, scope predicates, reading
+validation, real preview controls, SQLite v6-to-v7 cache preservation and frozen
+rich definitions. EN/ES previews plus the Spanish library/editor/step validation
+were inspected at 320px and 1.5 text scale. Screenshots are under
+`outputs/screenshots/checklist-builder/` and `outputs/screenshots/audit010/`.
+
+Full guarded verification passes: no analysis issues, 467 tests passed and 204
+existing skips (`outputs/NOW-015-verify.log`). The new builder suite passes nine
+tests. This includes actual large-text Spanish navigation and step validation,
+not only static previews.
+
+Cleanup removed 19 exact test assets, 18 fixture procedures and 59 media objects;
+unrelated asset/work/history/template counts were preserved. The final migration
+preview reports the hosted database up to date. Evidence:
+`outputs/NOW-015-cleanup.log`, `outputs/NOW-010-cleanup.json`,
+`outputs/NOW-015-sql.log`, and `outputs/NOW-015-hosted.log`.
+
+Automated upload/download, restart and retry checks do not prove Android camera
+permissions, physical installation, device network interruption or closed-app
+push delivery. These remain physical-device checks.
+
+## Build 18
+
+Internal debug ARM64 APK: `outputs/builds/INSTALL-Vortice-Next-Build-18.apk`
+(`1.9.0+18`, 103,516,845 bytes). Package `com.example.vortice_app_next`, displayed
+version, dedicated Next Supabase/Firebase identifiers, existing Next signing
+certificate, recovery links and messaging declarations are verified from the APK.
+SHA-256: `255c64f4c0027fc2709520293df0cb3a25763b3a1f8c5aab557b5c23f7ff5393`.
+See `outputs/NOW-015-build-verified.json`, `outputs/NOW-015-apk.txt` and
+`outputs/NOW-015-signature.txt`. No Build 18 phone transfer or installation is
+claimed by this evidence.

@@ -125,6 +125,7 @@ class ChecklistTemplatesTable extends Table {
   IntColumn get version => integer().withDefault(const Constant(1))();
   BoolColumn get isActive => boolean().withDefault(const Constant(true))();
   TextColumn get sourceDocId => text().nullable()();
+  TextColumn get scopeJson => text().withDefault(const Constant('{}'))();
   TextColumn get createdBy => text().nullable()();
   DateTimeColumn get createdAt => dateTime().nullable()();
   DateTimeColumn get updatedAt => dateTime().nullable()();
@@ -144,6 +145,7 @@ class ChecklistItemsTable extends Table {
   TextColumn get descriptionEn => text()();
   TextColumn get descriptionEs => text().nullable()();
   TextColumn get category => text().nullable()();
+  TextColumn get definitionJson => text().withDefault(const Constant('{}'))();
   BoolColumn get requiresPhoto =>
       boolean().withDefault(const Constant(false))();
   DateTimeColumn get createdAt => dateTime().nullable()();
@@ -342,11 +344,21 @@ class AppDatabase extends _$AppDatabase {
       accountId != null && accountId == currentAccount;
 
   @override
-  int get schemaVersion => 6;
+  int get schemaVersion => 7;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
     onUpgrade: (m, from, to) async {
+      if (from < 7) {
+        await m.addColumn(
+          checklistTemplatesTable,
+          checklistTemplatesTable.scopeJson,
+        );
+        await m.addColumn(
+          checklistItemsTable,
+          checklistItemsTable.definitionJson,
+        );
+      }
       if (from < 4) {
         await m.createTable(syncOperationsTable);
         await m.createTable(localAttachmentsTable);

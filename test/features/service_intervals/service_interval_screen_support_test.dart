@@ -22,7 +22,7 @@ ChecklistTemplate _template({
 
 void main() {
   group('maintenanceTemplatesForAsset', () {
-    test('filters active PM templates for asset type', () {
+    test('includes generic PM starters and the matching asset type', () {
       final templates = [
         _template(
             id: 'a', name: 'A', assetTypeId: 'type-1', intervalHours: 100),
@@ -39,7 +39,7 @@ void main() {
       );
       final result = maintenanceTemplatesForAsset(templates, asset);
 
-      expect(result.map((t) => t.id), ['a']);
+      expect(result.map((t) => t.id), ['a', 'c']);
     });
   });
 

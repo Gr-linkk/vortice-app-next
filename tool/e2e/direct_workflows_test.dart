@@ -95,11 +95,11 @@ void main() {
               'assigned',
             );
           });
-          await h.step('asset View work opens only its linked job', () async {
+          await h.step('asset Work orders opens only its linked job', () async {
             if (job == null) throw StateError('No job');
             await h.go('/maintenance/assets/$asset');
             expect(find.text('Edit asset'), findsNothing);
-            await h.tap(find.widgetWithText(FilledButton, 'View work'));
+            await h.tap(find.text('Work orders'));
             final saved =
                 (await h.container
                         .read(maintenanceRepositoryProvider)

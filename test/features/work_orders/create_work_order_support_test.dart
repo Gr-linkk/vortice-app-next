@@ -26,7 +26,7 @@ ChecklistTemplate _template({
 
 void main() {
   group('checklistTemplatesForAsset', () {
-    test('prefers asset-specific PM templates when available', () {
+    test('includes matching asset-specific and generic PM templates', () {
       const asset = Asset(
         id: 'asset-1',
         clientId: 'client-1',
@@ -40,7 +40,7 @@ void main() {
 
       final result = checklistTemplatesForAsset(templates, asset);
 
-      expect(result.map((t) => t.id), ['specific']);
+      expect(result.map((t) => t.id), ['specific', 'generic']);
     });
 
     test('falls back to generic PM templates', () {

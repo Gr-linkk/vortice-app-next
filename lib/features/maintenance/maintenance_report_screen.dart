@@ -1,3 +1,4 @@
+import 'package:vortice_app/features/checklists/checklist_answer_fields.dart';
 import 'package:vortice_app/core/app_dropdown_field.dart';
 import 'dart:convert';
 import 'dart:async';
@@ -327,40 +328,70 @@ class _MaintenanceReportScreenState
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        (es
-                                ? item['description_es'] ??
-                                      item['description_en']
-                                : item['description_en'])
-                            as String,
-                      ),
-                      Wrap(
-                        spacing: 8,
-                        runSpacing: 8,
-                        children: [
-                          for (final choice in [
-                            ('pass', es ? 'Correcto' : 'Pass'),
-                            ('fail', es ? 'Falla' : 'Fail'),
-                            ('na', es ? 'No aplica' : 'Not applicable'),
-                          ])
-                            ChoiceChip(
-                              label: Text(choice.$2),
-                              selected:
-                                  (_answers[item['id']] as Map?)?['result'] ==
-                                  choice.$1,
-                              onSelected: frozen
-                                  ? null
-                                  : (_) => setState(() {
-                                      _answers[item['id'] as String] = {
-                                        ...?_answers[item['id']]
-                                            as Map<String, dynamic>?,
-                                        'result': choice.$1,
-                                      };
-                                      _dirty = true;
-                                    }),
-                            ),
-                        ],
-                      ),
+                      if ((item['definition'] as Map? ?? {}).isNotEmpty)
+                        ChecklistAnswerFields(
+                          item: item,
+                          result:
+                              (_answers[item['id']] as Map?)?['result']
+                                  as String?,
+                          value:
+                              (_answers[item['id']] as Map?)?['note']
+                                  as String? ??
+                              '',
+                          enabled: !frozen,
+                          failure: 'fail',
+                          na: 'na',
+                          onResult: (value) => setState(() {
+                            _answers[item['id'] as String] = {
+                              ...?_answers[item['id']] as Map<String, dynamic>?,
+                              'result': value,
+                            };
+                            _dirty = true;
+                          }),
+                          onValue: (value) => setState(() {
+                            _answers[item['id'] as String] = {
+                              ...?_answers[item['id']] as Map<String, dynamic>?,
+                              'note': value,
+                            };
+                            _dirty = true;
+                          }),
+                        )
+                      else ...[
+                        Text(
+                          (es
+                                  ? item['description_es'] ??
+                                        item['description_en']
+                                  : item['description_en'])
+                              as String,
+                        ),
+                        Wrap(
+                          spacing: 8,
+                          runSpacing: 8,
+                          children: [
+                            for (final choice in [
+                              ('pass', es ? 'Correcto' : 'Pass'),
+                              ('fail', es ? 'Falla' : 'Fail'),
+                              ('na', es ? 'No aplica' : 'Not applicable'),
+                            ])
+                              ChoiceChip(
+                                label: Text(choice.$2),
+                                selected:
+                                    (_answers[item['id']] as Map?)?['result'] ==
+                                    choice.$1,
+                                onSelected: frozen
+                                    ? null
+                                    : (_) => setState(() {
+                                        _answers[item['id'] as String] = {
+                                          ...?_answers[item['id']]
+                                              as Map<String, dynamic>?,
+                                          'result': choice.$1,
+                                        };
+                                        _dirty = true;
+                                      }),
+                              ),
+                          ],
+                        ),
+                      ],
                       if (item['requires_photo'] == true) ...[
                         const SizedBox(height: 12),
                         AppDropdownField<String>(

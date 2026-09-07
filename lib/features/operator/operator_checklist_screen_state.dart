@@ -1,4 +1,7 @@
 import 'dart:async';
+import 'package:go_router/go_router.dart';
+import 'package:vortice_app/features/checklists/checklist_assignment_provider.dart';
+import 'package:vortice_app/features/checklists/asset_checklist_template_filter.dart';
 import 'package:uuid/uuid.dart';
 import 'package:vortice_app/sync/field_work_provider.dart';
 import 'package:vortice_app/core/account_storage.dart';
@@ -30,14 +33,20 @@ class OperatorChecklistScreenState
   final Map<String, Uint8List?> _photos = {};
   bool _submitting = false;
   bool _restoredDraft = false;
+  String? _selectionError;
   DateTime _completedAt = DateTime.now();
   double? _currentHours;
   String? _generalNotes;
   late final String _accountId;
   String _operationId = const Uuid().v4();
+  late DateTime _startedAt = _completedAt;
   Future<void> _draftWrite = Future.value();
-  String get _draftKey =>
-      accountStorageKey(_accountId, operatorChecklistDraftKey);
+  String get _draftKey => accountStorageKey(
+    _accountId,
+    widget.initialAssignmentId == null
+        ? operatorChecklistDraftKey
+        : '$operatorChecklistDraftKey:${widget.initialAssignmentId}',
+  );
 
   @override
   void initState() {
@@ -51,7 +60,7 @@ class OperatorChecklistScreenState
 
     final assets = ref.read(operatorAssignedAssetsProvider).valueOrNull;
     final templates = ref.read(checklistTemplatesProvider).valueOrNull;
-    if (templates == null) {
+    if (templates == null || assets == null) {
       return;
     }
 
@@ -74,6 +83,9 @@ class OperatorChecklistScreenState
         assetToSet = restored.asset;
         templateToSet = restored.template;
         _completedAt = restored.completedAt;
+        _startedAt =
+            DateTime.tryParse(data['started_at'] as String? ?? '') ??
+            restored.completedAt;
         _currentHours = restored.currentHours;
         _generalNotes = restored.generalNotes;
 
@@ -107,6 +119,51 @@ class OperatorChecklistScreenState
       initialTemplateId: widget.initialTemplateId,
       templates: templates,
     );
+    if (widget.initialAssignmentId != null) {
+      try {
+        final assignments = await ref.read(
+          myChecklistAssignmentsProvider.future,
+        );
+        final assignment = assignments
+            .where((a) => a['id'] == widget.initialAssignmentId)
+            .firstOrNull;
+        if (assignment == null ||
+            !['pending', 'in_progress'].contains(assignment['status'])) {
+          _selectionError = 'assignment';
+        } else {
+          final assetId = (assignment['assets'] as Map?)?['id'];
+          final templateId = (assignment['checklist_templates'] as Map?)?['id'];
+          assetToSet = assets.where((a) => a['id'] == assetId).firstOrNull;
+          templateToSet = templates
+              .where((t) => t.id == templateId)
+              .firstOrNull;
+          if (assetToSet == null || templateToSet == null) {
+            _selectionError = 'assignment';
+          }
+        }
+      } catch (_) {
+        // A previously started assignment retains its pinned local draft.
+        if (raw == null || assetToSet == null || templateToSet == null) {
+          _selectionError = 'assignment';
+        }
+      }
+    }
+    if (templateToSet != null &&
+        !checklistTemplateMatches(
+          (raw != null || widget.initialAssignmentId != null)
+              ? templateToSet.copyWith(isActive: true)
+              : templateToSet,
+          kind: 'operator_daily',
+          assetId: assetToSet?['id'] as String?,
+          assetTypeId: assetToSet?['asset_type_id'] as String?,
+          clientId: assetToSet?['client_id'] as String?,
+        )) {
+      templateToSet = null;
+      _responses.clear();
+      _notes.clear();
+      _photos.clear();
+      if (widget.initialAssignmentId != null) _selectionError = 'assignment';
+    }
     if (mounted) {
       setState(() {
         _selectedAsset = assetToSet;
@@ -130,6 +187,7 @@ class OperatorChecklistScreenState
         photos: _photos,
       ),
       'operation_id': _operationId,
+      'started_at': _startedAt.toUtc().toIso8601String(),
     });
     _draftWrite = _draftWrite.then((_) async {
       final prefs = await SharedPreferences.getInstance();
@@ -145,6 +203,10 @@ class OperatorChecklistScreenState
   }
 
   void _resetChecklist() {
+    if (widget.initialAssignmentId != null) {
+      context.go('/client/dashboard');
+      return;
+    }
     setState(() {
       _operationId = const Uuid().v4();
       _selectedAsset = null;
@@ -153,6 +215,7 @@ class OperatorChecklistScreenState
       _notes.clear();
       _photos.clear();
       _completedAt = DateTime.now();
+      _startedAt = DateTime.now();
       _currentHours = null;
       _generalNotes = null;
     });
@@ -179,18 +242,48 @@ class OperatorChecklistScreenState
 
     return Scaffold(
       appBar: AppBar(title: Text(l10n.operatorChecklistTitle)),
-      body: _selectedAsset == null || _selectedTemplate == null
+      body: _selectionError != null
+          ? Center(
+              child: Padding(
+                padding: const EdgeInsets.all(24),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      Localizations.localeOf(context).languageCode == 'es'
+                          ? 'Esta revisión asignada ya no está disponible. Revisa el historial o pide al responsable una nueva asignación.'
+                          : 'This assignment is no longer available. Check its history or ask your manager for a new assignment.',
+                    ),
+                    TextButton(
+                      onPressed: () => context.go('/client/dashboard'),
+                      child: Text(l10n.back),
+                    ),
+                  ],
+                ),
+              ),
+            )
+          : _selectedAsset == null || _selectedTemplate == null
           ? OperatorChecklistSelectionStep(
               assetsAsync: assetsAsync,
               templatesAsync: templatesAsync,
               selectedAsset: _selectedAsset,
               selectedTemplate: _selectedTemplate,
               onAssetSelected: (a) {
-                setState(() => _selectedAsset = a);
+                setState(() {
+                  _selectedAsset = a;
+                  _selectedTemplate = null;
+                  _responses.clear();
+                  _notes.clear();
+                  _photos.clear();
+                });
                 _saveDraft();
               },
               onTemplateSelected: (t) {
-                setState(() => _selectedTemplate = t);
+                setState(() {
+                  _selectedTemplate = t;
+                  _startedAt = DateTime.now();
+                  _completedAt = _startedAt;
+                });
                 _saveDraft();
               },
             )
@@ -251,6 +344,10 @@ class OperatorChecklistScreenState
           .read(operationsChecklistSubmissionProvider)
           .submit(
             operationId: _operationId,
+            assignmentId: widget.initialAssignmentId,
+            startedAt: _startedAt.isAfter(_completedAt)
+                ? _completedAt
+                : _startedAt,
             photos: _photos,
             assetId: _selectedAsset!['id'] as String,
             assetClientId: _selectedAsset!['client_id'] as String?,
@@ -289,6 +386,11 @@ class OperatorChecklistScreenState
             backgroundColor: AppColors.success,
           ),
         );
+        ref.invalidate(myChecklistAssignmentsProvider);
+        if (widget.initialAssignmentId != null) {
+          context.go('/client/dashboard');
+          return;
+        }
         setState(() {
           _operationId = const Uuid().v4();
           _selectedAsset = null;

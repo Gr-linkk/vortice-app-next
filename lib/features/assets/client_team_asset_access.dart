@@ -135,6 +135,7 @@ final currentClientFleetAssetsProvider = FutureProvider<List<Asset>>((
 Map<String, dynamic> clientTeamAssetRow(Asset asset) => {
   'id': asset.id,
   'client_id': asset.clientId,
+  'asset_type_id': asset.assetTypeId,
   'name': asset.name,
   'make': asset.make,
   'model': asset.model,

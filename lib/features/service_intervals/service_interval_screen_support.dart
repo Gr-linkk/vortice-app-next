@@ -1,4 +1,5 @@
 import 'package:vortice_app/models/asset.dart';
+import 'package:vortice_app/features/checklists/asset_checklist_template_filter.dart';
 import 'package:vortice_app/models/checklist_template.dart';
 
 int compareTemplatesForMaintenancePlan(
@@ -17,18 +18,16 @@ List<ChecklistTemplate> maintenanceTemplatesForAsset(
   Asset? asset,
 ) {
   final maintenanceTemplates = templates
-      .where((template) => template.isActive && template.checklistType == 'pm')
+      .where(
+        (template) => checklistTemplateMatches(
+          template,
+          kind: 'pm',
+          assetId: asset?.id,
+          assetTypeId: asset?.assetTypeId,
+          clientId: asset?.clientId,
+        ),
+      )
       .toList();
-  final assetTypeId = asset?.assetTypeId;
-  if (assetTypeId == null) {
-    maintenanceTemplates.sort(compareTemplatesForMaintenancePlan);
-    return maintenanceTemplates;
-  }
-
-  final matching = maintenanceTemplates
-      .where((template) => template.assetTypeId == assetTypeId)
-      .toList();
-  matching.sort(compareTemplatesForMaintenancePlan);
-  return matching.isNotEmpty ? matching : maintenanceTemplates
-    ..sort(compareTemplatesForMaintenancePlan);
+  maintenanceTemplates.sort(compareTemplatesForMaintenancePlan);
+  return maintenanceTemplates;
 }

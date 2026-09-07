@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:vortice_app/core/theme.dart';
 import 'package:vortice_app/features/assets/asset_provider.dart';
 import 'package:vortice_app/features/auth/auth_provider.dart';
+import 'package:vortice_app/features/checklists/checklist_provider.dart';
 import 'package:vortice_app/features/parts/pm_parts_provider.dart';
 import 'package:vortice_app/features/service_intervals/maintenance_work_order_draft.dart';
 import 'package:vortice_app/features/service_requests/service_request_provider.dart';
@@ -46,6 +47,7 @@ class _CreateWorkOrderScreenState extends ConsumerState<CreateWorkOrderScreen> {
     final initialDraft = widget.initialDraft;
     _jobType = initialDraft?.jobType ?? WorkOrderJobType.repair;
     _selectedAssetId = initialDraft?.assetId;
+    _selectedEngineId = initialDraft?.engineId;
     _selectedChecklistTemplateId = initialDraft?.checklistTemplateId;
     _titleCtrl.text = initialDraft?.title ?? '';
     _descCtrl.text = initialDraft?.description ?? '';
@@ -118,10 +120,25 @@ class _CreateWorkOrderScreenState extends ConsumerState<CreateWorkOrderScreen> {
     }
 
     final assets = ref.read(visibleAssetsProvider).valueOrNull ?? [];
-    final selectedAsset = assets.firstWhere(
-      (a) => a.id == _selectedAssetId,
-      orElse: () => assets.first,
-    );
+    final selectedAsset = assets
+        .where((a) => a.id == _selectedAssetId)
+        .firstOrNull;
+    if (selectedAsset == null ||
+        (_selectedChecklistTemplateId != null &&
+            !checklistTemplatesForAsset(
+              ref.read(checklistTemplatesProvider).valueOrNull ?? [],
+              selectedAsset,
+              engineId: _selectedEngineId,
+            ).any((t) => t.id == _selectedChecklistTemplateId))) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Reload and select available equipment and a compatible checklist.',
+          ),
+        ),
+      );
+      return;
+    }
 
     final data = buildCreateWorkOrderPayload(
       title: _titleCtrl.text,
@@ -304,7 +321,18 @@ class _CreateWorkOrderScreenState extends ConsumerState<CreateWorkOrderScreen> {
               _selectedTechIds = const [];
               _partsCtrl.clear();
             }),
-            onEngineChanged: (v) => setState(() => _selectedEngineId = v),
+            onEngineChanged: (v) => setState(() {
+              _selectedEngineId = v;
+              final template = ref
+                  .read(checklistTemplatesProvider)
+                  .valueOrNull
+                  ?.where((t) => t.id == _selectedChecklistTemplateId)
+                  .firstOrNull;
+              if (template?.scopeEngineId != null &&
+                  template!.scopeEngineId != v) {
+                _selectedChecklistTemplateId = null;
+              }
+            }),
             onChecklistTemplateChanged: (v) {
               setState(() => _selectedChecklistTemplateId = v);
               _prefillPartsFromTemplate(v);

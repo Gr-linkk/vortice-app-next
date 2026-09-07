@@ -103,7 +103,7 @@ class _OperatorChecklistRunFormState
     final headerWidgets = [
       OperatorChecklistRunHeader(
         assetLabel: widget.assetName,
-        checklistLabel: widget.template.name,
+        checklistLabel: '${widget.template.name} · v${widget.template.version}',
         completedByLabel: widget.completedByLabel,
         completedAt: widget.completedAt,
         hoursController: _hoursCtrl,

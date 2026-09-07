@@ -58,10 +58,7 @@ Map<String, dynamic> encodeOperatorChecklistDraft({
     'currentHours': currentHours,
     'generalNotes': generalNotes,
     'photos': photos.map(
-      (key, value) => MapEntry(
-        key,
-        value == null ? null : base64Encode(value),
-      ),
+      (key, value) => MapEntry(key, value == null ? null : base64Encode(value)),
     ),
   };
 }
@@ -74,8 +71,7 @@ OperatorChecklistDraftRestoreResult decodeOperatorChecklistDraft(
 }) {
   final assetId = data['assetId'] as String?;
   final templateId = data['templateId'] as String?;
-  final responses =
-      (data['responses'] as Map?)?.cast<String, dynamic>() ?? {};
+  final responses = (data['responses'] as Map?)?.cast<String, dynamic>() ?? {};
   final notes = (data['notes'] as Map?)?.cast<String, dynamic>() ?? {};
   final photos = (data['photos'] as Map?)?.cast<String, dynamic>() ?? {};
 

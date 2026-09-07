@@ -10,6 +10,7 @@ class MaintenanceWorkOrderDraft {
   static const engineHoursParam = 'engineHours';
 
   final String? assetId;
+  final String? engineId;
   final String? checklistTemplateId;
   final String? serviceRequestId;
   final String title;
@@ -19,6 +20,7 @@ class MaintenanceWorkOrderDraft {
 
   const MaintenanceWorkOrderDraft({
     this.assetId,
+    this.engineId,
     this.checklistTemplateId,
     this.serviceRequestId,
     this.title = '',
@@ -73,6 +75,7 @@ class MaintenanceWorkOrderDraft {
 
     return MaintenanceWorkOrderDraft(
       assetId: params[assetIdParam],
+      engineId: params['engineId'],
       checklistTemplateId: checklistTemplateId,
       serviceRequestId: params[serviceRequestIdParam],
       title: params[titleParam] ?? '',
@@ -84,6 +87,7 @@ class MaintenanceWorkOrderDraft {
 
   Map<String, String> toQueryParameters() => <String, String>{
     if (assetId != null) assetIdParam: assetId!,
+    if (engineId != null) 'engineId': engineId!,
     if (title.isNotEmpty) titleParam: title,
     if (description.isNotEmpty) descriptionParam: description,
     if (checklistTemplateId != null)

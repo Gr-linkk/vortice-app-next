@@ -19,9 +19,17 @@ class MaintenanceCreateScreen extends ConsumerStatefulWidget {
     this.parentJobId,
     this.faultId,
     this.planning = false,
+    this.checklistTemplateId,
+    this.componentId,
+    this.initialTitle,
+    this.initialInstructions,
   });
   final String? assetId, planId, parentJobId, faultId;
   final bool planning;
+  final String? checklistTemplateId,
+      componentId,
+      initialTitle,
+      initialInstructions;
   @override
   ConsumerState<MaintenanceCreateScreen> createState() =>
       _MaintenanceCreateScreenState();
@@ -51,7 +59,11 @@ class _MaintenanceCreateScreenState
     super.initState();
     _asset = widget.assetId;
     _plan = widget.planId;
-    _workType = widget.planId != null
+    _checklist = widget.checklistTemplateId;
+    _component = widget.componentId;
+    _title.text = widget.initialTitle ?? '';
+    _instructions.text = widget.initialInstructions ?? '';
+    _workType = widget.planId != null || widget.checklistTemplateId != null
         ? WorkOrderJobType.preventative
         : widget.faultId != null
         ? WorkOrderJobType.repair
@@ -547,9 +559,12 @@ class _MaintenanceCreateScreenState
                             es ? 'Sin lista de revisión' : 'No checklist',
                           ),
                         ),
-                        for (final template in maintenanceRows(
-                          data['templates'],
-                        ))
+                        for (final template
+                            in maintenanceRows(data['templates']).where(
+                              (t) =>
+                                  t['scope_engine_id'] == null ||
+                                  t['scope_engine_id'] == _component,
+                            ))
                           DropdownMenuItem(
                             value: template['id'] as String,
                             child: Text(template['name'] as String),
@@ -583,8 +598,16 @@ class _MaintenanceCreateScreenState
                       ],
                       onChanged: frozen
                           ? null
-                          : (v) =>
-                                setState(() => _component = v == '' ? null : v),
+                          : (v) => setState(() {
+                              _component = v == '' ? null : v;
+                              final selected = maintenanceRows(
+                                data['templates'],
+                              ).where((t) => t['id'] == _checklist).firstOrNull;
+                              if (selected?['scope_engine_id'] != null &&
+                                  selected!['scope_engine_id'] != _component) {
+                                _checklist = null;
+                              }
+                            }),
                     ),
                     const SizedBox(height: 16),
                   ],

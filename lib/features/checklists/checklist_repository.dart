@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:math';
 import 'package:vortice_app/core/account_storage.dart';
 
@@ -113,9 +114,14 @@ class ChecklistRepository {
 
   Future<void> cacheSnapshot(WorkOrderChecklistSnapshot snapshot) async {
     _checkAccount();
-    await _db.checklistsDao.upsertTemplate(
-      _templateToCompanion(snapshot.asTemplate()),
-    );
+    // A frozen job must not replace live publication scope or reactivate a
+    // retired procedure in the offline library.
+    final cached = await _db.checklistsDao.getAllTemplates();
+    if (!cached.any((t) => t.id == snapshot.asTemplate().id)) {
+      await _db.checklistsDao.upsertTemplate(
+        _templateToCompanion(snapshot.asTemplate().copyWith(isActive: false)),
+      );
+    }
     await _db.checklistsDao.upsertItems(
       snapshot.items.map(_itemToCompanion).toList(),
     );
@@ -366,22 +372,28 @@ class ChecklistRepository {
   }
 }
 
-ChecklistTemplate _templateFromRow(ChecklistTemplatesTableData row) =>
-    ChecklistTemplate(
-      id: row.id,
-      assetTypeId: row.assetTypeId,
-      checklistType: row.checklistType,
-      intervalHours: row.intervalHours,
-      intervalLabel: row.intervalLabel,
-      name: row.name,
-      description: row.description,
-      version: row.version,
-      isActive: row.isActive,
-      sourceDocId: row.sourceDocId,
-      createdBy: row.createdBy,
-      createdAt: row.createdAt,
-      updatedAt: row.updatedAt,
-    );
+ChecklistTemplate _templateFromRow(
+  ChecklistTemplatesTableData row,
+) => ChecklistTemplate(
+  id: row.id,
+  assetTypeId: row.assetTypeId,
+  checklistType: row.checklistType,
+  intervalHours: row.intervalHours,
+  intervalLabel: row.intervalLabel,
+  name: row.name,
+  description: row.description,
+  version: row.version,
+  isActive: row.isActive,
+  sourceDocId: row.sourceDocId,
+  createdBy: row.createdBy,
+  procedureId: (jsonDecode(row.scopeJson) as Map)['procedure_id'] as String?,
+  clientId: (jsonDecode(row.scopeJson) as Map)['client_id'] as String?,
+  scopeAssetId: (jsonDecode(row.scopeJson) as Map)['scope_asset_id'] as String?,
+  scopeEngineId:
+      (jsonDecode(row.scopeJson) as Map)['scope_engine_id'] as String?,
+  createdAt: row.createdAt,
+  updatedAt: row.updatedAt,
+);
 
 ChecklistTemplatesTableCompanion _templateToCompanion(
   ChecklistTemplate template,
@@ -396,6 +408,14 @@ ChecklistTemplatesTableCompanion _templateToCompanion(
   version: Value(template.version),
   isActive: Value(template.isActive),
   sourceDocId: Value(template.sourceDocId),
+  scopeJson: Value(
+    jsonEncode({
+      'procedure_id': template.procedureId,
+      'client_id': template.clientId,
+      'scope_asset_id': template.scopeAssetId,
+      'scope_engine_id': template.scopeEngineId,
+    }),
+  ),
   createdBy: Value(template.createdBy),
   createdAt: Value(template.createdAt),
   updatedAt: Value(template.updatedAt),
@@ -409,6 +429,7 @@ ChecklistItem _itemFromRow(ChecklistItemsTableData row) => ChecklistItem(
   category: row.category,
   requiresPhoto: row.requiresPhoto,
   sortOrder: row.sortOrder,
+  definition: Map<String, dynamic>.from(jsonDecode(row.definitionJson) as Map),
   createdAt: row.createdAt,
 );
 
@@ -420,6 +441,7 @@ ChecklistItemsTableCompanion _itemToCompanion(ChecklistItem item) =>
       descriptionEn: Value(item.descriptionEn),
       descriptionEs: Value(item.descriptionEs),
       category: Value(item.category),
+      definitionJson: Value(jsonEncode(item.definition)),
       requiresPhoto: Value(item.requiresPhoto),
       createdAt: Value(item.createdAt),
     );

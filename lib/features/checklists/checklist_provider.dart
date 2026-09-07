@@ -6,52 +6,65 @@ import 'package:vortice_app/features/checklists/work_order_checklist_snapshot_re
 import 'package:vortice_app/models/checklist_item.dart';
 import 'package:vortice_app/models/checklist_response.dart';
 import 'package:vortice_app/models/checklist_template.dart';
+import 'package:vortice_app/features/auth/auth_provider.dart';
 
 final workOrderChecklistSnapshotProvider =
-    FutureProvider.family<WorkOrderChecklistSnapshot?, String>(
-        (ref, workOrderId) async {
-  final snapshot = await workOrderChecklistSnapshotRepository
-      .tryFetchByWorkOrderId(workOrderId);
-  if (snapshot != null) {
-    await ref.read(checklistRepositoryProvider).cacheSnapshot(snapshot);
-  }
-  return snapshot;
-});
+    FutureProvider.family<WorkOrderChecklistSnapshot?, String>((
+      ref,
+      workOrderId,
+    ) async {
+      ref.watch(sessionProvider);
+      final snapshot = await workOrderChecklistSnapshotRepository
+          .tryFetchByWorkOrderId(workOrderId);
+      if (snapshot != null) {
+        await ref.read(checklistRepositoryProvider).cacheSnapshot(snapshot);
+      }
+      return snapshot;
+    });
 
-final checklistTemplatesProvider =
-    FutureProvider<List<ChecklistTemplate>>((ref) async {
+final checklistTemplatesProvider = FutureProvider<List<ChecklistTemplate>>((
+  ref,
+) async {
   return ref.watch(checklistRepositoryProvider).listTemplates();
 });
 
 final checklistItemsProvider =
     FutureProvider.family<List<ChecklistItem>, String>((ref, templateId) async {
-  return ref
-      .watch(checklistRepositoryProvider)
-      .listItemsForTemplate(templateId);
-});
+      return ref
+          .watch(checklistRepositoryProvider)
+          .listItemsForTemplate(templateId);
+    });
 
 final checklistResponsesProvider =
-    FutureProvider.family<List<ChecklistResponse>, String>(
-        (ref, workOrderId) async {
-  return ref
-      .watch(checklistRepositoryProvider)
-      .listResponsesForWorkOrder(workOrderId);
-});
+    FutureProvider.family<List<ChecklistResponse>, String>((
+      ref,
+      workOrderId,
+    ) async {
+      return ref
+          .watch(checklistRepositoryProvider)
+          .listResponsesForWorkOrder(workOrderId);
+    });
 
 final checklistResponseSyncStatusByItemProvider =
-    Provider.family<AsyncValue<Map<String, String>>, String>(
-        (ref, workOrderId) {
-  return ref.watch(checklistResponsesProvider(workOrderId)).whenData(
-        (responses) => {
-          for (final response in responses)
-            response.checklistItemId: response.syncStatus,
-        },
-      );
-});
+    Provider.family<AsyncValue<Map<String, String>>, String>((
+      ref,
+      workOrderId,
+    ) {
+      return ref
+          .watch(checklistResponsesProvider(workOrderId))
+          .whenData(
+            (responses) => {
+              for (final response in responses)
+                response.checklistItemId: response.syncStatus,
+            },
+          );
+    });
 
 /// Returns true if any checklist responses have been submitted for a WO.
-final checklistHasResponsesProvider =
-    FutureProvider.family<bool, String>((ref, workOrderId) async {
+final checklistHasResponsesProvider = FutureProvider.family<bool, String>((
+  ref,
+  workOrderId,
+) async {
   return ref
       .watch(checklistRepositoryProvider)
       .hasResponsesForWorkOrder(workOrderId);
@@ -95,7 +108,9 @@ class ChecklistController extends StateNotifier<AsyncValue<void>> {
     state = const AsyncLoading();
     state = await AsyncValue.guard(() async {
       try {
-        await _ref.read(checklistRepositoryProvider).submitBatchResponses(
+        await _ref
+            .read(checklistRepositoryProvider)
+            .submitBatchResponses(
               workOrderId: workOrderId,
               completedBy: completedBy,
               responses: responses,
@@ -127,5 +142,5 @@ class ChecklistController extends StateNotifier<AsyncValue<void>> {
 
 final checklistControllerProvider =
     StateNotifierProvider<ChecklistController, AsyncValue<void>>((ref) {
-  return ChecklistController(ref);
-});
+      return ChecklistController(ref);
+    });

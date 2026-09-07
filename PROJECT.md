@@ -14,6 +14,12 @@ parts, and invoices.
 
 ## Current direction
 
+Owners and client managers author versioned PM and pre-operation procedures in
+the Checklist library. Shared owner starters and private company copies connect
+to maintenance plans/work orders and assigned operator checks. Failed pre-op
+results create linked faults for corrective work and explicit verification.
+See NOW-015 and decision 0012 for publication, access and execution rules.
+
 Each client company manages its own internal work orders using the shared
 work-order vocabulary and familiar owner workflow. Repairs are one type of work;
 preventive maintenance, inspections and general work use the same lifecycle.

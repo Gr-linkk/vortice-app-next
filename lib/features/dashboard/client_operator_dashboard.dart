@@ -149,6 +149,14 @@ class ClientOperatorDashboard extends ConsumerWidget {
                               ),
                             ),
                             onTap: () async {
+                              if (status == 'completed') {
+                                if (asset?['id'] != null) {
+                                  context.push(
+                                    '/operator/assets/${asset!['id']}/checklist-history',
+                                  );
+                                }
+                                return;
+                              }
                               if (status == 'pending') {
                                 await ChecklistAssignmentController.markInProgress(
                                   a['id'] as String,
@@ -163,6 +171,7 @@ class ClientOperatorDashboard extends ConsumerWidget {
                                 );
                               }
                               final query = <String, String>{
+                                'assignmentId': a['id'] as String,
                                 if (asset?['id'] != null)
                                   'assetId': asset!['id'] as String,
                                 if (template?['id'] != null)

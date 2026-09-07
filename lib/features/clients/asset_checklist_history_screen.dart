@@ -5,6 +5,13 @@ import 'package:vortice_app/core/user_feedback.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:vortice_app/core/theme.dart';
 import 'package:vortice_app/features/checklists/checklist_history_display_support.dart';
+import 'package:vortice_app/features/checklists/checklist_support.dart'
+    show formatChecklistDateTime;
+import 'package:vortice_app/features/checklists/checklist_attachment_support.dart';
+import 'package:vortice_app/features/service_reports/service_report_media.dart';
+import 'package:vortice_app/features/maintenance/maintenance_job_screen.dart'
+    show MaintenanceEvidence;
+import 'package:vortice_app/features/checklists/checklist_answer_fields.dart';
 import 'package:vortice_app/features/checklists/saved_checklists_provider.dart';
 import 'package:vortice_app/models/profile.dart';
 import 'package:vortice_app/models/saved_checklist.dart';
@@ -124,6 +131,7 @@ class _SavedChecklistCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final es = isSpanish(context);
     final header = row.snapshot['header'] as Map<String, dynamic>? ?? const {};
     final items = (row.snapshot['items'] as List?)?.cast<Map>() ?? const [];
     return Card(
@@ -131,11 +139,24 @@ class _SavedChecklistCard extends StatelessWidget {
       child: ExpansionTile(
         title: Text(row.templateName),
         subtitle: Text(
-          '${row.submittedAt.toLocal()} • ${row.sourceType}',
+          '${formatChecklistDateTime(row.submittedAt)} • ${row.sourceType}',
           style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
         ),
         childrenPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
         children: [
+          for (final finding
+              in (header['follow_up_faults'] as List? ?? const [])
+                  .whereType<Map>())
+            TextButton.icon(
+              onPressed: () =>
+                  context.push('/fleet/faults/${finding['fault_id']}'),
+              icon: const Icon(Icons.warning_amber),
+              label: Text(
+                isSpanish(context)
+                    ? 'Ver falla y seguimiento'
+                    : 'View fault and follow-up',
+              ),
+            ),
           if (row.snapshot['managed_maintenance'] == true &&
               row.workOrderId != null)
             TextButton(
@@ -148,7 +169,7 @@ class _SavedChecklistCard extends StatelessWidget {
               ),
             ),
           _HeaderLine(
-            label: 'Completed by',
+            label: es ? 'Realizada por' : 'Completed by',
             value: formatChecklistCompletedByDisplay(
               completedByName: header['completed_by_name'] as String?,
               completedBy: header['completed_by'] as String?,
@@ -157,17 +178,28 @@ class _SavedChecklistCard extends StatelessWidget {
           ),
           if ((row.submittedByRole ?? '').isNotEmpty)
             _HeaderLine(
-              label: 'Role',
+              label: es ? 'Rol' : 'Role',
               value: formatChecklistSubmittedByRole(row.submittedByRole),
             ),
           _HeaderLine(
-            label: 'Submitted',
-            value: '${row.submittedAt.toLocal()}',
+            label: es ? 'Enviada' : 'Submitted',
+            value: formatChecklistDateTime(row.submittedAt),
           ),
+          if ((row.snapshot['template'] as Map?)?['version'] != null)
+            _HeaderLine(
+              label: isSpanish(context) ? 'Versión' : 'Version',
+              value: 'v${(row.snapshot['template'] as Map)['version']}',
+            ),
           if (row.currentHours != null)
-            _HeaderLine(label: 'Current hours', value: '${row.currentHours}'),
+            _HeaderLine(
+              label: es ? 'Horas actuales' : 'Current hours',
+              value: '${row.currentHours}',
+            ),
           if ((row.generalNotes ?? '').isNotEmpty)
-            _HeaderLine(label: 'General notes', value: row.generalNotes!),
+            _HeaderLine(
+              label: es ? 'Notas generales' : 'General notes',
+              value: row.generalNotes!,
+            ),
           const SizedBox(height: 8),
           ...items.map(
             (item) => Column(
@@ -176,19 +208,43 @@ class _SavedChecklistCard extends StatelessWidget {
                   dense: true,
                   contentPadding: EdgeInsets.zero,
                   title: Text(
-                    (item['description_en'] ?? 'Checklist item').toString(),
+                    (es &&
+                                (item['description_es'] as String? ?? '')
+                                    .trim()
+                                    .isNotEmpty
+                            ? item['description_es']
+                            : item['description_en'] ??
+                                  (es ? 'Paso de la lista' : 'Checklist item'))
+                        .toString(),
                   ),
                   subtitle: ((item['note'] ?? '').toString().isNotEmpty)
-                      ? Text(item['note'].toString())
+                      ? Text(
+                          checklistRecordedValue(
+                            Map<String, dynamic>.from(
+                              item['definition'] as Map? ?? {},
+                            ),
+                            item['note'].toString(),
+                          ),
+                        )
                       : null,
                   trailing: Text(
                     (item['response'] ?? '').toString().toUpperCase(),
                     style: const TextStyle(fontWeight: FontWeight.w700),
                   ),
                 ),
-                if (item['photo_url'] is String &&
-                    !(item['photo_url'] as String).startsWith('http'))
-                  OperatorEvidencePhoto(path: item['photo_url'] as String),
+                if (item['photo_path'] is String)
+                  MaintenanceEvidence(path: item['photo_path'] as String),
+                for (final photo in parseChecklistPhotoUrls(
+                  item['photo_url'] as String?,
+                ))
+                  if (row.sourceType == 'operator')
+                    OperatorEvidencePhoto(path: photo)
+                  else
+                    ServiceReportImage(
+                      bucket: 'service-report-photos',
+                      reference: photo,
+                      height: 180,
+                    ),
               ],
             ),
           ),

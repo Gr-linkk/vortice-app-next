@@ -8,6 +8,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:vortice_app/core/user_feedback.dart';
 import 'package:vortice_app/features/auth/auth_provider.dart';
+import 'package:vortice_app/features/checklists/checklist_answer_fields.dart';
 import 'package:vortice_app/features/fleet/work_order_fault_card.dart';
 import 'maintenance_models.dart';
 import 'maintenance_report_screen.dart';
@@ -175,6 +176,11 @@ class _MaintenanceJobScreenState extends ConsumerState<MaintenanceJobScreen> {
               es ? 'Horas al finalizar' : 'Completion meter',
               job.data['hours_at_end']?.toString(),
             ),
+            if (job.data['checklist_template_version'] != null)
+              info(
+                es ? 'Lista de revisión' : 'Checklist',
+                '${job.data['checklist_template_name']} · v${job.data['checklist_template_version']}',
+              ),
             for (final item in job.checklist)
               ListTile(
                 contentPadding: EdgeInsets.zero,
@@ -184,13 +190,22 @@ class _MaintenanceJobScreenState extends ConsumerState<MaintenanceJobScreen> {
                           : item['description_en'])
                       as String,
                 ),
-                subtitle: Text(switch ((job.answers[item['id']]
-                    as Map?)?['result']) {
-                  'pass' => es ? 'Correcto' : 'Pass',
-                  'fail' => es ? 'Falla' : 'Fail',
-                  'na' => es ? 'No aplica' : 'Not applicable',
-                  _ => es ? 'Sin responder' : 'Unanswered',
-                }),
+                subtitle: Text(
+                  [
+                    switch ((job.answers[item['id']] as Map?)?['result']) {
+                      'pass' => es ? 'Correcto' : 'Pass',
+                      'fail' => es ? 'Falla' : 'Fail',
+                      'na' => es ? 'No aplica' : 'Not applicable',
+                      _ => es ? 'Sin responder' : 'Unanswered',
+                    },
+                    checklistRecordedValue(
+                      Map<String, dynamic>.from(
+                        item['definition'] as Map? ?? {},
+                      ),
+                      (job.answers[item['id']] as Map?)?['note'] as String?,
+                    ),
+                  ].where((s) => s.isNotEmpty).join('\n'),
+                ),
               ),
             for (final path in job.evidence) MaintenanceEvidence(path: path),
             if (job.canManage &&

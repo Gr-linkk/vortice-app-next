@@ -17,6 +17,20 @@ import 'package:vortice_app/db/database.dart';
 import 'package:vortice_app/features/auth/auth_provider.dart';
 import 'connected_harness.dart' show loadAuditFonts, AuditApp;
 
+class _AuditFailures extends ProviderObserver {
+  @override
+  void providerDidFail(
+    ProviderBase<Object?> provider,
+    Object error,
+    StackTrace stackTrace,
+    ProviderContainer container,
+  ) {
+    stdout.writeln(
+      'PROVIDER FAILURE ${provider.name ?? provider.runtimeType}: $error\n$stackTrace',
+    );
+  }
+}
+
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
   if (Platform.isLinux) {
@@ -55,9 +69,22 @@ void main() {
             detectSessionInUri: false,
           ),
         );
-        final db = AppDatabase(NativeDatabase.memory());
+        final databases = <String, AppDatabase>{};
         final container = ProviderContainer(
-          overrides: [databaseProvider.overrideWithValue(db)],
+          observers: [_AuditFailures()],
+          overrides: [
+            databaseProvider.overrideWith((ref) {
+              final account =
+                  ref.watch(sessionProvider)?.user.id ?? 'signed_out';
+              return databases.putIfAbsent(
+                account,
+                () => AppDatabase.forAccount(
+                  account,
+                  executor: NativeDatabase.memory(),
+                ),
+              );
+            }),
+          ],
         );
         tester.view.physicalSize = const Size(390, 844);
         tester.view.devicePixelRatio = 1;
@@ -189,7 +216,9 @@ void main() {
           FlutterError.onError = originalError;
           await tester.pumpWidget(const SizedBox());
           container.dispose();
-          await db.close();
+          for (final db in databases.values) {
+            await db.close();
+          }
           await supabase.auth.signOut(scope: SignOutScope.local);
           await Supabase.instance.dispose();
           tester.view.resetPhysicalSize();
