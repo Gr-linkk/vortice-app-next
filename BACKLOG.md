@@ -12,9 +12,10 @@ without creating a new backlog item.
 Garrett requested a populated demonstration that retains the Ellicott dredge and
 uses local manuals where available. Hosted demo data is populated and 130 role
 and route checks pass. The existing Ellicott identity, components and history are
-retained. Source-manual enrichment remains pending: the specific Ellicott manual
-was not located in the searched Lenovo document folders. Scope, saved evidence
-and demo entrypoints: `docs/specs/NOW-021-demo-population.md`.
+retained. Follow-up located the WSL unit manual, verified its cover serial and
+ladder-servicing page, and added source pages plus a linked checklist/plan/job.
+Four focused company-manager screen checks pass. Scope, saved evidence and demo
+entrypoints: `docs/specs/NOW-021-demo-population.md`.
 
 ### NOW-020 — Simplify existing code without losing behavior
 

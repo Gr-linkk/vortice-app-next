@@ -61,12 +61,40 @@ there for traceability; they are not a general-purpose seed command. Do not reru
 them or broadly remove demo-prefixed data. A future rollback must use the exact
 saved IDs and restore changed fields only after checking for intervening edits.
 
-## Manual-source gap
+## Manual-backed follow-up
 
-The specific Ellicott 460SL / C15 MCW manual was not located. Searched the local
-Desktop service-document collections, Downloads, Documents, Nextcloud,
-OpenClawTransfer and likely WSL document-library locations. `lifting dredg.zip`
-contains four photographs, not manuals. Located CAT service PDFs include other
-applications/serial families; those were not treated as authoritative for this
-dredge. No new technical specifications or manufacturer intervals were invented.
-Manual-based enrichment remains pending the exact source location.
+Garrett identified the WSL maintenance-documents library. The matching unit is
+`/home/garrett/.openclaw/workspace/maintenance-docs/units/paradise-marina-dredge-pv-001/`.
+Its `maintenance-manual/` contains 140 original page photographs, OCR sidecars and
+a C15 PDF. Original photographs were checked visually; the OCR was too noisy to
+use alone. Source files were read without changing the library or its hardlinks.
+
+Three original photographs were imported into the company's Maintenance
+documents, with uploaded bytes checked against their local SHA-256 hashes:
+
+| App page | Source photograph | Verified information |
+| --- | --- | --- |
+| 1 | `PXL_20260408_015131353.jpg` | Ellicott 460SL manual cover; S/N `0007-16-502280/1124` |
+| 2 | `PXL_20260408_015242230.jpg` | Section I p.2: non-propelled pipeline dredge, spud carriage, swinging ladder, in-hull pump and CAT C15-driven open-loop hydraulics |
+| 3 | `PXL_20260408_032606806.jpg` | Section III, Tab 4 p.2: grease cylinder trunnion mountings, ladder trunnions and gimbal thrust washers every 10 hours or daily |
+
+The previously empty dredge serial field and its reference notes now contain
+those verified details. A ladder/gimbal component, published two-step company
+checklist, 10-hour-or-daily service plan and assigned demo work order were added
+through the existing workflow. The total is now 13 demo work orders. The new
+component's 7,242-hour meter and 7,240-hour service baseline remain explicitly
+synthetic. The app's interval trigger is hour-based; the daily requirement is
+retained in the label/instructions and the example job is due September 8.
+
+The saved C15 PDF is SEBU7902 for **JRE1-Up**, while the existing engine serial is
+**MCW10441**. Its capacities and engine-specific intervals were not applied.
+Existing 250/500/1000-hour demo plans still use the pre-existing checklists; this
+follow-up does not newly certify those checklists against an MCW engine manual.
+
+The enrichment transaction passed rollback validation before application. Four
+focused rendered company-manager checks passed for the new job, component/plan,
+published checklist and source-document library. Job and document screens were
+visually checked. Evidence: `manual-before.json`, `manual-receipt.json`,
+`manual-apply.json`, `manual-ui.log`, `NOW-010-manual-demo.json`, and screenshots
+in the same local demo output directory. Only three relevant source pages were
+imported; this is not a bulk import of the entire library.
