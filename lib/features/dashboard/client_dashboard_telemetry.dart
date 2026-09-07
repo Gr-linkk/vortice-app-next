@@ -93,9 +93,9 @@ class ClientDashboardTelemetry extends ConsumerWidget {
               // ── Active Alerts ────────────────────────────────────────────────
               const DashboardSection(title: 'Active Alerts'),
               activeAlertsAsync.when(
-                loading: () => const _LoadingTile(),
+                loading: () => const DashboardLoadingTile(),
                 error: (err, _) =>
-                    _ErrorTile(message: friendlyError(context, err)),
+                    DashboardErrorTile(message: friendlyError(context, err)),
                 data: (alerts) {
                   if (alerts.isEmpty) {
                     return Padding(
@@ -150,12 +150,12 @@ class ClientDashboardTelemetry extends ConsumerWidget {
               // ── Fleet Grid ───────────────────────────────────────────────────
               const DashboardSection(title: 'Fleet'),
               assetsAsync.when(
-                loading: () => const _LoadingTile(),
+                loading: () => const DashboardLoadingTile(),
                 error: (err, _) =>
-                    _ErrorTile(message: friendlyError(context, err)),
+                    DashboardErrorTile(message: friendlyError(context, err)),
                 data: (assets) {
                   if (assets.isEmpty) {
-                    return const _EmptyStateTile(
+                    return const DashboardEmptyState(
                       icon: Icons.directions_boat_outlined,
                       message:
                           'No vessels yet. Contact Vórtice to get started.',
@@ -181,12 +181,12 @@ class ClientDashboardTelemetry extends ConsumerWidget {
               if (showMaintenancePlanning) ...[
                 const DashboardSection(title: 'Upcoming Maintenance'),
                 remindersAsync!.when(
-                  loading: () => const _LoadingTile(),
+                  loading: () => const DashboardLoadingTile(),
                   error: (err, _) =>
-                      _ErrorTile(message: friendlyError(context, err)),
+                      DashboardErrorTile(message: friendlyError(context, err)),
                   data: (reminders) {
                     if (reminders.isEmpty) {
-                      return const _EmptyStateTile(
+                      return const DashboardEmptyState(
                         icon: Icons.event_available_outlined,
                         message: 'No upcoming maintenance.',
                       );
@@ -195,7 +195,7 @@ class ClientDashboardTelemetry extends ConsumerWidget {
                         .where((r) => r.shouldShowOnClientMaintenanceDashboard)
                         .toList();
                     if (visibleReminders.isEmpty) {
-                      return const _EmptyStateTile(
+                      return const DashboardEmptyState(
                         icon: Icons.event_available_outlined,
                         message: 'No upcoming maintenance.',
                       );
@@ -218,9 +218,9 @@ class ClientDashboardTelemetry extends ConsumerWidget {
               // ── Open Invoices ────────────────────────────────────────────────
               const DashboardSection(title: 'Open Invoices'),
               invoicesAsync.when(
-                loading: () => const _LoadingTile(),
+                loading: () => const DashboardLoadingTile(),
                 error: (err, _) =>
-                    _ErrorTile(message: friendlyError(context, err)),
+                    DashboardErrorTile(message: friendlyError(context, err)),
                 data: (invoices) {
                   final open = invoices
                       .where(
@@ -230,7 +230,7 @@ class ClientDashboardTelemetry extends ConsumerWidget {
                       )
                       .toList();
                   if (open.isEmpty) {
-                    return const _EmptyStateTile(
+                    return const DashboardEmptyState(
                       icon: Icons.receipt_long_outlined,
                       message: 'No open invoices.',
                     );
@@ -771,73 +771,3 @@ class _InvoiceTile extends StatelessWidget {
     );
   }
 }
-
-// ── Shared sub-widgets ────────────────────────────────────────────────────────
-
-class _LoadingTile extends StatelessWidget {
-  const _LoadingTile();
-
-  @override
-  Widget build(BuildContext context) {
-    return const Padding(
-      padding: EdgeInsets.symmetric(vertical: 16),
-      child: Center(child: CircularProgressIndicator()),
-    );
-  }
-}
-
-class _ErrorTile extends StatelessWidget {
-  final String message;
-  const _ErrorTile({required this.message});
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      child: Text(
-        message,
-        style: TextStyle(color: context.appColors.error, fontSize: 13),
-      ),
-    );
-  }
-}
-
-class _EmptyStateTile extends StatelessWidget {
-  final IconData icon;
-  final String message;
-  const _EmptyStateTile({required this.icon, required this.message});
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      child: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: context.appColors.surface,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.fromBorderSide(
-            BorderSide(color: context.appColors.cardBorder),
-          ),
-        ),
-        child: Row(
-          children: [
-            Icon(icon, color: context.appColors.textSecondary, size: 20),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Text(
-                message,
-                style: TextStyle(
-                  color: context.appColors.textSecondary,
-                  fontSize: 13,
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-// ── Bell icon with unread badge ───────────────────────────────────────────────

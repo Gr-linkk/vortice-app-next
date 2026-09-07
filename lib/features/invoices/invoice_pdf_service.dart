@@ -1,3 +1,4 @@
+import 'package:vortice_app/features/invoices/invoice_download.dart';
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:vortice_app/features/invoices/invoice_detail_support.dart';
 import 'dart:io';
@@ -6,7 +7,6 @@ import 'dart:typed_data';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:open_file/open_file.dart';
-import 'package:path_provider/path_provider.dart';
 import 'package:printing/printing.dart';
 import 'package:vortice_app/features/invoices/invoice_export_context.dart';
 import 'package:vortice_app/features/invoices/invoice_parts_line_items_support.dart';
@@ -53,7 +53,7 @@ class InvoicePdfService {
       exportContext: exportContext,
       spanish: spanish,
     );
-    final file = await _writeDownloadFile(
+    final file = await writeInvoiceDownload(
       invoice,
       extension: 'pdf',
       bytes: bytes,
@@ -88,20 +88,6 @@ class InvoicePdfService {
     );
 
     return pdf.save();
-  }
-
-  static Future<File> _writeDownloadFile(
-    Invoice invoice, {
-    required String extension,
-    required List<int> bytes,
-  }) async {
-    final dir =
-        await getDownloadsDirectory() ??
-        await getApplicationDocumentsDirectory();
-    final invoiceDir = Directory('${dir.path}/Vortice Invoices');
-    await invoiceDir.create(recursive: true);
-    final file = File('${invoiceDir.path}/${invoice.invoiceNumber}.$extension');
-    return file.writeAsBytes(bytes, flush: true);
   }
 
   static List<pw.Widget> _buildPage(

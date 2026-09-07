@@ -7,6 +7,18 @@ without creating a new backlog item.
 
 ## Now
 
+### NOW-020 — Simplify existing code without losing behavior
+
+Garrett requested a whole-code simplification pass, verification, push and a new
+APK in S24 Downloads. Consolidate exact duplicate implementations and remove
+verified unreachable remnants; preserve active features, presentation, data,
+role checks and recovery behavior. Scope and results:
+`docs/specs/NOW-020-code-simplification.md`.
+
+Implemented: 729 net production Dart lines removed, with all existing workflows
+retained. Clean analysis and 583 Flutter tests pass with zero skips. Build 25
+packaging and S24 delivery are tracked in the specification.
+
 September 7 stress-audit corrections to NOW-016/NOW-017 are integrated into
 Build 23 from `codex/stress-audit-fixes`. Scope and verification:
 `docs/specs/2026-09-07-stress-audit-fixes.md`.

@@ -357,3 +357,73 @@ class DashboardSection extends StatelessWidget {
     ),
   );
 }
+
+class DashboardLoadingTile extends StatelessWidget {
+  const DashboardLoadingTile({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return const Padding(
+      padding: EdgeInsets.symmetric(vertical: 16),
+      child: Center(child: CircularProgressIndicator()),
+    );
+  }
+}
+
+class DashboardErrorTile extends StatelessWidget {
+  final String message;
+  const DashboardErrorTile({super.key, required this.message});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      child: Text(
+        message,
+        style: TextStyle(color: context.appColors.error, fontSize: 13),
+      ),
+    );
+  }
+}
+
+class DashboardEmptyState extends StatelessWidget {
+  final IconData icon;
+  final String message;
+  const DashboardEmptyState({
+    super.key,
+    required this.icon,
+    required this.message,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: context.appColors.surface,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.fromBorderSide(
+            BorderSide(color: context.appColors.cardBorder),
+          ),
+        ),
+        child: Row(
+          children: [
+            Icon(icon, color: context.appColors.textSecondary, size: 20),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                message,
+                style: TextStyle(
+                  color: context.appColors.textSecondary,
+                  fontSize: 13,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}

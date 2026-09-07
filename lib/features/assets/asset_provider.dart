@@ -1,4 +1,4 @@
-import 'package:drift/drift.dart' show Value;
+import 'package:vortice_app/db/asset_mapping.dart';
 import 'package:vortice_app/core/account_storage.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:vortice_app/core/constants.dart';
@@ -41,24 +41,7 @@ final assetsProvider = FutureProvider<List<Asset>>((ref) async {
   // Persist to local cache
   for (final asset
       in db.belongsTo(supabase.auth.currentUser?.id) ? assets : <Asset>[]) {
-    await dao.upsert(
-      AssetsTableCompanion(
-        id: Value(asset.id),
-        clientId: Value(asset.clientId),
-        assetTypeId: Value(asset.assetTypeId),
-        name: Value(asset.name),
-        make: Value(asset.make),
-        model: Value(asset.model),
-        year: Value(asset.year),
-        serialNumber: Value(asset.serialNumber),
-        location: Value(asset.location),
-        notes: Value(asset.notes),
-        telemetryEnabled: Value(asset.telemetryEnabled),
-        telemetrySource: Value(asset.telemetrySource),
-        createdAt: Value(asset.createdAt),
-        updatedAt: Value(asset.updatedAt),
-      ),
-    );
+    await dao.upsert(assetToCompanion(asset));
   }
 
   return assets;

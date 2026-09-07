@@ -1,4 +1,4 @@
-import 'package:vortice_app/core/user_feedback.dart';
+import 'package:vortice_app/core/app_retry_panel.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:vortice_app/core/theme.dart';
@@ -19,25 +19,9 @@ class EngineScreen extends ConsumerWidget {
       appBar: AppBar(title: Text(l10n.enginesTitle)),
       body: enginesAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (err, _) => Center(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(
-                Icons.error_outline,
-                color: context.appColors.error,
-                size: 48,
-              ),
-              const SizedBox(height: 12),
-              Text(friendlyError(context, err)),
-              const SizedBox(height: 12),
-              ElevatedButton(
-                onPressed: () =>
-                    ref.invalidate(enginesForAssetProvider(assetId)),
-                child: Text(l10n.retry),
-              ),
-            ],
-          ),
+        error: (err, _) => AppRetryPanel(
+          error: err,
+          onRetry: () => ref.invalidate(enginesForAssetProvider(assetId)),
         ),
         data: (engines) => EngineScreenBody(
           assetId: assetId,

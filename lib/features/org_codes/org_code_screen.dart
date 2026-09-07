@@ -1,5 +1,5 @@
+import 'package:vortice_app/core/app_retry_panel.dart';
 import 'package:vortice_app/core/app_dropdown_field.dart';
-import 'package:vortice_app/core/user_feedback.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -20,24 +20,9 @@ class OrgCodeScreen extends ConsumerWidget {
       appBar: AppBar(title: Text(l10n.orgCodesTitle)),
       body: codesAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (err, _) => Center(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(
-                Icons.error_outline,
-                color: context.appColors.error,
-                size: 48,
-              ),
-              const SizedBox(height: 12),
-              Text(friendlyError(context, err)),
-              const SizedBox(height: 12),
-              ElevatedButton(
-                onPressed: () => ref.invalidate(orgCodesProvider),
-                child: Text(l10n.retry),
-              ),
-            ],
-          ),
+        error: (err, _) => AppRetryPanel(
+          error: err,
+          onRetry: () => ref.invalidate(orgCodesProvider),
         ),
         data: (codes) {
           if (codes.isEmpty) {

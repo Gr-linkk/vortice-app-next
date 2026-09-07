@@ -83,7 +83,7 @@ class ClientOperatorDashboard extends ConsumerWidget {
             // ── 0. Assigned Pre-Op Checklists (from client admin) ──────────
             if (showOperationalChecklists)
               assignedChecklistsAsync!.when(
-                loading: () => const _LoadingTile(),
+                loading: () => const DashboardLoadingTile(),
                 error: (error, _) => AppErrorState(
                   error: error,
                   onRetry: () => ref.invalidate(myChecklistAssignmentsProvider),
@@ -231,12 +231,12 @@ class ClientOperatorDashboard extends ConsumerWidget {
             if (showOperationalChecklists) ...[
               DashboardSection(title: es ? 'Revisiones antes de operar' : 'Pre-operation checks'),
               assetsAsync.when(
-                loading: () => const _LoadingTile(),
+                loading: () => const DashboardLoadingTile(),
                 error: (err, _) =>
-                    _ErrorTile(message: friendlyError(context, err)),
+                    DashboardErrorTile(message: friendlyError(context, err)),
                 data: (assets) {
                   if (assets.isEmpty) {
-                    return _EmptyState(
+                    return DashboardEmptyState(
                       icon: Icons.directions_boat_outlined,
                       message: es ? 'No hay equipos asignados.' : 'No assets assigned.',
                     );
@@ -254,12 +254,12 @@ class ClientOperatorDashboard extends ConsumerWidget {
               // ── 3. Recent Checks ──────────────────────────────────────
               DashboardSection(title: es ? 'Revisiones recientes' : 'Recent Checks'),
               runsAsync.when(
-                loading: () => const _LoadingTile(),
+                loading: () => const DashboardLoadingTile(),
                 error: (err, _) =>
-                    _ErrorTile(message: friendlyError(context, err)),
+                    DashboardErrorTile(message: friendlyError(context, err)),
                 data: (runs) {
                   if (runs.isEmpty) {
-                    return _EmptyState(
+                    return DashboardEmptyState(
                       icon: Icons.history_outlined,
                       message: es ? 'Todavía no hay revisiones completadas.' : 'No completed checks yet.',
                     );
@@ -391,74 +391,6 @@ class _RecentRunTile extends StatelessWidget {
                   color: context.appColors.success,
                   fontSize: 10,
                   fontWeight: FontWeight.w600,
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-// ── Shared widgets ────────────────────────────────────────────────────────────
-
-class _LoadingTile extends StatelessWidget {
-  const _LoadingTile();
-
-  @override
-  Widget build(BuildContext context) {
-    return const Padding(
-      padding: EdgeInsets.symmetric(vertical: 16),
-      child: Center(child: CircularProgressIndicator()),
-    );
-  }
-}
-
-class _ErrorTile extends StatelessWidget {
-  final String message;
-  const _ErrorTile({required this.message});
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      child: Text(
-        message,
-        style: TextStyle(color: context.appColors.error, fontSize: 13),
-      ),
-    );
-  }
-}
-
-class _EmptyState extends StatelessWidget {
-  final IconData icon;
-  final String message;
-  const _EmptyState({required this.icon, required this.message});
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      child: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: context.appColors.surface,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.fromBorderSide(
-            BorderSide(color: context.appColors.cardBorder),
-          ),
-        ),
-        child: Row(
-          children: [
-            Icon(icon, color: context.appColors.textSecondary, size: 20),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Text(
-                message,
-                style: TextStyle(
-                  color: context.appColors.textSecondary,
-                  fontSize: 13,
                 ),
               ),
             ),

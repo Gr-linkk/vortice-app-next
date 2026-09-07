@@ -1,3 +1,4 @@
+import 'package:vortice_app/db/asset_mapping.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:vortice_app/core/account_storage.dart';
 import 'package:vortice_app/core/constants.dart';

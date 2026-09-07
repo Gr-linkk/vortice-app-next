@@ -1,3 +1,4 @@
+import 'package:vortice_app/features/invoices/invoice_download.dart';
 import 'package:vortice_app/features/invoices/invoice_detail_support.dart';
 import 'dart:io';
 import 'package:excel/excel.dart';
@@ -49,27 +50,13 @@ class InvoiceExcelService {
     final bytes = generateBytes(invoice, context: context, spanish: spanish);
     if (bytes == null) return null;
 
-    final file = await _writeDownloadFile(
+    final file = await writeInvoiceDownload(
       invoice,
       extension: 'xlsx',
       bytes: bytes,
     );
     await OpenFile.open(file.path);
     return file;
-  }
-
-  static Future<File> _writeDownloadFile(
-    Invoice invoice, {
-    required String extension,
-    required List<int> bytes,
-  }) async {
-    final dir =
-        await getDownloadsDirectory() ??
-        await getApplicationDocumentsDirectory();
-    final invoiceDir = Directory('${dir.path}/Vortice Invoices');
-    await invoiceDir.create(recursive: true);
-    final file = File('${invoiceDir.path}/${invoice.invoiceNumber}.$extension');
-    return file.writeAsBytes(bytes, flush: true);
   }
 
   static List<int>? generateBytes(
