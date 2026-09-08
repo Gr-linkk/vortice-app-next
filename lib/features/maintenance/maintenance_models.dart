@@ -123,6 +123,13 @@ String maintenanceApprovalDescription(MaintenanceJob job, bool es) {
         ? 'Cierra este trabajo reabierto. El servicio ya completado y las próximas horas de servicio no cambian.'
         : 'Closes this reopened job. Its previously completed service and next service due stay unchanged.';
   }
+  if (job.isService &&
+      (job.data['covered_plan_ids'] as List? ?? []).isNotEmpty) {
+    final names = (job.data['covered_plan_names'] as List? ?? []).join(', ');
+    return es
+        ? 'Completa este trabajo y su plan, incluidos: $names.'
+        : 'Completes this job and its plan, including: $names.';
+  }
   if (job.isService) {
     return es
         ? 'Completa el trabajo y actualiza únicamente su plan de servicio vinculado.'

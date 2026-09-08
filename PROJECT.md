@@ -19,6 +19,10 @@ company/provider stock, reservations, purchasing records and actual use/returns.
 See NOW-022. Standard-kit edits affect future jobs; inventory changes require
 a confirmed connection and preserve replay identity for uncertain outcomes.
 
+Maintenance plans support configurable hour and calendar recurrence, explicit
+transition targets and optional included services on the same component. Fixed
+milestones stay aligned after early/late completion; appointment moves remain
+separate. See NOW-023 and decision 0015. Hosted activation is tracked separately.
 
 Owners and client managers author versioned PM and pre-operation procedures in
 the Checklist library. Shared owner starters and private company copies connect

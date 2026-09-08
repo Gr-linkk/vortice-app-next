@@ -1,3 +1,4 @@
+import 'maintenance_recurrence_fields.dart';
 import 'package:vortice_app/core/app_dropdown_field.dart';
 import 'package:vortice_app/features/assurance/assurance_repository.dart';
 import 'package:flutter/material.dart';
@@ -47,8 +48,15 @@ class _MaintenanceSetupScreenState
     _values = {
       'kind': 'engine',
       'is_active': true,
+      'recurrence_mode': 'completion',
+      'covers_plan_ids': <String>[],
       ...widget.initial,
       'asset_id': widget.assetId,
+      'recurrence_basis': widget.initial['interval_hours'] == 0
+          ? 'calendar'
+          : widget.initial['interval_months'] != null
+          ? 'both'
+          : 'hours',
     };
     for (final name in [
       'name',
@@ -61,6 +69,11 @@ class _MaintenanceSetupScreenState
       'interval_label',
       'interval_hours',
       'last_service_hours',
+      'interval_months',
+      'anchor_hours',
+      'anchor_date',
+      'last_service_date',
+      'change_reason',
     ]) {
       _text[name] = TextEditingController(
         text:
@@ -84,6 +97,10 @@ class _MaintenanceSetupScreenState
     _pending ??= MaintenanceWrite({
       ..._values,
       for (final e in _text.entries) e.key: e.value.text.trim(),
+      if (widget.kind == 'plan' && _values['recurrence_mode'] != 'fixed') ...{
+        'anchor_hours': '',
+        'anchor_date': '',
+      },
       if (widget.reviewedSave != null) ...{
         'source_reviewed': true,
         'review_current_hours': maintenanceRows(widget.catalog['components'])
@@ -179,12 +196,17 @@ class _MaintenanceSetupScreenState
         decoration: InputDecoration(labelText: es ? spanish : en),
         onChanged: (_) {
           _dirty = true;
-          if (widget.reviewedSave != null) {
-            setState(() => _reviewedReadings = false);
-          }
+          setState(() => _reviewedReadings = false);
         },
         validator: (v) => required && (v?.trim().isEmpty ?? true)
             ? (es ? 'Campo requerido' : 'Required')
+            : key == 'interval_hours' &&
+                  (int.tryParse(v ?? '') == null ||
+                      int.parse(v!) <= 0 ||
+                      int.parse(v) > 10000000)
+            ? (es
+                  ? 'Ingresa un intervalo entero positivo'
+                  : 'Enter a positive whole-hour interval')
             : number &&
                   (double.tryParse(v ?? '')?.isFinite != true ||
                       double.parse(v!) < 0)
@@ -221,6 +243,14 @@ class _MaintenanceSetupScreenState
             ? null
             : (v) => setState(() {
                 _values[key] = v;
+                if (key == 'recurrence_basis') {
+                  if (v == 'hours') _text['interval_months']!.clear();
+                  if (v == 'calendar') {
+                    _text['interval_hours']!.text = '0';
+                  } else if (_text['interval_hours']!.text == '0') {
+                    _text['interval_hours']!.clear();
+                  }
+                }
                 _reviewedReadings = false;
                 if (key == 'engine_id') {
                   final selected = maintenanceRows(widget.catalog['templates'])
@@ -331,13 +361,26 @@ class _MaintenanceSetupScreenState
                   maintenanceRows(widget.catalog['components']),
                   'label',
                 ),
-                field(
-                  'interval_hours',
-                  'Service every (hours)',
-                  'Servicio cada (horas)',
-                  required: true,
-                  number: true,
-                ),
+                if (widget.reviewedSave == null)
+                  select('recurrence_basis', 'Schedule by', 'Programar por', [
+                    {
+                      'id': 'hours',
+                      'name': es ? 'Horas de uso' : 'Operating hours',
+                    },
+                    {'id': 'calendar', 'name': es ? 'Calendario' : 'Calendar'},
+                    {
+                      'id': 'both',
+                      'name': es ? 'Horas o calendario' : 'Hours or calendar',
+                    },
+                  ], 'name'),
+                if (_values['recurrence_basis'] != 'calendar')
+                  field(
+                    'interval_hours',
+                    'Service every (hours)',
+                    'Servicio cada (horas)',
+                    required: true,
+                    number: true,
+                  ),
                 field(
                   'last_service_hours',
                   'Last service meter',
@@ -350,6 +393,18 @@ class _MaintenanceSetupScreenState
                               .isNotEmpty ??
                           false),
                 ),
+                if (widget.reviewedSave == null)
+                  MaintenanceRecurrenceFields(
+                    text: _text,
+                    values: _values,
+                    initial: widget.initial,
+                    plans: maintenanceRows(widget.catalog['plans']),
+                    es: es,
+                    frozen: frozen,
+                    onChanged: () => setState(() {
+                      _dirty = true;
+                    }),
+                  ),
                 select(
                   'checklist_template_id',
                   'Checklist (optional)',

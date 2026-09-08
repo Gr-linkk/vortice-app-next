@@ -1,5 +1,6 @@
 import 'package:vortice_app/features/parts/parts_readiness_screen.dart';
 import 'package:vortice_app/features/parts/parts_readiness_entry.dart';
+import '../maintenance_recurrence.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -721,11 +722,9 @@ class _MaintenancePlanningScreenState
           Text(
             plan.needsSetup
                 ? (es
-                      ? 'Vincula un componente y revisa la línea base.'
-                      : 'Link a component and review the service baseline.')
-                : plan.due
-                ? '${es ? 'Servicio pendiente' : 'Service due'} · ${plan.remainingHours!.abs().toStringAsFixed(0)} h ${es ? 'desde el vencimiento' : 'past threshold'}'
-                : '${plan.remainingHours!.toStringAsFixed(0)} h ${es ? 'hasta el próximo servicio' : 'until next service'}',
+                      ? 'Completa la configuración del plan'
+                      : 'Complete plan setup')
+                : '${plan.due ? (es ? 'Servicio pendiente · ' : 'Service due · ') : ''}${recurrenceDueText(plan.data, es)}',
           ),
           if (plan.hasJob)
             Text(
