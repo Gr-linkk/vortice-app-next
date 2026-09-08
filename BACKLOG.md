@@ -17,8 +17,10 @@ on the existing PM kits. Scope and acceptance: `docs/specs/NOW-022-parts-readine
 Implemented and active on Next. Clean analysis and 593 Flutter tests pass,
 alongside all 21 hosted SQL suites and eight connected native stages, including
 Spanish dark mode at 200% text and company isolation. Exact test fixtures are
-removed with unrelated counts preserved. Build 26 packaging/delivery evidence
-will be recorded in the specification after artifact verification.
+removed with unrelated counts preserved. Build 26 (1.13.0+26) is verified and
+delivered to S24 Downloads with matching SHA-256; code is pushed on
+`codex/parts-readiness`. APK and delivery evidence are in the specification.
+Physical Android installation and interaction remain separate acceptance.
 
 
 ### NOW-021 — Populate the existing app for a demo

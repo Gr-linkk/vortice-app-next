@@ -69,3 +69,24 @@ removed with unrelated counts preserved; receipt:
 `outputs/parts022-ygfLiFoL/cleanup-20260908T010034Z-6f01a0a1.json`.
 The initial cleanup request timed out; remaining fixture IDs were checked before
 retrying. Its unfinished receipt is retained alongside the completed receipt.
+
+## Build 26 delivery
+
+Implementation commit: `02f72e835e4b195b9cc0ebbe245d42fcc5c80958`, pushed to
+`codex/parts-readiness`. The guarded internal Android build passes, with version
+`1.13.0+26`, ARM64 and package `com.example.vortice_app_next`. Inspection verifies
+the Next backend/Firebase, signing certificate, notification service, recovery
+link, parts workflow and equipment assets. The build reports a future Kotlin
+plugin compatibility warning for share_plus/shared_preferences_android; it does
+not prevent this build.
+
+Canonical APK: `outputs/builds/INSTALL-Vortice-Next-Build-26.apk` (129,263,817 bytes).
+SHA-256: `5fd52cb179d524bf609cda1ba5b25fb580feb6807f73a45e988530e885f474bc`.
+Inspection: `outputs/build26-build-verified.json`.
+
+Delivered to the Samsung S24 (SM-S928W) at
+`/storage/emulated/0/Download/INSTALL-Vortice-Next-Build-26.apk` on
+2026-09-08 at 01:10 UTC (September 7 local evening). Remote SHA-256 matches.
+Receipt: `outputs/build26-phone-delivery.json`. Not installed; physical Android
+acceptance remains: open a work order's Parts readiness, import/edit requirements,
+reserve/request/receive stock, then record use/return with an assigned mechanic.
