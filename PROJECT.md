@@ -14,6 +14,11 @@ parts, and invoices.
 
 ## Current direction
 
+Equipment reporting is selected under NOW-024: managers compare recorded costs,
+explicit downtime and possible repeat faults, inspect sources and export the
+same report. Calculation, coverage and access rules are in
+`docs/specs/NOW-024-equipment-reporting.md`.
+
 Owners and client managers author versioned PM and pre-operation procedures in
 the Checklist library. Shared owner starters and private company copies connect
 to maintenance plans/work orders and assigned operator checks. Failed pre-op

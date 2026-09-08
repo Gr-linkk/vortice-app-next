@@ -1,3 +1,4 @@
+import 'package:vortice_app/features/equipment_reporting/equipment_report_screen.dart';
 import 'package:vortice_app/core/user_feedback.dart';
 import 'package:vortice_app/features/auth/password_recovery.dart';
 import 'package:vortice_app/features/assurance/assurance_screen.dart';
@@ -196,6 +197,10 @@ final routerProvider = Provider<GoRouter>((ref) {
           GoRoute(
             path: '/checklist-library',
             builder: (_, _) => const ChecklistLibraryScreen(),
+          ),
+          GoRoute(
+            path: '/fleet/reporting',
+            builder: (_, _) => const EquipmentReportScreen(),
           ),
           GoRoute(
             path: '/fleet/overview',

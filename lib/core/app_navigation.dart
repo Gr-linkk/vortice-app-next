@@ -95,6 +95,16 @@ List<AppDestination> toolDestinations(UserRole role) {
         description: 'Act on overdue service, faults and waiting work',
         descriptionEs: 'Atender servicios vencidos, fallas y trabajo pendiente',
       ),
+    if (role == UserRole.owner || admin)
+      const AppDestination(
+        'Equipment report',
+        'Informe de equipos',
+        Icons.bar_chart,
+        '/fleet/reporting',
+        group: 1,
+        description: 'Compare maintenance costs, downtime and repeat faults',
+        descriptionEs: 'Comparar costos, inactividad y fallas repetidas',
+      ),
     if (canUseMaintenance(role))
       const AppDestination(
         'Work orders',
