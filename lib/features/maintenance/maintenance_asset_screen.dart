@@ -1,3 +1,4 @@
+import 'maintenance_recurrence.dart';
 import 'package:flutter/material.dart';
 import 'package:vortice_app/features/coordination/coordination_entry.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -260,15 +261,25 @@ class MaintenanceAssetScreen extends ConsumerWidget {
                               style: Theme.of(context).textTheme.titleMedium,
                             ),
                             Text(
-                              '${plan['component_name'] ?? (es ? 'Selecciona un componente' : 'Choose a component')} · ${es ? 'Cada' : 'Every'} ${plan['interval_hours']} h',
+                              '${plan['component_name'] ?? (es ? 'Selecciona un componente' : 'Choose a component')} · ${recurrenceSummary(plan, es)}',
                             ),
                             Text(
-                              plan['next_due_hours'] == null
+                              plan['next_due_hours'] == null &&
+                                      plan['next_due_date'] == null
                                   ? (es
                                         ? 'Sin línea base'
                                         : 'No service baseline')
-                                  : '${es ? 'Próximo servicio' : 'Next service'}: ${plan['next_due_hours']} h',
+                                  : '${es ? 'Próximo servicio' : 'Next service'}: ${recurrenceDueText(plan, es)}',
                             ),
+                            if (plan['next_due_date'] != null &&
+                                !DateTime.parse(
+                                  plan['next_due_date'] as String,
+                                ).isAfter(DateTime.now()))
+                              Text(
+                                es
+                                    ? 'Servicio pendiente por fecha'
+                                    : 'Service due by date',
+                              ),
                             if (plan['is_active'] != true)
                               Text(es ? 'Plan inactivo' : 'Inactive plan'),
                             if (plan['next_due_hours'] is num &&

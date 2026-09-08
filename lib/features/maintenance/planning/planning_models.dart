@@ -58,8 +58,16 @@ class PlanningPlan {
     return due is num && current is num ? (due - current).toDouble() : null;
   }
 
-  bool get due => remainingHours != null && remainingHours! <= 0;
-  bool get needsSetup => data['engine_id'] == null || remainingHours == null;
+  DateTime? get nextDate =>
+      DateTime.tryParse(data['next_due_date']?.toString() ?? '');
+  bool dueOn(DateTime today) =>
+      (remainingHours != null && remainingHours! <= 0) ||
+      (nextDate != null && !nextDate!.isAfter(planningDay(today)));
+  bool get due => dueOn(DateTime.now());
+  bool get needsSetup =>
+      data['engine_id'] == null ||
+      ((data['interval_hours'] as num? ?? 1) > 0 && remainingHours == null) ||
+      (data['interval_months'] != null && nextDate == null);
   bool get hasJob => data['has_open_job'] == true;
   String? get openJobId => data['open_job_id'] as String?;
   bool get canManage => data['can_manage'] == true;

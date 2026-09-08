@@ -7,6 +7,15 @@ without creating a new backlog item.
 
 ## Now
 
+### NOW-023 — Configurable maintenance recurrence
+
+Garrett approved flexible hours/calendar recurrence, completion-based schedules,
+fixed milestones and explicit transition targets, with adjustable settings for
+each component and optional included services. Preserve appointment separation,
+checked completion and company isolation. Scope and verification:
+`docs/specs/NOW-023-maintenance-recurrence.md`; decision 0015.
+Developed independently of the concurrent NOW-022 parts workstream.
+
 ### NOW-021 — Populate the existing app for a demo
 
 Garrett requested a populated demonstration that retains the Ellicott dredge and
