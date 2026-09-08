@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:uuid/uuid.dart';
 import 'package:vortice_app/core/user_feedback.dart';
 import 'package:vortice_app/features/checklists/checklist_provider.dart';
+import 'package:vortice_app/features/parts/pm_parts_setup_screen.dart';
 import 'checklist_builder_repository.dart';
 import 'checklist_editor_screen.dart';
 import 'checklist_preview_screen.dart';
@@ -228,6 +229,29 @@ class _ChecklistLibraryScreenState
                                 spacing: 8,
                                 runSpacing: 8,
                                 children: [
+                                  if (isPM && published != null)
+                                    TextButton(
+                                      onPressed: () => Navigator.push(
+                                        context,
+                                        MaterialPageRoute<void>(
+                                          builder: (_) => PmPartsSetupScreen(
+                                            templateId:
+                                                published['id'] as String,
+                                            templateName:
+                                                published['name'] as String,
+                                            readOnly:
+                                                !canCopy ||
+                                                published['client_id'] !=
+                                                    catalog['client_id'],
+                                          ),
+                                        ),
+                                      ),
+                                      child: Text(
+                                        es
+                                            ? 'Kit de repuestos PM'
+                                            : 'PM parts kit',
+                                      ),
+                                    ),
                                   TextButton(
                                     onPressed: () => Navigator.push(
                                       context,

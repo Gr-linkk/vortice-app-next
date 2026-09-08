@@ -7,6 +7,20 @@ without creating a new backlog item.
 
 ## Now
 
+### NOW-022 — PM kits, parts readiness and stock
+
+Garrett approved building the connected kit-to-stock workflow, verification,
+commit, push and APK delivery to S24 Downloads. Job-specific requirements,
+location stock, reservations, purchase tracking, receipts, use and returns build
+on the existing PM kits. Scope and acceptance: `docs/specs/NOW-022-parts-readiness.md`.
+
+Implemented and active on Next. Clean analysis and 593 Flutter tests pass,
+alongside all 21 hosted SQL suites and eight connected native stages, including
+Spanish dark mode at 200% text and company isolation. Exact test fixtures are
+removed with unrelated counts preserved. Build 26 packaging/delivery evidence
+will be recorded in the specification after artifact verification.
+
+
 ### NOW-021 — Populate the existing app for a demo
 
 Garrett requested a populated demonstration that retains the Ellicott dredge and
@@ -297,8 +311,9 @@ Garrett selected original items 1, 4 and 5 together: company-owned maintenance,
 mechanic execution, and trustworthy maintenance completion. Implement one
 connected journey under this ID. Scope and acceptance:
 `docs/specs/NOW-006-company-maintenance.md`. NOW-007 owns the next three and
-NOW-009 owns areas 19 and 20; the other 12 areas remain intake.
-The Build 7 device review remains open; it does not block this authorized work.
+NOW-009 owns areas 19 and 20; NOW-022 owns area 12 and the other 11 remain intake.
+Area 12 is now selected under NOW-022. The Build 7 device review remains open;
+it does not block this authorized work.
 
 Items 1, 4 and 5 are implemented and verified for internal build `1.3.0+8`:
 clean analysis, 337 passing tests, 204 existing skips, all three isolated SQL

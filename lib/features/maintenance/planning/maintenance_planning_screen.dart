@@ -1,3 +1,5 @@
+import 'package:vortice_app/features/parts/parts_readiness_screen.dart';
+import 'package:vortice_app/features/parts/parts_readiness_entry.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -103,8 +105,25 @@ class _MaintenancePlanningScreenState
           ),
           PopupMenuButton<String>(
             tooltip: es ? 'Más opciones' : 'More options',
-            onSelected: (value) => _open(value),
+            onSelected: (value) {
+              if (value == 'parts') {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute<void>(
+                    builder: (_) => const PartsReadinessScreen(),
+                  ),
+                );
+              } else {
+                _open(value);
+              }
+            },
             itemBuilder: (_) => [
+              PopupMenuItem(
+                value: 'parts',
+                child: Text(
+                  es ? 'Existencias y compras' : 'Stock & purchasing',
+                ),
+              ),
               PopupMenuItem(
                 value: widget.assetId == null
                     ? '/maintenance/assets'
@@ -648,6 +667,7 @@ class _MaintenancePlanningScreenState
               Text(
                 '${es ? 'Bloqueado' : 'Blocked'}: ${job.data['on_hold_reason'] ?? ''}',
               ),
+            PartsPlanningStatus(jobId: job.id),
             const SizedBox(height: 8),
             Wrap(
               spacing: 8,

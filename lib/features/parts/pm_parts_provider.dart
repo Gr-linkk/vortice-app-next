@@ -6,17 +6,19 @@ import 'package:vortice_app/models/pm_parts_requirement.dart';
 // ── Fetch PM parts requirements for a template ─────────────────────────────
 
 final pmPartsRequirementsProvider =
-    FutureProvider.family<List<PmPartsRequirement>, String>(
-        (ref, templateId) async {
-  final data = await supabase
-      .from(AppConstants.tPmPartsRequirements)
-      .select()
-      .eq('template_id', templateId)
-      .order('created_at');
-  return (data as List)
-      .map((e) => PmPartsRequirement.fromJson(e as Map<String, dynamic>))
-      .toList();
-});
+    FutureProvider.family<List<PmPartsRequirement>, String>((
+      ref,
+      templateId,
+    ) async {
+      final data = await supabase
+          .from(AppConstants.tPmPartsRequirements)
+          .select()
+          .eq('template_id', templateId)
+          .order('created_at');
+      return (data as List)
+          .map((e) => PmPartsRequirement.fromJson(e as Map<String, dynamic>))
+          .toList();
+    });
 
 // ── Controller ─────────────────────────────────────────────────────────────
 
@@ -56,7 +58,10 @@ class PmPartsController extends StateNotifier<AsyncValue<void>> {
       await supabase
           .from(AppConstants.tPmPartsRequirements)
           .delete()
-          .eq('id', id);
+          .eq('id', id)
+          .eq('template_id', templateId)
+          .select('id')
+          .single();
       _ref.invalidate(pmPartsRequirementsProvider(templateId));
       success = true;
     });
@@ -64,14 +69,20 @@ class PmPartsController extends StateNotifier<AsyncValue<void>> {
   }
 
   Future<bool> updateRequirement(
-      String id, String templateId, Map<String, dynamic> fields) async {
+    String id,
+    String templateId,
+    Map<String, dynamic> fields,
+  ) async {
     state = const AsyncLoading();
     bool success = false;
     state = await AsyncValue.guard(() async {
       await supabase
           .from(AppConstants.tPmPartsRequirements)
           .update(fields)
-          .eq('id', id);
+          .eq('id', id)
+          .eq('template_id', templateId)
+          .select('id')
+          .single();
       _ref.invalidate(pmPartsRequirementsProvider(templateId));
       success = true;
     });
@@ -81,5 +92,5 @@ class PmPartsController extends StateNotifier<AsyncValue<void>> {
 
 final pmPartsControllerProvider =
     StateNotifierProvider<PmPartsController, AsyncValue<void>>((ref) {
-  return PmPartsController(ref);
-});
+      return PmPartsController(ref);
+    });

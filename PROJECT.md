@@ -14,6 +14,12 @@ parts, and invoices.
 
 ## Current direction
 
+Parts readiness extends the existing PM kits through job-specific requirements,
+company/provider stock, reservations, purchasing records and actual use/returns.
+See NOW-022. Standard-kit edits affect future jobs; inventory changes require
+a confirmed connection and preserve replay identity for uncertain outcomes.
+
+
 Owners and client managers author versioned PM and pre-operation procedures in
 the Checklist library. Shared owner starters and private company copies connect
 to maintenance plans/work orders and assigned operator checks. Failed pre-op
@@ -49,7 +55,8 @@ indicator rules are recorded in `docs/decisions/0006-fleet-coordination.md`.
 Asset custody/site transfers and inspection renewals (original areas 19 and 20)
 are selected under `docs/specs/NOW-009-custody-inspections.md`. Their recorded
 states, versioning and access rules are in `docs/decisions/0007-custody-inspections.md`.
-The other 12 areas remain intake in `docs/specs/NOW-006-feature-continuation.md`.
+Area 12 is selected under NOW-022. The other 11 areas remain intake in
+`docs/specs/NOW-006-feature-continuation.md`.
 
 The direct fault-to-work-order workflow and adjacent simplification audit are
 tracked in `docs/specs/NOW-012-direct-workflows.md`; repair ownership and explicit

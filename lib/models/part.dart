@@ -11,6 +11,7 @@ abstract class Part with _$Part {
     required String description,
     @JsonKey(name: 'part_number') String? partNumber,
     String? supplier,
+    @JsonKey(name: 'stock_requirement_id') String? stockRequirementId,
     @JsonKey(defaultValue: 1) required double quantity,
     @JsonKey(name: 'unit_cost') @Default(0) double unitCost,
     @JsonKey(name: 'markup_pct') @Default(15.0) double markupPct,

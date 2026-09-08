@@ -1,3 +1,4 @@
+import 'package:vortice_app/features/parts/parts_readiness_entry.dart';
 import 'package:vortice_app/core/app_dropdown_field.dart';
 import 'dart:convert';
 import 'package:vortice_app/sync/field_work_provider.dart';
@@ -257,6 +258,7 @@ class _MaintenanceJobScreenState extends ConsumerState<MaintenanceJobScreen> {
                 label: Text(job.assetName),
               ),
               WorkOrderFaultCard(workOrderId: job.id, assetId: job.assetId),
+              PartsReadinessEntry(jobId: job.id),
               Wrap(
                 spacing: 8,
                 runSpacing: 8,
@@ -565,7 +567,7 @@ class _MaintenanceJobScreenState extends ConsumerState<MaintenanceJobScreen> {
                   subtitle: Text(
                     '${part['quantity']} × ${part['unit_cost']} USD',
                   ),
-                  trailing: job.canEdit
+                  trailing: job.canEdit && part['stock_requirement_id'] == null
                       ? IconButton(
                           tooltip: es ? 'Quitar repuesto' : 'Remove part',
                           onPressed: disabled

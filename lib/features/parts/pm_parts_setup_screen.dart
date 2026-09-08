@@ -9,11 +9,13 @@ import 'package:vortice_app/models/pm_parts_requirement.dart';
 class PmPartsSetupScreen extends ConsumerWidget {
   final String templateId;
   final String templateName;
+  final bool readOnly;
 
   const PmPartsSetupScreen({
     super.key,
     required this.templateId,
     required this.templateName,
+    this.readOnly = false,
   });
 
   @override
@@ -25,48 +27,66 @@ class PmPartsSetupScreen extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(title: Text('$templateName — ${l10n.pmPartsTitle}')),
-      body: requirementsAsync.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (err, _) => Center(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                friendlyError(context, err),
-                style: TextStyle(color: context.appColors.error),
-              ),
-              const SizedBox(height: 12),
-              ElevatedButton(
-                onPressed: () =>
-                    ref.invalidate(pmPartsRequirementsProvider(templateId)),
-                child: Text(l10n.retry),
-              ),
-            ],
-          ),
-        ),
-        data: (requirements) {
-          if (requirements.isEmpty) {
-            return Center(
-              child: Text(
-                l10n.noPmParts,
-                style: TextStyle(color: context.appColors.textSecondary),
-              ),
-            );
-          }
-          return ListView.builder(
-            itemCount: requirements.length,
-            itemBuilder: (_, i) => _PmPartTile(
-              requirement: requirements[i],
-              templateId: templateId,
+      body: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: Text(
+              Localizations.localeOf(context).languageCode == 'es'
+                  ? 'Kit estándar para trabajos futuros. Los trabajos existentes conservan su propia lista.'
+                  : 'Standard kit for future jobs. Existing jobs keep their own parts list.',
             ),
-          );
-        },
+          ),
+          Expanded(
+            child: requirementsAsync.when(
+              loading: () => const Center(child: CircularProgressIndicator()),
+              error: (err, _) => Center(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      friendlyError(context, err),
+                      style: TextStyle(color: context.appColors.error),
+                    ),
+                    const SizedBox(height: 12),
+                    ElevatedButton(
+                      onPressed: () => ref.invalidate(
+                        pmPartsRequirementsProvider(templateId),
+                      ),
+                      child: Text(l10n.retry),
+                    ),
+                  ],
+                ),
+              ),
+              data: (requirements) {
+                if (requirements.isEmpty) {
+                  return Center(
+                    child: Text(
+                      l10n.noPmParts,
+                      style: TextStyle(color: context.appColors.textSecondary),
+                    ),
+                  );
+                }
+                return ListView.builder(
+                  itemCount: requirements.length,
+                  itemBuilder: (_, i) => _PmPartTile(
+                    requirement: requirements[i],
+                    templateId: templateId,
+                    canEdit: !readOnly,
+                  ),
+                );
+              },
+            ),
+          ),
+        ],
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () => _showSheet(context, ref),
-        backgroundColor: context.appColors.primary,
-        child: const Icon(Icons.add),
-      ),
+      floatingActionButton: readOnly
+          ? null
+          : FloatingActionButton(
+              onPressed: () => _showSheet(context, ref),
+              backgroundColor: context.appColors.primary,
+              child: const Icon(Icons.add),
+            ),
     );
   }
 
@@ -93,8 +113,13 @@ class PmPartsSetupScreen extends ConsumerWidget {
 class _PmPartTile extends ConsumerWidget {
   final PmPartsRequirement requirement;
   final String templateId;
+  final bool canEdit;
 
-  const _PmPartTile({required this.requirement, required this.templateId});
+  const _PmPartTile({
+    required this.requirement,
+    required this.templateId,
+    required this.canEdit,
+  });
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -103,16 +128,20 @@ class _PmPartTile extends ConsumerWidget {
     return Card(
       child: InkWell(
         borderRadius: BorderRadius.circular(12),
-        onTap: () => showModalBottomSheet(
-          context: context,
-          isScrollControlled: true,
-          backgroundColor: context.appColors.surface,
-          shape: const RoundedRectangleBorder(
-            borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
-          ),
-          builder: (_) =>
-              _PmPartSheet(templateId: templateId, requirement: requirement),
-        ),
+        onTap: !canEdit
+            ? null
+            : () => showModalBottomSheet(
+                context: context,
+                isScrollControlled: true,
+                backgroundColor: context.appColors.surface,
+                shape: const RoundedRectangleBorder(
+                  borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+                ),
+                builder: (_) => _PmPartSheet(
+                  templateId: templateId,
+                  requirement: requirement,
+                ),
+              ),
         child: ListTile(
           leading: CircleAvatar(
             backgroundColor: context.appColors.surfaceVariant,
@@ -160,41 +189,43 @@ class _PmPartTile extends ConsumerWidget {
               ),
             ],
           ),
-          trailing: IconButton(
-            icon: Icon(
-              Icons.delete_outline,
-              color: context.appColors.error,
-              size: 20,
-            ),
-            onPressed: () async {
-              final confirmed = await showDialog<bool>(
-                context: context,
-                builder: (ctx) => AlertDialog(
-                  backgroundColor: context.appColors.surface,
-                  title: Text(l10n.confirmDelete),
-                  content: Text(l10n.confirmDeleteMessage),
-                  actions: [
-                    TextButton(
-                      onPressed: () => Navigator.pop(ctx, false),
-                      child: Text(l10n.cancel),
-                    ),
-                    TextButton(
-                      onPressed: () => Navigator.pop(ctx, true),
-                      child: Text(
-                        l10n.delete,
-                        style: TextStyle(color: context.appColors.error),
+          trailing: !canEdit
+              ? null
+              : IconButton(
+                  icon: Icon(
+                    Icons.delete_outline,
+                    color: context.appColors.error,
+                    size: 20,
+                  ),
+                  onPressed: () async {
+                    final confirmed = await showDialog<bool>(
+                      context: context,
+                      builder: (ctx) => AlertDialog(
+                        backgroundColor: context.appColors.surface,
+                        title: Text(l10n.confirmDelete),
+                        content: Text(l10n.confirmDeleteMessage),
+                        actions: [
+                          TextButton(
+                            onPressed: () => Navigator.pop(ctx, false),
+                            child: Text(l10n.cancel),
+                          ),
+                          TextButton(
+                            onPressed: () => Navigator.pop(ctx, true),
+                            child: Text(
+                              l10n.delete,
+                              style: TextStyle(color: context.appColors.error),
+                            ),
+                          ),
+                        ],
                       ),
-                    ),
-                  ],
+                    );
+                    if (confirmed == true) {
+                      await ref
+                          .read(pmPartsControllerProvider.notifier)
+                          .removeRequirement(requirement.id, templateId);
+                    }
+                  },
                 ),
-              );
-              if (confirmed == true) {
-                await ref
-                    .read(pmPartsControllerProvider.notifier)
-                    .removeRequirement(requirement.id, templateId);
-              }
-            },
-          ),
           isThreeLine: requirement.partNumber != null,
         ),
       ),
@@ -293,7 +324,11 @@ class _PmPartSheetState extends ConsumerState<_PmPartSheet> {
                       decoration: InputDecoration(labelText: l10n.quantity),
                       validator: (v) {
                         if (v == null || v.isEmpty) return l10n.fieldRequired;
-                        if (double.tryParse(v) == null) {
+                        final quantity = double.tryParse(v);
+                        if (quantity == null ||
+                            !quantity.isFinite ||
+                            quantity <= 0 ||
+                            quantity >= 1000000) {
                           return l10n.invalidNumber;
                         }
                         return null;

@@ -32,13 +32,17 @@ def verify_repository(directory):
 verify_repository(root)
 verify_repository(connection_root)
 assets={}
+stocks={}
 builder_markers=set()
-for pattern in ['NOW-010-fixture-*.json','NOW-010-custody-live-*.json','NOW-011-fixture-*.json','NOW-012-fixture-*.json','NOW-013-fixture-*.json','NOW-014-fixture-*.json','NOW-015-fixture-*.json']:
+for pattern in ['NOW-010-fixture-*.json','NOW-010-custody-live-*.json','NOW-011-fixture-*.json','NOW-012-fixture-*.json','NOW-013-fixture-*.json','NOW-014-fixture-*.json','NOW-015-fixture-*.json','NOW-022-fixture-*.json']:
     for file in manifest_dir.glob(pattern):
         assert file.resolve().parent==manifest_dir, 'Manifest must belong to the selected run directory'
         item=json.loads(file.read_text(encoding='utf-8-sig'))
-        assert item['marker'].startswith(('E2E-010','E2E-011','E2E-012','E2E-013','E2E-014','E2E-015'))
-        if item['marker'].startswith('E2E-015-'):
+        assert item['marker'].startswith(('E2E-010','E2E-011','E2E-012','E2E-013','E2E-014','E2E-015','E2E-022'))
+        for stock in item.get('stocks',[]):
+            assert stock['description'].startswith(item['marker']+' ')
+            stocks[str(uuid.UUID(stock['id']))]=stock['description']
+        if item['marker'].startswith(('E2E-015-','E2E-022-')):
             marker=item['marker']
             assert len(marker)==16 and all(c in '0123456789abcdef' for c in marker[8:])
             builder_markers.add(marker)
@@ -47,6 +51,7 @@ for pattern in ['NOW-010-fixture-*.json','NOW-010-custody-live-*.json','NOW-011-
 assert assets
 query_file=manifest_dir/f'cleanup-query-{uuid.uuid4().hex}.sql'
 ids=','.join("'"+a+"'::uuid" for a in sorted(assets))
+stock_ids=','.join("'"+a+"'::uuid" for a in sorted(stocks)) or 'select null::uuid where false'
 def query(sql):
     query_file.write_text(sql,encoding='utf-8')
     return json.loads(cli('supabase','db','query','--linked','--file',str(query_file),'--output','json',cwd=connection_root))
@@ -58,6 +63,7 @@ for item in procedures:
 procedure_ids=','.join("'"+str(uuid.UUID(p['id']))+"'::uuid" for p in procedures) or 'select null::uuid where false'
 templates=f'select id from public.checklist_templates where procedure_id in ({procedure_ids})'
 sql=f"""select jsonb_build_object(
+ 'unrelated_stock',(select count(*) from public.parts_inventory where id not in ({stock_ids})),
  'assets',(select jsonb_agg(jsonb_build_object('id',id,'name',name)) from public.assets where id in ({ids})),
  'work_ids',(select jsonb_agg(id) from public.work_orders where asset_id in ({ids})),
  'request_ids',(select jsonb_agg(id) from public.service_requests where asset_id in ({ids})),
@@ -122,11 +128,16 @@ for item in objects:
     with urllib.request.urlopen(request,timeout=30) as response: assert response.status==200
 del keys,key
 guard=' or '.join("(id='"+a+"'::uuid and name<>"+"'"+name.replace("'","''")+"')" for a,name in assets.items())
+stock_guard=' or '.join("(id='"+a+"'::uuid and description<>"+"'"+name.replace("'","''")+"')" for a,name in stocks.items()) or 'false'
 jobs=f'select id from public.work_orders where asset_id in ({ids})'
 posts=f'select id from public.coordination_posts where asset_id in ({ids})'
 cleanup=f"""begin;
 do $$ begin
  if exists(select 1 from public.assets where {guard}) then raise exception 'Fixture identity mismatch'; end if;
+ if exists(select 1 from public.parts_inventory where {stock_guard})
+  or exists(select 1 from public.job_part_requirements where stock_id in ({stock_ids}) and work_order_id not in ({jobs}))
+  or exists(select 1 from public.parts_stock_events where stock_id in ({stock_ids}) and work_order_id not in ({jobs}))
+ then raise exception 'Fixture stock identity or reference mismatch'; end if;
  if exists(select 1 from public.work_orders where checklist_template_id in ({templates}) and (asset_id is null or asset_id not in ({ids})))
   or exists(select 1 from public.saved_checklists where template_id in ({templates}) and (asset_id is null or asset_id not in ({ids})))
   or exists(select 1 from public.checklist_assignments where template_id in ({templates}) and (asset_id is null or asset_id not in ({ids})))
@@ -158,6 +169,12 @@ delete from public.closeout_operations where
 delete from public.service_requests where asset_id in ({ids});
 delete from public.hour_logs where asset_id in ({ids}) or work_order_id in ({jobs});
 delete from public.maintenance_requests where asset_id in ({ids});
+select set_config('app.parts_stock_write','on',true);
+delete from public.parts where work_order_id in ({jobs});
+delete from public.parts_purchase_requests where requirement_id in(select id from public.job_part_requirements where work_order_id in ({jobs}));
+delete from public.parts_stock_events where work_order_id in ({jobs});
+delete from public.job_part_requirements where work_order_id in ({jobs});
+delete from public.parts_inventory where id in ({stock_ids});
 delete from public.service_reports where work_order_id in ({jobs});
 delete from public.maintenance_labour_sessions where work_order_id in ({jobs});
 delete from public.maintenance_operations where object_id in ({ids}) or object_id in ({jobs})

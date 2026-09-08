@@ -1,3 +1,4 @@
+import 'package:vortice_app/features/parts/parts_readiness_screen.dart';
 import 'package:vortice_app/core/app_dropdown_field.dart';
 import 'package:vortice_app/core/user_feedback.dart';
 import 'package:flutter/material.dart';
@@ -23,7 +24,25 @@ class PartsLogScreen extends ConsumerWidget {
         profile?.role == UserRole.owner || profile?.role == UserRole.employee;
 
     return Scaffold(
-      appBar: embedded ? null : AppBar(title: Text(l10n.partsTitle)),
+      appBar: embedded
+          ? null
+          : AppBar(
+              title: Text(l10n.partsTitle),
+              actions: [
+                IconButton(
+                  icon: const Icon(Icons.inventory_2_outlined),
+                  tooltip: Localizations.localeOf(context).languageCode == 'es'
+                      ? 'Existencias y compras'
+                      : 'Stock & purchasing',
+                  onPressed: () => Navigator.push(
+                    context,
+                    MaterialPageRoute<void>(
+                      builder: (_) => const PartsReadinessScreen(),
+                    ),
+                  ),
+                ),
+              ],
+            ),
       body: partsAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (err, _) => Center(
@@ -142,7 +161,21 @@ class _PartTile extends ConsumerWidget {
             ),
           ],
         ),
-        trailing: canDelete
+        trailing: canDelete && part.stockRequirementId != null
+            ? IconButton(
+                icon: const Icon(Icons.inventory_2_outlined),
+                tooltip: Localizations.localeOf(context).languageCode == 'es'
+                    ? 'Devolver mediante existencias'
+                    : 'Return through stock',
+                onPressed: () => Navigator.push(
+                  context,
+                  MaterialPageRoute<void>(
+                    builder: (_) =>
+                        PartsReadinessScreen(jobId: part.workOrderId),
+                  ),
+                ),
+              )
+            : canDelete
             ? IconButton(
                 icon: Icon(
                   Icons.delete_outline,

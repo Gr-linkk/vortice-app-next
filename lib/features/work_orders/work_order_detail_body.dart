@@ -11,6 +11,7 @@ import 'package:vortice_app/features/work_orders/work_order_detail_actions_secti
 import 'package:vortice_app/features/work_orders/work_order_detail_info_row.dart';
 import 'package:vortice_app/features/work_orders/work_order_detail_support.dart';
 import 'package:vortice_app/features/work_orders/work_order_parts_section.dart';
+import 'package:vortice_app/features/parts/parts_readiness_entry.dart';
 import 'package:vortice_app/features/work_orders/work_order_pm_kit_section.dart';
 import 'package:vortice_app/features/work_orders/work_order_provider.dart';
 import 'package:vortice_app/features/work_orders/work_order_service_report_card.dart';
@@ -312,7 +313,8 @@ class WorkOrderDetailBody extends ConsumerWidget {
         ],
 
         // ── PM Parts Kit (read-only for tech) ──────────────────────────
-        if (workOrder.checklistTemplateId != null)
+        if (isOwnerOrEmployee) PartsReadinessEntry(jobId: workOrder.id),
+        if (!isOwnerOrEmployee && workOrder.checklistTemplateId != null)
           WorkOrderPmKitSection(templateId: workOrder.checklistTemplateId!),
 
         if (isOwnerOrEmployee) ...[
