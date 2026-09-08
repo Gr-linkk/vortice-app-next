@@ -23,6 +23,10 @@ Maintenance plans support configurable hour and calendar recurrence, explicit
 transition targets and optional included services on the same component. Fixed
 milestones stay aligned after early/late completion; appointment moves remain
 separate. See NOW-023 and decision 0015. Hosted activation is tracked separately.
+Equipment reporting is selected under NOW-024: managers compare recorded costs,
+explicit downtime and possible repeat faults, inspect sources and export the
+same report. Calculation, coverage and access rules are in
+`docs/specs/NOW-024-equipment-reporting.md`.
 
 Owners and client managers author versioned PM and pre-operation procedures in
 the Checklist library. Shared owner starters and private company copies connect

@@ -30,6 +30,16 @@ each component and optional included services. Preserve appointment separation,
 checked completion and company isolation. Scope and verification:
 `docs/specs/NOW-023-maintenance-recurrence.md`; decision 0015.
 Developed independently of the concurrent NOW-022 parts workstream.
+### NOW-024 - Equipment cost, downtime and repeat-fault report
+
+Garrett selected equipment reporting after deferring QR labels. Deliver a
+manager-only report with month/quarter/custom periods, recorded internal and
+outside-service costs, interval-correct downtime, possible repeat faults,
+source drill-down and CSV export. Missing data remains explicit.
+Scope and acceptance: `docs/specs/NOW-024-equipment-reporting.md`.
+
+Implemented and locally verified: clean analysis, 595 Flutter tests and the
+reporting database contract pass. Hosted activation and integration are pending.
 
 ### NOW-021 — Populate the existing app for a demo
 
