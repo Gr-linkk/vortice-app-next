@@ -51,6 +51,30 @@ kits are not implicitly summed. Included checklist work is still required.
 - Native recurrence and reporting screenshots were visually inspected.
 
 The recurrence and reporting migrations are active on isolated Next. All 24 hosted
-contracts pass, including the combined workflow. The whole-app route audit and
-Build 27 delivery are pending.
+contracts pass, including the combined workflow. All 133 whole-app role/route
+checks across six roles (English, 1x text) pass with zero error text,
+framework/provider errors or stuck loaders.
+Evidence: `outputs/integrated-routes-i2O74J5v/route-audit/system/en-1.0x/routes.json`.
+The integration fix and coverage are committed/pushed as `2dba5a3`.
+Build 27 is delivered to S24 Downloads with matching SHA-256.
 Physical Android installation and interaction remain separate acceptance.
+
+## Build 27 artifact
+
+Guarded Android build and package inspection pass. The APK contains the parts,
+recurrence and equipment-report screens, ARM64, version `1.14.0+27`, the Next
+package, backend/Firebase, signing certificate, notification service and recovery
+link. WSL inspection applies the same Git line-ending normalization as Windows;
+normalized source is identical to the commit.
+
+Source commit: `2dba5a3e06751990ec1579cf6d31fc520e0c3ff4`.
+Artifact: `outputs/builds/INSTALL-Vortice-Next-Build-27.apk` (129,304,941 bytes).
+SHA-256: `9cbf3639697c29d977731a5c0de01e6fbb6be196b0845e21e0a4d5c0696f0bce`.
+Inspection receipt: `outputs/build27-build-verified.json`.
+
+Delivered to Samsung S24 (SM-S928W) at
+`/storage/emulated/0/Download/INSTALL-Vortice-Next-Build-27.apk` on
+2026-09-08 at 02:26 UTC (September 7 local evening). Remote SHA-256 matches the
+verified APK above. Delivery receipt: `outputs/build27-phone-delivery.json`.
+No installation or physical interaction was performed. Build 26 is superseded
+by this combined build, which contains all three selected workstreams.

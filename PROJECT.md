@@ -14,7 +14,7 @@ parts, and invoices.
 
 ## Current direction
 
-NOW-022, NOW-023 and NOW-024 are merged for combined verification and Build 27.
+NOW-022, NOW-023 and NOW-024 are merged, verified and delivered as Build 27.
 Integration evidence: `docs/specs/NOW-022-024-integration.md`.
 
 
