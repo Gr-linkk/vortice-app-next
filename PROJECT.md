@@ -14,6 +14,10 @@ parts, and invoices.
 
 ## Current direction
 
+NOW-022, NOW-023 and NOW-024 are merged for combined verification and Build 27.
+Integration evidence: `docs/specs/NOW-022-024-integration.md`.
+
+
 Parts readiness extends the existing PM kits through job-specific requirements,
 company/provider stock, reservations, purchasing records and actual use/returns.
 See NOW-022. Standard-kit edits affect future jobs; inventory changes require

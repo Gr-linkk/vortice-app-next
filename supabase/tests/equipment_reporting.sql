@@ -82,17 +82,18 @@ values ('a0240000-0000-4000-8000-000000000021','a0240000-0000-4000-8000-00000000
  ('a0240000-0000-4000-8000-000000000022','a0240000-0000-4000-8000-000000000003','Cooling leak','2026-01-07Z','open');
 set local role authenticated;
 select set_config('request.jwt.claim.sub','a0240000-0000-4000-8000-000000000001',true);
-select public.equipment_report('2026-01-01Z','2026-02-01Z') as report \gset
-select pg_temp.assert_true(jsonb_array_length(:'report'::jsonb->'assets')=1,'company scope');
-select pg_temp.assert_true((:'report'::jsonb->'assets'->0->>'labour')::numeric=100,'approved frozen labour once');
-select pg_temp.assert_true((:'report'::jsonb->'assets'->0->>'parts')::numeric=40,'approved frozen parts only');
-select pg_temp.assert_true((:'report'::jsonb->'assets'->0->>'outside')::numeric=116,'issued only, no duplicate provider costs');
-select pg_temp.assert_true((:'report'::jsonb->'assets'->0->>'total')::numeric=256,'total reconciles');
-select pg_temp.assert_true((:'report'::jsonb->'assets'->0->>'unavailable_hours')::numeric=8,'clipped transitions, restricted excluded');
-select pg_temp.assert_true((:'report'::jsonb->'assets'->0->>'unknown_hours')::numeric=0,'known before start');
-select pg_temp.assert_true((:'report'::jsonb->'assets'->0->>'cost_gaps')::int=5,'zero rate, missing receipt and three unbilled provider jobs');
-select pg_temp.assert_true((:'report'::jsonb->'assets'->0->>'fault_count')::int=2,'dismissed and other fleet faults excluded');
-select pg_temp.assert_true((:'report'::jsonb->'assets'->0->'repeats'->0->>'count')::int=2,'case and whitespace match');
+create temporary table equipment_report_result on commit drop as
+select public.equipment_report('2026-01-01Z','2026-02-01Z') as report;
+select pg_temp.assert_true(jsonb_array_length((select report from pg_temp.equipment_report_result)->'assets')=1,'company scope');
+select pg_temp.assert_true(((select report from pg_temp.equipment_report_result)->'assets'->0->>'labour')::numeric=100,'approved frozen labour once');
+select pg_temp.assert_true(((select report from pg_temp.equipment_report_result)->'assets'->0->>'parts')::numeric=40,'approved frozen parts only');
+select pg_temp.assert_true(((select report from pg_temp.equipment_report_result)->'assets'->0->>'outside')::numeric=116,'issued only, no duplicate provider costs');
+select pg_temp.assert_true(((select report from pg_temp.equipment_report_result)->'assets'->0->>'total')::numeric=256,'total reconciles');
+select pg_temp.assert_true(((select report from pg_temp.equipment_report_result)->'assets'->0->>'unavailable_hours')::numeric=8,'clipped transitions, restricted excluded');
+select pg_temp.assert_true(((select report from pg_temp.equipment_report_result)->'assets'->0->>'unknown_hours')::numeric=0,'known before start');
+select pg_temp.assert_true(((select report from pg_temp.equipment_report_result)->'assets'->0->>'cost_gaps')::int=5,'zero rate, missing receipt and three unbilled provider jobs');
+select pg_temp.assert_true(((select report from pg_temp.equipment_report_result)->'assets'->0->>'fault_count')::int=2,'dismissed and other fleet faults excluded');
+select pg_temp.assert_true(((select report from pg_temp.equipment_report_result)->'assets'->0->'repeats'->0->>'count')::int=2,'case and whitespace match');
 select pg_temp.assert_true((public.equipment_report('2026-01-01T02:00Z','2026-01-01T06:00Z')->'assets'->0->>'unavailable_hours')::numeric=4,'both edges clipped');
 select pg_temp.assert_true((public.equipment_report('2026-01-01Z','2026-01-10Z')->'assets'->0->>'labour')::numeric=0,'exclusive end');
 select pg_temp.expect_error($q$select public.equipment_report(null,'2026-02-01Z')$q$,'Select');
@@ -101,10 +102,10 @@ select pg_temp.expect_error($q$select public.equipment_report('2026-02-01Z','202
 select set_config('request.jwt.claim.sub','a0240000-0000-4000-8000-000000000007',true);
 select pg_temp.assert_true((public.equipment_report('2026-01-01Z','2026-02-01Z')->'assets'->0->>'total')::numeric=256,'company admin access');
 select set_config('request.jwt.claim.sub','a0240000-0000-4000-8000-000000000003',true);
-select public.equipment_report('2026-01-01Z','2026-02-01Z') as report \gset
-select pg_temp.assert_true((:'report'::jsonb->'assets'->0->>'total')::numeric=0,'other company cannot see costs');
-select pg_temp.assert_true((:'report'::jsonb->'assets'->0->>'unknown_hours')::numeric=744,'missing history is unknown');
-select pg_temp.assert_true(jsonb_array_length(:'report'::jsonb->'assets'->0->'repeats')=0,'no cross-asset repeat group');
+update pg_temp.equipment_report_result set report=public.equipment_report('2026-01-01Z','2026-02-01Z');
+select pg_temp.assert_true(((select report from pg_temp.equipment_report_result)->'assets'->0->>'total')::numeric=0,'other company cannot see costs');
+select pg_temp.assert_true(((select report from pg_temp.equipment_report_result)->'assets'->0->>'unknown_hours')::numeric=744,'missing history is unknown');
+select pg_temp.assert_true(jsonb_array_length((select report from pg_temp.equipment_report_result)->'assets'->0->'repeats')=0,'no cross-asset repeat group');
 reset role;
 insert into public.asset_availability_events(asset_id,operation_id,from_state,to_state,note,actor_name,created_at)
 values ('a0240000-0000-4000-8000-000000000022',gen_random_uuid(),'unknown','out_of_service','Open interval','Manager','2026-01-15Z');
@@ -124,7 +125,12 @@ select pg_temp.expect_error($q$select public.equipment_report('2026-01-01Z','202
 select set_config('request.jwt.claim.sub','a0240000-0000-4000-8000-000000000006',true);
 select pg_temp.expect_error($q$select public.equipment_report('2026-01-01Z','2026-02-01Z')$q$,'Access denied');
 select set_config('request.jwt.claim.sub','a0240000-0000-4000-8000-000000000005',true);
-select pg_temp.assert_true(jsonb_array_length(public.equipment_report('2026-01-01Z','2026-02-01Z')->'assets')=2,'provider manager sees both fleets');
+-- The provider owner can also see pre-existing hosted fleets. Require both
+-- isolated fixture assets without assuming the entire backend contains only two.
+select pg_temp.assert_true((select count(distinct a->>'id')=2
+ from jsonb_array_elements(public.equipment_report('2026-01-01Z','2026-02-01Z')->'assets') a
+ where a->>'id' in ('a0240000-0000-4000-8000-000000000021','a0240000-0000-4000-8000-000000000022')),
+ 'provider manager sees both fixture fleets');
 reset role;
 set local role anon;
 select pg_temp.expect_error($q$select public.equipment_report('2026-01-01Z','2026-02-01Z')$q$,'permission denied');

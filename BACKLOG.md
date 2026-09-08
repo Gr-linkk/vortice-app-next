@@ -7,6 +7,10 @@ without creating a new backlog item.
 
 ## Now
 
+NOW-022, NOW-023 and NOW-024 are merged for combined verification and Build 27.
+Integration evidence: `docs/specs/NOW-022-024-integration.md`.
+
+
 ### NOW-022 — PM kits, parts readiness and stock
 
 Garrett approved building the connected kit-to-stock workflow, verification,

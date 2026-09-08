@@ -9,6 +9,7 @@ import 'package:vortice_app/features/maintenance/maintenance_repository.dart';
 import 'package:vortice_app/features/checklist_builder/checklist_builder_repository.dart';
 import 'package:vortice_app/features/parts/parts_readiness_repository.dart';
 import 'package:vortice_app/features/parts/parts_readiness_models.dart';
+import 'package:vortice_app/features/equipment_reporting/equipment_report.dart';
 import 'audit_output.dart';
 import 'connected_harness.dart';
 
@@ -33,6 +34,16 @@ void main() {
         ).writeAsStringSync(jsonEncode(manifest));
         save();
         String? job;
+        String? plan;
+        final now = DateTime.now().toUtc();
+        final anchorDate = DateTime.utc(now.year, now.month, 1);
+        final nextDate = DateTime.utc(now.year, now.month + 1, 1);
+        String dateText(DateTime value) =>
+            value.toIso8601String().substring(0, 10);
+        final reportPeriod = (
+          from: DateTime.now().subtract(const Duration(days: 1)),
+          to: DateTime.now().add(const Duration(days: 1)),
+        );
         final description = '$marker Oil filter';
         final originalError = FlutterError.onError;
         FlutterError.onError = (details) {
@@ -104,7 +115,59 @@ void main() {
               await capture('NOW-022-standard-pm-kit');
             },
           );
+          await h.step(
+            'manager configures a fixed hour and calendar plan through the native editor',
+            () async {
+              final component = const Uuid().v4();
+              await maintenance
+                  .setup(const Uuid().v4(), 'component', component, 0, {
+                    'asset_id': asset,
+                    'label': '$marker Main engine',
+                    'kind': 'engine',
+                    'current_hours': 7020,
+                  });
+              await h.go('/maintenance/assets/$asset');
+              await h.tap(find.text('Add plan'));
+              await h.fill(h.field('Plan name'), '$marker Recurring service');
+              await h.select('Component', '$marker Main engine');
+              await h.select('Schedule by', 'Hours or calendar');
+              await h.fill(h.field('Service every (hours)'), '250');
+              await h.fill(h.field('Last service meter'), '6700');
+              await h.fill(h.field('Service every (months)'), '1');
+              await h.select(
+                'Repeat schedule',
+                'Fixed milestones / transition',
+              );
+              await h.fill(h.field('First hour milestone'), '7000');
+              await h.fill(
+                h.field('First date milestone'),
+                dateText(anchorDate),
+              );
+              await h.select(
+                'Checklist (optional)',
+                '$marker Filter procedure',
+              );
+              await capture('INTEGRATED-fixed-recurrence-editor');
+              await saveForm();
+              final catalog = await maintenance.assetContext(asset);
+              final saved = (catalog['plans'] as List).cast<Map>().singleWhere(
+                (p) => p['interval_label'] == '$marker Recurring service',
+              );
+              plan = saved['id'] as String;
+              manifest['plan'] = plan;
+              save();
+              expect(saved['next_due_hours'], 7000);
+              expect(saved['next_due_date'], dateText(anchorDate));
+              expect(saved['last_service_hours'], 6700);
+            },
+          );
+          expect(
+            plan,
+            isNotNull,
+            reason: 'A linked recurrence plan is required',
+          );
           job = await maintenance.create(const Uuid().v4(), {
+            'service_interval_id': plan,
             'asset_id': asset,
             'title': '$marker Friday service',
             'job_type': 'preventative',
@@ -279,6 +342,7 @@ void main() {
                 const Uuid().v4(),
                 'submit',
                 {
+                  'completion_hours': 7020,
                   'diagnosis': 'Filter inspected; one replacement required',
                   'repair': 'Replaced filter and checked for leaks',
                   'answers': {
@@ -305,10 +369,59 @@ void main() {
             },
           );
           await h.step(
+            'approval advances both recurrence targets and reports actual net parts cost',
+            () async {
+              final catalog = await h.container
+                  .read(maintenanceRepositoryProvider)
+                  .assetContext(asset);
+              final saved = (catalog['plans'] as List).cast<Map>().singleWhere(
+                (p) => p['id'] == plan,
+              );
+              expect(saved['last_service_hours'], 7020);
+              expect(saved['next_due_hours'], 7250);
+              expect(saved['next_due_date'], dateText(nextDate));
+              final report = await h.container.read(
+                equipmentReportLoaderProvider,
+              )(reportPeriod);
+              final row = report.assets.singleWhere((a) => a['id'] == asset);
+              expect(reportNumber(row, 'parts'), 11);
+              final records = reportRows(row['records'])
+                  .where((r) => r['kind'] == 'internal' && r['id'] == job)
+                  .toList();
+              expect(records, hasLength(1));
+              expect(reportNumber(records.single, 'parts'), 11);
+              await h.go('/fleet/reporting');
+              expect(find.text('Equipment report'), findsOneWidget);
+              await h.tap(find.text(manifest['asset_name'] as String));
+              final card = find
+                  .ancestor(
+                    of: find.text(manifest['asset_name'] as String),
+                    matching: find.byType(Card),
+                  )
+                  .last;
+              expect(
+                find.descendant(
+                  of: card,
+                  matching: find.textContaining(' / 11.00 / '),
+                ),
+                findsOneWidget,
+              );
+              await capture('INTEGRATED-approved-equipment-report');
+              await h.tap(find.text('$marker Friday service'));
+              expect(find.text('Parts readiness'), findsWidgets);
+            },
+          );
+          await h.step(
             'other company cannot read or change the fixture stock or job',
             () async {
               await h.login('client@vortice.dev');
               await expectLater(parts(), throwsA(isA<Exception>()));
+              final otherReport = await h.container.read(
+                equipmentReportLoaderProvider,
+              )(reportPeriod);
+              expect(otherReport.assets.any((a) => a['id'] == asset), isFalse);
+              await h.go('/fleet/reporting');
+              expect(find.text(manifest['asset_name'] as String), findsNothing);
               final own = await h.container
                   .read(partsReadinessRepositoryProvider)
                   .load(null);

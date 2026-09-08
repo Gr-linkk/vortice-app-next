@@ -376,10 +376,17 @@ begin
  elsif p_action='reopen' then
   if not manager or w.status<>'closed' or length(note)<3 then raise exception 'Reopen requires a manager and reason'; end if;
   if j.service_interval_id is not null then
-    perform 1 from public.asset_service_intervals where id=j.service_interval_id for update;
+    -- The asset lock above also serializes concurrent creation and reopening.
+    -- Reserve the original job's frozen coverage, even if its plan was edited.
+    perform 1 from public.asset_service_intervals
+     where id=j.service_interval_id or id=any(j.covered_plan_ids) order by id for update;
   end if;
   if j.service_interval_id is not null and exists(select 1 from public.maintenance_job_records other
-    join public.work_orders ow on ow.id=other.id where other.id<>p_job and other.service_interval_id=j.service_interval_id and ow.status<>'closed')
+    join public.work_orders ow on ow.id=other.id where other.id<>p_job and ow.status<>'closed'
+     and (other.service_interval_id=j.service_interval_id
+      or j.service_interval_id=any(other.covered_plan_ids)
+      or other.service_interval_id=any(j.covered_plan_ids)
+      or other.covered_plan_ids && j.covered_plan_ids))
    then raise exception 'This plan already has an open job'; end if;
   update public.work_orders set completed_at=null where id=p_job;
   update public.maintenance_job_records set review_note=note,approved_by=null,approved_at=null where id=p_job;

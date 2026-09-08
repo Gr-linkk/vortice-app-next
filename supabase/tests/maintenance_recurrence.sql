@@ -128,6 +128,45 @@ select public.create_maintenance_job('a0140000-0000-4000-8000-000000000053',pg_t
 select pg_temp.finish('a0140000-0000-4000-8000-000000000053',null);
 select pg_temp.assert_true((select next_due_hours is null and last_service_date=current_date and next_due_date=public.maintenance_next_date(current_date,6,'fixed',current_date-1)
  from pg_temp.plans() where id='a0140000-0000-4000-8000-000000000045'),'calendar approval advances date without hour reminder');
+-- Reopening reserves the completed job's own and frozen included plans.
+-- Each scenario rolls back its changes so it tests the same completed history.
+savepoint reopen_larger;
+select public.create_maintenance_job('a0140000-0000-4000-8000-000000000054',pg_temp.job_data('a0140000-0000-4000-8000-000000000041'));
+select pg_temp.expect_error($q$select public.change_maintenance_job('a0140000-0000-4000-8000-000000000052',4,gen_random_uuid(),'reopen','{"note":"Inspect service again"}')$q$,'open job');
+select pg_temp.assert_true((select value->>'status'='closed' and (value->>'revision')::integer=4 from public.maintenance_jobs('a0140000-0000-4000-8000-000000000052') value),'rejected larger reopen leaves completed job unchanged');
+rollback to savepoint reopen_larger;
+
+savepoint reopen_smaller;
+select public.create_maintenance_job('a0140000-0000-4000-8000-000000000054',pg_temp.job_data('a0140000-0000-4000-8000-000000000044'));
+select pg_temp.expect_error($q$select public.change_maintenance_job('a0140000-0000-4000-8000-000000000051',4,gen_random_uuid(),'reopen','{"note":"Inspect service again"}')$q$,'open job');
+rollback to savepoint reopen_smaller;
+
+savepoint reopen_shared_coverage;
+select public.save_maintenance_setup(gen_random_uuid(),'plan','a0140000-0000-4000-8000-000000000047',0,
+ pg_temp.plan_data()||'{"interval_label":"1000 hour service","interval_hours":1000,"last_service_hours":7500,"anchor_hours":8500,"covers_plan_ids":["a0140000-0000-4000-8000-000000000041"]}');
+select public.create_maintenance_job('a0140000-0000-4000-8000-000000000054',pg_temp.job_data('a0140000-0000-4000-8000-000000000047'));
+select pg_temp.expect_error($q$select public.change_maintenance_job('a0140000-0000-4000-8000-000000000052',4,gen_random_uuid(),'reopen','{"note":"Inspect service again"}')$q$,'open job');
+rollback to savepoint reopen_shared_coverage;
+
+savepoint reopen_frozen_coverage;
+select public.save_maintenance_setup(gen_random_uuid(),'plan','a0140000-0000-4000-8000-000000000044',1,
+ pg_temp.plan_data()||'{"interval_label":"500 hour service","interval_hours":500,"last_service_hours":7500,"anchor_hours":7500,"covers_plan_ids":[],"change_reason":"Separate future services"}');
+select public.create_maintenance_job('a0140000-0000-4000-8000-000000000054',pg_temp.job_data('a0140000-0000-4000-8000-000000000041'));
+select pg_temp.expect_error($q$select public.change_maintenance_job('a0140000-0000-4000-8000-000000000052',4,gen_random_uuid(),'reopen','{"note":"Inspect original service again"}')$q$,'open job');
+rollback to savepoint reopen_frozen_coverage;
+
+savepoint reopen_unrelated;
+-- A different plan on the same component remains independent.
+select public.create_maintenance_job('a0140000-0000-4000-8000-000000000054',pg_temp.job_data('a0140000-0000-4000-8000-000000000045'));
+select public.change_maintenance_job('a0140000-0000-4000-8000-000000000052',4,'a0140000-0000-4000-8000-000000000091','reopen','{"note":"Inspect service again"}');
+select public.change_maintenance_job('a0140000-0000-4000-8000-000000000052',4,'a0140000-0000-4000-8000-000000000091','reopen','{"note":"Inspect service again"}');
+select pg_temp.assert_true((select value->>'status'='in_progress' and (value->>'revision')::integer=5 from public.maintenance_jobs('a0140000-0000-4000-8000-000000000052') value),'unrelated open job allows reopening and replay does not repeat it');
+select pg_temp.expect_error($q$select public.create_maintenance_job(gen_random_uuid(),pg_temp.job_data('a0140000-0000-4000-8000-000000000041'))$q$,'open job');
+select pg_temp.finish('a0140000-0000-4000-8000-000000000052',7500);
+select pg_temp.assert_true((select next_due_hours=8000 from pg_temp.plans() where id='a0140000-0000-4000-8000-000000000044'),'reapproval does not consume another larger occurrence');
+select pg_temp.assert_true((select next_due_hours=7750 from pg_temp.plans() where id='a0140000-0000-4000-8000-000000000041'),'reapproval does not consume another included occurrence');
+rollback to savepoint reopen_unrelated;
+
 reset role;
 select pg_temp.assert_true(exists(select 1 from public.saved_checklists where work_order_id='a0140000-0000-4000-8000-000000000052'
  and snapshot->'header'->'covered_plan_ids' ? 'a0140000-0000-4000-8000-000000000041'),'approved history records included services');
