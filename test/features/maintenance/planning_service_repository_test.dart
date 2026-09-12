@@ -68,6 +68,53 @@ void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
   setUp(() => SharedPreferences.setMockInitialValues({}));
   test(
+    'stalled offline detail requests reopen warmed provider work within a bounded time',
+    () async {
+      var stalled = false;
+      final release = Completer<void>();
+      final client = SupabaseClient(
+        'https://example.invalid',
+        'test-key',
+        authOptions: const AuthClientOptions(autoRefreshToken: false),
+        httpClient: MockClient((request) async {
+          if (stalled) await release.future;
+          return rows(request, switch (request.url.path.split('/').last) {
+            'assets' => [
+              {'id': 'asset', 'name': 'Field truck'},
+            ],
+            'asset_engines' => [
+              {'id': 'engine', 'asset_id': 'asset', 'label': 'Odometer'},
+            ],
+            'profiles' => [
+              {'id': 'worker', 'full_name': 'Field mechanic'},
+            ],
+            _ => [],
+          });
+        }),
+      );
+      await client.auth.recoverSession(jsonEncode(session('account-a')));
+      final repository = SupabasePlanningServiceRepository(client);
+      final order = serviceOrder('work', engine: 'engine', worker: 'worker');
+      try {
+        await repository.load([order], accountId: 'account-a');
+        stalled = true;
+        final reopened = await repository
+            .load([order], accountId: 'account-a')
+            .timeout(const Duration(seconds: 15));
+        expect(reopened.assetNames['asset'], 'Field truck');
+        expect(reopened.componentNames['engine'], 'Odometer');
+        expect(reopened.workerNames['worker'], 'Field mechanic');
+        expect(
+          reopened.project(order, 'worker', '/client').data['assigned_to_me'],
+          isTrue,
+        );
+      } finally {
+        release.complete();
+        await client.dispose();
+      }
+    },
+  );
+  test(
     'a late assignment response cannot cross the initiating account',
     () async {
       final assignmentStarted = Completer<void>();

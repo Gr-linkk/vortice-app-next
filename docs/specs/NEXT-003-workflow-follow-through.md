@@ -31,6 +31,14 @@ membership's intermediate loading state could invalidate the awaited provider
 work context. Service reads now await resolved membership before fetching their
 scoped context, retaining account and permission invalidation.
 
+The first physical restart on Build 30 exposed a second delay that the local
+server-stop test did not: service-detail enrichment had no request timeout.
+Android could keep retrying after both networks were disabled, preventing the
+Work list from reaching its existing cache. Each page now has the same six-second
+read limit as other workspace reads. A stalled-transport regression verifies
+that the warmed asset, component and worker details return within 15 seconds.
+This correction is packaged as Build 31; Build 30 remains an intermediate receipt.
+
 The performance fixture contains 340 assets, 1,500 jobs and 340 plans. It checks
 three samples for four roles under forced generic query plans, a 3-second ceiling
 and a same-machine isolation budget. Current medians were about 471 ms for the

@@ -49,7 +49,9 @@ class PlanningServiceData {
       'provider_service': true,
       'service_date': order.scheduledDate?.toIso8601String().split('T').first,
       'on_hold_reason': order.onHoldReason,
-      'route': order.providerOrganizationId != null ? '/work-orders/${order.id}' : '$routePrefix/work-orders/${order.id}',
+      'route': order.providerOrganizationId != null
+          ? '/work-orders/${order.id}'
+          : '$routePrefix/work-orders/${order.id}',
     });
   }
 }
@@ -81,32 +83,39 @@ class SupabasePlanningServiceRepository implements PlanningServiceRepository {
     String accountId,
   ) async {
     final values = ids.toList()..sort();
-    if(values.isEmpty) return [];
-    final raw = await AccountJsonCache(accountId,()=>client.auth.currentUser?.id).readThrough(
-      'planning_service:$table:$columns:$filter:${jsonEncode(values)}',
-      () async {
-    final result = <Map<String, dynamic>>[];
-    for (var start = 0; start < values.length; start += 100) {
-      final chunk = values.skip(start).take(100).toList();
-      for (var offset = 0; ; offset += 500) {
-        _check(accountId);
-        final page = await client
-            .from(table)
-            .select(columns)
-            .inFilter(filter, chunk)
-            .order('id')
-            .range(offset, offset + 499);
-        _check(accountId);
-        result.addAll(page);
-        if (page.length < 500) break;
-      }
-    }
+    if (values.isEmpty) return [];
+    final raw =
+        await AccountJsonCache(
+          accountId,
+          () => client.auth.currentUser?.id,
+        ).readThrough(
+          'planning_service:$table:$columns:$filter:${jsonEncode(values)}',
+          () async {
+            final result = <Map<String, dynamic>>[];
+            for (var start = 0; start < values.length; start += 100) {
+              final chunk = values.skip(start).take(100).toList();
+              for (var offset = 0; ; offset += 500) {
+                _check(accountId);
+                final page = await client
+                    .from(table)
+                    .select(columns)
+                    .inFilter(filter, chunk)
+                    .order('id')
+                    .range(offset, offset + 499)
+                    .timeout(const Duration(seconds: 6));
+                _check(accountId);
+                result.addAll(page);
+                if (page.length < 500) break;
+              }
+            }
+            _check(accountId);
+            return result;
+          },
+        );
     _check(accountId);
-    return result;
-      },
-    );
-    _check(accountId);
-    return (raw as List).map((row)=>Map<String,dynamic>.from(row as Map)).toList();
+    return (raw as List)
+        .map((row) => Map<String, dynamic>.from(row as Map))
+        .toList();
   }
 
   @override
