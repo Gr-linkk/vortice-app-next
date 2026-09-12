@@ -111,3 +111,23 @@ python3 tool/e2e/cleanup_options_test.py
 Physical camera/permission prompts, mobile process-kill recovery and actual push
 receipt/taps remain separate device acceptance. This harness does not measure
 production-scale load capacity.
+
+## First-time usability captures (NEXT-004)
+
+`nontechnical_audit_test.dart` captures the five prepared modern demo roles,
+using real primary navigation and read-only deep-page inspection. It also opens
+an operator checklist without submitting it. The retained NEXT-003 demo work
+record supplies completed customer/provider report context. It is an explicit
+connected snapshot, not part of the normal unit suite or a new-user study.
+Set `VORTICE_AUDIT_WIDTH` (default 390) and `VORTICE_AUDIT_TEXT_SCALE` (default 1)
+to repeat at desktop width or enlarged text. Keep a fresh output directory for
+every run; `usability-pages.json` pairs captured text with actual routes.
+
+The direct-repair and parts-readiness journeys normally execute as
+`client_mechanic@vortice.dev`. If that shared test actor already has unrelated
+running work, `VORTICE_E2E_EXECUTOR=paradise@vortice.dev` explicitly selects the
+configured test manager as the assigned executor. This changes the acceptance
+claim: it checks a manager executing assigned work, not mechanic-role execution.
+The default mechanic-specific parts permission assertion remains active in the
+normal mode; the alternate mode checks its manager control instead. Preserve
+pre-existing timers and verify recipient device scope before connected writes.

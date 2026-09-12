@@ -62,15 +62,15 @@ class _AssetListScreenState extends ConsumerState<AssetListScreen> {
     final assignedProfilesAsync = ref.watch(assetAssignedProfilesProvider);
     final profile = ref.watch(profileProvider).valueOrNull;
     final canAdd = AssetWorkflowPolicy.canManageProfile(profile);
-    final showAssignedClient = ! (profile?.membershipManaged ?? false) &&
+    final showAssignedClient =
+        !(profile?.membershipManaged ?? false) &&
         (canAdd || profile?.role == UserRole.employee);
 
     return Scaffold(
-      appBar: AppBar(
-        title: Text(l10n.assetsTitle),
-        bottom: PreferredSize(
-          preferredSize: const Size.fromHeight(118),
-          child: Padding(
+      appBar: AppBar(title: Text(l10n.assetsTitle)),
+      body: Column(
+        children: [
+          Padding(
             padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
             child: Column(
               children: [
@@ -124,93 +124,99 @@ class _AssetListScreenState extends ConsumerState<AssetListScreen> {
               ],
             ),
           ),
-        ),
-      ),
-      body: assetsAsync.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (err, _) => AppErrorState(
-          error: err,
-          onRetry: () => ref.invalidate(visibleAssetsProvider),
-        ),
-        data: (assets) {
-          if (_filter != 'all' && !workspace.hasValue) {
-            return workspace.when(
+          Expanded(
+            child: assetsAsync.when(
               loading: () => const Center(child: CircularProgressIndicator()),
-              error: (error, _) => AppErrorState(
-                error: error,
-                onRetry: () => ref.invalidate(assetWorkspaceProvider),
+              error: (err, _) => AppErrorState(
+                error: err,
+                onRetry: () => ref.invalidate(visibleAssetsProvider),
               ),
-              data: (_) => const SizedBox.shrink(),
-            );
-          }
-          final matchingIds = workspace.hasValue
-              ? filterWorkspaceAssets(
-                  workspace.value!,
-                  _filter,
-                ).map((r) => r['id']).toSet()
-              : null;
-          final workspaceRows = {
-            for (final row in filterWorkspaceAssets(
-              workspace.valueOrNull ?? {},
-              'all',
-            ))
-              row['id']: row,
-          };
-          final assignedProfiles = assignedProfilesAsync.valueOrNull ?? {};
-          final filtered = assets.where((a) {
-            final assignedProfile = assignedProfiles[a.clientId];
-            final assignedLabel = _assignedProfileLabel(assignedProfile);
-            final query = _searchQuery.trim().toLowerCase();
-            final matchesQuery =
-                _searchQuery.isEmpty ||
-                a.name.toLowerCase().contains(query) ||
-                (a.model?.toLowerCase().contains(query) ?? false) ||
-                (a.serialNumber?.toLowerCase().contains(query) ?? false) ||
-                (assignedLabel?.toLowerCase().contains(query) ?? false);
-            return matchesQuery &&
-                (_filter == 'all' || matchingIds?.contains(a.id) == true);
-          }).toList();
+              data: (assets) {
+                if (_filter != 'all' && !workspace.hasValue) {
+                  return workspace.when(
+                    loading: () =>
+                        const Center(child: CircularProgressIndicator()),
+                    error: (error, _) => AppErrorState(
+                      error: error,
+                      onRetry: () => ref.invalidate(assetWorkspaceProvider),
+                    ),
+                    data: (_) => const SizedBox.shrink(),
+                  );
+                }
+                final matchingIds = workspace.hasValue
+                    ? filterWorkspaceAssets(
+                        workspace.value!,
+                        _filter,
+                      ).map((r) => r['id']).toSet()
+                    : null;
+                final workspaceRows = {
+                  for (final row in filterWorkspaceAssets(
+                    workspace.valueOrNull ?? {},
+                    'all',
+                  ))
+                    row['id']: row,
+                };
+                final assignedProfiles =
+                    assignedProfilesAsync.valueOrNull ?? {};
+                final filtered = assets.where((a) {
+                  final assignedProfile = assignedProfiles[a.clientId];
+                  final assignedLabel = _assignedProfileLabel(assignedProfile);
+                  final query = _searchQuery.trim().toLowerCase();
+                  final matchesQuery =
+                      _searchQuery.isEmpty ||
+                      a.name.toLowerCase().contains(query) ||
+                      (a.model?.toLowerCase().contains(query) ?? false) ||
+                      (a.serialNumber?.toLowerCase().contains(query) ??
+                          false) ||
+                      (assignedLabel?.toLowerCase().contains(query) ?? false);
+                  return matchesQuery &&
+                      (_filter == 'all' || matchingIds?.contains(a.id) == true);
+                }).toList();
 
-          if (filtered.isEmpty) {
-            return Center(
-              child: Text(
-                _searchQuery.trim().isNotEmpty || _filter != 'all'
-                    ? (isSpanish(context)
-                          ? 'No hay coincidencias. Prueba otro nombre o borra la búsqueda.'
-                          : 'No matching assets. Try another name or clear the search.')
-                    : l10n.noAssets,
-                style: TextStyle(color: context.appColors.textSecondary),
-              ),
-            );
-          }
+                if (filtered.isEmpty) {
+                  return Center(
+                    child: Text(
+                      _searchQuery.trim().isNotEmpty || _filter != 'all'
+                          ? (isSpanish(context)
+                                ? 'No hay coincidencias. Prueba otro nombre o borra la búsqueda.'
+                                : 'No matching assets. Try another name or clear the search.')
+                          : l10n.noAssets,
+                      style: TextStyle(color: context.appColors.textSecondary),
+                    ),
+                  );
+                }
 
-          return RefreshIndicator(
-            onRefresh: () async {
-              ref.invalidate(visibleAssetsProvider);
-              ref.invalidate(assetWorkspaceProvider);
-            },
-            child: ListView.builder(
-              physics: const AlwaysScrollableScrollPhysics(),
-              itemCount: filtered.length,
-              itemBuilder: (_, i) => _AssetListTile(
-                asset: filtered[i],
-                typeName: typeNames[filtered[i].assetTypeId],
-                assignedProfile: showAssignedClient
-                    ? assignedProfiles[filtered[i].clientId]
-                    : null,
-                showAssignedClient: showAssignedClient,
-                attentionLabel: _filter == 'all'
-                    ? null
-                    : (es
-                          ? assetWorkspaceFilters[_filter]!.$2
-                          : assetWorkspaceFilters[_filter]!.$1),
-                openWork: (workspaceRows[filtered[i].id]?['open_work'] as num?)
-                    ?.toInt(),
-                onTap: () => context.push('/assets/${filtered[i].id}'),
-              ),
+                return RefreshIndicator(
+                  onRefresh: () async {
+                    ref.invalidate(visibleAssetsProvider);
+                    ref.invalidate(assetWorkspaceProvider);
+                  },
+                  child: ListView.builder(
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    itemCount: filtered.length,
+                    itemBuilder: (_, i) => _AssetListTile(
+                      asset: filtered[i],
+                      typeName: typeNames[filtered[i].assetTypeId],
+                      assignedProfile: showAssignedClient
+                          ? assignedProfiles[filtered[i].clientId]
+                          : null,
+                      showAssignedClient: showAssignedClient,
+                      attentionLabel: _filter == 'all'
+                          ? null
+                          : (es
+                                ? assetWorkspaceFilters[_filter]!.$2
+                                : assetWorkspaceFilters[_filter]!.$1),
+                      openWork:
+                          (workspaceRows[filtered[i].id]?['open_work'] as num?)
+                              ?.toInt(),
+                      onTap: () => context.push('/assets/${filtered[i].id}'),
+                    ),
+                  ),
+                );
+              },
             ),
-          );
-        },
+          ),
+        ],
       ),
       floatingActionButton: canAdd
           ? FloatingActionButton.extended(

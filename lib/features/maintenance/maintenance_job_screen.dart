@@ -43,7 +43,10 @@ class _MaintenanceJobScreenState extends ConsumerState<MaintenanceJobScreen> {
     String action, [
     Map<String, dynamic> data = const {},
   ]) async {
-    if(['assign','approve','return','release'].contains(action) && (!await requireOnlineAction(context,ref) || !mounted)) return;
+    if (['assign', 'approve', 'return', 'release'].contains(action) &&
+        (!await requireOnlineAction(context, ref) || !mounted)) {
+      return;
+    }
     _pending ??= MaintenanceWrite(data);
     _action ??= action;
     _revision ??= job.revision;
@@ -84,12 +87,10 @@ class _MaintenanceJobScreenState extends ConsumerState<MaintenanceJobScreen> {
       await _act(job, 'start');
       return;
     }
-    final meter = TextEditingController(
-      text:
-          job.data['current_meter']?.toString() ??
-          job.data['hours_at_start']?.toString() ??
-          '',
-    );
+    var meter =
+        job.data['current_meter']?.toString() ??
+        job.data['hours_at_start']?.toString() ??
+        '';
     final form = GlobalKey<FormState>();
     final unit = job.data['meter_unit'] as String? ?? 'hours';
     final es = isSpanish(context);
@@ -100,7 +101,8 @@ class _MaintenanceJobScreenState extends ConsumerState<MaintenanceJobScreen> {
         content: Form(
           key: form,
           child: TextFormField(
-            controller: meter,
+            initialValue: meter,
+            onChanged: (value) => meter = value,
             autofocus: true,
             keyboardType: const TextInputType.numberWithOptions(decimal: true),
             decoration: InputDecoration(
@@ -125,7 +127,7 @@ class _MaintenanceJobScreenState extends ConsumerState<MaintenanceJobScreen> {
           FilledButton(
             onPressed: () {
               if (form.currentState!.validate()) {
-                Navigator.pop(context, double.parse(meter.text));
+                Navigator.pop(context, double.parse(meter));
               }
             },
             child: Text(es ? 'Iniciar trabajo' : 'Start work'),
@@ -133,7 +135,6 @@ class _MaintenanceJobScreenState extends ConsumerState<MaintenanceJobScreen> {
         ],
       ),
     );
-    meter.dispose();
     if (reading != null && mounted) {
       await _act(job, 'start', {'start_meter': reading, 'meter_unit': unit});
     }
@@ -411,11 +412,7 @@ class _MaintenanceJobScreenState extends ConsumerState<MaintenanceJobScreen> {
                 spacing: 8,
                 runSpacing: 8,
                 children: [
-                  Chip(
-                    label: Text(
-                      job.lifecycleLabel(es),
-                    ),
-                  ),
+                  Chip(label: Text(job.lifecycleLabel(es))),
                   Chip(label: Text(maintenancePriority(job.priority, es))),
                   Chip(label: Text(job.workType.label(es))),
                   if (job.isService)

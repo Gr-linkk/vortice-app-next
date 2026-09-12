@@ -19,6 +19,12 @@ the accepted specification; the status groups here own remaining work.
   exploration, not a delivered production chat feature.
 - **Completed follow-up:** all five improvements in
   `NEXT-003-workflow-follow-through.md`, represented in `BACKLOG.md`.
+- **Computer acceptance and usability:** `NEXT-004-usability-audit.md` records
+  the connected fault/repair and PM-parts journeys, five modern account switches,
+  recurring-work/membership contracts and visual checks at normal, desktop and
+  enlarged text sizes. Small display and lifecycle defects were corrected;
+  larger usability changes remain suggestions. These checks do not close the
+  separate phone acceptance items above.
 
 Native-phone evidence is recorded separately from unit tests and APK delivery;
 the demo journey does not imply Garrett accepted every role or workflow.

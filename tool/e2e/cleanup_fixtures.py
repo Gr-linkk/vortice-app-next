@@ -183,6 +183,7 @@ delete from public.maintenance_operations where object_id in ({ids}) or object_i
  or object_id in(select id from public.asset_inspections where asset_id in ({ids}));
 delete from public.maintenance_job_records where id in ({jobs});
 delete from public.checklist_responses where work_order_id in ({jobs});
+delete from public.work_order_sources where work_order_id in ({jobs});
 delete from public.work_orders where asset_id in ({ids});
 delete from public.saved_checklists where asset_id in ({ids});
 delete from public.asset_service_intervals where asset_id in ({ids});

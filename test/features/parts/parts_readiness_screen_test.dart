@@ -6,6 +6,7 @@ import 'package:vortice_app/core/theme.dart';
 import 'package:vortice_app/features/parts/parts_readiness_models.dart';
 import 'package:vortice_app/features/parts/parts_readiness_repository.dart';
 import 'package:vortice_app/features/parts/parts_readiness_screen.dart';
+import 'package:vortice_app/features/parts/work_parts_progress.dart';
 
 class FixtureParts implements PartsReadinessRepository {
   FixtureParts({this.manager = true, this.fail = false});
@@ -96,6 +97,40 @@ Future<void> _pump(
 }
 
 void main() {
+  testWidgets('closing parts after the originating work is removed is safe', (
+    tester,
+  ) async {
+    final showWork = ValueNotifier(true);
+    addTearDown(showWork.dispose);
+    final navigator = GlobalKey<NavigatorState>();
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          partsReadinessRepositoryProvider.overrideWithValue(FixtureParts()),
+        ],
+        child: MaterialApp(
+          navigatorKey: navigator,
+          home: Scaffold(
+            body: ValueListenableBuilder<bool>(
+              valueListenable: showWork,
+              builder: (_, visible, child) => visible
+                  ? const WorkPartsProgress(jobId: 'job')
+                  : const SizedBox(),
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Review parts'));
+    await tester.pumpAndSettle();
+    expect(find.byType(PartsReadinessScreen), findsOneWidget);
+    showWork.value = false;
+    await tester.pumpAndSettle();
+    navigator.currentState!.pop();
+    await tester.pumpAndSettle();
+    expect(tester.takeException(), isNull);
+  });
   testWidgets(
     'job shows shortage and reserves explicit quantity through the native form',
     (tester) async {

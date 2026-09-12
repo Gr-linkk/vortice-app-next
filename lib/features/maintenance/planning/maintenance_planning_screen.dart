@@ -718,8 +718,8 @@ class _MaintenancePlanningScreenState
                     const SizedBox(height: 16),
                     Text(
                       es
-                          ? 'Planificación en línea · Horarios locales del dispositivo'
-                          : 'Online planning · Times local to this device',
+                          ? 'Horarios en la zona horaria de este dispositivo'
+                          : 'Schedule times use this device’s time zone',
                       style: Theme.of(context).textTheme.bodySmall,
                     ),
                   ],
@@ -770,6 +770,7 @@ class _MaintenancePlanningScreenState
         key: ValueKey('work-filter-$filter'),
         initialValue: filter,
         isExpanded: true,
+        isDense: false,
         itemHeight: null,
         decoration: InputDecoration(
           labelText: es ? 'Mostrar trabajo' : 'Show work',

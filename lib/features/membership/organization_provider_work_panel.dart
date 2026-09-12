@@ -551,8 +551,8 @@ class _OrganizationProviderWorkPanelState
                     ),
                     Text(
                       _t(
-                        '${data['labour_hours'] ?? 0} labour hours',
-                        '${data['labour_hours'] ?? 0} horas de trabajo',
+                        '${((data['labour_hours'] as num?) ?? 0).toStringAsFixed(2)} labour hours',
+                        '${((data['labour_hours'] as num?) ?? 0).toStringAsFixed(2)} horas de trabajo',
                       ),
                     ),
                     for (final part in data['parts'] as List? ?? const [])

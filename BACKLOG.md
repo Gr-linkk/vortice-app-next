@@ -23,6 +23,15 @@ the transition is additive and does not perform the proposed account reset.
 
 ## Prior delivery and acceptance references
 
+### NEXT-004 — Completed: computer acceptance and first-time usability audit
+
+Six small display/lifecycle fixes and eight usability suggestions are recorded
+in `docs/specs/NEXT-004-usability-audit.md`. Connected repair, parts/recurrence,
+five-role account switching and large-text checks pass; guarded analysis and
+728 tests pass. Exact E2E fixtures are removed. Suggestions remain proposals;
+these source fixes have not been packaged or installed on the phone. NEXT-002
+retains its separate physical/external acceptance.
+
 ### NEXT-003 — Completed: workflow polish and field verification
 
 All five authorized follow-ups are delivered in internal Build 33 (`1.16.4+33`),

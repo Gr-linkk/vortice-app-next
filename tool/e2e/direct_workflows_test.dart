@@ -33,6 +33,17 @@ void main() {
         save();
         String? fault, job;
         final fleet = SupabaseFleetRepository(supabase);
+        final executor =
+            Platform.environment['VORTICE_E2E_EXECUTOR'] ??
+            'client_mechanic@vortice.dev';
+        if (![
+          'client_mechanic@vortice.dev',
+          'paradise@vortice.dev',
+        ].contains(executor)) {
+          throw StateError(
+            'Use an explicitly configured isolated test executor',
+          );
+        }
         final originalError = FlutterError.onError;
         FlutterError.onError = (e) {
           h.issues.add(e.exceptionAsString());
@@ -54,9 +65,15 @@ void main() {
           final catalog = await h.container
               .read(maintenanceRepositoryProvider)
               .assetContext(asset);
+          final executorId =
+              (await supabase
+                      .from('profiles')
+                      .select('id')
+                      .eq('email', executor))
+                  .single['id'];
           final mechanic =
               (catalog['assignees'] as List).firstWhere(
-                    (p) => p['role'] == 'client_mechanic',
+                    (p) => p['id'] == executorId,
                   )
                   as Map;
           await h.step('operator reports fault through real screen', () async {
@@ -101,7 +118,7 @@ void main() {
             if (job == null) throw StateError('No job');
             await h.go('/maintenance/assets/$asset');
             expect(find.text('Edit asset'), findsNothing);
-            await h.tap(find.text('Work orders'));
+            await h.tap(find.widgetWithText(FilledButton, 'Work orders'));
             final saved =
                 (await h.container
                         .read(maintenanceRepositoryProvider)
@@ -112,10 +129,10 @@ void main() {
             await h.screenshot('direct012-asset-work');
           });
           await h.step(
-            'mechanic starts work and submits repair report',
+            'assigned executor starts work and submits repair report ($executor)',
             () async {
               if (job == null) throw StateError('No job');
-              await h.login('client_mechanic@vortice.dev');
+              await h.login(executor);
               await h.go('/fleet/faults/$fault');
               await h.tap(find.text('Open work order'));
               await h.tap(find.widgetWithText(FilledButton, 'Start work'));
@@ -133,7 +150,7 @@ void main() {
                 (await fleet.faults(faultId: fault)).single.status,
                 FaultStatus.inProgress,
               );
-              await h.tap(find.text('Continue service report'));
+              await h.tap(find.text('Create service report'));
               await h.fill(h.field('Findings'), '$marker Worn seal');
               await h.fill(
                 h.field('Work performed and results'),
@@ -147,7 +164,7 @@ void main() {
               expect(tester.widget<FilledButton>(submit).onPressed, isNull);
               await h.tap(find.text('Open labour timer'));
               await h.tap(find.widgetWithText(TextButton, 'Pause'));
-              await h.tap(find.text('Continue service report'));
+              await h.tap(find.text('Create service report'));
               expect(
                 tester.widget<TextField>(h.field('Findings')).controller!.text,
                 '$marker Worn seal',

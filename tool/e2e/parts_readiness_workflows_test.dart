@@ -10,6 +10,7 @@ import 'package:vortice_app/features/checklist_builder/checklist_builder_reposit
 import 'package:vortice_app/features/parts/parts_readiness_repository.dart';
 import 'package:vortice_app/features/parts/parts_readiness_models.dart';
 import 'package:vortice_app/features/equipment_reporting/equipment_report.dart';
+import 'package:vortice_app/sync/field_work_provider.dart';
 import 'audit_output.dart';
 import 'connected_harness.dart';
 
@@ -21,6 +22,17 @@ void main() {
       await tester.runAsync(() async {
         final h = ConnectedHarness(tester, report: 'parts022');
         await h.start();
+        final executor =
+            Platform.environment['VORTICE_E2E_EXECUTOR'] ??
+            'client_mechanic@vortice.dev';
+        if (![
+          'client_mechanic@vortice.dev',
+          'paradise@vortice.dev',
+        ].contains(executor)) {
+          throw StateError(
+            'Use an explicitly configured isolated test executor',
+          );
+        }
         final marker = 'E2E-022-${const Uuid().v4().substring(0, 8)}';
         final asset = const Uuid().v4();
         final manifest = <String, dynamic>{
@@ -55,7 +67,7 @@ void main() {
         Future<void> openParts() async {
           await h.go('/maintenance');
           await h.go('/maintenance/jobs/$job');
-          await h.tap(find.text('Parts readiness'));
+          await h.tap(find.text('Review parts'));
         }
 
         Future<void> saveForm() =>
@@ -78,9 +90,15 @@ void main() {
             'asset_type_id': (workspace['asset_types'] as List).first['id'],
           });
           final context = await maintenance.assetContext(asset);
+          final executorId =
+              (await supabase
+                      .from('profiles')
+                      .select('id')
+                      .eq('email', executor))
+                  .single['id'];
           final mechanic =
               (context['assignees'] as List).firstWhere(
-                    (p) => p['role'] == 'client_mechanic',
+                    (p) => p['id'] == executorId,
                   )
                   as Map;
           final builder = h.container.read(checklistBuilderRepositoryProvider);
@@ -131,14 +149,14 @@ void main() {
               await h.fill(h.field('Plan name'), '$marker Recurring service');
               await h.select('Component', '$marker Main engine');
               await h.select('Schedule by', 'Hours or calendar');
-              await h.fill(h.field('Service every (hours)'), '250');
-              await h.fill(h.field('Last service meter'), '6700');
+              await h.fill(h.field('Service every (h)'), '250');
+              await h.fill(h.field('Last service meter (h)'), '6700');
               await h.fill(h.field('Service every (months)'), '1');
               await h.select(
                 'Repeat schedule',
                 'Fixed milestones / transition',
               );
-              await h.fill(h.field('First hour milestone'), '7000');
+              await h.fill(h.field('First meter milestone (h)'), '7000');
               await h.fill(
                 h.field('First date milestone'),
                 dateText(anchorDate),
@@ -294,14 +312,45 @@ void main() {
             },
           );
           await h.step(
-            'assigned mechanic records two filters used and returns one',
+            'assigned executor records two filters used and returns one ($executor)',
             () async {
-              await h.login('client_mechanic@vortice.dev');
+              await h.login(executor);
               await h.go('/maintenance');
               await h.go('/maintenance/jobs/$job');
               await h.tap(find.widgetWithText(FilledButton, 'Start work'));
-              await h.tap(find.text('Parts readiness'));
-              expect(find.text('Add requirement'), findsNothing);
+              await h.tap(
+                find.descendant(
+                  of: find.byType(AlertDialog),
+                  matching: find.widgetWithText(FilledButton, 'Start work'),
+                ),
+              );
+              // The visible local start can precede its automatic upload.
+              // Wait for that upload instead of racing the next server action.
+              for (var attempt = 0; attempt < 60; attempt++) {
+                final queued = await h.container
+                    .read(fieldWorkQueueProvider)!
+                    .list();
+                if (queued.isNotEmpty && queued.every((o) => o.synced)) break;
+                await Future<void>.delayed(const Duration(milliseconds: 500));
+                await h.settle(3);
+              }
+              final operations = await h.container
+                  .read(fieldWorkQueueProvider)!
+                  .list();
+              expect(
+                operations.every((o) => o.synced),
+                isTrue,
+                reason: operations
+                    .map((o) => '${o.status}: ${o.error}')
+                    .join('\n'),
+              );
+              await h.tap(find.text('Review parts'));
+              expect(
+                find.text('Add requirement'),
+                executor == 'client_mechanic@vortice.dev'
+                    ? findsNothing
+                    : findsOneWidget,
+              );
               await h.tap(find.widgetWithText(FilledButton, 'Record use'));
               await saveForm();
               expect((await parts()).requirements.single.used, 2);
@@ -408,7 +457,7 @@ void main() {
               );
               await capture('INTEGRATED-approved-equipment-report');
               await h.tap(find.text('$marker Friday service'));
-              expect(find.text('Parts readiness'), findsWidgets);
+              expect(find.text('Parts for this work'), findsWidgets);
             },
           );
           await h.step(

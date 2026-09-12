@@ -345,6 +345,49 @@ Future<void> pumpMaintenance(
 }
 
 void main() {
+  testWidgets(
+    'starting meter stays alive through dialog close and saves the reading',
+    (tester) async {
+      final repository = FixtureMaintenance(
+        job: {
+          ...jobData(status: 'assigned'),
+          'engine_id': 'engine',
+          'current_meter': 1250,
+          'meter_unit': 'hours',
+        },
+      );
+      await pumpMaintenance(
+        tester,
+        const MaintenanceJobScreen(jobId: 'job'),
+        repository,
+      );
+      final start = find.widgetWithText(FilledButton, 'Start work');
+      await tester.scrollUntilVisible(
+        start,
+        250,
+        scrollable: find.byType(Scrollable).first,
+      );
+      await tester.tap(start);
+      await tester.pumpAndSettle();
+      final input = find.descendant(
+        of: find.byType(AlertDialog),
+        matching: find.byType(TextFormField),
+      );
+      await tester.enterText(input, '1251.5');
+      await tester.tap(
+        find.descendant(of: find.byType(AlertDialog), matching: start),
+      );
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 100));
+      await tester.pumpAndSettle();
+      expect(tester.takeException(), isNull);
+      expect(repository.writes.single.action, 'start');
+      expect(repository.writes.single.data, {
+        'start_meter': 1251.5,
+        'meter_unit': 'hours',
+      });
+    },
+  );
   setUp(() => SharedPreferences.setMockInitialValues({}));
   setUpAll(loadFleetScreenshotFonts);
   test('internal costs include every stopped labour session and parts', () {

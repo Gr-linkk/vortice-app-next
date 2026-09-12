@@ -22,7 +22,7 @@ class WorkPartsProgress extends ConsumerWidget {
           builder: (_) => PartsReadinessScreen(jobId: jobId),
         ),
       );
-      ref.invalidate(partsWorkspaceProvider(jobId));
+      if (context.mounted) ref.invalidate(partsWorkspaceProvider(jobId));
     }
 
     return Card(
