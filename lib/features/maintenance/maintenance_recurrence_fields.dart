@@ -1,3 +1,4 @@
+import 'package:vortice_app/core/meter_units.dart';
 import 'package:flutter/material.dart';
 import 'package:vortice_app/core/app_dropdown_field.dart';
 import 'maintenance_recurrence.dart';
@@ -86,6 +87,8 @@ class MaintenanceRecurrenceFields extends StatelessWidget {
               !n.isFinite ||
               n < 0 ||
               n >= 1000000000 ||
+              (name == 'generation_lead_days' &&
+                  (n > 365 || n != n.roundToDouble())) ||
               (name == 'interval_months' &&
                   (n < 1 || n > 120 || n != n.roundToDouble()))) {
             return es ? 'Ingresa un valor válido' : 'Enter a valid value';
@@ -184,8 +187,8 @@ class MaintenanceRecurrenceFields extends StatelessWidget {
           if (hours > 0)
             field(
               'anchor_hours',
-              'First hour milestone',
-              'Primer hito de horas',
+              'First meter milestone (${meterSymbol(values['meter_unit'] as String?)})',
+              'Primer objetivo (${meterSymbol(values['meter_unit'] as String?)})',
             ),
           if (calendar)
             field(
@@ -234,6 +237,11 @@ class MaintenanceRecurrenceFields extends StatelessWidget {
                 ),
             ],
           ),
+        field(
+          'generation_lead_days',
+          'Generate work ahead (days)',
+          'Generar trabajo antes (días)',
+        ),
         if (initial['id'] != null)
           field('change_reason', 'Reason for adjustment', 'Motivo del ajuste'),
         Card(
@@ -258,8 +266,8 @@ class MaintenanceRecurrenceFields extends StatelessWidget {
                 const SizedBox(height: 8),
                 Text(
                   es
-                      ? 'Con horas y meses, vence lo que ocurra primero. La aprobación del servicio avanza el plan.'
-                      : 'With hours and months, whichever comes first is due. Approved service advances the plan.',
+                      ? 'Con medidor y meses, vence lo que ocurra primero. La aprobación del servicio avanza el plan.'
+                      : 'With a meter and months, whichever comes first is due. Approved service advances the plan.',
                 ),
               ],
             ),
@@ -304,7 +312,7 @@ class MaintenanceRecurrenceFields extends StatelessWidget {
     for (var i = 0; i < 4; i++) {
       widgets.add(
         Text(
-          '${i + 1}. ${[if (h != null) '${h.toStringAsFixed(1)} h', if (d != null) MaintenanceRecurrence.dateText(d)].join(es ? ' o ' : ' or ')}',
+          '${i + 1}. ${[if (h != null) formatMeter(h, values['meter_unit'] as String?), if (d != null) MaintenanceRecurrence.dateText(d)].join(es ? ' o ' : ' or ')}',
         ),
       );
       if (h != null) h = rule.nextHours(h);

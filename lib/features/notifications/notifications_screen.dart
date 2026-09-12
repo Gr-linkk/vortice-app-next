@@ -158,6 +158,12 @@ class _NotificationTile extends ConsumerWidget {
       'maintenance_return' => '/maintenance/jobs/$ref',
       'urgent_fault' => '/fleet/faults/$ref',
       'inspection_due' => '/assurance/assets/$ref',
+      'organization_announcement' => '/announcements/$ref',
+      'discussion_checklist' =>
+        '/discussion/checklist/$ref?post=${notification.id}',
+      'discussion_request' =>
+        '/discussion/request/$ref?post=${notification.id}',
+      'discussion_report' => '/discussion/report/$ref?post=${notification.id}',
       'discussion_job' => '/discussion/job/$ref?post=${notification.id}',
       'discussion_fault' => '/discussion/fault/$ref?post=${notification.id}',
       'maintenance_flag' => '$prefix/assets/$ref/flags?name=Asset',

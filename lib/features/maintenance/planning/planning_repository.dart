@@ -9,6 +9,9 @@ import 'package:vortice_app/core/app_navigation.dart';
 import 'package:vortice_app/sync/field_work_provider.dart';
 import 'planning_models.dart';
 import 'planning_service_repository.dart';
+import 'dart:convert';
+import 'package:vortice_app/core/account_storage.dart';
+import '../maintenance_repository.dart';
 
 abstract class PlanningRepository {
   Future<PlanningData> load(String? assetId);
@@ -24,17 +27,18 @@ class SupabasePlanningRepository implements PlanningRepository {
   SupabasePlanningRepository(this.client);
   final SupabaseClient client;
   @override
-  Future<PlanningData> load(String? assetId) async => PlanningData.fromJson(
-    Map<String, dynamic>.from(
-      await client
-              .rpc(
-                'maintenance_work_hub',
-                params: {if (assetId != null) 'p_asset': assetId},
-              )
-              .timeout(const Duration(seconds: 15))
-          as Map,
-    ),
-  );
+  Future<PlanningData> load(String? assetId) async {
+    final cache=AccountJsonCache(client.auth.currentUser?.id ?? 'signed_out',()=>client.auth.currentUser?.id);
+    final params={if(assetId != null) 'p_asset':assetId};
+    final key='maintenance_work_hub:${jsonEncode(params)}';
+    Future<dynamic>? request;
+    Future<dynamic> remote() => request ??= client.rpc('maintenance_work_hub',params:params).timeout(const Duration(seconds:6));
+    // Store the permission-bearing lists separately so removal of a job or plan
+    // invalidates stale details through AccountJsonCache's existing epoch rule.
+    final jobs=await cache.readThrough('$key:jobs',() async => (await remote() as Map)['jobs'] ?? []);
+    final plans=await cache.readThrough('$key:plans',() async => (await remote() as Map)['plans'] ?? []);
+    return PlanningData.fromJson({'jobs':jobs,'plans':plans});
+  }
   @override
   Future<void> schedule(
     String jobId,
@@ -66,10 +70,10 @@ final maintenancePlanningProvider = FutureProvider.autoDispose
       if (profile == null) {
         return PlanningData(jobs: [], plans: []);
       }
-      // Schedules are fresh online reads. Execution retains the existing account-owned queue.
-      ref.watch(fieldOperationsProvider);
+      // Connected reads refresh permissions; cached tasks stay readable offline.
+      final operations = await ref.watch(fieldOperationsProvider.future);
       final managedFuture = ref.watch(planningRepositoryProvider).load(assetId);
-      final staff = [UserRole.owner, UserRole.employee].contains(profile.role);
+      final staff = profile.membershipManaged || [UserRole.owner, UserRole.employee].contains(profile.role);
       final ordersFuture = staff
           ? ref.watch(workOrdersProvider.future)
           : Future.value(<WorkOrder>[]);
@@ -91,7 +95,7 @@ final maintenancePlanningProvider = FutureProvider.autoDispose
           serviceData.project(order, profile.id, roleRoutePrefix(profile.role)),
       ];
       return PlanningData(
-        jobs: [...managed.jobs, ...serviceJobs],
+        jobs: [for(final job in managed.jobs) PlanningJob(projectMaintenanceFieldWork(job.data,operations).data), ...serviceJobs],
         plans: managed.plans,
       );
     });

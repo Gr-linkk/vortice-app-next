@@ -1,3 +1,4 @@
+import 'package:vortice_app/core/meter_units.dart';
 import 'package:vortice_app/features/parts/parts_readiness_screen.dart';
 import 'package:vortice_app/features/parts/parts_readiness_entry.dart';
 import '../maintenance_recurrence.dart';
@@ -228,7 +229,7 @@ class _MaintenancePlanningScreenState
                                 j.workers.containsKey(selectedPerson)) &&
                             (_component == null ||
                                 j.componentName == _component) &&
-                            (_status == null || j.status == _status) &&
+                            (_status == null || j.lifecycle == _status) &&
                             (_type == null || j.workType.dbValue == _type) &&
                             j.matchesSearch(_query, es),
                       )
@@ -406,11 +407,12 @@ class _MaintenancePlanningScreenState
                               es ? 'Estado' : 'Status',
                               _status,
                               {
-                                for (final status in WorkOrderStatus.values)
-                                  status.dbValue:
-                                      status == WorkOrderStatus.invoiced
-                                      ? (es ? 'Facturado' : 'Invoiced')
-                                      : maintenanceStatus(status.dbValue, es),
+                                for (final status in const [
+                                  'draft', 'scheduled', 'unscheduled',
+                                  'in_progress', 'on_hold', 'pending_review',
+                                  'returned', 'completed',
+                                ])
+                                  status: maintenanceStatus(status, es),
                               },
                               (value) => setState(() => _status = value),
                               es,
@@ -754,6 +756,7 @@ class _MaintenancePlanningScreenState
       'unassigned': es ? 'Sin asignar' : 'Unassigned',
       'unscheduled': es ? 'Sin programar' : 'Unscheduled',
       'review': es ? 'Necesita revisión' : 'Needs review',
+      'returned': es ? 'Devuelto' : 'Returned',
       'completed': es ? 'Completados' : 'Completed',
       'overdue': es ? 'Trabajo vencido' : 'Work overdue',
       'parts': es ? 'Esperando piezas' : 'Waiting for parts',
@@ -834,8 +837,15 @@ class _MaintenancePlanningScreenState
               '${job.assetName}${job.data['component_name'] == null ? '' : ' · ${job.data['component_name']}'}',
             ),
             Text(
-              '${job.assigneeName.isEmpty ? (es ? 'Sin asignar' : 'Unassigned') : job.assigneeName} · ${job.status == 'invoiced' ? (es ? 'Facturado' : 'Invoiced') : maintenanceStatus(job.status, es)} · ${maintenancePriority(job.priority, es)}',
+              '${job.assigneeName.isEmpty ? (es ? 'Sin asignar' : 'Unassigned') : job.assigneeName} · ${job.lifecycleLabel(es)}${job.status == 'invoiced' ? (es ? ' · Facturado' : ' · Invoiced') : ''} · ${maintenancePriority(job.priority, es)}',
             ),
+            if (job.data['due_meter'] != null)
+              Text(
+                '${es ? 'Objetivo del medidor' : 'Due meter'}: ${formatMeter(job.data['due_meter'] as num?, job.data['meter_unit'] as String?)}',
+                style: job.meterDue
+                    ? TextStyle(color: Theme.of(context).colorScheme.error)
+                    : null,
+              ),
             if (job.dueDate != null)
               Text(
                 '${es ? 'Fecha límite' : 'Deadline'}: ${maintenanceDate(job.dueDate, es)}',

@@ -13,6 +13,7 @@ import 'package:vortice_app/features/maintenance/planning/schedule_job_screen.da
 import 'package:vortice_app/models/profile.dart';
 import 'package:vortice_app/models/work_order.dart';
 import 'package:vortice_app/features/work_orders/work_order_provider.dart';
+import 'package:vortice_app/sync/online_action_gate.dart';
 import '../fleet/fleet_test_support.dart';
 import 'maintenance_screen_test.dart' show pumpMaintenance, FixtureMaintenance;
 
@@ -143,7 +144,12 @@ Future<void> showPlanning(
     width: width,
     scale: scale,
     role: role,
-    overrides: [planningRepositoryProvider.overrideWithValue(fixture)],
+    overrides: [
+      planningRepositoryProvider.overrideWithValue(fixture),
+      onlineActionGateProvider.overrideWith((ref) => OnlineActionGate(
+        account:'fixture', currentAccount:()=> 'fixture', probe:() async {},
+      )),
+    ],
   );
   if (screen is ScheduleJobScreen) {
     await tester.tap(find.text('Test schedule'));

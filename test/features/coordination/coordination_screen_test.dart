@@ -10,6 +10,10 @@ import 'package:image_picker/image_picker.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:vortice_app/core/theme.dart';
 import 'package:vortice_app/features/auth/auth_provider.dart';
+import 'package:vortice_app/features/assets/asset_workspace.dart';
+import 'package:vortice_app/features/fleet/fleet_providers.dart';
+import 'package:vortice_app/features/maintenance/planning/planning_models.dart';
+import 'package:vortice_app/features/maintenance/planning/planning_repository.dart';
 import 'package:vortice_app/features/coordination/asset_history_screen.dart';
 import 'package:vortice_app/features/coordination/coordination_labels.dart';
 import 'package:vortice_app/features/coordination/coordination_repository.dart';
@@ -268,6 +272,8 @@ Future<void> pumpCoordination(
         '/fleet/faults/:id',
         '/maintenance/assets/:id',
         '/fleet/assets/:id',
+        '/assets',
+        '/maintenance/planning',
       ])
         GoRoute(
           path: path,
@@ -693,9 +699,31 @@ void main() {
       tester,
       Scaffold(body: ListView(children: const [FleetPriorityCard()])),
       FixtureCoordination(),
+      extraOverrides: [
+        assetWorkspaceProvider.overrideWith((_) async => {'items': [
+          {'id':'one','categories':['unavailable','inspection_expired']},
+          {'id':'two','categories':['unavailable']},
+        ]}),
+        maintenancePlanningProvider(null).overrideWith((_) async => PlanningData(jobs: [
+          PlanningJob({'id':'job','asset_id':'one','status':'on_hold','blocked_category':'parts'}),
+        ],plans:[])),
+        fleetFaultsProvider(null).overrideWith((_) async => []),
+      ],
     );
-    expect(find.byType(AttentionTile), findsNWidgets(3));
+    expect(find.byType(ListTile), findsNWidgets(3));
+    expect(find.text('Unavailable'), findsOneWidget);
+    expect(find.text('Expired inspections'), findsOneWidget);
+    expect(find.text('Waiting for parts'), findsOneWidget);
+    expect(find.text('2'), findsOneWidget);
     await captureFleet(tester, 'coordination-home-priorities-en');
+    await tester.tap(find.text('Unavailable'));
+    await tester.pumpAndSettle();
+    expect(find.text('Opened /assets?filter=unavailable'), findsOneWidget);
+    await tester.pageBack();
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Waiting for parts'));
+    await tester.pumpAndSettle();
+    expect(find.text('Opened /maintenance/planning?filter=parts'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 }

@@ -7,6 +7,7 @@ part 'hour_log.g.dart';
 abstract class HourLog with _$HourLog {
   const factory HourLog({
     required String id,
+    @JsonKey(name: 'meter_unit') @Default('hours') String meterUnit,
     @JsonKey(name: 'engine_id') required String engineId,
     @JsonKey(name: 'logged_by') required String loggedBy,
     required double hours,
@@ -15,5 +16,6 @@ abstract class HourLog with _$HourLog {
     @JsonKey(name: 'logged_at') DateTime? createdAt,
   }) = _HourLog;
 
-  factory HourLog.fromJson(Map<String, dynamic> json) => _$HourLogFromJson(json);
+  factory HourLog.fromJson(Map<String, dynamic> json) =>
+      _$HourLogFromJson(json);
 }

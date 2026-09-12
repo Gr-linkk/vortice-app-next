@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:vortice_app/features/coordination/coordination_entry.dart';
 import 'package:vortice_app/features/operator/operator_evidence_photo.dart';
 import 'package:go_router/go_router.dart';
 import 'package:vortice_app/core/user_feedback.dart';
@@ -147,6 +148,12 @@ class _SavedChecklistCard extends StatelessWidget {
         ),
         childrenPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
         children: [
+          CoordinationEntry(
+            assetId: row.assetId,
+            kind: 'checklist',
+            subjectId: row.id,
+            compact: true,
+          ),
           for (final finding
               in (header['follow_up_faults'] as List? ?? const [])
                   .whereType<Map>())

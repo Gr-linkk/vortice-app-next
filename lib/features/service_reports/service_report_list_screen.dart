@@ -5,7 +5,6 @@ import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:vortice_app/core/theme.dart';
 import 'package:vortice_app/features/auth/auth_provider.dart';
-import 'package:vortice_app/features/maintenance/maintenance_models.dart';
 import 'package:vortice_app/features/maintenance/maintenance_repository.dart';
 import 'package:vortice_app/features/service_reports/service_report_index.dart';
 import 'package:vortice_app/features/service_reports/service_report_authoring_policy.dart';
@@ -194,7 +193,7 @@ class _MaintenanceReportCard extends StatelessWidget {
           child: Text(
             [
               job.assetName,
-              '${es ? 'Informe de servicio' : 'Service report'} · ${maintenanceStatus(job.status, es)}',
+              '${es ? 'Informe de servicio' : 'Service report'} · ${job.lifecycleLabel(es)}',
               if (date != null)
                 DateFormat.yMMMd(es ? 'es' : 'en').format(date.toLocal()),
             ].join('\n'),

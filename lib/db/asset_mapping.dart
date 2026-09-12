@@ -7,6 +7,8 @@ AssetsTableCompanion assetToCompanion(Asset asset) => AssetsTableCompanion(
   clientId: Value(asset.clientId),
   assetTypeId: Value(asset.assetTypeId),
   name: Value(asset.name),
+  meterUnit: Value(asset.meterUnit),
+  primaryMeterEngineId: Value(asset.primaryMeterEngineId),
   make: Value(asset.make),
   model: Value(asset.model),
   year: Value(asset.year),

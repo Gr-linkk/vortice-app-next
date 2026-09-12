@@ -52,6 +52,12 @@ Future<GoRouter> pumpUx(
             AppShell(location: state.uri.path, navigatorKey: key, child: child),
         routes: [
           GoRoute(path: '/more', builder: (_, __) => const MoreScreen()),
+          GoRoute(path: '/assets', builder: (_, __) => const AssetListScreen()),
+          GoRoute(
+            path: '/assets/:id',
+            builder: (_, state) =>
+                Scaffold(body: Text('Asset ${state.pathParameters['id']}')),
+          ),
           GoRoute(
             path: '$prefix/dashboard',
             builder: (_, __) => const Scaffold(body: Text('Home destination')),

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:vortice_app/features/operator/operator_evidence_photo.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:vortice_app/features/auth/auth_provider.dart';
@@ -265,6 +266,30 @@ class _DiscussionPostState extends ConsumerState<DiscussionPost> {
             ),
             const SizedBox(height: 12),
             SelectableText(post['body'] as String? ?? ''),
+            if (post['issue_context'] case final Map issue) ...[
+              const SizedBox(height: 12),
+              Text(
+                '${es ? 'Urgencia' : 'Urgency'}: ${issue['urgency'] == 'urgent' ? (es ? 'Urgente' : 'Urgent') : (es ? 'Normal' : 'Normal')}',
+              ),
+              Text(
+                '${es ? 'Evaluaci?n del operador' : 'Operator assessment'}: ${switch (issue['safe_to_operate']) {
+                  'safe' => es ? 'Parece seguro' : 'Appears safe',
+                  'unsafe' => es ? 'No es seguro' : 'Unsafe',
+                  _ => es ? 'No est? seguro' : 'Unsure',
+                }}',
+              ),
+              if (issue['photo_path'] != null)
+                OperatorEvidencePhoto(path: issue['photo_path'] as String),
+              TextButton.icon(
+                onPressed: () =>
+                    context.push('/discussion/fault/${issue['fault_id']}'),
+                icon: const Icon(Icons.build_outlined),
+                label: Text(
+                  es ? 'Ver seguimiento de la falla' : 'View fault follow-up',
+                ),
+              ),
+            ],
+
             if (handover) ...[
               const SizedBox(height: 16),
               Text(

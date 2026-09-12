@@ -12,12 +12,12 @@ without creating a new backlog item.
 Garrett authorized autonomous execution, review, commits/pushes and necessary
 Next Supabase migrations on September 12, 2026. The board and dependency order
 are `docs/specs/NEXT-002-human-workflow-kanban.md`; decision 0016 owns the
-organization-membership direction. First slices: .02 work hub/calendar/filters,
-.05 explicit operator asset/draft selection, .09 fault next-action wording,
-and .17 truthful invite controls and focused Team. Preserve current access and
-data while larger migrations wait for prerequisites. Physical phone acceptance
-stays separate. Batch 1 implementation, review and verification are recorded in
-`docs/specs/NEXT-002-workflow-batch-1.md`; larger cards remain open.
+organization-membership direction. Garrett subsequently requested the entire
+board and APK delivery to S24 Downloads. Whole-board scope, integration evidence
+and remaining external/physical acceptance are recorded in
+`docs/specs/NEXT-002-whole-board-delivery.md`. Email/SMS provider setup is deferred
+at Garrett's request. Existing accounts and the Ellicott graph are preserved;
+the transition is additive and does not perform the proposed account reset.
 
 ## Prior delivery and acceptance references
 

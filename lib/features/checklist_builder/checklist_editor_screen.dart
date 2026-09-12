@@ -11,7 +11,7 @@ import 'package:vortice_app/features/maintenance/maintenance_repository.dart';
 import 'checklist_builder_repository.dart';
 import 'checklist_preview_screen.dart';
 import 'checklist_step_screen.dart';
-import 'package:vortice_app/features/agent_access/maintenance_documents_screen.dart';
+import 'package:vortice_app/features/checklists/checklist_procedure_source.dart';
 
 class ChecklistEditorScreen extends ConsumerStatefulWidget {
   const ChecklistEditorScreen({
@@ -159,6 +159,9 @@ class _ChecklistEditorScreenState extends ConsumerState<ChecklistEditorScreen> {
       MaterialPageRoute(
         builder: (_) => ChecklistStepScreen(
           initial: index == null ? const {} : _steps[index],
+          clientId:
+              (widget.procedure?['client_id'] ?? widget.catalog['client_id'])
+                  as String?,
         ),
       ),
     );
@@ -385,31 +388,15 @@ class _ChecklistEditorScreenState extends ConsumerState<ChecklistEditorScreen> {
                         ),
                         if ((_steps[i]['category'] as String? ?? '').isNotEmpty)
                           Text(_steps[i]['category'] as String),
-                        if (_steps[i]['definition']?['source_document_id'] !=
-                            null) ...[
+                        ChecklistProcedureLink(item: _steps[i]),
+                        if (((_steps[i]['definition'] as Map?)?['source_quote']
+                                    as String? ??
+                                '')
+                            .isNotEmpty)
                           Text(
-                            '${es ? 'Cita fuente' : 'Source quote'}: ${_steps[i]['definition']['source_quote']}',
+                            (_steps[i]['definition'] as Map)['source_quote']
+                                as String,
                           ),
-                          TextButton.icon(
-                            icon: const Icon(Icons.description_outlined),
-                            label: Text(
-                              '${es ? 'Ver página' : 'View source page'} ${_steps[i]['definition']['source_page']}',
-                            ),
-                            onPressed: () => Navigator.push(
-                              context,
-                              MaterialPageRoute<void>(
-                                builder: (_) => MaintenanceSourcePageScreen(
-                                  document:
-                                      _steps[i]['definition']['source_document_id']
-                                          as String,
-                                  page:
-                                      _steps[i]['definition']['source_page']
-                                          as int,
-                                ),
-                              ),
-                            ),
-                          ),
-                        ],
                         Wrap(
                           spacing: 4,
                           children: [

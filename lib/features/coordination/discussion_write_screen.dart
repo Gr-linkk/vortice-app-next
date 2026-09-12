@@ -38,6 +38,9 @@ class DiscussionWriteScreen extends ConsumerStatefulWidget {
 }
 
 class _DiscussionWriteScreenState extends ConsumerState<DiscussionWriteScreen> {
+  late final String? _account = ref.read(sessionProvider)?.user.id;
+  bool get _sameAccount =>
+      mounted && ref.read(sessionProvider)?.user.id == _account;
   final _form = GlobalKey<FormState>();
   final _body = TextEditingController(), _next = TextEditingController();
   final _operation = const Uuid().v4();
@@ -63,9 +66,9 @@ class _DiscussionWriteScreenState extends ConsumerState<DiscussionWriteScreen> {
     });
     try {
       final file = await ref.read(discussionPhotoPickerProvider)(source);
-      if (file == null || !mounted) return;
+      if (file == null || !_sameAccount) return;
       final bytes = await file.readAsBytes();
-      if (!mounted) return;
+      if (!mounted || !_sameAccount) return;
       if (bytes.length > 8 * 1024 * 1024) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -105,6 +108,7 @@ class _DiscussionWriteScreenState extends ConsumerState<DiscussionWriteScreen> {
   }
 
   Future<void> _send() async {
+    if (!mounted || !_sameAccount) return;
     if (_pending == null && !_form.currentState!.validate()) return;
     _pending ??= MaintenanceWrite({
       'kind': _kind,
@@ -164,6 +168,14 @@ class _DiscussionWriteScreenState extends ConsumerState<DiscussionWriteScreen> {
 
   @override
   Widget build(BuildContext context) {
+    if (ref.watch(sessionProvider)?.user.id != _account) {
+      return Scaffold(
+        appBar: AppBar(),
+        body: const Center(
+          child: Text('The account changed. Reopen this discussion.'),
+        ),
+      );
+    }
     final es = fleetSpanish(context),
         frozen = _busy || _picking || _pending != null;
     final peopleQuery = (subject: widget.subject, visibility: _visibility);

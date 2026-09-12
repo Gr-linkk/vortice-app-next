@@ -3,6 +3,7 @@ import 'package:vortice_app/features/auth/dev_login_switch.dart';
 import 'package:vortice_app/core/appearance_settings.dart';
 import 'package:vortice_app/sync/field_sync_status.dart';
 import 'package:flutter/material.dart';
+import 'package:vortice_app/features/membership/membership_models.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:vortice_app/core/app_navigation.dart';
@@ -36,6 +37,14 @@ class _MoreScreenState extends ConsumerState<MoreScreen> {
     final tools = toolDestinations(profile.role)
         .where(
           (item) =>
+              !profile.membershipManaged ||
+              (item.route != '/org/admin' &&
+                  !item.route.endsWith('/service-requests') &&
+                  (!item.route.endsWith('/invoices') ||
+                      profile.canInOrganization('billing'))),
+        )
+        .where(
+          (item) =>
               '${item.en} ${item.es} ${item.description} ${item.descriptionEs}'
                   .toLowerCase()
                   .contains(query),
@@ -46,6 +55,16 @@ class _MoreScreenState extends ConsumerState<MoreScreen> {
       body: ListView(
         padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
         children: [
+          ListTile(
+            leading: const Icon(Icons.business_outlined),
+            title: Text(es ? 'Tu empresa' : 'Your company'),
+            subtitle: Text(
+              es
+                  ? 'Miembros, roles y empresas'
+                  : 'Membership, roles and companies',
+            ),
+            onTap: () => context.push('/company'),
+          ),
           ListTile(
             leading: const Icon(Icons.cloud_upload_outlined),
             title: Text(

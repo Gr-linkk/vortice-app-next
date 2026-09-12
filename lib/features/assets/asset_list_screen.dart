@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:vortice_app/core/app_navigation.dart';
+import 'asset_workflow_policy.dart';
 import 'package:vortice_app/core/user_feedback.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -11,9 +11,12 @@ import 'package:vortice_app/features/assets/asset_provider.dart';
 import 'package:vortice_app/features/auth/auth_provider.dart';
 import 'package:vortice_app/models/asset.dart';
 import 'package:vortice_app/models/profile.dart';
+import 'package:vortice_app/core/app_dropdown_field.dart';
+import 'asset_workspace.dart';
 
 class AssetListScreen extends ConsumerStatefulWidget {
-  const AssetListScreen({super.key});
+  const AssetListScreen({super.key, this.initialFilter = 'all'});
+  final String initialFilter;
 
   @override
   ConsumerState<AssetListScreen> createState() => _AssetListScreenState();
@@ -22,6 +25,25 @@ class AssetListScreen extends ConsumerStatefulWidget {
 class _AssetListScreenState extends ConsumerState<AssetListScreen> {
   final _search = TextEditingController();
   String _searchQuery = '';
+  late String _filter;
+  @override
+  void initState() {
+    super.initState();
+    _filter = assetWorkspaceFilters.containsKey(widget.initialFilter)
+        ? widget.initialFilter
+        : 'all';
+  }
+
+  @override
+  void didUpdateWidget(covariant AssetListScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.initialFilter != widget.initialFilter) {
+      _filter = assetWorkspaceFilters.containsKey(widget.initialFilter)
+          ? widget.initialFilter
+          : 'all';
+    }
+  }
+
   @override
   void dispose() {
     _search.dispose();
@@ -32,46 +54,74 @@ class _AssetListScreenState extends ConsumerState<AssetListScreen> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final assetsAsync = ref.watch(visibleAssetsProvider);
+    final workspace = ref.watch(assetWorkspaceProvider);
+    final es = isSpanish(context);
     final types =
         ref.watch(assetTypesProvider).valueOrNull ?? const <AssetType>[];
     final typeNames = {for (final type in types) type.id: type.name};
     final assignedProfilesAsync = ref.watch(assetAssignedProfilesProvider);
     final profile = ref.watch(profileProvider).valueOrNull;
-    final canAdd = profile?.role == UserRole.owner;
-    final showAssignedClient = canAdd || profile?.role == UserRole.employee;
-    final prefix = roleRoutePrefix(profile?.role ?? UserRole.client);
+    final canAdd = AssetWorkflowPolicy.canManageProfile(profile);
+    final showAssignedClient = ! (profile?.membershipManaged ?? false) &&
+        (canAdd || profile?.role == UserRole.employee);
 
     return Scaffold(
       appBar: AppBar(
         title: Text(l10n.assetsTitle),
         bottom: PreferredSize(
-          preferredSize: const Size.fromHeight(56),
+          preferredSize: const Size.fromHeight(118),
           child: Padding(
             padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
-            child: TextField(
-              controller: _search,
-              decoration: InputDecoration(
-                hintText: l10n.searchAssets,
-                prefixIcon: const Icon(Icons.search, size: 20),
-                suffixIcon: _searchQuery.isEmpty
-                    ? null
-                    : IconButton(
-                        tooltip: isSpanish(context)
-                            ? 'Borrar búsqueda'
-                            : 'Clear search',
-                        icon: const Icon(Icons.close),
-                        onPressed: () => setState(() {
-                          _search.clear();
-                          _searchQuery = '';
-                        }),
-                      ),
-                isDense: true,
-                contentPadding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 10,
+            child: Column(
+              children: [
+                TextField(
+                  controller: _search,
+                  decoration: InputDecoration(
+                    hintText: l10n.searchAssets,
+                    prefixIcon: const Icon(Icons.search, size: 20),
+                    suffixIcon: _searchQuery.isEmpty
+                        ? null
+                        : IconButton(
+                            tooltip: isSpanish(context)
+                                ? 'Borrar búsqueda'
+                                : 'Clear search',
+                            icon: const Icon(Icons.close),
+                            onPressed: () => setState(() {
+                              _search.clear();
+                              _searchQuery = '';
+                            }),
+                          ),
+                    isDense: true,
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 10,
+                    ),
+                  ),
+                  onChanged: (v) => setState(() => _searchQuery = v),
                 ),
-              ),
-              onChanged: (v) => setState(() => _searchQuery = v),
+                const SizedBox(height: 8),
+                AppDropdownField<String>(
+                  key: ValueKey(_filter),
+                  initialValue: _filter,
+                  isExpanded: true,
+                  decoration: InputDecoration(
+                    labelText: es ? 'Mostrar equipos' : 'Show assets',
+                    isDense: true,
+                  ),
+                  items: [
+                    for (final entry in assetWorkspaceFilters.entries)
+                      DropdownMenuItem(
+                        value: entry.key,
+                        child: Text(
+                          '${es ? entry.value.$2 : entry.value.$1}${workspace.hasValue ? ' (${filterWorkspaceAssets(workspace.value!, entry.key).length})' : ''}',
+                        ),
+                      ),
+                  ],
+                  onChanged: (value) {
+                    if (value != null) setState(() => _filter = value);
+                  },
+                ),
+              ],
             ),
           ),
         ),
@@ -83,6 +133,29 @@ class _AssetListScreenState extends ConsumerState<AssetListScreen> {
           onRetry: () => ref.invalidate(visibleAssetsProvider),
         ),
         data: (assets) {
+          if (_filter != 'all' && !workspace.hasValue) {
+            return workspace.when(
+              loading: () => const Center(child: CircularProgressIndicator()),
+              error: (error, _) => AppErrorState(
+                error: error,
+                onRetry: () => ref.invalidate(assetWorkspaceProvider),
+              ),
+              data: (_) => const SizedBox.shrink(),
+            );
+          }
+          final matchingIds = workspace.hasValue
+              ? filterWorkspaceAssets(
+                  workspace.value!,
+                  _filter,
+                ).map((r) => r['id']).toSet()
+              : null;
+          final workspaceRows = {
+            for (final row in filterWorkspaceAssets(
+              workspace.valueOrNull ?? {},
+              'all',
+            ))
+              row['id']: row,
+          };
           final assignedProfiles = assignedProfilesAsync.valueOrNull ?? {};
           final filtered = assets.where((a) {
             final assignedProfile = assignedProfiles[a.clientId];
@@ -94,13 +167,14 @@ class _AssetListScreenState extends ConsumerState<AssetListScreen> {
                 (a.model?.toLowerCase().contains(query) ?? false) ||
                 (a.serialNumber?.toLowerCase().contains(query) ?? false) ||
                 (assignedLabel?.toLowerCase().contains(query) ?? false);
-            return matchesQuery;
+            return matchesQuery &&
+                (_filter == 'all' || matchingIds?.contains(a.id) == true);
           }).toList();
 
           if (filtered.isEmpty) {
             return Center(
               child: Text(
-                _searchQuery.trim().isNotEmpty
+                _searchQuery.trim().isNotEmpty || _filter != 'all'
                     ? (isSpanish(context)
                           ? 'No hay coincidencias. Prueba otro nombre o borra la búsqueda.'
                           : 'No matching assets. Try another name or clear the search.')
@@ -111,7 +185,10 @@ class _AssetListScreenState extends ConsumerState<AssetListScreen> {
           }
 
           return RefreshIndicator(
-            onRefresh: () async => ref.invalidate(visibleAssetsProvider),
+            onRefresh: () async {
+              ref.invalidate(visibleAssetsProvider);
+              ref.invalidate(assetWorkspaceProvider);
+            },
             child: ListView.builder(
               physics: const AlwaysScrollableScrollPhysics(),
               itemCount: filtered.length,
@@ -122,7 +199,14 @@ class _AssetListScreenState extends ConsumerState<AssetListScreen> {
                     ? assignedProfiles[filtered[i].clientId]
                     : null,
                 showAssignedClient: showAssignedClient,
-                onTap: () => context.push('$prefix/assets/${filtered[i].id}'),
+                attentionLabel: _filter == 'all'
+                    ? null
+                    : (es
+                          ? assetWorkspaceFilters[_filter]!.$2
+                          : assetWorkspaceFilters[_filter]!.$1),
+                openWork: (workspaceRows[filtered[i].id]?['open_work'] as num?)
+                    ?.toInt(),
+                onTap: () => context.push('/assets/${filtered[i].id}'),
               ),
             ),
           );
@@ -130,7 +214,7 @@ class _AssetListScreenState extends ConsumerState<AssetListScreen> {
       ),
       floatingActionButton: canAdd
           ? FloatingActionButton.extended(
-              onPressed: () => context.push('$prefix/assets/add'),
+              onPressed: () => context.push('/assets/new'),
               backgroundColor: context.appColors.primary,
               icon: const Icon(Icons.add),
               label: Text(isSpanish(context) ? 'Añadir equipo' : 'Add asset'),
@@ -188,6 +272,8 @@ class _AssetListTile extends StatelessWidget {
   final Profile? assignedProfile;
   final bool showAssignedClient;
   final VoidCallback onTap;
+  final String? attentionLabel;
+  final int? openWork;
 
   const _AssetListTile({
     required this.asset,
@@ -195,6 +281,8 @@ class _AssetListTile extends StatelessWidget {
     required this.assignedProfile,
     required this.showAssignedClient,
     required this.onTap,
+    this.attentionLabel,
+    this.openWork,
   });
 
   @override
@@ -210,6 +298,17 @@ class _AssetListTile extends StatelessWidget {
         subtitle: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            if (attentionLabel != null)
+              Text(
+                attentionLabel!,
+                style: TextStyle(color: context.appColors.warning),
+              ),
+            if (openWork != null && openWork! > 0)
+              Text(
+                isSpanish(context)
+                    ? '$openWork trabajos abiertos'
+                    : '$openWork open work orders',
+              ),
             if (showAssignedClient)
               _AssignedClientLine(profile: assignedProfile),
             if (asset.model != null || asset.make != null)

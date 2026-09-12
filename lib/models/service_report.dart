@@ -8,6 +8,7 @@ part 'service_report.g.dart';
 abstract class ServiceReport with _$ServiceReport {
   const factory ServiceReport({
     required String id,
+    @JsonKey(name: 'meter_unit') @Default('hours') String meterUnit,
     @JsonKey(name: 'work_order_id') required String workOrderId,
     @JsonKey(name: 'evidence_pending') @Default(false) bool evidencePending,
     String? complaint,

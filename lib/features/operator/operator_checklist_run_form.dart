@@ -10,6 +10,9 @@ import 'package:vortice_app/l10n/app_localizations.dart';
 import 'package:vortice_app/models/checklist_template.dart';
 
 class OperatorChecklistRunForm extends ConsumerStatefulWidget {
+  final String meterUnit;
+  final Map<String, Map<String, dynamic>> issues;
+  final void Function(String, Map<String, dynamic>)? onIssueChanged;
   final String assetName;
   final ChecklistTemplate template;
   final Map<String, String?> responses;
@@ -32,6 +35,9 @@ class OperatorChecklistRunForm extends ConsumerStatefulWidget {
   const OperatorChecklistRunForm({
     super.key,
     required this.assetName,
+    this.meterUnit = 'hours',
+    this.issues = const {},
+    this.onIssueChanged,
     required this.template,
     required this.responses,
     required this.notes,
@@ -103,6 +109,7 @@ class _OperatorChecklistRunFormState
     final headerWidgets = [
       OperatorChecklistRunHeader(
         assetLabel: widget.assetName,
+        meterUnit: widget.meterUnit,
         checklistLabel: '${widget.template.name} · v${widget.template.version}',
         completedByLabel: widget.completedByLabel,
         completedAt: widget.completedAt,
@@ -159,7 +166,12 @@ class _OperatorChecklistRunFormState
                 ...headerWidgets,
                 for (final item in items)
                   OperatorChecklistQuickCheckItem(
+                    key: ValueKey(item.id),
                     item: item,
+                    issue: widget.issues[item.id] ?? const {},
+                    onIssueChanged: widget.onIssueChanged == null
+                        ? null
+                        : (v) => widget.onIssueChanged!(item.id, v),
                     response: widget.responses[item.id],
                     note: widget.notes[item.id] ?? '',
                     photo: widget.photos[item.id],

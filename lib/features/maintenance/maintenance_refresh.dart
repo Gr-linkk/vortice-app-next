@@ -1,3 +1,5 @@
+import 'package:vortice_app/features/assurance/assurance_repository.dart';
+import 'package:vortice_app/features/parts/parts_readiness_repository.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:vortice_app/features/coordination/coordination_repository.dart';
 import 'package:vortice_app/features/assets/asset_provider.dart';
@@ -14,6 +16,10 @@ void refreshMaintenance(
   String? jobId,
   bool assetsChanged = false,
 }) {
+  ref.invalidate(inspectionRegisterProvider);
+  ref.invalidate(assuranceContextProvider);
+  ref.invalidate(partsWorkspaceProvider);
+  ref.invalidate(partsReadinessSummaryProvider);
   ref.invalidate(maintenanceJobsProvider);
   ref.invalidate(maintenancePlanningProvider);
   ref.invalidate(serviceIntervalsProvider);

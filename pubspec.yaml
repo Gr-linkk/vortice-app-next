@@ -1,7 +1,7 @@
 name: vortice_app
 description: Vórtice Mechanical — Marine & Heavy Equipment Maintenance Management
 publish_to: 'none'
-version: 1.15.0+28
+version: 1.16.0+29
 
 environment:
   sdk: '>=3.8.0 <4.0.0'

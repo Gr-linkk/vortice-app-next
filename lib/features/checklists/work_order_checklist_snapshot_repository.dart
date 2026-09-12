@@ -1,4 +1,5 @@
 import 'package:vortice_app/core/constants.dart';
+import 'package:vortice_app/core/account_storage.dart';
 import 'package:vortice_app/core/supabase_client.dart';
 import 'package:vortice_app/models/checklist_item.dart';
 import 'package:vortice_app/models/checklist_template.dart';
@@ -82,13 +83,24 @@ class WorkOrderChecklistSnapshotRepository {
   Future<WorkOrderChecklistSnapshot?> fetchByWorkOrderId(
     String workOrderId,
   ) async {
-    final data = await supabase
-        .from(AppConstants.tWorkOrderChecklistSnapshots)
-        .select()
-        .eq('work_order_id', workOrderId)
-        .maybeSingle();
+    final account = supabase.auth.currentUser!.id;
+    final data =
+        await AccountJsonCache(
+          account,
+          () => supabase.auth.currentUser?.id,
+        ).readThrough(
+          'work_checklist_snapshot:$workOrderId',
+          () => supabase
+              .from(AppConstants.tWorkOrderChecklistSnapshots)
+              .select()
+              .eq('work_order_id', workOrderId)
+              .maybeSingle()
+              .timeout(const Duration(seconds: 6)),
+        );
     if (data == null) return null;
-    return WorkOrderChecklistSnapshot.fromJson(data);
+    return WorkOrderChecklistSnapshot.fromJson(
+      Map<String, dynamic>.from(data as Map),
+    );
   }
 
   Future<WorkOrderChecklistSnapshot?> tryFetchByWorkOrderId(

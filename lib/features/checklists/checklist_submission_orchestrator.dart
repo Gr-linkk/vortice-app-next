@@ -258,6 +258,8 @@ class OperationsChecklistSubmission {
     required double? currentHours,
     required String? generalNotes,
     String? operationId,
+    String? meterUnit,
+    Map<String, Map<String, dynamic>>? issues,
     String? assignmentId,
     DateTime? startedAt,
     Map<String, Uint8List?> photos = const {},
@@ -268,6 +270,7 @@ class OperationsChecklistSubmission {
       notes,
       currentHours,
       photos: photos,
+      issues: issues,
     );
     if (atomicSubmit != null) {
       await atomicSubmit!(operationId ?? const Uuid().v4(), {
@@ -281,6 +284,8 @@ class OperationsChecklistSubmission {
         'responses': responses,
         'notes': notes,
         'current_hours': currentHours,
+        if (meterUnit != null) 'meter_unit': meterUnit,
+        if (issues != null) 'issues': issues,
         'general_notes': generalNotes,
       }, photos);
       return;
@@ -319,6 +324,7 @@ void validateOperationsChecklist(
   Map<String, String> notes,
   double? currentHours, {
   Map<String, Uint8List?> photos = const {},
+  Map<String, Map<String, dynamic>>? issues,
 }) {
   if (items.isEmpty ||
       items.any(
@@ -356,6 +362,37 @@ void validateOperationsChecklist(
   )) {
     throw const OperationsChecklistValidationException('notes');
   }
+  if (issues != null &&
+      items.any(
+        (item) =>
+            const {'monitor', 'alert', 'action'}.contains(responses[item.id]) &&
+            checklistInputType(item.definition) != 'check' &&
+            (issues[item.id]?['message']?.toString().trim().isEmpty ?? true),
+      )) {
+    throw const OperationsChecklistValidationException('issue_message');
+  }
+  if (issues != null &&
+      issues.entries.any(
+        (entry) =>
+            !items.any((item) => item.id == entry.key) ||
+            !const {
+              'monitor',
+              'alert',
+              'action',
+            }.contains(responses[entry.key]) ||
+            !const {
+              'normal',
+              'urgent',
+            }.contains(entry.value['urgency'] ?? 'normal') ||
+            !const {
+              'safe',
+              'unsafe',
+              'unknown',
+            }.contains(entry.value['safe_to_operate'] ?? 'unknown') ||
+            (entry.value['message']?.toString().length ?? 0) > 4000,
+      )) {
+    throw const OperationsChecklistValidationException('issue_message');
+  }
   if (currentHours != null && (!currentHours.isFinite || currentHours < 0)) {
     throw const OperationsChecklistValidationException('hours');
   }
@@ -367,6 +404,10 @@ class OperationsChecklistValidationException implements Exception {
   final String reason;
 
   String message(bool es) => switch (reason) {
+    'issue_message' =>
+      es
+          ? 'Describe el problema de cada lectura marcada.'
+          : 'Describe the issue for each flagged reading.',
     'photos' =>
       es
           ? 'Añade las fotos requeridas antes de guardar. El borrador se conserva.'

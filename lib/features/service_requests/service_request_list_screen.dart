@@ -1,6 +1,7 @@
 import 'package:vortice_app/core/user_feedback.dart';
 import 'service_request_evidence.dart';
 import 'package:flutter/material.dart';
+import 'package:vortice_app/features/coordination/coordination_entry.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:vortice_app/core/theme.dart';
@@ -258,6 +259,13 @@ class _ServiceRequestCard extends ConsumerWidget {
                 ],
               ),
             ],
+            if (request.assetId != null)
+              CoordinationEntry(
+                assetId: request.assetId,
+                kind: 'request',
+                subjectId: request.id,
+                compact: true,
+              ),
           ],
         ),
       ),

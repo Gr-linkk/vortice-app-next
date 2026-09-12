@@ -7,6 +7,8 @@ part 'asset.g.dart';
 abstract class Asset with _$Asset {
   const factory Asset({
     required String id,
+    @JsonKey(name: 'meter_unit') @Default('hours') String meterUnit,
+    @JsonKey(name: 'primary_meter_engine_id') String? primaryMeterEngineId,
     @JsonKey(name: 'client_id') required String clientId,
     @JsonKey(name: 'asset_type_id') required String assetTypeId,
     required String name,

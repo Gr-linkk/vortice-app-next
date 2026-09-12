@@ -1,4 +1,5 @@
 import 'package:vortice_app/models/profile.dart';
+import 'package:vortice_app/features/membership/membership_models.dart';
 
 /// Central role policy for asset-level workflow navigation.
 ///
@@ -48,6 +49,11 @@ class AssetWorkflowPolicy {
       };
 
   static bool canManageAsset(UserRole? role) => role == UserRole.owner;
+
+  static bool canManageProfile(Profile? profile) =>
+      profile?.membershipManaged == true
+          ? profile!.canInOrganization('assets_manage')
+          : canManageAsset(profile?.role);
 
   static bool canSeeEngines(UserRole? role) => role == UserRole.owner;
 }

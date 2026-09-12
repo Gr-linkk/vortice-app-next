@@ -42,6 +42,11 @@ void main() {
     await old.customStatement(
       'ALTER TABLE checklist_items DROP COLUMN definition_json',
     );
+    // Reconstruct the actual v6 columns, including removal of v8 meter fields.
+    for (final table in ['assets', 'asset_engines', 'work_orders', 'service_reports']) {
+      await old.customStatement('ALTER TABLE $table DROP COLUMN meter_unit');
+    }
+    await old.customStatement('ALTER TABLE assets DROP COLUMN primary_meter_engine_id');
     await old.customStatement('PRAGMA user_version = 6');
     await old.close();
     final upgraded = AppDatabase(NativeDatabase(file));

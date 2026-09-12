@@ -16,6 +16,9 @@ final workOrdersProvider = FutureProvider<List<WorkOrder>>((ref) async {
   final profile = await ref.watch(profileProvider.future);
   if (profile == null) return [];
   final orders = await ref.watch(workOrderRepositoryProvider).listWorkOrders();
+  // Modern provider/customer visibility is already assignment- and
+  // organization-scoped in the projection RPC, including outgoing requests.
+  if (profile.membershipManaged) return orders;
   if (shouldBypassWorkOrderAssignmentFilter(profile.role)) {
     return orders;
   }

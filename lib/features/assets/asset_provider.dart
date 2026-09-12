@@ -8,6 +8,7 @@ import 'package:vortice_app/features/assets/client_team_asset_access.dart';
 import 'package:vortice_app/features/auth/auth_provider.dart';
 import 'package:vortice_app/models/asset.dart';
 import 'package:vortice_app/models/profile.dart';
+import 'package:vortice_app/features/engines/engine_provider.dart';
 
 // ── Remote fetch ───────────────────────────────────────────────────────────
 
@@ -93,14 +94,23 @@ final assetByIdProvider = FutureProvider.family<Asset?, String>((
   id,
 ) async {
   if (await ref.watch(profileProvider.future) == null) return null;
-  final data = await supabase
-      .from(AppConstants.tAssets)
-      .select()
-      .eq('id', id)
-      .maybeSingle();
+  final account = supabase.auth.currentUser!.id;
+  final data =
+      await AccountJsonCache(
+        account,
+        () => supabase.auth.currentUser?.id,
+      ).readThrough(
+        'asset:$id',
+        () => supabase
+            .from(AppConstants.tAssets)
+            .select()
+            .eq('id', id)
+            .maybeSingle()
+            .timeout(const Duration(seconds: 6)),
+      );
 
   if (data == null) return null;
-  return Asset.fromJson(data);
+  return Asset.fromJson(Map<String, dynamic>.from(data as Map));
 });
 
 // ── Asset controller ───────────────────────────────────────────────────────
@@ -109,13 +119,20 @@ class AssetController extends StateNotifier<AsyncValue<void>> {
   final Ref _ref;
   AssetController(this._ref) : super(const AsyncData(null));
 
-  Future<bool> createAsset(Map<String, dynamic> data) async {
+  Future<bool> createAsset(
+    Map<String, dynamic> data, {
+    Map<String, dynamic>? engine,
+  }) async {
     state = const AsyncLoading();
     bool success = false;
     state = await AsyncValue.guard(() async {
-      await supabase.from(AppConstants.tAssets).insert(data);
+      await supabase.rpc(
+        'create_asset_with_engine',
+        params: {'p_data': data, 'p_engine': engine},
+      );
       _ref.invalidate(assetsProvider);
       _ref.invalidate(visibleAssetsProvider);
+      _ref.invalidate(enginesForAssetProvider(data['id'] as String));
       success = true;
     });
     return success;

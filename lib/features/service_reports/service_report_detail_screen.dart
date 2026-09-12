@@ -1,5 +1,6 @@
 import 'package:vortice_app/core/user_feedback.dart';
 import 'package:flutter/material.dart';
+import 'package:vortice_app/features/coordination/coordination_entry.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
@@ -172,6 +173,12 @@ class _ReportBody extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 20),
+          CoordinationEntry(
+            assetId: null,
+            kind: 'report',
+            subjectId: report.id,
+            compact: true,
+          ),
           if (report.complaint != null)
             _Section(
               number: '1',

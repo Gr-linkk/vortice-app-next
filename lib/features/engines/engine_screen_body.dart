@@ -11,6 +11,7 @@ import 'package:vortice_app/models/asset_engine.dart';
 
 class EngineScreenBody extends ConsumerWidget {
   final String assetId;
+  final bool canManage;
   final List<AssetEngine> engines;
   final VoidCallback onRefresh;
   final void Function(BuildContext context, AssetEngine? engine)
@@ -20,6 +21,7 @@ class EngineScreenBody extends ConsumerWidget {
   const EngineScreenBody({
     super.key,
     required this.assetId,
+    this.canManage = false,
     required this.engines,
     required this.onRefresh,
     required this.onShowEngineSheet,
@@ -52,8 +54,12 @@ class EngineScreenBody extends ConsumerWidget {
                   EngineDetailScreen(assetId: assetId, engine: engines[i]),
             ),
           ),
-          onEdit: () => onShowEngineSheet(context, engines[i]),
-          onDelete: () => onConfirmDelete(context, engines[i]),
+          onEdit: canManage
+              ? () => onShowEngineSheet(context, engines[i])
+              : null,
+          onDelete: canManage
+              ? () => onConfirmDelete(context, engines[i])
+              : null,
         ),
       ),
     );

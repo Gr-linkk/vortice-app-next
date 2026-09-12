@@ -6,6 +6,7 @@ import 'package:vortice_app/features/auth/auth_provider.dart';
 import 'package:vortice_app/features/work_orders/work_order_support.dart';
 import 'package:vortice_app/models/work_order.dart';
 import 'planning_models.dart';
+import 'dart:convert';
 
 /// Display context for an already authorized set of provider orders.
 class PlanningServiceData {
@@ -48,7 +49,7 @@ class PlanningServiceData {
       'provider_service': true,
       'service_date': order.scheduledDate?.toIso8601String().split('T').first,
       'on_hold_reason': order.onHoldReason,
-      'route': '$routePrefix/work-orders/${order.id}',
+      'route': order.providerOrganizationId != null ? '/work-orders/${order.id}' : '$routePrefix/work-orders/${order.id}',
     });
   }
 }
@@ -80,6 +81,10 @@ class SupabasePlanningServiceRepository implements PlanningServiceRepository {
     String accountId,
   ) async {
     final values = ids.toList()..sort();
+    if(values.isEmpty) return [];
+    final raw = await AccountJsonCache(accountId,()=>client.auth.currentUser?.id).readThrough(
+      'planning_service:$table:$columns:$filter:${jsonEncode(values)}',
+      () async {
     final result = <Map<String, dynamic>>[];
     for (var start = 0; start < values.length; start += 100) {
       final chunk = values.skip(start).take(100).toList();
@@ -98,6 +103,10 @@ class SupabasePlanningServiceRepository implements PlanningServiceRepository {
     }
     _check(accountId);
     return result;
+      },
+    );
+    _check(accountId);
+    return (raw as List).map((row)=>Map<String,dynamic>.from(row as Map)).toList();
   }
 
   @override

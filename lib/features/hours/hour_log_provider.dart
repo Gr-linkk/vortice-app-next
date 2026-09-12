@@ -32,15 +32,17 @@ class HourLogController extends StateNotifier<AsyncValue<void>> {
     required String engineId,
     required String assetId,
     required double hours,
+    required String meterUnit,
     String? notes,
   }) async {
     state = const AsyncLoading();
     bool success = false;
     state = await AsyncValue.guard(() async {
-      await authenticatedRetryableRpc().call('record_manual_meter', {
+      await authenticatedRetryableRpc().call('record_component_meter', {
         'p_engine': engineId,
         'p_asset': assetId,
-        'p_hours': hours,
+        'p_value': hours,
+        'p_unit': meterUnit,
         'p_notes': notes,
       }, captureTime: true);
 

@@ -53,7 +53,7 @@ final orgMembersProvider = FutureProvider.family<List<Profile>, String>((
 
 final currentUserOrgProvider = FutureProvider<ClientOrg?>((ref) async {
   // Watch auth so this re-runs on sign-in/out
-  ref.watch(profileProvider);
+  final currentProfile = await ref.watch(profileProvider.future);
 
   final userId = supabase.auth.currentUser?.id;
   if (userId == null) return null;
@@ -62,6 +62,18 @@ final currentUserOrgProvider = FutureProvider<ClientOrg?>((ref) async {
         userId,
         () => supabase.auth.currentUser?.id,
       ).readThrough('current_org', () async {
+        // Modern membership follows the selected company even if this person
+        // owns a different company. Ownership must not override a switch.
+        if (currentProfile?.membershipManaged == true) {
+          final selected = currentProfile?.orgId;
+          if (selected == null) return null;
+          return supabase
+              .from(AppConstants.tClientOrgs)
+              .select()
+              .eq('id', selected)
+              .maybeSingle()
+              .timeout(const Duration(seconds: 6));
+        }
         // 1. Check if user owns an org
         final owned = await supabase
             .from(AppConstants.tClientOrgs)

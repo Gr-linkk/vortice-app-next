@@ -17,7 +17,7 @@ void main() {
           .cast<Map<String, dynamic>>();
 
   test('every standard catalog type has its own stable ID and artwork', () {
-    expect(catalog, hasLength(34));
+    expect(catalog, hasLength(40));
     expect(catalog.map((row) => row['id']).toSet(), hasLength(catalog.length));
     final drawings = <EquipmentArt>{};
     for (final row in catalog) {

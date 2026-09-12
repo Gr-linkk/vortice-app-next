@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart';
+import 'package:vortice_app/core/account_storage.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:vortice_app/core/supabase_client.dart';
@@ -83,10 +84,26 @@ abstract class CoordinationRepository {
 }
 
 class SupabaseCoordinationRepository implements CoordinationRepository {
-  SupabaseCoordinationRepository(this.client);
+  SupabaseCoordinationRepository(this.client, {String? actor})
+    : _actor = actor ?? client.auth.currentUser?.id;
+  final String? _actor;
+  void _checkAccount() {
+    if (client.auth.currentUser?.id != _actor) {
+      throw const AccountChangedException();
+    }
+  }
+
+  Future<T> _guard<T>(Future<T> Function() request) async {
+    _checkAccount();
+    final result = await request();
+    _checkAccount();
+    return result;
+  }
+
   final SupabaseClient client;
-  Future<dynamic> _rpc(String name, [Map<String, dynamic>? params]) =>
-      client.rpc(name, params: params).timeout(const Duration(seconds: 25));
+  Future<dynamic> _rpc(String name, [Map<String, dynamic>? params]) => _guard(
+    () => client.rpc(name, params: params).timeout(const Duration(seconds: 25)),
+  );
   @override
   Future<Map<String, dynamic>> history(HistoryQuery query) async =>
       Map<String, dynamic>.from(
@@ -153,14 +170,16 @@ class SupabaseCoordinationRepository implements CoordinationRepository {
   @override
   Future<void> upload(String path, Uint8List bytes, String contentType) async {
     try {
-      await client.storage
-          .from('coordination-attachments')
-          .uploadBinary(
-            path,
-            bytes,
-            fileOptions: FileOptions(contentType: contentType),
-          )
-          .timeout(const Duration(seconds: 30));
+      await _guard(
+        () => client.storage
+            .from('coordination-attachments')
+            .uploadBinary(
+              path,
+              bytes,
+              fileOptions: FileOptions(contentType: contentType),
+            )
+            .timeout(const Duration(seconds: 30)),
+      );
     } on StorageException catch (error) {
       if (error.statusCode != '409') rethrow;
       await photoUrl(path);
@@ -168,14 +187,19 @@ class SupabaseCoordinationRepository implements CoordinationRepository {
   }
 
   @override
-  Future<String> photoUrl(String path) => client.storage
-      .from('coordination-attachments')
-      .createSignedUrl(path, 300)
-      .timeout(const Duration(seconds: 20));
+  Future<String> photoUrl(String path) => _guard(
+    () => client.storage
+        .from('coordination-attachments')
+        .createSignedUrl(path, 300)
+        .timeout(const Duration(seconds: 20)),
+  );
 }
 
 final coordinationRepositoryProvider = Provider<CoordinationRepository>(
-  (ref) => SupabaseCoordinationRepository(supabase),
+  (ref) => SupabaseCoordinationRepository(
+    supabase,
+    actor: ref.watch(sessionProvider)?.user.id,
+  ),
 );
 final assetHistoryProvider = FutureProvider.autoDispose
     .family<Map<String, dynamic>, HistoryQuery>((ref, query) async {

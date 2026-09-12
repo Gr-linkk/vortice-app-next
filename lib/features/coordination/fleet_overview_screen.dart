@@ -1,3 +1,6 @@
+import 'package:vortice_app/features/assets/asset_workspace.dart';
+import 'package:vortice_app/features/maintenance/planning/planning_repository.dart';
+import 'package:vortice_app/features/fleet/fleet_providers.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -26,70 +29,115 @@ class FleetPriorityCard extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final es = fleetSpanish(context);
-    final query = (
-      today: localCalendarDate(),
-      category: null as String?,
-      offset: 0,
-    );
-    return ref
-        .watch(fleetAttentionProvider(query))
-        .when(
-          loading: () => const Padding(
-            padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            child: LinearProgressIndicator(),
-          ),
-          error: (error, _) => FleetError(
-            error: error,
-            onRetry: () => ref.invalidate(fleetAttentionProvider),
-          ),
-          data: (page) {
-            final rows = coordinationRows(page['items']);
-            final updated =
-                '${es ? 'Actualizado' : 'Updated'} ${fleetDate(context, DateTime.tryParse(page['generated_at'] as String? ?? ''))}';
-            if (rows.isEmpty) {
-              return Card(
-                margin: const EdgeInsets.fromLTRB(16, 0, 16, 8),
-                child: ListTile(
-                  title: Text(
-                    es
-                        ? 'Sin registros en la lista de prioridades'
-                        : 'No fleet priority records',
-                  ),
-                  subtitle: Text(updated),
-                  trailing: const Icon(Icons.chevron_right),
-                  onTap: () => context.push('/fleet/overview'),
-                ),
-              );
-            }
-            return Card(
-              margin: const EdgeInsets.fromLTRB(16, 0, 16, 12),
-              child: Padding(
-                padding: const EdgeInsets.all(12),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    Text(
-                      es ? 'Necesita atenci\u00f3n' : 'Needs attention',
-                      style: Theme.of(context).textTheme.titleMedium,
-                    ),
-                    const SizedBox(height: 4),
-                    Text(updated, style: Theme.of(context).textTheme.bodySmall),
-                    for (final row in rows.take(3)) AttentionTile(row: row),
-                    TextButton.icon(
-                      onPressed: () => context.push('/fleet/overview'),
-                      icon: const Icon(Icons.dashboard_outlined),
-                      label: Text(
-                        es
-                            ? 'Ver indicadores y registros'
-                            : 'View indicators and records',
-                      ),
-                    ),
-                  ],
+    final workspace = ref.watch(assetWorkspaceProvider);
+    final work = ref.watch(maintenancePlanningProvider(null));
+    final faults = ref.watch(fleetFaultsProvider(null));
+    final actor = ref.watch(profileProvider).valueOrNull?.id;
+    void refresh() {
+      ref.invalidate(assetWorkspaceProvider);
+      ref.invalidate(maintenancePlanningProvider);
+      ref.invalidate(fleetFaultsProvider);
+    }
+
+    if (workspace.isLoading || work.isLoading || faults.isLoading) {
+      return const Padding(
+        padding: EdgeInsets.all(16),
+        child: LinearProgressIndicator(),
+      );
+    }
+    final error = workspace.error ?? work.error ?? faults.error;
+    if (error != null) return FleetError(error: error, onRetry: refresh);
+    final now = DateTime.now();
+    final rows = <({String title, String route, int count})>[];
+    void assets(String key) {
+      final count = filterWorkspaceAssets(
+        workspace.valueOrNull ?? {},
+        key,
+      ).length;
+      if (count > 0) {
+        rows.add((
+          title: es
+              ? assetWorkspaceFilters[key]!.$2
+              : assetWorkspaceFilters[key]!.$1,
+          route: assetWorkspaceDestination(key),
+          count: count,
+        ));
+      }
+    }
+
+    void jobs(String key, String en, String spanish) {
+      final count =
+          work.valueOrNull?.jobs
+              .where((job) => job.matchesFilter(key, actor, now))
+              .length ??
+          0;
+      if (count > 0) {
+        rows.add((
+          title: es ? spanish : en,
+          route: '/maintenance/planning?filter=$key',
+          count: count,
+        ));
+      }
+    }
+
+    assets('unavailable');
+    final urgent =
+        faults.valueOrNull
+            ?.where((fault) => fault.urgent && fault.status.isActive)
+            .length ??
+        0;
+    if (urgent > 0) {
+      rows.add((
+        title: es ? 'Fallas urgentes' : 'Urgent faults',
+        route: '/fleet?filter=urgent',
+        count: urgent,
+      ));
+    }
+    jobs('overdue', 'Overdue work', 'Trabajo vencido');
+    assets('inspection_expired');
+    jobs('review', 'Awaiting review', 'Pendiente de revisión');
+    jobs('parts', 'Waiting for parts', 'Esperando piezas');
+    jobs('people', 'Waiting for people', 'Esperando personas');
+    jobs('blocked', 'Other blocked work', 'Otros trabajos bloqueados');
+    assets('inspection_pending');
+    assets('overdue_service');
+    assets('plan_setup');
+    return Card(
+      margin: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text(
+              es ? 'Necesita atención' : 'Needs attention',
+              style: Theme.of(context).textTheme.titleMedium,
+            ),
+            if (rows.isEmpty)
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                child: Text(
+                  es ? 'Sin pendientes urgentes.' : 'No urgent items waiting.',
                 ),
               ),
-            );
-          },
-        );
+            for (final row in rows.take(3))
+              ListTile(
+                contentPadding: EdgeInsets.zero,
+                title: Text(row.title),
+                leading: Text(
+                  '${row.count}',
+                  style: Theme.of(context).textTheme.headlineSmall,
+                ),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: () async {
+                  await context.push(row.route);
+                  if (context.mounted) refresh();
+                },
+              ),
+          ],
+        ),
+      ),
+    );
   }
 }
 

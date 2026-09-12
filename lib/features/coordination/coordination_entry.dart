@@ -9,8 +9,8 @@ class CoordinationEntry extends StatelessWidget {
     this.kind,
     this.subjectId,
     this.compact = false,
-  });
-  final String assetId;
+  }) : assert(assetId != null || subjectId != null);
+  final String? assetId;
   final String? kind, subjectId;
   final bool compact;
   @override
@@ -21,7 +21,7 @@ class CoordinationEntry extends StatelessWidget {
             spacing: 8,
             runSpacing: 4,
             children: [
-              if (subjectId == null)
+              if (subjectId == null && assetId != null)
                 TextButton.icon(
                   onPressed: () => context.push('/assurance/assets/$assetId'),
                   icon: const Icon(Icons.fact_check_outlined),
@@ -33,19 +33,20 @@ class CoordinationEntry extends StatelessWidget {
                     ),
                   ),
                 ),
-              if (subjectId != null)
-                TextButton.icon(
-                  onPressed: () => context.push('/discussion/$kind/$subjectId'),
-                  icon: const Icon(Icons.forum_outlined),
-                  label: Text(
-                    fleetText(
-                      context,
-                      'Discussion & handover',
-                      'Conversación y relevo',
-                    ),
+              TextButton.icon(
+                onPressed: () => context.push(
+                  '/discussion/${kind ?? 'asset'}/${subjectId ?? assetId}',
+                ),
+                icon: const Icon(Icons.forum_outlined),
+                label: Text(
+                  fleetText(
+                    context,
+                    'Discussion & handover',
+                    'Conversación y relevo',
                   ),
                 ),
-              TextButton.icon(
+              ),
+              if (assetId != null) TextButton.icon(
                 onPressed: () => context.push('/history/assets/$assetId'),
                 icon: const Icon(Icons.history),
                 label: Text(
@@ -57,7 +58,7 @@ class CoordinationEntry extends StatelessWidget {
         : Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              if (subjectId == null) ...[
+              if (subjectId == null && assetId != null) ...[
                 OutlinedButton.icon(
                   onPressed: () => context.push('/assurance/assets/$assetId'),
                   icon: const Icon(Icons.fact_check_outlined),
@@ -71,9 +72,11 @@ class CoordinationEntry extends StatelessWidget {
                 ),
                 const SizedBox(height: 12),
               ],
-              if (subjectId != null) ...[
+              ...[
                 OutlinedButton.icon(
-                  onPressed: () => context.push('/discussion/$kind/$subjectId'),
+                  onPressed: () => context.push(
+                    '/discussion/${kind ?? 'asset'}/${subjectId ?? assetId}',
+                  ),
                   icon: const Icon(Icons.forum_outlined),
                   label: Text(
                     fleetText(
@@ -85,7 +88,7 @@ class CoordinationEntry extends StatelessWidget {
                 ),
                 const SizedBox(height: 12),
               ],
-              OutlinedButton.icon(
+              if (assetId != null) OutlinedButton.icon(
                 onPressed: () => context.push('/history/assets/$assetId'),
                 icon: const Icon(Icons.history),
                 label: Text(

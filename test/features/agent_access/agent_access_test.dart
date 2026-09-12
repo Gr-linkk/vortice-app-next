@@ -108,6 +108,11 @@ Widget app(
 );
 
 Future<void> prepare(WidgetTester tester) async {
+  await tester.scrollUntilVisible(
+    find.byType(DropdownButtonFormField<String>),
+    -250,
+    scrollable: find.byType(Scrollable).first,
+  );
   await tester.tap(find.byType(DropdownButtonFormField<String>));
   await tester.pumpAndSettle();
   await tester.tap(find.text('Harbour Marine').last);
@@ -186,6 +191,12 @@ void main() {
       final repository = FixtureAgentRepository();
       await tester.pumpWidget(app(repository));
       await tester.pumpAndSettle();
+      // The setup guide makes the consent action start below the viewport.
+      await tester.scrollUntilVisible(
+        find.widgetWithText(FilledButton, 'Create connection key'),
+        250,
+        scrollable: find.byType(Scrollable).first,
+      );
       expect(
         tester
             .widget<FilledButton>(

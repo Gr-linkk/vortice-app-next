@@ -89,7 +89,7 @@ class DashboardCurrentWork extends ConsumerWidget {
                           subtitle: Text(
                             [
                               entry.assetName,
-                              maintenanceStatus(entry.status, es),
+                              entry.lifecycleLabel(es),
                               if (entry.dueDate != null)
                                 '${es ? 'Vence' : 'Due'} ${maintenanceDate(entry.dueDate, es)}',
                             ].where((value) => value.isNotEmpty).join(' \u00b7 '),

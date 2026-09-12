@@ -1,3 +1,5 @@
+import 'package:vortice_app/core/meter_units.dart';
+
 /// Calendar and meter recurrence use independent targets; either can make work due.
 class MaintenanceRecurrence {
   const MaintenanceRecurrence({
@@ -65,7 +67,8 @@ String recurrenceSummary(Map<String, dynamic> plan, bool es) {
   final hours = (plan['interval_hours'] as num?) ?? 0;
   final months = plan['interval_months'];
   return [
-    if (hours > 0) '${es ? 'Cada' : 'Every'} $hours h',
+    if (hours > 0)
+      '${es ? 'Cada' : 'Every'} ${formatMeter(hours, plan['meter_unit'] as String?)}',
     if (months != null)
       '${es ? 'Cada' : 'Every'} $months ${es ? 'meses' : 'months'}',
     if (hours > 0 && months != null)
@@ -74,6 +77,7 @@ String recurrenceSummary(Map<String, dynamic> plan, bool es) {
 }
 
 String recurrenceDueText(Map<String, dynamic> plan, bool es) => [
-  if (plan['next_due_hours'] != null) '${plan['next_due_hours']} h',
+  if (plan['next_due_hours'] != null)
+    formatMeter(plan['next_due_hours'] as num?, plan['meter_unit'] as String?),
   if (plan['next_due_date'] != null) plan['next_due_date'].toString(),
 ].join(es ? ' o ' : ' or ');

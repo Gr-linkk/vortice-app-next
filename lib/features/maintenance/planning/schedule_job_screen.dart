@@ -11,6 +11,7 @@ import '../maintenance_repository.dart';
 import '../maintenance_refresh.dart';
 import 'planning_models.dart';
 import 'planning_repository.dart';
+import 'package:vortice_app/sync/online_action_gate.dart';
 
 class ScheduleJobScreen extends ConsumerStatefulWidget {
   const ScheduleJobScreen({super.key, required this.job, required this.jobs});
@@ -89,6 +90,7 @@ class _ScheduleJobScreenState extends ConsumerState<ScheduleJobScreen> {
 
   Future<void> _save() async {
     if (!_form.currentState!.validate()) return;
+    if(!await requireOnlineAction(context,ref) || !mounted) return;
     setState(() {
       _busy = true;
       _error = null;
@@ -225,6 +227,7 @@ class _ScheduleJobScreenState extends ConsumerState<ScheduleJobScreen> {
                     style: Theme.of(context).textTheme.headlineSmall,
                   ),
                   Text(widget.job.assetName),
+                  const OnlineOnlyNotice(),
                   const SizedBox(height: 16),
                   Text(
                     es

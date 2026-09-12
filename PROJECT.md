@@ -18,9 +18,11 @@ NEXT-002 is the active workflow-consolidation board. Work orders become the
 common work hub while retaining the Field Notes design, checked completion,
 company isolation, offline drafts and provider billing boundaries. See
 `docs/specs/NEXT-002-human-workflow-kanban.md` for staged scope and dependencies.
-First delivery and remaining scope: `docs/specs/NEXT-002-workflow-batch-1.md`.
-Decision 0016 defines the accepted organization membership direction; current
-profile roles remain transitional until a coordinated access migration.
+Whole-board implementation and final verification are tracked in
+`docs/specs/NEXT-002-whole-board-delivery.md`; the earlier Batch 1 receipt remains
+historical evidence. Decision 0016 defines organization membership and decision
+0017 defines generated cycles and original meter context. Existing legacy
+identities are retained alongside the new organization permissions.
 
 NOW-022, NOW-023 and NOW-024 are merged, verified and delivered as Build 27.
 Integration evidence: `docs/specs/NOW-022-024-integration.md`.

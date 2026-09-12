@@ -29,6 +29,8 @@ class OperatorChecklistScreenState
   final String _runType = operatorDefaultRunType;
   final Map<String, String?> _responses = {};
   final Map<String, String> _notes = {};
+  final Map<String, Map<String, dynamic>> _issues = {};
+  String _meterUnit = 'hours';
   final Map<String, Uint8List?> _photos = {};
   bool _submitting = false;
   bool _restoredDraft = false;
@@ -138,6 +140,7 @@ class OperatorChecklistScreenState
           return;
         }
         _assignmentId = assignmentId;
+        _meterUnit = _selectedAsset?['meter_unit'] as String? ?? 'hours';
         await _saveDraft();
       }
       _showDrafts = false;
@@ -197,6 +200,14 @@ class OperatorChecklistScreenState
         DateTime.tryParse(draft['started_at'] as String? ?? '') ??
         restored.completedAt;
     _currentHours = restored.currentHours;
+    _meterUnit = draft['meter_unit'] as String? ?? 'hours';
+    _issues
+      ..clear()
+      ..addAll({
+        for (final entry in (draft['issues'] as Map? ?? {}).entries)
+          if (entry.value is Map)
+            entry.key as String: Map<String, dynamic>.from(entry.value as Map),
+      });
     _generalNotes = restored.generalNotes;
     _responses
       ..clear()
@@ -232,11 +243,13 @@ class OperatorChecklistScreenState
     final matching = operatorTemplatesForAsset(asset, templates);
     setState(() {
       _selectedAsset = asset;
+      _meterUnit = asset['meter_unit'] as String? ?? 'hours';
       _selectedTemplate = initialTemplateId == null
           ? (matching.length == 1 ? matching.single : null)
           : matching.where((t) => t.id == initialTemplateId).firstOrNull;
       _responses.clear();
       _notes.clear();
+      _issues.clear();
       _photos.clear();
       _startedAt = DateTime.now();
       _completedAt = _startedAt;
@@ -259,6 +272,11 @@ class OperatorChecklistScreenState
         generalNotes: _generalNotes,
         photos: Map.of(_photos),
       ),
+      'issues': {
+        for (final entry in _issues.entries)
+          entry.key: Map<String, dynamic>.from(entry.value),
+      },
+      'meter_unit': _meterUnit,
       'operation_id': _operationId,
       'assignment_id': _assignmentId,
       'started_at': _startedAt.toUtc().toIso8601String(),
@@ -295,6 +313,7 @@ class OperatorChecklistScreenState
       _selectedTemplate = null;
       _responses.clear();
       _notes.clear();
+      _issues.clear();
       _photos.clear();
       _completedAt = DateTime.now();
       _startedAt = _completedAt;
@@ -484,6 +503,12 @@ class OperatorChecklistScreenState
             )
           : OperatorChecklistRunForm(
               key: ValueKey(_operationId),
+              meterUnit: _meterUnit,
+              issues: _issues,
+              onIssueChanged: (id, value) {
+                setState(() => _issues[id] = value);
+                _saveDraft();
+              },
               assetName: _selectedAsset!['name'] as String,
               template: _selectedTemplate!,
               responses: _responses,
@@ -540,6 +565,16 @@ class OperatorChecklistScreenState
       await ref
           .read(operationsChecklistSubmissionProvider)
           .submit(
+            meterUnit: _meterUnit,
+            issues: {
+              for (final entry in _issues.entries)
+                if ([
+                  'monitor',
+                  'alert',
+                  'action',
+                ].contains(_responses[entry.key]))
+                  entry.key: entry.value,
+            },
             operationId: _operationId,
             assignmentId: _assignmentId,
             startedAt: _startedAt.isAfter(_completedAt)
@@ -597,6 +632,7 @@ class OperatorChecklistScreenState
           _selectedTemplate = null;
           _responses.clear();
           _notes.clear();
+          _issues.clear();
           _photos.clear();
           _completedAt = DateTime.now();
           _currentHours = null;

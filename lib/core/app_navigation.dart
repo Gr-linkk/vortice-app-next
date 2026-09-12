@@ -32,11 +32,11 @@ List<AppDestination> primaryDestinations(
   final prefix = roleRoutePrefix(role);
   return [
     AppDestination('Home', 'Inicio', Icons.home_outlined, '$prefix/dashboard'),
-    AppDestination(
+    const AppDestination(
       'Assets',
       'Equipos',
       Icons.directions_boat_outlined,
-      '$prefix/assets',
+      '/assets',
     ),
     if (canUseMaintenance(role))
       const AppDestination(
@@ -78,23 +78,6 @@ List<AppDestination> toolDestinations(UserRole role) {
         descriptionEs:
             'Crear procedimientos de mantenimiento y revisiones antes de operar',
       ),
-    const AppDestination(
-      'Fleet inspections',
-      'Inspecciones de la flota',
-      Icons.fact_check_outlined,
-      '/assurance',
-      description: 'Track custody, inspection evidence and expiry dates',
-      descriptionEs: 'Consultar custodia, evidencia y vencimientos',
-    ),
-    if (role == UserRole.owner || admin)
-      const AppDestination(
-        'Fleet decisions',
-        'Decisiones de la flota',
-        Icons.dashboard_outlined,
-        '/fleet/overview',
-        description: 'Act on overdue service, faults and waiting work',
-        descriptionEs: 'Atender servicios vencidos, fallas y trabajo pendiente',
-      ),
     if (role == UserRole.owner || admin)
       const AppDestination(
         'Equipment report',
@@ -104,15 +87,6 @@ List<AppDestination> toolDestinations(UserRole role) {
         group: 1,
         description: 'Compare maintenance costs, downtime and repeat faults',
         descriptionEs: 'Comparar costos, inactividad y fallas repetidas',
-      ),
-    if (canUseMaintenance(role))
-      const AppDestination(
-        'Assets & plans',
-        'Equipos y planes',
-        Icons.event_note_outlined,
-        '/maintenance/assets',
-        description: 'Manage components and schedule reliable maintenance',
-        descriptionEs: 'Administrar componentes y programar mantenimiento',
       ),
     if (staff || admin)
       AppDestination(
@@ -206,12 +180,15 @@ List<AppDestination> toolDestinations(UserRole role) {
 
 int selectedDestination(List<AppDestination> items, String location) {
   final path = Uri.parse(location).path;
-  if (path == '/maintenance/assets' ||
+  if (path == '/assets' ||
+      path.startsWith('/assets/') ||
+      path == '/maintenance/assets' ||
       path.startsWith('/maintenance/assets/')) {
     final assets = items.indexWhere((item) => item.route.endsWith('/assets'));
     if (assets >= 0) return assets;
   }
-  if (path == '/maintenance' ||
+  if (path.startsWith('/work-orders/') ||
+      path == '/maintenance' ||
       path.startsWith('/maintenance/') ||
       path == '/owner/work-orders' ||
       path.startsWith('/owner/work-orders/') ||

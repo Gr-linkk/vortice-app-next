@@ -1,4 +1,6 @@
 import 'package:vortice_app/core/app_retry_panel.dart';
+import 'package:vortice_app/core/meter_units.dart';
+import 'package:vortice_app/features/engines/engine_provider.dart';
 import 'package:vortice_app/core/user_feedback.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -23,7 +25,11 @@ class HourLogScreen extends ConsumerWidget {
     final logsAsync = ref.watch(hourLogsForEngineProvider(engineId));
 
     return Scaffold(
-      appBar: AppBar(title: Text(l10n.hourLogsTitle)),
+      appBar: AppBar(
+        title: Text(
+          isSpanish(context) ? 'Historial de lecturas' : 'Meter history',
+        ),
+      ),
       body: logsAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (err, _) => AppRetryPanel(
@@ -34,7 +40,9 @@ class HourLogScreen extends ConsumerWidget {
           if (logs.isEmpty) {
             return Center(
               child: Text(
-                l10n.noHourLogs,
+                isSpanish(context)
+                    ? 'Todavía no hay lecturas'
+                    : 'No readings yet',
                 style: TextStyle(color: context.appColors.textSecondary),
               ),
             );
@@ -101,7 +109,7 @@ class _HourLogTile extends StatelessWidget {
           ),
         ),
         title: Text(
-          '${log.hours.toStringAsFixed(1)} hrs',
+          formatMeter(log.hours, log.meterUnit),
           style: Theme.of(context).textTheme.titleSmall,
         ),
         subtitle: Column(
@@ -162,6 +170,8 @@ class _HourLogFormState extends ConsumerState<_HourLogForm> {
 
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
+    final engine = ref.read(engineByIdProvider(widget.engineId)).valueOrNull;
+    if (engine == null) return;
 
     final success = await ref
         .read(hourLogControllerProvider.notifier)
@@ -169,6 +179,7 @@ class _HourLogFormState extends ConsumerState<_HourLogForm> {
           engineId: widget.engineId,
           assetId: widget.assetId,
           hours: double.parse(_hoursCtrl.text),
+          meterUnit: engine.meterUnit,
           notes: _notesCtrl.text.trim().isEmpty ? null : _notesCtrl.text.trim(),
         );
     if (!mounted) return;
@@ -190,6 +201,8 @@ class _HourLogFormState extends ConsumerState<_HourLogForm> {
     final l10n = AppLocalizations.of(context);
     final controllerState = ref.watch(hourLogControllerProvider);
     final isLoading = controllerState is AsyncLoading;
+    final engine = ref.watch(engineByIdProvider(widget.engineId));
+    final unit = engine.valueOrNull?.meterUnit;
 
     return Padding(
       padding: EdgeInsets.fromLTRB(
@@ -215,11 +228,21 @@ class _HourLogFormState extends ConsumerState<_HourLogForm> {
               ),
             ),
             const SizedBox(height: 16),
-            Text(l10n.logHours, style: Theme.of(context).textTheme.titleLarge),
+            Text(
+              isSpanish(context) ? 'Registrar lectura' : 'Record meter reading',
+              style: Theme.of(context).textTheme.titleLarge,
+            ),
             const SizedBox(height: 16),
             TextFormField(
               controller: _hoursCtrl,
-              decoration: InputDecoration(labelText: l10n.currentHours),
+              enabled: unit != null,
+              decoration: InputDecoration(
+                labelText: unit == null
+                    ? (isSpanish(context)
+                          ? 'Cargando unidad'
+                          : 'Loading meter unit')
+                    : '${isSpanish(context) ? 'Lectura' : 'Reading'} (${meterSymbol(unit)})',
+              ),
               keyboardType: const TextInputType.numberWithOptions(
                 decimal: true,
               ),
@@ -228,6 +251,11 @@ class _HourLogFormState extends ConsumerState<_HourLogForm> {
                 final reading = double.tryParse(v);
                 if (reading == null || !reading.isFinite || reading < 0) {
                   return l10n.invalidNumber;
+                }
+                if (reading < (engine.valueOrNull?.currentHours ?? 0)) {
+                  return isSpanish(context)
+                      ? 'La lectura no puede disminuir'
+                      : 'Reading cannot decrease';
                 }
                 return null;
               },
@@ -240,7 +268,7 @@ class _HourLogFormState extends ConsumerState<_HourLogForm> {
             ),
             const SizedBox(height: 20),
             ElevatedButton(
-              onPressed: isLoading ? null : _submit,
+              onPressed: isLoading || unit == null ? null : _submit,
               child: isLoading
                   ? const SizedBox(
                       height: 20,

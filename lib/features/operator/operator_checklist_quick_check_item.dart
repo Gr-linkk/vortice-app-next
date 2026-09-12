@@ -1,4 +1,5 @@
 import 'dart:typed_data';
+import 'operator_issue_details.dart';
 
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
@@ -8,6 +9,8 @@ import 'package:vortice_app/models/checklist_item.dart';
 import 'package:vortice_app/features/checklists/checklist_answer_fields.dart';
 
 class OperatorChecklistQuickCheckItem extends StatefulWidget {
+  final Map<String, dynamic> issue;
+  final ValueChanged<Map<String, dynamic>>? onIssueChanged;
   final ChecklistItem item;
   final String? response;
   final String note;
@@ -19,6 +22,8 @@ class OperatorChecklistQuickCheckItem extends StatefulWidget {
   const OperatorChecklistQuickCheckItem({
     super.key,
     required this.item,
+    this.issue = const {},
+    this.onIssueChanged,
     required this.response,
     required this.note,
     required this.photo,
@@ -76,6 +81,17 @@ class _OperatorChecklistQuickCheckItemState
   @override
   Widget build(BuildContext context) {
     final status = widget.response;
+    final issueDetails =
+        ['monitor', 'alert', 'action'].contains(status) &&
+            widget.onIssueChanged != null
+        ? OperatorIssueDetails(
+            value: widget.issue,
+            onChanged: widget.onIssueChanged!,
+            critical: widget.item.definition['critical'] == true,
+            separateMessage:
+                checklistInputType(widget.item.definition) != 'check',
+          )
+        : const SizedBox.shrink();
     if (widget.item.definition.isNotEmpty) {
       return Card(
         child: Padding(
@@ -109,6 +125,7 @@ class _OperatorChecklistQuickCheckItemState
                     ],
                   ),
                 ),
+              issueDetails,
               ChecklistEvidenceActions(
                 requiredPhoto: widget.item.requiresPhoto,
                 onGallery: _pickPhoto,
@@ -176,6 +193,7 @@ class _OperatorChecklistQuickCheckItemState
                 ),
               ],
             ),
+            issueDetails,
             AnimatedSize(
               duration: const Duration(milliseconds: 200),
               child: showDetail

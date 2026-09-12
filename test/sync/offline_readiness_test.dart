@@ -1,0 +1,125 @@
+import 'dart:async';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:vortice_app/core/account_storage.dart';
+import 'package:vortice_app/sync/offline_readiness.dart';
+
+void main() {
+  setUp(() => SharedPreferences.setMockInitialValues({}));
+  test(
+    'fresh refresh rejects fallback without changing the existing cache',
+    () async {
+      const cache = AccountJsonCache('a', accountA);
+      await cache.readThrough('asset', () async => {'id': 'one'});
+      Future<dynamic> offline() => Future.error(TimeoutException('offline'));
+      expect(await cache.readThrough('asset', offline), {'id': 'one'});
+      await expectLater(
+        withFreshAccountReads(() => cache.readThrough('asset', offline)),
+        throwsA(isA<TimeoutException>()),
+      );
+      expect(await cache.readThrough('asset', offline), {'id': 'one'});
+    },
+  );
+  test(
+    'successful ordinary warm persists readiness across restart and expires',
+    () async {
+      var now = DateTime.utc(2026, 9, 12);
+      final controller = OfflineReadinessController(
+        account: 'a',
+        currentAccount: accountA,
+        now: () => now,
+        refreshRecords: (check) async {
+          check();
+        },
+      );
+      await controller.refresh();
+      expect(controller.state.readyAt(now), isTrue);
+      final reopened = OfflineReadinessController(
+        account: 'a',
+        currentAccount: accountA,
+        refreshRecords: (_) async {},
+      );
+      await reopened.restore();
+      expect(reopened.state.updatedAt, now);
+      now = now.add(const Duration(hours: 24));
+      expect(reopened.state.readyAt(now), isFalse);
+      controller.dispose();
+      reopened.dispose();
+    },
+  );
+  test(
+    'partial offline refresh keeps last successful time and throttles retries',
+    () async {
+      var now = DateTime.utc(2026, 9, 12);
+      var attempts = 0;
+      final controller = OfflineReadinessController(
+        account: 'a',
+        currentAccount: accountA,
+        now: () => now,
+        refreshRecords: (_) async {
+          if (++attempts > 1) throw TimeoutException('offline');
+        },
+      );
+      await controller.refresh();
+      final first = controller.state.updatedAt;
+      now = now.add(const Duration(minutes: 6));
+      await controller.refresh();
+      await controller.refresh();
+      expect(attempts, 2);
+      expect(controller.state.updatedAt, first);
+      expect(controller.state.needsAttention, isFalse);
+      controller.dispose();
+    },
+  );
+  test(
+    'permission epoch change cannot publish readiness or erase drafts',
+    () async {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(accountStorageKey('a', 'draft'), 'saved work');
+      final controller = OfflineReadinessController(
+        account: 'a',
+        currentAccount: accountA,
+        refreshRecords: (_) async {
+          await invalidateAccountReadCaches('a');
+        },
+      );
+      await controller.refresh();
+      expect(controller.state.updatedAt, isNull);
+      expect(
+        prefs.getString(accountStorageKey('a', 'cache:offline_readiness')),
+        isNull,
+      );
+      expect(prefs.getString(accountStorageKey('a', 'draft')), 'saved work');
+      controller.dispose();
+    },
+  );
+  test(
+    'account switch during refresh cannot publish prior account readiness',
+    () async {
+      var account = 'a';
+      final pending = Completer<void>();
+      final controller = OfflineReadinessController(
+        account: 'a',
+        currentAccount: () => account,
+        refreshRecords: (_) => pending.future,
+      );
+      final refresh = controller.refresh();
+      await Future<void>.delayed(Duration.zero);
+      account = 'b';
+      pending.complete();
+      await refresh;
+      final prefs = await SharedPreferences.getInstance();
+      expect(
+        prefs.getString(accountStorageKey('a', 'cache:offline_readiness')),
+        isNull,
+      );
+      expect(
+        prefs.getString(accountStorageKey('b', 'cache:offline_readiness')),
+        isNull,
+      );
+      controller.dispose();
+    },
+  );
+}
+
+String accountA() => 'a';

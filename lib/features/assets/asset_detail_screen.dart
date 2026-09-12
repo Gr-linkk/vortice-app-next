@@ -19,7 +19,7 @@ class AssetDetailScreen extends ConsumerWidget {
     final l10n = AppLocalizations.of(context);
     final assetAsync = ref.watch(assetByIdProvider(assetId));
     final profile = ref.watch(profileProvider).valueOrNull;
-    final canEdit = AssetWorkflowPolicy.canManageAsset(profile?.role);
+    final canEdit = AssetWorkflowPolicy.canManageProfile(profile);
 
     return Scaffold(
       appBar: AppBar(

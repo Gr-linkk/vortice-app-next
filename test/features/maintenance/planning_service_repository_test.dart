@@ -7,6 +7,7 @@ import 'package:http/testing.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:vortice_app/features/maintenance/planning/planning_service_repository.dart';
 import 'package:vortice_app/models/work_order.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 WorkOrder serviceOrder(
   String id, {
@@ -64,6 +65,8 @@ Map<String, dynamic> session(String accountId) {
 }
 
 void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
+  setUp(() => SharedPreferences.setMockInitialValues({}));
   test(
     'a late assignment response cannot cross the initiating account',
     () async {

@@ -5,13 +5,20 @@ part 'profile.freezed.dart';
 part 'profile.g.dart';
 
 enum UserRole {
-  @JsonValue('owner') owner,
-  @JsonValue('employee') employee,
-  @JsonValue('client') client,
-  @JsonValue('operator') operator,       // merged: was also client_operator
-  @JsonValue('client_admin') clientAdmin,
-  @JsonValue('client_mechanic') clientMechanic,
-  @JsonValue('client_operator') clientOperator, // legacy — maps to operator in DB migration
+  @JsonValue('owner')
+  owner,
+  @JsonValue('employee')
+  employee,
+  @JsonValue('client')
+  client,
+  @JsonValue('operator')
+  operator, // merged: was also client_operator
+  @JsonValue('client_admin')
+  clientAdmin,
+  @JsonValue('client_mechanic')
+  clientMechanic,
+  @JsonValue('client_operator')
+  clientOperator, // legacy — maps to operator in DB migration
 }
 
 @freezed
@@ -22,18 +29,37 @@ abstract class Profile with _$Profile {
     @JsonKey(name: 'full_name') required String fullName,
     @JsonKey(defaultValue: UserRole.employee) required UserRole role,
     String? phone,
-    @JsonKey(name: 'preferred_language') @Default('en') String preferredLanguage,
+    // UI transport only. Backend role remains 'member'; permissions are checked
+    // against the active organization by the server on every mutation.
+    @JsonKey(name: 'membership_managed') @Default(false) bool membershipManaged,
+    @JsonKey(name: 'onboarding_required')
+    @Default(false)
+    bool onboardingRequired,
+    @JsonKey(name: 'organization_roles')
+    @Default(<String>[])
+    List<String> organizationRoles,
+    @JsonKey(name: 'organization_permissions')
+    @Default(<String>[])
+    List<String> organizationPermissions,
+    @JsonKey(name: 'preferred_language')
+    @Default('en')
+    String preferredLanguage,
     @JsonKey(name: 'org_code_used') String? orgCodeUsed,
     @JsonKey(name: 'org_id') String? orgId,
     @JsonKey(name: 'billable_rate') double? billableRate,
-    @JsonKey(name: 'subscription_tier', fromJson: _tierFromJson, toJson: _tierToJson)
-        @Default(SubscriptionTier.free)
-        SubscriptionTier subscriptionTier,
+    @JsonKey(
+      name: 'subscription_tier',
+      fromJson: _tierFromJson,
+      toJson: _tierToJson,
+    )
+    @Default(SubscriptionTier.free)
+    SubscriptionTier subscriptionTier,
     @JsonKey(name: 'created_at') DateTime? createdAt,
     @JsonKey(name: 'updated_at') DateTime? updatedAt,
   }) = _Profile;
 
-  factory Profile.fromJson(Map<String, dynamic> json) => _$ProfileFromJson(json);
+  factory Profile.fromJson(Map<String, dynamic> json) =>
+      _$ProfileFromJson(json);
 }
 
 // ── Subscription tier JSON helpers (used by Freezed) ────────────────────────

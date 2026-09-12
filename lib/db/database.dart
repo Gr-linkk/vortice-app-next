@@ -42,6 +42,8 @@ class AssetsTable extends Table {
   TextColumn get clientId => text()();
   TextColumn get assetTypeId => text()();
   TextColumn get name => text()();
+  TextColumn get meterUnit => text().withDefault(const Constant('hours'))();
+  TextColumn get primaryMeterEngineId => text().nullable()();
   TextColumn get make => text().nullable()();
   TextColumn get model => text().nullable()();
   IntColumn get year => integer().nullable()();
@@ -70,6 +72,7 @@ class AssetEnginesTable extends Table {
   TextColumn get model => text().nullable()();
   TextColumn get serialNumber => text().nullable()();
   RealColumn get currentHours => real().withDefault(const Constant(0))();
+  TextColumn get meterUnit => text().withDefault(const Constant('hours'))();
   TextColumn get telemetryChannel => text().nullable()();
   DateTimeColumn get createdAt => dateTime().nullable()();
   DateTimeColumn get updatedAt => dateTime().nullable()();
@@ -87,7 +90,7 @@ class WorkOrdersTable extends Table {
   TextColumn get engineId => text().nullable()();
   TextColumn get clientId => text()();
   TextColumn get assignedTo => text().nullable()();
-  TextColumn get createdBy => text()();
+  TextColumn get createdBy => text().nullable()();
   TextColumn get checklistTemplateId => text().nullable()();
   IntColumn get checklistTemplateVersion => integer().nullable()();
   TextColumn get jobType => text().withDefault(const Constant('repair'))();
@@ -99,6 +102,7 @@ class WorkOrdersTable extends Table {
   DateTimeColumn get completedAt => dateTime().nullable()();
   RealColumn get hoursAtStart => real().nullable()();
   RealColumn get hoursAtEnd => real().nullable()();
+  TextColumn get meterUnit => text().withDefault(const Constant('hours'))();
   RealColumn get labourHours => real().nullable()();
   RealColumn get billableRate => real().nullable()();
   RealColumn get wageRate => real().nullable()();
@@ -184,6 +188,7 @@ class ServiceReportsTable extends Table {
 
   TextColumn get id => text()();
   TextColumn get workOrderId => text()();
+  TextColumn get meterUnit => text().withDefault(const Constant('hours'))();
   TextColumn get complaint => text().nullable()();
   TextColumn get cause => text().nullable()();
   TextColumn get correction => text().nullable()();
@@ -344,11 +349,25 @@ class AppDatabase extends _$AppDatabase {
       accountId != null && accountId == currentAccount;
 
   @override
-  int get schemaVersion => 7;
+  int get schemaVersion => 8;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
     onUpgrade: (m, from, to) async {
+      if (from < 8) {
+        await m.addColumn(assetsTable, assetsTable.meterUnit);
+        await m.addColumn(assetsTable, assetsTable.primaryMeterEngineId);
+        await m.addColumn(assetEnginesTable, assetEnginesTable.meterUnit);
+        await m.alterTable(
+          // Rebuild the table to allow system-attributed recurring work.
+          // ignore: experimental_member_use
+          TableMigration(
+            workOrdersTable,
+            newColumns: [workOrdersTable.meterUnit],
+          ),
+        );
+        await m.addColumn(serviceReportsTable, serviceReportsTable.meterUnit);
+      }
       if (from < 7) {
         await m.addColumn(
           checklistTemplatesTable,

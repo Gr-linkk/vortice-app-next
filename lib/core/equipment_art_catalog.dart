@@ -39,7 +39,33 @@ enum EquipmentArt {
     'LV / Vehículo ligero',
     'light-vehicle.png',
   ),
-  highwayTruck('Highway Truck', 'Camión de carretera', 'highway-truck.png');
+  highwayTruck('Highway Truck', 'Camión de carretera', 'highway-truck.png'),
+  miniExcavator(
+    'Compact / Mini Excavator',
+    'Excavadora compacta / mini',
+    'mini-excavator.png',
+  ),
+  compactTrackLoader(
+    'Compact Track Loader',
+    'Cargadora compacta de orugas',
+    'compact-track-loader.png',
+  ),
+  agriculturalTractor(
+    'Agricultural Tractor',
+    'Tractor agrícola',
+    'agricultural-tractor.png',
+  ),
+  zeroTurnMower(
+    'Zero-Turn Mower',
+    'Cortacésped de giro cero',
+    'zero-turn-mower.png',
+  ),
+  boomLift('Boom Lift', 'Plataforma elevadora de brazo', 'boom-lift.png'),
+  scissorLift(
+    'Scissor Lift',
+    'Plataforma elevadora de tijera',
+    'scissor-lift.png',
+  );
 
   const EquipmentArt(this.label, this.spanishLabel, [this.file]);
   final String label;
@@ -114,6 +140,12 @@ const _seedTypes = <String, EquipmentArt>{
   '00000000-0000-0000-0000-000000000020': EquipmentArt.davit,
   '00000000-0000-0000-0000-000000000021': EquipmentArt.lightVehicle,
   '00000000-0000-0000-0000-000000000022': EquipmentArt.highwayTruck,
+  '00000000-0000-0000-0000-000000000023': EquipmentArt.miniExcavator,
+  '00000000-0000-0000-0000-000000000024': EquipmentArt.compactTrackLoader,
+  '00000000-0000-0000-0000-000000000025': EquipmentArt.agriculturalTractor,
+  '00000000-0000-0000-0000-000000000026': EquipmentArt.zeroTurnMower,
+  '00000000-0000-0000-0000-000000000027': EquipmentArt.boomLift,
+  '00000000-0000-0000-0000-000000000028': EquipmentArt.scissorLift,
 };
 
 const _namedTypes = <String, EquipmentArt>{
@@ -161,6 +193,14 @@ const _namedTypes = <String, EquipmentArt>{
   'lv': EquipmentArt.lightVehicle,
   'light vehicle': EquipmentArt.lightVehicle,
   'highway truck': EquipmentArt.highwayTruck,
+  'compact / mini excavator': EquipmentArt.miniExcavator,
+  'mini excavator': EquipmentArt.miniExcavator,
+  'compact excavator': EquipmentArt.miniExcavator,
+  'compact track loader': EquipmentArt.compactTrackLoader,
+  'agricultural tractor': EquipmentArt.agriculturalTractor,
+  'zero-turn mower': EquipmentArt.zeroTurnMower,
+  'boom lift': EquipmentArt.boomLift,
+  'scissor lift': EquipmentArt.scissorLift,
 };
 
 /// [typeName] must be the selected catalog type, never an asset's display name.

@@ -47,7 +47,27 @@ final profileProvider = FutureProvider<Profile?>((ref) async {
   );
 
   if (data == null) return null;
-  return Profile.fromJson(Map<String, dynamic>.from(data as Map));
+  final row = Map<String, dynamic>.from(data as Map);
+  if (row['role'] == 'member') {
+    // The membership context shares the account cache epoch. A changed server
+    // membership clears old company reads; offline reads keep only that scope.
+    // Mutation authority always comes from the server, including revocation.
+    final raw = await cache.readThrough(
+      'organization_context',
+      () => supabase
+          .rpc('organization_context')
+          .timeout(const Duration(seconds: 6)),
+    );
+    final context = Map<String, dynamic>.from(raw as Map);
+    await cache.save('profile', row);
+    row['role'] = context['route_role'];
+    row['org_id'] = context['active_organization_id'];
+    row['membership_managed'] = true;
+    row['onboarding_required'] = context['onboarding_required'] == true;
+    row['organization_roles'] = context['roles'] ?? <String>[];
+    row['organization_permissions'] = context['permissions'] ?? <String>[];
+  }
+  return Profile.fromJson(row);
 });
 
 // ── Unified auth status (used by the router) ───────────────────────────────

@@ -1,4 +1,6 @@
 import 'package:vortice_app/core/app_dropdown_field.dart';
+import 'package:vortice_app/core/meter_units.dart';
+import 'package:vortice_app/core/user_feedback.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:vortice_app/core/theme.dart';
@@ -7,6 +9,8 @@ import 'package:vortice_app/features/engines/engine_provider.dart';
 import 'package:vortice_app/features/engines/engine_screen_support.dart';
 import 'package:vortice_app/l10n/app_localizations.dart';
 import 'package:vortice_app/models/asset_engine.dart';
+import 'package:vortice_app/features/auth/auth_provider.dart';
+import 'package:vortice_app/features/assets/asset_workflow_policy.dart';
 
 class EngineForm extends ConsumerStatefulWidget {
   final String assetId;
@@ -24,6 +28,7 @@ class _EngineFormState extends ConsumerState<EngineForm> {
   late final TextEditingController _modelCtrl;
   late final TextEditingController _serialCtrl;
   String _kind = 'main';
+  String _meterUnit = 'hours';
 
   bool get _isEdit => widget.engine != null;
 
@@ -36,6 +41,7 @@ class _EngineFormState extends ConsumerState<EngineForm> {
       text: widget.engine?.serialNumber ?? '',
     );
     _kind = normalizeEngineKind(widget.engine?.kind);
+    _meterUnit = widget.engine?.meterUnit ?? 'hours';
   }
 
   @override
@@ -47,6 +53,11 @@ class _EngineFormState extends ConsumerState<EngineForm> {
   }
 
   Future<void> _submit() async {
+    if (!AssetWorkflowPolicy.canManageProfile(
+      ref.read(profileProvider).valueOrNull,
+    )) {
+      return;
+    }
     if (!_formKey.currentState!.validate()) return;
 
     final data = buildEngineFormPayload(
@@ -57,6 +68,7 @@ class _EngineFormState extends ConsumerState<EngineForm> {
       serialNumber: _serialCtrl.text,
     );
 
+    if (!_isEdit) data['meter_unit'] = _meterUnit;
     bool success;
     if (_isEdit) {
       success = await ref
@@ -72,6 +84,18 @@ class _EngineFormState extends ConsumerState<EngineForm> {
 
   @override
   Widget build(BuildContext context) {
+    if (!AssetWorkflowPolicy.canManageProfile(
+      ref.watch(profileProvider).valueOrNull,
+    )) {
+      return Padding(
+        padding: const EdgeInsets.all(24),
+        child: Text(
+          isSpanish(context)
+              ? 'Se requiere permiso para administrar equipos.'
+              : 'Asset management permission required.',
+        ),
+      );
+    }
     final l10n = AppLocalizations.of(context);
     final controllerState = ref.watch(engineControllerProvider);
     final isLoading = controllerState is AsyncLoading;
@@ -141,13 +165,30 @@ class _EngineFormState extends ConsumerState<EngineForm> {
                 decoration: InputDecoration(labelText: l10n.serialNumber),
               ),
               const SizedBox(height: 12),
-              Text(
-                'Hours are pulled from the most recent work order for this engine.',
-                style: TextStyle(
-                  color: context.appColors.textSecondary,
-                  fontSize: 12,
+              if (!_isEdit)
+                AppDropdownField<String>(
+                  initialValue: _meterUnit,
+                  decoration: InputDecoration(
+                    labelText: isSpanish(context)
+                        ? 'Unidad del medidor'
+                        : 'Meter unit',
+                  ),
+                  items: meterUnits
+                      .map(
+                        (unit) => DropdownMenuItem(
+                          value: unit,
+                          child: Text(meterName(unit, isSpanish(context))),
+                        ),
+                      )
+                      .toList(),
+                  onChanged: (unit) {
+                    if (unit != null) setState(() => _meterUnit = unit);
+                  },
+                )
+              else
+                Text(
+                  '${isSpanish(context) ? 'Unidad original' : 'Original meter unit'}: ${meterName(_meterUnit, isSpanish(context))}',
                 ),
-              ),
               const SizedBox(height: 20),
               ElevatedButton(
                 onPressed: isLoading ? null : _submit,

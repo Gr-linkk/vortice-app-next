@@ -1,3 +1,4 @@
+import 'package:vortice_app/core/meter_units.dart';
 import 'package:vortice_app/core/app_dropdown_field.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -68,6 +69,22 @@ class _MaintenanceCreateScreenState
         : widget.faultId != null
         ? WorkOrderJobType.repair
         : WorkOrderJobType.general;
+  }
+
+  void _applyPlanContext(Map<String, dynamic> plan) {
+    _component = plan['engine_id'] as String?;
+    _checklist = plan['checklist_template_id'] as String?;
+    _workType = WorkOrderJobType.preventative;
+    if (_title.text.isEmpty) {
+      final title =
+          plan['interval_label'] as String? ??
+          '${formatMeter(plan['interval_hours'] as num?, plan['meter_unit'] as String?)} service';
+      _title.text = title.length > 200 ? title.substring(0, 200) : title;
+    }
+    if (_instructions.text.isEmpty) {
+      _instructions.text = plan['notes'] as String? ?? '';
+    }
+    _due ??= DateTime.tryParse(plan['next_due_date']?.toString() ?? '');
   }
 
   @override
@@ -235,11 +252,7 @@ class _MaintenanceCreateScreenState
         data['plans'],
       ).where((p) => p['id'] == widget.planId).firstOrNull;
       if (selected != null) {
-        if (_title.text.isEmpty) {
-          final title =
-              '${selected['interval_label'] ?? '${selected['interval_hours']} h service'}';
-          _title.text = title.length > 200 ? title.substring(0, 200) : title;
-        }
+        _applyPlanContext(selected);
         _planPrefilled = true;
       }
     }
@@ -356,7 +369,7 @@ class _MaintenanceCreateScreenState
                                     (job) => DropdownMenuItem(
                                       value: job.id,
                                       child: Text(
-                                        '${job.title} · ${maintenanceStatus(job.status, es)}',
+                                        '${job.title} · ${job.lifecycleLabel(es)}',
                                       ),
                                     ),
                                   )
@@ -554,7 +567,12 @@ class _MaintenanceCreateScreenState
                             : (v) => setState(() {
                                 _plan = v == '' ? null : v;
                                 if (_plan != null) {
-                                  _workType = WorkOrderJobType.preventative;
+                                  final selected = maintenanceRows(
+                                    data['plans'],
+                                  ).where((p) => p['id'] == _plan).firstOrNull;
+                                  if (selected != null) {
+                                    _applyPlanContext(selected);
+                                  }
                                 }
                               }),
                       ),

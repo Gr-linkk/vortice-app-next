@@ -1,5 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:vortice_app/features/coordination/coordination_entry.dart';
+import 'package:go_router/go_router.dart';
+import 'package:vortice_app/core/user_feedback.dart';
+import 'package:vortice_app/features/agent_access/maintenance_documents_screen.dart';
+import 'package:vortice_app/models/profile.dart';
+import 'asset_context_sections.dart';
+import 'asset_meter_card.dart';
 import 'package:vortice_app/features/maintenance/maintenance_models.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:vortice_app/core/equipment_illustration.dart';
@@ -16,7 +21,6 @@ import 'package:vortice_app/features/assets/asset_service_reports_card.dart';
 import 'package:vortice_app/features/assets/asset_start_checklist_card.dart';
 import 'package:vortice_app/features/assets/asset_telemetry_section.dart';
 import 'package:vortice_app/features/assets/asset_workflow_policy.dart';
-import 'package:vortice_app/features/assets/asset_workflow_summary_card.dart';
 import 'package:vortice_app/features/auth/auth_provider.dart';
 import 'package:vortice_app/features/clients/client_capability_gate.dart';
 import 'package:vortice_app/features/service_reports/service_report_workflow.dart';
@@ -32,7 +36,8 @@ class AssetDetailBody extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context);
-    final role = ref.watch(profileProvider).valueOrNull?.role;
+    final profile = ref.watch(profileProvider).valueOrNull;
+    final role = profile?.role;
     final prefix = AssetWorkflowPolicy.routePrefixForRole(role);
     final types =
         ref.watch(assetTypesProvider).valueOrNull ?? const <AssetType>[];
@@ -44,7 +49,6 @@ class AssetDetailBody extends ConsumerWidget {
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
-        CoordinationEntry(assetId: asset.id),
         Container(
           padding: const EdgeInsets.all(20),
           decoration: BoxDecoration(
@@ -84,6 +88,8 @@ class AssetDetailBody extends ConsumerWidget {
                               fontSize: 13,
                             ),
                           ),
+                        if (asset.serialNumber?.isNotEmpty == true)
+                          Text('${l10n.serialNumber}: ${asset.serialNumber}'),
                       ],
                     ),
                   ),
@@ -93,9 +99,12 @@ class AssetDetailBody extends ConsumerWidget {
           ),
         ),
         const SizedBox(height: 16),
-        AssetWorkflowSummaryCard(assetId: asset.id, role: role),
-        const SizedBox(height: 16),
         AssetReadinessCard(assetId: asset.id),
+        const SizedBox(height: 12),
+        AssetCustodySection(assetId: asset.id),
+        AssetMeterCard(asset: asset),
+        AssetCurrentWorkSection(assetId: asset.id),
+        AssetInspectionsSection(assetId: asset.id),
         if (AssetWorkflowPolicy.canStartClientChecklist(role)) ...[
           const SizedBox(height: 16),
           ClientCapabilityGate(
@@ -116,9 +125,9 @@ class AssetDetailBody extends ConsumerWidget {
           const SizedBox(height: 16),
           AssetChecklistHistoryCard(asset: asset, routePrefix: prefix),
         ],
-        if (AssetWorkflowPolicy.canSeeEngines(role)) ...[
+        if (AssetWorkflowPolicy.canManageProfile(profile)) ...[
           const SizedBox(height: 16),
-          AssetEnginesCard(assetId: asset.id, routePrefix: prefix),
+          AssetEnginesCard(assetId: asset.id, routePrefix: ''),
         ],
         if (canUseMaintenance(role)) ...[
           const SizedBox(height: 16),
@@ -126,6 +135,57 @@ class AssetDetailBody extends ConsumerWidget {
         ],
         const SizedBox(height: 16),
         AssetTelemetrySection(asset: asset),
+        if ([
+          UserRole.owner,
+          UserRole.client,
+          UserRole.clientAdmin,
+        ].contains(role))
+          Card(
+            child: ListTile(
+              leading: const Icon(Icons.menu_book_outlined),
+              title: Text(
+                isSpanish(context)
+                    ? 'Manuales y procedimientos de la empresa'
+                    : 'Company manuals & procedures',
+              ),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () => Navigator.push(
+                context,
+                MaterialPageRoute<void>(
+                  builder: (_) => MaintenanceDocumentsScreen(
+                    fleet: asset.clientId,
+                    fleetName: asset.name,
+                  ),
+                ),
+              ),
+            ),
+          ),
+        Card(
+          child: Column(
+            children: [
+              ListTile(
+                leading: const Icon(Icons.forum_outlined),
+                title: Text(
+                  isSpanish(context)
+                      ? 'Conversación del equipo'
+                      : 'Asset discussion',
+                ),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: () => context.push('/discussion/asset/${asset.id}'),
+              ),
+              ListTile(
+                leading: const Icon(Icons.history),
+                title: Text(
+                  isSpanish(context)
+                      ? 'Historial completo'
+                      : 'Full asset history',
+                ),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: () => context.push('/history/assets/${asset.id}'),
+              ),
+            ],
+          ),
+        ),
         Card(
           child: ExpansionTile(
             title: Text(l10n.assetDetails),
@@ -136,7 +196,6 @@ class AssetDetailBody extends ConsumerWidget {
                 value: asset.serialNumber,
               ),
               AssetDetailRow(label: l10n.year, value: asset.year?.toString()),
-              AssetDetailRow(label: l10n.location, value: asset.location),
               if (AssetWorkflowPolicy.canManageAsset(role))
                 AssetClientAssignRow(asset: asset),
             ],

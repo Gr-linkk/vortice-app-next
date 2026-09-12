@@ -1,6 +1,6 @@
 # NEXT-002 — Human-centered workflow consolidation Kanban
 
-Status: active; Batch 1 implemented, with remaining card scope tracked below.
+Status: active; whole-board implementation is in final integration and verification.
 
 Accepted organization membership and role semantics:
 `../decisions/0016-organization-membership-access.md`.
@@ -13,21 +13,38 @@ Account/data clearing and production identity/signing remain separate decisions.
 
 ## Execution and dependencies
 
-Batch 1 delivery: `NEXT-002-workflow-batch-1.md` records review, checks and
-remaining limits. "Implemented slice" below does not mark a larger card Done.
+Batch 1 delivery: `NEXT-002-workflow-batch-1.md` records its original checks.
+Whole-board scope is below. Implementation does not replace physical acceptance.
 
-| Card | Implemented slice | Remaining card scope |
+| Card | Implemented scope | Remaining acceptance |
 | --- | --- | --- |
-| .02 | Work orders navigation, List/Day/Week/Month, scoped filters/search, completed history, month agenda, unscheduled work | Retire Fleet decisions after all domain destinations and matching counts exist; complete shared work-domain consolidation |
-| .05 | Explicit operator asset choice, matching published checklist selection, recoverable multiple drafts and prominent asset identity | Attached work-order checklist lifecycle, frozen progress and completion links |
-| .07 | Service report naming on internal work/detail/report actions and lists | Unified report lifecycle, returned-work entry and publication boundaries |
-| .09 | Create/Open work order wording; existing link, explicit repair verification and availability flow verified | Physical phone acceptance under .21 |
-| .12 | Home View all my work opens the hub with Mine selected | Contextual Home exceptions and Fleet decisions retirement |
-| .17 | Create invite code with Copy/Share, truthful delivery wording, membership-focused Team and reachable checklist assignments | Automatic offline readiness and the broader recovery/sync-state acceptance matrix |
-| .21 | Internal account switcher from Login/More; connected six-profile switching and saved-draft isolation verified | Installation and physical phone journeys |
+| .01 | Email/phone code entry, recovery and organization routing; truthful unavailable state in this build | Garrett deferred email/SMS provider setup and real delivery; see `NEXT-002-code-sign-in-setup.md` |
+| .02 | Common work hub, calendar views, search, matching filters and preserved booking context | Physical phone acceptance |
+| .03 | Asset/fault/plan/request/inspection source context and frozen work procedures | Physical provider workflow acceptance |
+| .04 | Automatic cycle generation, no automatic booking/assignment, checked once-only advancement | Hourly scheduler verified active; physical phone journey |
+| .05 | Explicit operator asset/draft choice and frozen attached checklist progress | Physical checklist/evidence journey |
+| .06 | Exact manual page links, adjustable state sequence and offline source-page cache | Physical offline source-page acceptance |
+| .07 | Common service-report language, retained returned work and approved publication boundary | Physical provider workflow acceptance |
+| .08 | Work-contained progress, missing requirements, evidence, report and labour | Physical provider timer/checklist journey |
+| .09 | Linked fault-to-work, explicit repair verification and availability decision | Physical phone acceptance |
+| .10 | Relationship-scoped request acceptance, linked work, approved report and invoice | Physical modern provider workflow acceptance |
+| .11 | Shared lifecycle labels; actual bookings distinguished from assignment/due dates | Physical phone acceptance |
+| .12 | Home exceptions use domain filters and matching result counts; Mine preserved | Physical phone acceptance |
+| .13 | Canonical asset context, current work, meters, custody, inspections and immutable history | Physical phone acceptance |
+| .14 | Needed/reserved/ordered/received/used/returned parts in the work context | Physical parts workflow acceptance |
+| .15 | Original hours/km/mi in work, reports and history; distance display preference | Physical provider workflow acceptance |
+| .16 | Six selected land types, stable catalog IDs, bundled drawings and searchable Add/Edit | Physical catalog acceptance |
+| .17 | Automatic foreground offline readiness, cached work/source pages, truthful queue states and online action gates | Physical airplane-mode/process-kill/reconnect journey |
+| .18 | Additive membership/permissions, invitations, revocation, company relationships and scoped provider work | Five live demo role checks passed; physical acceptance remains |
+| .19 | Checklist issue details, fault handoff and contextual discussions with company boundaries | Physical evidence/notification acceptance |
+| .20 | Guided scoped MCP setup, real backend grant check, reviewed proposals and narrow audited tools | A real user-selected agent host connection |
+| .21 | Internal account switcher and five verified modern demo identities alongside existing accounts | Installation and human phone journeys remain open |
+| .22 | Company announcements, unread state, attachments and notifications | Physical delivery/tap acceptance |
+| .23 | Managed-agent architecture and executed budget/dispatcher spike | Live API quality/latency/usage measurements need an API credential; see `NEXT-002-managed-agent-exploration.md` |
 
-- All unlisted cards remain To do; existing features are foundations, not assumed
-  completion of their new acceptance criteria.
+- On September 12 Garrett requested execution of the whole board and APK
+  delivery to S24 Downloads. Build 28 was delivered and checksum-verified;
+  the whole-board build is being prepared separately.
 - .18 organization membership precedes .01 owner onboarding. Legacy `owner`
   grants provider/platform authority, not the new Company Owner role. Migrate
   membership, invitations, routes and backend access together; do not implement
@@ -497,14 +514,17 @@ record cost by model/conversation/tool call. Run a representative cost spike
 before choosing an included allowance, overage or credit-pack price. ChatGPT
 workspace subscriptions and embedded API billing are treated separately.
 
-## Open product choices
+## Implementation choices and remaining decisions
 
-- How far ahead recurring work orders are generated.
-- How an externally completed inspection enters the linked work/report flow.
-- Minimum company fields for the accepted unaffiliated company-creation flow.
-- Whether every completed work order requires a service report or only defined
-  work types.
-- Which proposed equipment types belong in the first catalog expansion.
+- Recurrence defaults to 30 days of calendar lead (adjustable 0–365); meter work
+  generates when its recorded target is reached. Decision 0017 records this.
+- External inspection findings enter the linked work/report evidence and review
+  path; the current approved certificate is retained until replacement approval.
+- Company creation asks only for the missing person name and company name.
+- Work completion records the report required by its execution path; standalone
+  passing pre-operation checks remain independent of scheduled maintenance.
+- First catalog expansion: Compact/Mini Excavator, Compact Track Loader,
+  Agricultural Tractor, Zero-Turn Mower, Boom Lift and Scissor Lift.
 - Pricing, allowance and retention choices for a future managed agent.
 
 ## Preserve while simplifying

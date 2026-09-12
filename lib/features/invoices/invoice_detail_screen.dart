@@ -1,5 +1,6 @@
 import 'package:vortice_app/core/user_feedback.dart';
 import 'package:flutter/material.dart';
+import 'package:vortice_app/sync/online_action_gate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:vortice_app/l10n/app_localizations.dart';
 import 'package:vortice_app/core/theme.dart';
@@ -75,6 +76,7 @@ class _InvoiceDetailScreenState extends ConsumerState<InvoiceDetailScreen> {
   }
 
   Future<void> _saveChanges() async {
+    if (!await requireOnlineAction(context, ref) || !mounted) return;
     final labourHours = double.tryParse(_labourHoursCtrl.text);
     final billableRate = double.tryParse(_billableRateCtrl.text);
     final partsTotal = double.tryParse(_partsTotalCtrl.text);
@@ -151,6 +153,7 @@ class _InvoiceDetailScreenState extends ConsumerState<InvoiceDetailScreen> {
   }
 
   Future<void> _changeStatus(InvoiceStatus status) async {
+    if (!await requireOnlineAction(context, ref) || !mounted) return;
     final l10n = AppLocalizations.of(context);
     final reason = TextEditingController();
     final confirmed = await showDialog<bool>(

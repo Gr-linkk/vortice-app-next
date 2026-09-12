@@ -11,6 +11,7 @@ import 'agent_pending_plans_screen.dart';
 import 'agent_plan_review_screen.dart';
 import 'agent_review_evidence.dart';
 import 'maintenance_documents_screen.dart';
+import 'agent_work_proposals_screen.dart';
 
 final agentWorkspaceProvider = FutureProvider.autoDispose<Map<String, dynamic>>(
   (ref) => ref.watch(agentAccessRepositoryProvider).load(),
@@ -72,6 +73,7 @@ class _AgentWorkspaceState extends ConsumerState<AgentWorkspacePanel> {
   }
 
   String activity(Map<String, dynamic> event, bool es) {
+    if (event['work_proposal'] == true && event['outcome'] == 'created') return es ? 'Propuesta lista para revisar' : 'Proposal ready for review';
     if (event['outcome'] == 'rejected') {
       return es ? 'Acción rechazada' : 'Action rejected';
     }
@@ -84,6 +86,7 @@ class _AgentWorkspaceState extends ConsumerState<AgentWorkspacePanel> {
       return es ? 'Conexión revocada' : 'Connection revoked';
     }
     if (event['outcome'] == 'read') {
+      if (event['action'] == 'connection_test') return es ? 'Conexión del agente verificada' : 'Host connection verified';
       return es ? 'Información consultada' : 'Information read';
     }
     return switch (event['action']) {
@@ -92,6 +95,7 @@ class _AgentWorkspaceState extends ConsumerState<AgentWorkspacePanel> {
       'assign_work_order' => es ? 'Trabajo asignado' : 'Work assigned',
       'schedule_work_order' => es ? 'Trabajo programado' : 'Work scheduled',
       'edit_work_order' => es ? 'Alcance actualizado' : 'Work scope updated',
+      'review_work_proposal' => es ? 'Propuesta revisada' : 'Proposal reviewed',
       'create_work_order_draft' => es ? 'Orden creada' : 'Work order created',
       _ => es ? 'Conexión creada' : 'Connection created',
     };
@@ -225,6 +229,15 @@ class _AgentWorkspaceState extends ConsumerState<AgentWorkspacePanel> {
                         ),
                       if (client != null) ...[
                         AgentSectionCard(
+                          title: es ? 'Cambios de trabajo por revisar' : 'Work changes to review',
+                          icon: Icons.preview_outlined,
+                          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                            Text(es ? 'Los cambios de personal, horarios y alcance esperan tu revisión.' : 'Assignment, schedule and scope changes wait for your review.'),
+                            TextButton.icon(onPressed: () => Navigator.push(context, MaterialPageRoute<void>(builder: (_) => AgentWorkProposalsScreen(fleet: client))),
+                              icon: const Icon(Icons.arrow_forward), label: Text(es ? 'Revisar propuestas de trabajo' : 'Review work proposals')),
+                          ]),
+                        ),
+                        AgentSectionCard(
                           title: es ? 'Planes por revisar' : 'Plans to review',
                           icon: Icons.rate_review_outlined,
                           child: ref
@@ -268,7 +281,7 @@ class _AgentWorkspaceState extends ConsumerState<AgentWorkspacePanel> {
                                         ).textTheme.titleLarge,
                                       ),
                                       Text(
-                                        '${plans.first['assets']?['name'] ?? ''} · ${reviewHours(plans.first['draft']['interval_hours'] as num?)}',
+                                        '${plans.first['assets']?['name'] ?? ''} · ${reviewHours(plans.first['draft']['interval_hours'] as num?, plans.first['draft']['meter_unit'] as String? ?? 'hours')}',
                                       ),
                                       const SizedBox(height: 16),
                                       FilledButton.icon(
@@ -452,6 +465,8 @@ class _AgentWorkspaceState extends ConsumerState<AgentWorkspacePanel> {
                                                 event['result_id'] as String,
                                                 client,
                                               );
+                                            } else if (event['work_proposal'] == true) {
+                                              Navigator.push(context, MaterialPageRoute<void>(builder: (_) => AgentWorkProposalsScreen(proposalId: event['result_id'] as String)));
                                             } else if (event['action'] ==
                                                 'create_checklist_draft') {
                                               ref.invalidate(

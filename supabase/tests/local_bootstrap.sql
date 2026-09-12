@@ -10,6 +10,7 @@ create schema storage;
 create schema extensions;
 create table auth.users (
  id uuid primary key, email text, banned_until timestamptz,
+ phone text, email_confirmed_at timestamptz, phone_confirmed_at timestamptz,
  raw_user_meta_data jsonb default '{}',raw_app_meta_data jsonb default '{}'
 );
 create table auth.mfa_factors (

@@ -10,15 +10,22 @@ import 'package:vortice_app/features/fleet/fleet_providers.dart';
 import 'package:vortice_app/features/fleet/fleet_widgets.dart';
 
 class FleetScreen extends ConsumerStatefulWidget {
-  const FleetScreen({super.key, this.assetId, this.initialTab = 0});
+  const FleetScreen({
+    super.key,
+    this.assetId,
+    this.initialTab = 0,
+    this.initialFilter,
+  });
   final String? assetId;
   final int initialTab;
+  final String? initialFilter;
   @override
   ConsumerState<FleetScreen> createState() => _FleetScreenState();
 }
 
 class _FleetScreenState extends ConsumerState<FleetScreen> {
   String _query = '';
+  late bool _urgent = widget.initialFilter == 'urgent';
   bool _closed = false;
   bool _mine = false;
   OperatingState? _state;
@@ -118,6 +125,11 @@ class _FleetScreenState extends ConsumerState<FleetScreen> {
               spacing: 8,
               children: [
                 AppFilterChip(
+                  label: Text(es ? 'Urgentes' : 'Urgent'),
+                  selected: _urgent,
+                  onSelected: (value) => setState(() => _urgent = value),
+                ),
+                AppFilterChip(
                   label: Text(es ? 'Cerradas' : 'Closed'),
                   selected: _closed,
                   onSelected: (value) => setState(() => _closed = value),
@@ -145,6 +157,7 @@ class _FleetScreenState extends ConsumerState<FleetScreen> {
                     (fault) =>
                         (!fault.status.isActive) == _closed &&
                         (!_mine || fault.assignedTo == userId) &&
+                        (!_urgent || fault.urgent) &&
                         '${fault.assetName} ${fault.description} ${fault.assigneeName ?? ''}'
                             .toLowerCase()
                             .contains(_query),

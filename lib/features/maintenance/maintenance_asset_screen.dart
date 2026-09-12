@@ -1,3 +1,4 @@
+import 'package:vortice_app/core/meter_units.dart';
 import 'maintenance_recurrence.dart';
 import 'package:flutter/material.dart';
 import 'package:vortice_app/features/coordination/coordination_entry.dart';
@@ -213,7 +214,12 @@ class MaintenanceAssetScreen extends ConsumerWidget {
                     Card(
                       child: ListTile(
                         title: Text(component['label'] as String),
-                        subtitle: Text('${component['current_hours'] ?? 0} h'),
+                        subtitle: Text(
+                          formatMeter(
+                            component['current_hours'] as num?,
+                            component['meter_unit'] as String?,
+                          ),
+                        ),
                         trailing: manager
                             ? IconButton(
                                 tooltip: es
@@ -257,7 +263,10 @@ class MaintenanceAssetScreen extends ConsumerWidget {
                           children: [
                             Text(
                               plan['interval_label'] as String? ??
-                                  '${plan['interval_hours']} h',
+                                  formatMeter(
+                                    plan['interval_hours'] as num?,
+                                    plan['meter_unit'] as String?,
+                                  ),
                               style: Theme.of(context).textTheme.titleMedium,
                             ),
                             Text(

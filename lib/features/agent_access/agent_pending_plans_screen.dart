@@ -1,3 +1,4 @@
+import 'agent_review_evidence.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:vortice_app/core/user_feedback.dart';
@@ -52,8 +53,8 @@ class _PendingPlansState extends ConsumerState<AgentPendingPlansScreen> {
               children: [
                 Text(
                   es
-                      ? 'Propuestas pendientes de tu revisión. Comprueba el manual, las horas actuales y el último servicio antes de activar cada plan.'
-                      : 'Proposals waiting for your review. Check the manual, current hours and last service before activating each plan.',
+                      ? 'Propuestas pendientes de tu revisión. Comprueba el manual, el medidor actual y el último servicio antes de activar cada plan.'
+                      : 'Proposals waiting for your review. Check the manual, current meter and last service before activating each plan.',
                 ),
                 const SizedBox(height: 16),
                 if (rows.isEmpty)
@@ -70,7 +71,7 @@ class _PendingPlansState extends ConsumerState<AgentPendingPlansScreen> {
                     child: ListTile(
                       title: Text(row['draft']['interval_label'] as String),
                       subtitle: Text(
-                        '${row['assets']?['name'] ?? ''}\n${row['draft']['interval_hours']} h',
+                        '${row['assets']?['name'] ?? ''}\n${reviewHours(row['draft']['interval_hours'] as num?, row['draft']['meter_unit'] as String? ?? 'hours')}',
                       ),
                       trailing: const Icon(Icons.chevron_right),
                       onTap: () async {

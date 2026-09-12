@@ -241,6 +241,8 @@ class ServiceReportRepository {
     final id = reportId ?? _uuidV4();
     final report = ServiceReport(
       id: id,
+      meterUnit:
+          (await _db.workOrdersDao.getById(workOrderId))?.meterUnit ?? 'hours',
       workOrderId: workOrderId,
       complaint: complaint,
       cause: cause,
@@ -304,6 +306,10 @@ class ServiceReportRepository {
     final now = DateTime.now();
     final report = ServiceReport(
       id: reportId,
+      meterUnit:
+          existing?.meterUnit ??
+          (await _db.workOrdersDao.getById(workOrderId))?.meterUnit ??
+          'hours',
       workOrderId: workOrderId,
       complaint: complaint,
       cause: cause,
@@ -467,6 +473,7 @@ class ServiceReportRepository {
 
 ServiceReport _fromRow(ServiceReportsTableData row) => ServiceReport(
   id: row.id,
+  meterUnit: row.meterUnit,
   workOrderId: row.workOrderId,
   complaint: row.complaint,
   cause: row.cause,
@@ -490,6 +497,7 @@ ServiceReportsTableCompanion _toCompanion(
   String? lastError,
 }) => ServiceReportsTableCompanion(
   id: Value(report.id),
+  meterUnit: Value(report.meterUnit),
   workOrderId: Value(report.workOrderId),
   complaint: Value(report.complaint),
   cause: Value(report.cause),

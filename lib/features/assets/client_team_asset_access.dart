@@ -92,6 +92,7 @@ Map<String, dynamic> clientTeamAssetRow(Asset asset) => {
   'id': asset.id,
   'client_id': asset.clientId,
   'asset_type_id': asset.assetTypeId,
+  'meter_unit': asset.meterUnit,
   'name': asset.name,
   'make': asset.make,
   'model': asset.model,

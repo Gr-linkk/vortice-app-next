@@ -1,3 +1,4 @@
+import 'package:vortice_app/core/meter_units.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -9,9 +10,9 @@ Map<String, dynamic> reviewMap(dynamic value) =>
     value is Map ? Map<String, dynamic>.from(value) : <String, dynamic>{};
 List<Map<String, dynamic>> reviewRows(dynamic value) =>
     value is List ? value.map(reviewMap).toList() : <Map<String, dynamic>>[];
-String reviewHours(num? value) => value == null || !value.isFinite
+String reviewHours(num? value, [String unit = 'hours']) => value == null || !value.isFinite
     ? '—'
-    : '${value == value.roundToDouble() ? value.toInt() : value} h';
+    : '${value == value.roundToDouble() ? value.toInt() : value} ${meterSymbol(unit)}';
 String reviewDate(BuildContext context, dynamic value) {
   final date = DateTime.tryParse(value?.toString() ?? '')?.toLocal();
   return date == null
@@ -37,10 +38,13 @@ class AgentReviewEvidence {
             (draft['existing_plan_id'] ?? proposal['applied_plan_id']),
       )
       .firstOrNull;
+  String get unit => component['meter_unit'] as String? ?? 'hours';
+  String get proposalUnit => draft['meter_unit'] as String? ?? 'hours';
+  bool get meterMatches => unit == proposalUnit;
   num? get current => component['current_hours'] as num?;
   num? get baseline => plan?['last_service_hours'] as num?;
   num get interval => draft['interval_hours'] as num;
-  num? get proposedDue => baseline == null ? null : baseline! + interval;
+  num? get proposedDue => baseline == null || !meterMatches ? null : baseline! + interval;
   bool get applied => proposal['applied_plan_id'] != null;
   bool get missingPlan => draft['existing_plan_id'] != null && plan == null;
   bool get checklistReady =>
@@ -49,6 +53,7 @@ class AgentReviewEvidence {
           data['procedure']?['archived'] != true);
   bool get canEdit =>
       checklistReady &&
+      meterMatches &&
       !missingPlan &&
       catalog['can_plan'] != false &&
       component.isNotEmpty;
@@ -142,7 +147,7 @@ class AgentProposalSummary extends StatelessWidget {
               e.applied
                   ? (es ? 'Intervalo guardado' : 'Saved interval')
                   : (es ? 'Intervalo actual' : 'Current interval'),
-              reviewHours(e.plan!['interval_hours'] as num?),
+              reviewHours(e.plan!['interval_hours'] as num?, e.unit),
             ),
           ReviewFact(
             e.applied
@@ -150,7 +155,7 @@ class AgentProposalSummary extends StatelessWidget {
                       ? 'Propuesta original del agente'
                       : 'Original agent proposal')
                 : (es ? 'Intervalo propuesto' : 'Proposed interval'),
-            reviewHours(e.interval),
+            reviewHours(e.interval, e.proposalUnit),
           ),
           if (!e.applied) ...[
             const Divider(),
@@ -160,18 +165,18 @@ class AgentProposalSummary extends StatelessWidget {
                   ? (es
                         ? 'Confirma el último servicio'
                         : 'Confirm last service first')
-                  : reviewHours(e.proposedDue),
+                  : reviewHours(e.proposedDue, e.unit),
               detail: e.proposedDue == null
                   ? (es
                         ? 'El manual da el intervalo. El historial determina dónde empieza.'
                         : 'The manual gives the interval. Service history determines where it starts.')
-                  : '${reviewHours(e.baseline)} + ${reviewHours(e.interval)} = ${reviewHours(e.proposedDue)}',
+                  : '${reviewHours(e.baseline, e.unit)} + ${reviewHours(e.interval, e.unit)} = ${reviewHours(e.proposedDue, e.unit)}',
             ),
             if (remaining != null)
               Text(
                 remaining < 0
-                    ? '${reviewHours(-remaining)} ${es ? 'de atraso según la propuesta' : 'overdue under this proposal'}'
-                    : '${reviewHours(remaining)} ${es ? 'restantes según la propuesta' : 'remaining under this proposal'}',
+                    ? '${reviewHours(-remaining, e.unit)} ${es ? 'de atraso según la propuesta' : 'overdue under this proposal'}'
+                    : '${reviewHours(remaining, e.unit)} ${es ? 'restantes según la propuesta' : 'remaining under this proposal'}',
               ),
           ],
           if ((e.draft['notes'] as String? ?? '').trim().isNotEmpty) ...[
@@ -198,8 +203,8 @@ class AgentEquipmentEvidence extends StatelessWidget {
     final meter = reviewMap(e.data['meter_log']);
     return AgentSectionCard(
       title: es
-          ? 'Horas e historial de esta tarea'
-          : 'Hours and this task’s history',
+          ? 'Medidor e historial de esta tarea'
+          : 'Meter and this task’s history',
       icon: Icons.speed,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -210,21 +215,21 @@ class AgentEquipmentEvidence extends StatelessWidget {
                 (es ? 'No disponible' : 'Unavailable'),
           ),
           ReviewFact(
-            es ? 'Horas actuales registradas' : 'Recorded current hours',
+            es ? 'Lectura actual registrada' : 'Recorded current meter',
             e.current == null
                 ? (es ? 'Desconocidas' : 'Unknown')
-                : reviewHours(e.current),
+                : reviewHours(e.current, e.unit),
             detail: meter['logged_at'] == null
                 ? (es
                       ? 'Sin fecha de lectura. Verifica el medidor.'
                       : 'No reading date recorded. Verify the meter.')
-                : '${es ? 'Última lectura' : 'Latest meter entry'}: ${reviewHours(meter['hours'] as num?)} · ${reviewDate(context, meter['logged_at'])}',
+                : '${es ? 'Última lectura' : 'Latest meter entry'}: ${reviewHours(meter['hours'] as num?, meter['meter_unit'] as String? ?? e.unit)} · ${reviewDate(context, meter['logged_at'])}',
           ),
           ReviewFact(
             es ? 'Último servicio de esta tarea' : 'Last service for this task',
             e.baseline == null
                 ? (es ? 'Por confirmar' : 'Needs confirmation')
-                : reviewHours(e.baseline),
+                : reviewHours(e.baseline, e.unit),
           ),
           if (e.draft['recorded_current_hours'] != null &&
               e.current != null &&
@@ -233,8 +238,8 @@ class AgentEquipmentEvidence extends StatelessWidget {
               padding: const EdgeInsets.only(bottom: 12),
               child: Text(
                 es
-                    ? 'El medidor cambió desde la propuesta (${reviewHours(e.draft['recorded_current_hours'] as num?)}). El cálculo usa las horas actuales.'
-                    : 'The meter changed since this proposal (${reviewHours(e.draft['recorded_current_hours'] as num?)}). The calculation uses current hours.',
+                    ? 'El medidor cambió desde la propuesta (${reviewHours(e.draft['recorded_current_hours'] as num?, e.unit)}). El cálculo usa el medidor actual.'
+                    : 'The meter changed since this proposal (${reviewHours(e.draft['recorded_current_hours'] as num?, e.unit)}). The calculation uses the current meter.',
                 style: Theme.of(context).textTheme.bodySmall,
               ),
             ),
@@ -406,6 +411,7 @@ class AgentServiceEvidence extends StatelessWidget {
   Widget build(BuildContext context) {
     final es = isSpanish(context),
         rows = reviewRows(evidence.data['approved_services']);
+    final e = evidence;
     return AgentSectionCard(
       title: es
           ? 'Servicios aprobados del componente'
@@ -425,7 +431,7 @@ class AgentServiceEvidence extends StatelessWidget {
               contentPadding: EdgeInsets.zero,
               title: Text(row['title'] as String),
               subtitle: Text(
-                '${reviewDate(context, row['service_applied_at'])} · ${reviewHours(row['hours_at_end'] as num?)}\n${row['matches_task'] == true ? (es ? 'Vinculado a esta tarea' : 'Linked to this task') : (es ? 'Otra tarea: no usar como base sin verificar' : 'Other task: verify before using as baseline')}',
+                '${reviewDate(context, row['service_applied_at'])} · ${reviewHours(row['hours_at_end'] as num?, row['meter_unit'] as String? ?? e.unit)}\n${row['matches_task'] == true ? (es ? 'Vinculado a esta tarea' : 'Linked to this task') : (es ? 'Otra tarea: no usar como base sin verificar' : 'Other task: verify before using as baseline')}',
               ),
               trailing: const Icon(Icons.chevron_right),
               onTap: () =>

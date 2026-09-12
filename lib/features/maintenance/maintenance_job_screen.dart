@@ -1,4 +1,6 @@
-import 'package:vortice_app/features/parts/parts_readiness_entry.dart';
+import 'maintenance_progress.dart';
+import 'package:vortice_app/core/meter_units.dart';
+import 'package:vortice_app/features/parts/work_parts_progress.dart';
 import 'package:vortice_app/core/app_dropdown_field.dart';
 import 'dart:convert';
 import 'package:vortice_app/sync/field_work_provider.dart';
@@ -16,6 +18,7 @@ import 'maintenance_report_screen.dart';
 import 'maintenance_repository.dart';
 import 'maintenance_refresh.dart';
 import 'internal_work_order_edit_screen.dart';
+import 'package:vortice_app/sync/online_action_gate.dart';
 
 class MaintenanceJobScreen extends ConsumerStatefulWidget {
   const MaintenanceJobScreen({super.key, required this.jobId});
@@ -40,6 +43,7 @@ class _MaintenanceJobScreenState extends ConsumerState<MaintenanceJobScreen> {
     String action, [
     Map<String, dynamic> data = const {},
   ]) async {
+    if(['assign','approve','return','release'].contains(action) && (!await requireOnlineAction(context,ref) || !mounted)) return;
     _pending ??= MaintenanceWrite(data);
     _action ??= action;
     _revision ??= job.revision;
@@ -72,6 +76,66 @@ class _MaintenanceJobScreenState extends ConsumerState<MaintenanceJobScreen> {
       }
     } finally {
       if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  Future<void> _start(MaintenanceJob job) async {
+    if (job.data['engine_id'] == null || job.data['started_at'] != null) {
+      await _act(job, 'start');
+      return;
+    }
+    final meter = TextEditingController(
+      text:
+          job.data['current_meter']?.toString() ??
+          job.data['hours_at_start']?.toString() ??
+          '',
+    );
+    final form = GlobalKey<FormState>();
+    final unit = job.data['meter_unit'] as String? ?? 'hours';
+    final es = isSpanish(context);
+    final reading = await showDialog<double>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(es ? 'Medidor al iniciar' : 'Starting meter'),
+        content: Form(
+          key: form,
+          child: TextFormField(
+            controller: meter,
+            autofocus: true,
+            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+            decoration: InputDecoration(
+              labelText:
+                  '${es ? 'Lectura actual' : 'Current reading'} (${meterSymbol(unit)})',
+            ),
+            validator: (value) {
+              final n = double.tryParse(value ?? '');
+              return n == null || !n.isFinite || n < 0
+                  ? (es
+                        ? 'Ingresa una lectura válida'
+                        : 'Enter a valid reading')
+                  : null;
+            },
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text(es ? 'Cancelar' : 'Cancel'),
+          ),
+          FilledButton(
+            onPressed: () {
+              if (form.currentState!.validate()) {
+                Navigator.pop(context, double.parse(meter.text));
+              }
+            },
+            child: Text(es ? 'Iniciar trabajo' : 'Start work'),
+          ),
+        ],
+      ),
+    );
+    meter.dispose();
+    if (reading != null && mounted) {
+      await _act(job, 'start', {'start_meter': reading, 'meter_unit': unit});
     }
   }
 
@@ -175,9 +239,40 @@ class _MaintenanceJobScreenState extends ConsumerState<MaintenanceJobScreen> {
               job.report['repair'] as String?,
             ),
             info(es ? 'Notas' : 'Notes', job.report['notes'] as String?),
+            if (job.data['inspection_id'] != null) ...[
+              Text(
+                es ? 'Certificado de inspección' : 'Inspection certificate',
+                style: Theme.of(context).textTheme.titleMedium,
+              ),
+              info(
+                es ? 'Fecha de inspección' : 'Inspection date',
+                (job.data['inspection_result'] as Map?)?['inspected_on']
+                    as String?,
+              ),
+              info(
+                es ? 'Próximo vencimiento' : 'Next expiry',
+                (job.data['inspection_result'] as Map?)?['expires_on']
+                    as String?,
+              ),
+              info(
+                es ? 'Procedimiento aplicado' : 'Procedure performed',
+                (job.data['inspection_result'] as Map?)?['procedure_notes']
+                    as String?,
+              ),
+              info(
+                es ? 'Resultado de inspección' : 'Inspection result',
+                (job.data['inspection_result'] as Map?)?['result_notes']
+                    as String?,
+              ),
+            ],
             info(
               es ? 'Horas al finalizar' : 'Completion meter',
-              job.data['hours_at_end']?.toString(),
+              job.data['hours_at_end'] == null
+                  ? null
+                  : formatMeter(
+                      job.data['hours_at_end'] as num?,
+                      job.data['meter_unit'] as String?,
+                    ),
             ),
             if (job.data['checklist_template_version'] != null)
               info(
@@ -214,6 +309,7 @@ class _MaintenanceJobScreenState extends ConsumerState<MaintenanceJobScreen> {
             if (job.canManage &&
                 job.canWork &&
                 job.status == 'pending_review') ...[
+              const OnlineOnlyNotice(),
               const SizedBox(height: 16),
               FilledButton(
                 onPressed: disabled
@@ -260,12 +356,66 @@ class _MaintenanceJobScreenState extends ConsumerState<MaintenanceJobScreen> {
                 label: Text(job.assetName),
               ),
               WorkOrderFaultCard(workOrderId: job.id, assetId: job.assetId),
-              PartsReadinessEntry(jobId: job.id),
+              WorkPartsProgress(jobId: job.id),
+              if (job.data['generation_kind'] == 'recurring')
+                Text(
+                  es
+                      ? 'Creada automáticamente por el programa de mantenimiento.'
+                      : 'Created automatically by the maintenance schedule.',
+                ),
+              if ((job.data['cycle'] as Map?)?['due_meter'] != null)
+                info(
+                  es ? 'Objetivo del medidor' : 'Due meter',
+                  formatMeter(
+                    (job.data['cycle'] as Map)['due_meter'] as num?,
+                    job.data['meter_unit'] as String?,
+                  ),
+                ),
+              for (final source in maintenanceRows(job.data['sources']))
+                if (source['source_kind'] == 'fault')
+                  TextButton.icon(
+                    onPressed: () =>
+                        context.push('/fleet/faults/${source['source_id']}'),
+                    icon: const Icon(Icons.link),
+                    label: Text(
+                      es ? 'Abrir falla de origen' : 'Open source fault',
+                    ),
+                  ),
+              for (final fault in maintenanceRows(job.data['checklist_faults']))
+                TextButton.icon(
+                  onPressed: () =>
+                      context.push('/fleet/faults/${fault['fault_id']}'),
+                  icon: const Icon(Icons.flag_outlined),
+                  label: Text(
+                    es
+                        ? 'Abrir falla del paso de la lista'
+                        : 'Open checklist-step fault',
+                  ),
+                ),
+              if (job.checklist.isNotEmpty)
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 8),
+                  child: Text(
+                    '${es ? 'Lista' : 'Checklist'}: ${maintenanceCompletedItems(job.checklist, job.answers, job.evidence)} / ${job.checklist.length} ${es ? 'pasos completos' : 'steps complete'}',
+                  ),
+                ),
+              if (job.data['hours_at_start'] != null)
+                info(
+                  es ? 'Medidor al iniciar' : 'Starting meter',
+                  formatMeter(
+                    job.data['hours_at_start'] as num?,
+                    job.data['meter_unit'] as String?,
+                  ),
+                ),
               Wrap(
                 spacing: 8,
                 runSpacing: 8,
                 children: [
-                  Chip(label: Text(maintenanceStatus(job.status, es))),
+                  Chip(
+                    label: Text(
+                      job.lifecycleLabel(es),
+                    ),
+                  ),
                   Chip(label: Text(maintenancePriority(job.priority, es))),
                   Chip(label: Text(job.workType.label(es))),
                   if (job.isService)
@@ -406,7 +556,7 @@ class _MaintenanceJobScreenState extends ConsumerState<MaintenanceJobScreen> {
                 ),
                 const SizedBox(height: 8),
                 FilledButton.icon(
-                  onPressed: disabled ? null : () => _act(job, 'start'),
+                  onPressed: disabled ? null : () => _start(job),
                   icon: const Icon(Icons.play_arrow),
                   label: Text(es ? 'Iniciar trabajo' : 'Start work'),
                 ),
@@ -427,8 +577,12 @@ class _MaintenanceJobScreenState extends ConsumerState<MaintenanceJobScreen> {
                   icon: const Icon(Icons.edit_note),
                   label: Text(
                     es
-                        ? 'Continuar informe de servicio'
-                        : 'Continue service report',
+                        ? (job.report.isEmpty
+                              ? 'Crear informe de servicio'
+                              : 'Continuar informe de servicio')
+                        : (job.report.isEmpty
+                              ? 'Create service report'
+                              : 'Continue service report'),
                   ),
                 ),
               if (job.status == 'pending_review') ...report,
@@ -514,7 +668,7 @@ class _MaintenanceJobScreenState extends ConsumerState<MaintenanceJobScreen> {
                     (s) => s['actor_id'] == userId && s['stopped_at'] == null,
                   ))
                 OutlinedButton.icon(
-                  onPressed: disabled ? null : () => _act(job, 'start'),
+                  onPressed: disabled ? null : () => _start(job),
                   icon: const Icon(Icons.play_arrow),
                   label: Text(es ? 'Iniciar tiempo' : 'Start labour'),
                 ),

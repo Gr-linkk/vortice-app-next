@@ -12,16 +12,24 @@ final myChecklistAssignmentsProvider =
       final userId = ref.watch(sessionProvider)?.user.id;
       if (userId == null) return [];
 
-      final data = await supabase
-          .from(_tAssignments)
-          .select('''
+      final data =
+          await AccountJsonCache(
+            userId,
+            () => supabase.auth.currentUser?.id,
+          ).readThrough(
+            'my_checklist_assignments',
+            () => supabase
+                .from(_tAssignments)
+                .select('''
         id, status, due_date, notes, created_at,
         checklist_templates(id, name, checklist_type, interval_label),
         assets(id, name)
       ''')
-          .eq('assigned_to', userId)
-          .neq('status', 'cancelled')
-          .order('created_at', ascending: false);
+                .eq('assigned_to', userId)
+                .neq('status', 'cancelled')
+                .order('created_at', ascending: false)
+                .timeout(const Duration(seconds: 6)),
+          );
 
       if (userId != supabase.auth.currentUser?.id) {
         throw const AccountChangedException();

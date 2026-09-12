@@ -55,11 +55,16 @@ enum WorkOrderJobType {
 abstract class WorkOrder with _$WorkOrder {
   const factory WorkOrder({
     required String id,
+    @JsonKey(name: 'organization_relationship_id')
+    String? organizationRelationshipId,
+    @JsonKey(name: 'provider_organization_id') String? providerOrganizationId,
+    @JsonKey(name: 'customer_organization_id') String? customerOrganizationId,
+    @JsonKey(name: 'meter_unit') @Default('hours') String meterUnit,
     @JsonKey(name: 'asset_id') required String assetId,
     @JsonKey(name: 'engine_id') String? engineId,
     @JsonKey(name: 'client_id') required String clientId,
     @JsonKey(name: 'assigned_to') String? assignedTo,
-    @JsonKey(name: 'created_by') required String createdBy,
+    @JsonKey(name: 'created_by') String? createdBy,
     @JsonKey(name: 'checklist_template_id') String? checklistTemplateId,
     @JsonKey(name: 'checklist_template_version') int? checklistTemplateVersion,
     @JsonKey(name: 'job_type') required WorkOrderJobType jobType,

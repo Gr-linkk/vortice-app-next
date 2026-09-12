@@ -12,6 +12,8 @@ import 'package:vortice_app/features/maintenance/maintenance_models.dart';
 import 'package:vortice_app/features/maintenance/maintenance_repository.dart';
 import 'package:vortice_app/features/maintenance/maintenance_refresh.dart';
 import 'assurance_repository.dart';
+import 'inspection_schedule_fields.dart';
+import 'package:vortice_app/features/assets/asset_workspace.dart';
 
 final inspectionPhotoPickerProvider = Provider<Future<XFile?> Function()>(
   (ref) =>
@@ -54,6 +56,7 @@ class _AssuranceFormState extends ConsumerState<AssuranceForm> {
   MaintenanceWrite? _pending;
   bool _busy = false, _dirty = false, _saved = false;
   Object? _error;
+  final Map<String, dynamic> _schedule = {};
   @override
   void initState() {
     super.initState();
@@ -69,6 +72,9 @@ class _AssuranceFormState extends ConsumerState<AssuranceForm> {
       'procedure_notes',
       'result_notes',
       'note',
+      'first_due_date',
+      'interval_months',
+      'generation_lead_days',
     ]) {
       _fields[name] = TextEditingController(
         text: name == 'site' ? custody['site'] as String? ?? '' : '',
@@ -76,6 +82,16 @@ class _AssuranceFormState extends ConsumerState<AssuranceForm> {
     }
     _person = custody['responsible_id'] as String?;
     _lifecycle = custody['lifecycle'] as String? ?? 'active';
+    _fields['first_due_date']!.text =
+        widget.item['first_due_date'] as String? ??
+        DateTime.now().toIso8601String().substring(0, 10);
+    _fields['interval_months']!.text =
+        '${widget.item['interval_months'] ?? 12}';
+    _fields['generation_lead_days']!.text =
+        '${widget.item['generation_lead_days'] ?? 30}';
+    _fields['procedure_notes']!.text =
+        widget.item['procedure_notes'] as String? ?? '';
+    _schedule['checklist_template_id'] = widget.item['checklist_template_id'];
   }
 
   @override
@@ -146,6 +162,7 @@ class _AssuranceFormState extends ConsumerState<AssuranceForm> {
       'component_id': _component,
       'evidence_path': _path,
       'submission_id': (widget.item['pending'] as Map?)?['id'],
+      if (['create', 'schedule'].contains(widget.action)) ..._schedule,
     }, operationId: _operation);
     setState(() {
       _busy = true;
@@ -182,6 +199,7 @@ class _AssuranceFormState extends ConsumerState<AssuranceForm> {
       _pending = null;
       ref.invalidate(assuranceContextProvider);
       ref.invalidate(inspectionRegisterProvider);
+      ref.invalidate(assetWorkspaceProvider);
       refreshMaintenance(ref, assetsChanged: true);
       Navigator.pop(context, true);
     } catch (e) {
@@ -200,6 +218,7 @@ class _AssuranceFormState extends ConsumerState<AssuranceForm> {
   Widget build(BuildContext context) {
     final es = isSpanish(context), frozen = _busy || _pending != null;
     final title = switch (widget.action) {
+      'schedule' => es ? 'Programar inspección' : 'Inspection schedule',
       'transfer' => es ? 'Actualizar equipo' : 'Update equipment',
       'create' => es ? 'Añadir inspección' : 'Add inspection',
       'submit' => es ? 'Enviar renovación' : 'Submit renewal',
@@ -383,6 +402,21 @@ class _AssuranceFormState extends ConsumerState<AssuranceForm> {
                     required: false,
                   ),
                 ],
+                if (['create', 'schedule'].contains(widget.action))
+                  InspectionScheduleFields(
+                    text: _fields,
+                    values: _schedule,
+                    templates: maintenanceRows(widget.catalog['templates']),
+                    es: es,
+                    frozen: frozen,
+                    onChanged: () => setState(() => _dirty = true),
+                  ),
+                if (widget.action == 'schedule')
+                  field(
+                    'note',
+                    'Reason for schedule change',
+                    'Motivo del cambio',
+                  ),
                 if (widget.action == 'submit') ...[
                   field(
                     'inspected_on',

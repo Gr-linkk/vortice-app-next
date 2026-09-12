@@ -25,6 +25,12 @@ bool isAccessDenial(Object error) =>
     (error is PostgrestException &&
         ['42501', 'PGRST301', 'PGRST302'].contains(error.code));
 
+// A readiness refresh must prove server contact; cached fallback cannot move
+// its last-updated time forward. Ordinary screen reads keep offline fallback.
+const _requireFreshReads = #vorticeRequireFreshReads;
+Future<T> withFreshAccountReads<T>(Future<T> Function() body) =>
+    runZoned(body, zoneValues: {_requireFreshReads: true});
+
 /// Invalidate read permissions without touching drafts, retries or the outbox.
 Future<void> invalidateAccountReadCaches(String account) async {
   final prefs = await SharedPreferences.getInstance();
@@ -93,6 +99,7 @@ class AccountJsonCache {
       if (previous != null &&
           key != 'profile' &&
           key != 'current_org' &&
+          key != 'organization_context' &&
           !key.startsWith('capabilities:')) {
         dynamic old;
         try {
@@ -117,6 +124,7 @@ class AccountJsonCache {
       if (previous != null &&
           (key == 'profile' ||
               key == 'current_org' ||
+              key == 'organization_context' ||
               key.startsWith('capabilities:'))) {
         dynamic old;
         try {
@@ -167,6 +175,7 @@ class AccountJsonCache {
       checkAccount();
       if (isAccessDenial(error)) await invalidateAccountReadCaches(account);
       if (!isConnectionFailure(error)) rethrow;
+      if (Zone.current[_requireFreshReads] == true) rethrow;
       final cached = prefs.getString(storageKey);
       if (cached == null) rethrow;
       Map<dynamic, dynamic> stored;

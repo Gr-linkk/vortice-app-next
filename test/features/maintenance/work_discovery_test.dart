@@ -7,10 +7,11 @@ import 'package:vortice_app/features/auth/auth_provider.dart';
 import 'package:vortice_app/features/clients/client_capability_gate.dart';
 import 'package:vortice_app/features/maintenance/maintenance_asset_screen.dart';
 import 'package:vortice_app/features/maintenance/maintenance_list_screen.dart';
-import 'package:vortice_app/features/maintenance/maintenance_repository.dart';
 import 'package:vortice_app/features/maintenance/maintenance_models.dart';
 import 'package:vortice_app/features/maintenance/maintenance_report_screen.dart';
 import 'package:vortice_app/features/maintenance/work_list_provider.dart';
+import 'package:vortice_app/features/maintenance/planning/planning_models.dart';
+import 'package:vortice_app/features/maintenance/planning/planning_repository.dart';
 import 'package:vortice_app/features/service_reports/service_report_provider.dart';
 import 'package:vortice_app/features/work_orders/work_order_detail_actions_section.dart';
 import 'package:vortice_app/features/work_orders/work_order_provider.dart';
@@ -88,21 +89,15 @@ void main() {
                 role: role,
               ),
             ),
-            maintenanceRepositoryProvider.overrideWithValue(
-              FixtureMaintenance(),
-            ),
-            workOrdersProvider.overrideWith((_) async {
+            maintenancePlanningProvider.overrideWith((_, assetId) async {
               providerReads++;
-              return [
-                serviceOrder,
-                serviceOrder.copyWith(id: 'other', assetId: 'other'),
-                serviceOrder.copyWith(id: 'job'),
-              ];
+              expect(assetId, 'asset');
+              return PlanningData(jobs: [
+                PlanningJob({'id':'job','asset_id':'asset','title':'Internal repair','asset_name':'Generator 02','status':'assigned'}),
+                if (role == UserRole.owner)
+                  PlanningJob({'id':'service','asset_id':'asset','title':'Provider repair','asset_name':'Generator 02','status':'assigned','provider_service':true,'assigned_to_me':true,'route':'/owner/work-orders/service'}),
+              ],plans:[]);
             }),
-            assetNameProvider.overrideWith((_, id) async => 'Generator 02'),
-            currentUserAssignedToWorkOrderProvider.overrideWith(
-              (_, id) async => id == 'service',
-            ),
           ],
         );
         addTearDown(container.dispose);
@@ -115,9 +110,9 @@ void main() {
           expect(service.matches('mine', 'generator'), isTrue);
           expect(service.matches('closed', ''), isFalse);
         } else {
-          expect(providerReads, 0);
           expect(entries.every((e) => !e.service), isTrue);
         }
+        expect(providerReads, 1);
       },
     );
   }

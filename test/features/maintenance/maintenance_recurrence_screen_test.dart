@@ -66,8 +66,8 @@ void main() {
       );
       await tester.pumpAndSettle();
       await tester.ensureVisible(find.text('Upcoming targets'));
-      expect(find.text('1. 7100.0 h'), findsOneWidget);
-      expect(find.text('2. 7350.0 h'), findsOneWidget);
+      expect(find.text('1. 7100 h'), findsOneWidget);
+      expect(find.text('2. 7350 h'), findsOneWidget);
       await captureFleet(tester, 'recurrence-preview-en');
       await tester.scrollUntilVisible(
         find.text('Save').hitTestable(),

@@ -16,13 +16,27 @@ bool canUseMaintenance(UserRole? role) =>
     role == UserRole.employee ||
     role == UserRole.clientMechanic;
 
-String maintenanceStatus(String value, bool es) => switch (value) {
+String maintenanceLifecycle(String value, {bool? booked, bool returned = false}) {
+  if (value == 'closed' || value == 'invoiced') return 'completed';
+  if (value == 'pending_review') return value;
+  if (returned) return 'returned';
+  if ((value == 'draft' || value == 'assigned') && booked == true) {
+    return 'scheduled';
+  }
+  if (value == 'assigned' && booked == false) return 'unscheduled';
+  return value;
+}
+
+String maintenanceStatus(String value, bool es, {bool? booked, bool returned = false}) => switch (maintenanceLifecycle(value, booked: booked, returned: returned)) {
   'draft' => es ? 'Sin asignar' : 'Unassigned',
   'assigned' => es ? 'Asignado' : 'Assigned',
+  'scheduled' => es ? 'Programado' : 'Scheduled',
+  'unscheduled' => es ? 'Sin programar' : 'Unscheduled',
+  'returned' => es ? 'Devuelto' : 'Returned',
   'in_progress' => es ? 'En curso' : 'In progress',
   'on_hold' => es ? 'Bloqueado' : 'Blocked',
   'pending_review' => es ? 'Pendiente de revisión' : 'Awaiting review',
-  'closed' => es ? 'Completado' : 'Completed',
+  'completed' => es ? 'Completado' : 'Completed',
   _ => value,
 };
 
@@ -69,6 +83,14 @@ class MaintenanceJob {
   String get assetName => data['asset_name'] as String? ?? '';
   String get title => data['title'] as String? ?? '';
   String get status => data['status'] as String? ?? 'draft';
+  bool get completed => status == 'closed' || status == 'invoiced';
+  bool get returned =>
+      !completed && status != 'pending_review' && data['returned_at'] != null;
+  bool get hasBooking =>
+      DateTime.tryParse(data['planned_start'] as String? ?? '') != null ||
+      DateTime.tryParse(data['service_date'] as String? ?? '') != null;
+  String get lifecycle => maintenanceLifecycle(status, booked: hasBooking, returned: returned);
+  String lifecycleLabel(bool es) => maintenanceStatus(lifecycle, es);
   String get priority => data['priority'] as String? ?? 'normal';
   String? get dueDate => data['due_date'] as String?;
   int get revision => (data['revision'] as num?)?.toInt() ?? 0;

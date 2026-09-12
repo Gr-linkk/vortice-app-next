@@ -32,7 +32,7 @@ test('protocol initialization, discovery and notification silence', async () => 
   const handler = createHandler(configuration(env), () => { throw new Error('must not fetch'); });
   assert.equal((await handler(req('tools/list'))).error.code, -32000);
   assert.equal((await handler(init)).result.protocolVersion, '2025-11-25');
-  assert.equal((await handler(req('tools/list'))).result.tools.length, 10);
+  assert.equal((await handler(req('tools/list'))).result.tools.length, 11);
   assert.equal(await handler({ jsonrpc: '2.0', method: 'notifications/initialized' }), null);
   assert.equal((await handler(req('resources/read'))).error.code, -32601);
   assert.equal((await handler([])).error.code, -32600);
@@ -115,7 +115,7 @@ test('real process speaks MCP over stdin/stdout and cleanly rejects bad configur
   const result = spawnSync(process.execPath, [path], { env, encoding: 'utf8', input: `${JSON.stringify(init)}\n${JSON.stringify(req('tools/list'))}\n` });
   assert.equal(result.status, 0, result.stderr);
   assert.equal(result.stderr, '');
-  assert.equal(result.stdout.trim().split('\n').map(JSON.parse)[1].result.tools.length, 10);
+  assert.equal(result.stdout.trim().split('\n').map(JSON.parse)[1].result.tools.length, 11);
   const bad = spawnSync(process.execPath, [path], { env: { ...env, VORTICE_AGENT_TOKEN: 'bad-secret' }, encoding: 'utf8' });
   assert.equal(bad.status, 1);
   assert.ok(!bad.stderr.includes('bad-secret'));

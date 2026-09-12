@@ -150,7 +150,7 @@ class _MaintenanceListScreenState extends ConsumerState<MaintenanceListScreen> {
                           child: ListTile(
                             title: Text(job.title),
                             subtitle: Text(
-                              '${job.assetName}\n${job.service ? (es ? 'Orden de servicio' : 'Service order') : (es ? 'Orden interna' : 'Internal work order')}${job.workType == null ? '' : ' · ${job.workType!.label(es)}'} · ${job.status == 'invoiced' ? (es ? 'Facturado' : 'Invoiced') : maintenanceStatus(job.status, es)}${job.priority == null ? '' : ' · ${maintenancePriority(job.priority!, es)}'}${job.dueDate == null ? '' : ' · ${maintenanceDate(job.dueDate, es)}'}',
+                              '${job.assetName}\n${job.service ? (es ? 'Orden de servicio' : 'Service order') : (es ? 'Orden interna' : 'Internal work order')}${job.workType == null ? '' : ' · ${job.workType!.label(es)}'} · ${job.lifecycleLabel(es)}${job.status == 'invoiced' ? (es ? ' · Facturado' : ' · Invoiced') : ''}${job.priority == null ? '' : ' · ${maintenancePriority(job.priority!, es)}'}${job.dueDate == null ? '' : ' · ${maintenanceDate(job.dueDate, es)}'}',
                             ),
                             isThreeLine: true,
                             trailing: const Icon(Icons.chevron_right),

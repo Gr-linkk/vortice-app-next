@@ -47,6 +47,8 @@ class SupabaseAssuranceRepository implements AssuranceRepository {
     Map<String, dynamic> data,
   ) async {
     final name = switch (action) {
+      'schedule' => 'configure_inspection_schedule',
+      'generate' => 'generate_recurring_work',
       'transfer' => 'transfer_asset_custody',
       'create' => 'create_asset_inspection',
       _ => 'change_asset_inspection',
@@ -55,14 +57,23 @@ class SupabaseAssuranceRepository implements AssuranceRepository {
         .rpc(
           name,
           params: {
-            if (action == 'transfer' || action == 'create')
+            if (action == 'transfer' ||
+                action == 'create' ||
+                action == 'generate')
               'p_asset': target
             else
               'p_inspection': target,
-            if (action != 'create') 'p_revision': revision,
-            if (action != 'create' && action != 'transfer') 'p_action': action,
-            'p_operation': operation,
-            'p_data': data,
+            if (!['create', 'generate'].contains(action))
+              'p_revision': revision,
+            if (![
+              'create',
+              'transfer',
+              'schedule',
+              'generate',
+            ].contains(action))
+              'p_action': action,
+            if (action != 'generate') 'p_operation': operation,
+            if (action != 'generate') 'p_data': data,
           },
         )
         .timeout(const Duration(seconds: 20));
@@ -114,6 +125,15 @@ final inspectionImageProvider = FutureProvider.autoDispose
         throw StateError('Sign in');
       }
       return ref.watch(assuranceRepositoryProvider).imageUrl(path);
+    });
+
+final inspectionWorkImageProvider = FutureProvider.autoDispose
+    .family<String, String>((ref, path) async {
+      final actor = await ref.watch(profileProvider.future);
+      if (actor == null) throw StateError('Sign in');
+      return supabase.storage
+          .from('maintenance-evidence')
+          .createSignedUrl(path, 300);
     });
 
 String inspectionState(Map<String, dynamic> item, DateTime now) {

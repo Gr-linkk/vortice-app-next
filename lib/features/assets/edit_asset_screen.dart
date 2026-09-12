@@ -3,6 +3,8 @@ import 'package:vortice_app/features/assets/asset_type_field.dart';
 import 'package:vortice_app/features/assurance/assurance_repository.dart';
 import 'package:vortice_app/core/user_feedback.dart';
 import 'package:flutter/material.dart';
+import 'package:vortice_app/features/auth/auth_provider.dart';
+import 'asset_workflow_policy.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:vortice_app/l10n/app_localizations.dart';
@@ -61,7 +63,7 @@ class _EditAssetScreenState extends ConsumerState<EditAssetScreen> {
   }
 
   Future<void> _submit() async {
-    if (!_formKey.currentState!.validate()) return;
+    if (!_formKey.currentState!.validate() || !AssetWorkflowPolicy.canManageProfile(ref.read(profileProvider).valueOrNull)) return;
 
     if (_selectedClientId == null) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -126,7 +128,7 @@ class _EditAssetScreenState extends ConsumerState<EditAssetScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              clientsAsync.when(
+              if (ref.watch(profileProvider).valueOrNull?.membershipManaged != true) clientsAsync.when(
                 loading: () => const LinearProgressIndicator(),
                 error: (err, _) => Text(
                   err.toString(),

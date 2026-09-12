@@ -8,9 +8,14 @@ class DevLoginAccount {
   String label(bool spanish) => spanish ? es : en;
 }
 
-/// Existing test profiles, not the future organization-membership role model.
+/// Internal demo personas; each account keeps its actual saved membership.
 /// Credentials come only from the private debug build configuration.
 const knownDevLoginAccounts = [
+  DevLoginAccount('demo_fleet_owner@vortice.dev', 'Demo fleet owner', 'Propietario de flota demo', 'company_owner', 3),
+  DevLoginAccount('demo_fleet_supervisor@vortice.dev', 'Demo fleet supervisor', 'Supervisor de flota demo', 'supervisor', 3),
+  DevLoginAccount('demo_fleet_mechanic@vortice.dev', 'Demo fleet mechanic', 'Mecánico de flota demo', 'mechanic', 3),
+  DevLoginAccount('demo_fleet_operator@vortice.dev', 'Demo fleet operator', 'Operador de flota demo', 'operator', 3),
+  DevLoginAccount('demo_service_owner@vortice.dev', 'Demo service company owner', 'Propietario del servicio demo', 'company_owner', 3),
   DevLoginAccount(
     'owner@vortice.dev',
     'Provider owner / administrator',
@@ -56,12 +61,13 @@ const knownDevLoginAccounts = [
 ];
 
 List<DevLoginAccount> devLoginAccounts(Iterable<String> configuredEmails) {
+  final configured = configuredEmails.toSet();
   final known = knownDevLoginAccounts.map((account) => account.email).toSet();
   final extra =
       configuredEmails.where((email) => !known.contains(email)).toSet().toList()
         ..sort();
   return [
-    ...knownDevLoginAccounts,
+    ...knownDevLoginAccounts.where((account) => account.group != 3 || configured.contains(account.email)),
     for (final email in extra)
       DevLoginAccount(
         email,
@@ -104,11 +110,12 @@ class DevLoginAccountSheet extends StatelessWidget {
                   ? 'Elige una cuenta. El trabajo guardado se conserva en su cuenta.'
                   : 'Choose an account. Saved work stays with its account.',
             ),
-            for (final group in [0, 1, 2])
+            for (final group in [3, 0, 1, 2])
               if (accounts.any((account) => account.group == group)) ...[
                 Padding(
                   padding: const EdgeInsets.only(top: 20, bottom: 8),
                   child: Text(switch (group) {
+                    3 => es ? 'Empresas demo nuevas' : 'New demo companies',
                     0 => es ? 'Empresa proveedora' : 'Service provider',
                     1 => es ? 'Empresas clientes' : 'Client companies',
                     _ =>

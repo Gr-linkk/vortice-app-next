@@ -1,3 +1,4 @@
+import 'package:vortice_app/core/meter_units.dart';
 import '../maintenance_models.dart';
 
 DateTime planningDay(DateTime value) =>
@@ -20,7 +21,12 @@ class PlanningJob extends MaintenanceJob {
   DateTime? get serviceDate =>
       DateTime.tryParse(data['service_date'] as String? ?? '');
   String get route => data['route'] as String? ?? '/maintenance/jobs/$id';
-  bool get completed => ['closed', 'invoiced'].contains(status);
+  bool get meterDue =>
+      !completed &&
+      data['cycle_approved_at'] == null &&
+      data['due_meter'] is num &&
+      data['current_meter'] is num &&
+      (data['current_meter'] as num) >= (data['due_meter'] as num);
   String get componentName => data['component_name'] as String? ?? '';
   String get blockedCategory => data['blocked_category'] as String? ?? 'other';
   bool get unscheduled => start == null && serviceDate == null && activeBooking;
@@ -33,6 +39,7 @@ class PlanningJob extends MaintenanceJob {
         'unassigned' => activeBooking && workers.isEmpty,
         'unscheduled' => unscheduled,
         'review' => status == 'pending_review',
+        'returned' => returned,
         'completed' => completed,
         'overdue' => !completed && overdue(now),
         'parts' => status == 'on_hold' && blockedCategory == 'parts',
@@ -42,7 +49,7 @@ class PlanningJob extends MaintenanceJob {
         _ => !completed,
       };
   bool matchesSearch(String query, bool es) =>
-      '$title $assetName $componentName $assigneeName $status ${status == 'invoiced' ? (es ? 'Facturado' : 'Invoiced') : maintenanceStatus(status, es)} ${workType.dbValue} ${workType.label(es)}'
+      '$title $assetName $componentName $assigneeName $status ${lifecycleLabel(es)} ${status == 'invoiced' ? (es ? 'Facturado' : 'Invoiced') : ''} ${workType.dbValue} ${workType.label(es)}'
           .toLowerCase()
           .contains(query.trim().toLowerCase());
   bool inPeriod(DateTime from, DateTime until) => (providerService
@@ -56,6 +63,7 @@ class PlanningJob extends MaintenanceJob {
       !['closed', 'invoiced', 'pending_review'].contains(status);
   bool overdue(DateTime now) {
     if (completed) return false;
+    if (meterDue) return true;
     final due = DateTime.tryParse(dueDate ?? '');
     return due != null && due.isBefore(planningDay(now));
   }
@@ -77,7 +85,11 @@ class PlanningPlan {
   String get assetId => data['asset_id'] as String;
   String get assetName => data['asset_name'] as String? ?? '';
   String get title =>
-      data['interval_label'] as String? ?? '${data['interval_hours']} h';
+      data['interval_label'] as String? ??
+      formatMeter(
+        data['interval_hours'] as num?,
+        data['meter_unit'] as String?,
+      );
   String? get component => data['component_name'] as String?;
   double? get remainingHours {
     final due = data['next_due_hours'], current = data['current_hours'];

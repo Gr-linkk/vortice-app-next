@@ -3,9 +3,17 @@ import 'package:vortice_app/core/app_dropdown_field.dart';
 import 'package:vortice_app/core/user_feedback.dart';
 import 'package:vortice_app/core/unsaved_form_guard.dart';
 
+import 'package:vortice_app/features/checklists/checklist_procedure_source.dart';
+import 'checklist_source_picker.dart';
+
 class ChecklistStepScreen extends StatefulWidget {
-  const ChecklistStepScreen({super.key, this.initial = const {}});
+  const ChecklistStepScreen({
+    super.key,
+    this.initial = const {},
+    this.clientId,
+  });
   final Map<String, dynamic> initial;
+  final String? clientId;
   @override
   State<ChecklistStepScreen> createState() => _ChecklistStepScreenState();
 }
@@ -13,7 +21,8 @@ class ChecklistStepScreen extends StatefulWidget {
 class _ChecklistStepScreenState extends State<ChecklistStepScreen> {
   final _form = GlobalKey<FormState>();
   final _text = <String, TextEditingController>{};
-  late String _type;
+  late String _type, _equipmentState;
+  ChecklistProcedureSource? _source;
   late bool _photo, _critical, _na;
   bool _dirty = false;
   @override
@@ -31,6 +40,11 @@ class _ChecklistStepScreenState extends State<ChecklistStepScreen> {
       );
     }
     _type = definition['input_type'] as String? ?? 'check';
+    _equipmentState = definition['equipment_state'] as String? ?? '';
+    _source = ChecklistProcedureSource.fromDefinition(definition);
+    _text['source_section'] = TextEditingController(
+      text: _source?.section ?? '',
+    );
     _photo = widget.initial['requires_photo'] == true;
     _critical = definition['critical'] == true;
     _na = definition['allow_na'] != false;
@@ -55,9 +69,21 @@ class _ChecklistStepScreenState extends State<ChecklistStepScreen> {
       'definition': {
         ...?widget.initial['definition'] as Map<String, dynamic>?,
         'input_type': _type,
+        'equipment_state': _equipmentState,
+        'procedure_source': _source == null
+            ? null
+            : ChecklistProcedureSource(
+                _source!.document,
+                _source!.page,
+                _text['source_section']!.text.trim(),
+              ).toJson(),
+        'source_document_id': null,
+        'source_page': null,
         'critical': _critical,
         'allow_na': _na,
         'guidance': _text['guidance']!.text.trim(),
+        'min': null,
+        'max': null,
         if (_type == 'number') ...{
           'unit': _text['unit']!.text.trim(),
           'min': double.tryParse(_text['min']!.text.replaceAll(',', '.')),
@@ -139,6 +165,75 @@ class _ChecklistStepScreenState extends State<ChecklistStepScreen> {
                 'Spanish translation (optional)',
                 'Traducción al español (opcional)',
               ),
+              AppDropdownField<String>(
+                initialValue: _equipmentState,
+                decoration: InputDecoration(
+                  labelText: es ? 'Estado del equipo' : 'Equipment state',
+                ),
+                items: [
+                  for (final entry in checklistEquipmentStates.entries)
+                    DropdownMenuItem(
+                      value: entry.key,
+                      child: Text(es ? entry.value.$2 : entry.value.$1),
+                    ),
+                ],
+                onChanged: (value) => setState(() {
+                  _equipmentState = value!;
+                  _dirty = true;
+                }),
+              ),
+              const SizedBox(height: 16),
+              if (widget.clientId != null)
+                TextButton.icon(
+                  icon: const Icon(Icons.menu_book_outlined),
+                  label: Text(
+                    _source == null
+                        ? (es
+                              ? 'Vincular procedimiento'
+                              : 'Link procedure page')
+                        : (es
+                              ? 'Cambiar procedimiento'
+                              : 'Change procedure page'),
+                  ),
+                  onPressed: () async {
+                    final source =
+                        await Navigator.push<ChecklistProcedureSource>(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => ChecklistSourcePicker(
+                              clientId: widget.clientId!,
+                            ),
+                          ),
+                        );
+                    if (source != null && mounted) {
+                      setState(() {
+                        _source = source;
+                        _text['source_section']!.clear();
+                        _dirty = true;
+                      });
+                    }
+                  },
+                ),
+              if (_source != null) ...[
+                ChecklistProcedureLink(
+                  item: {
+                    'definition': {'procedure_source': _source!.toJson()},
+                  },
+                ),
+                field(
+                  'source_section',
+                  'Manual section or printed page (optional)',
+                  'Secci?n o p?gina impresa (opcional)',
+                  max: 200,
+                ),
+                TextButton(
+                  onPressed: () => setState(() {
+                    _source = null;
+                    _dirty = true;
+                  }),
+                  child: Text(es ? 'Quitar v?nculo' : 'Remove procedure link'),
+                ),
+              ],
               field(
                 'guidance',
                 'How to check (optional)',

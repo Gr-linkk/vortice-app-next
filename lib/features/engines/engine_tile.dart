@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:vortice_app/core/theme.dart';
 import 'package:vortice_app/features/engines/engine_kind_options.dart';
+import 'package:vortice_app/core/meter_units.dart';
 import 'package:vortice_app/features/engines/engine_screen_support.dart';
 import 'package:vortice_app/features/work_orders/work_order_provider.dart';
 import 'package:vortice_app/models/asset_engine.dart';
@@ -9,8 +10,8 @@ import 'package:vortice_app/models/asset_engine.dart';
 class EngineTile extends ConsumerWidget {
   final AssetEngine engine;
   final VoidCallback onTap;
-  final VoidCallback onEdit;
-  final VoidCallback onDelete;
+  final VoidCallback? onEdit;
+  final VoidCallback? onDelete;
 
   const EngineTile({
     super.key,
@@ -28,7 +29,9 @@ class EngineTile extends ConsumerWidget {
 
     return Dismissible(
       key: ValueKey(engine.id),
-      direction: DismissDirection.endToStart,
+      direction: onDelete == null
+          ? DismissDirection.none
+          : DismissDirection.endToStart,
       background: Container(
         alignment: Alignment.centerRight,
         padding: const EdgeInsets.only(right: 20),
@@ -36,7 +39,7 @@ class EngineTile extends ConsumerWidget {
         child: Icon(Icons.delete, color: Theme.of(context).colorScheme.onError),
       ),
       confirmDismiss: (_) async {
-        onDelete();
+        onDelete?.call();
         return false;
       },
       child: Card(
@@ -90,7 +93,7 @@ class EngineTile extends ConsumerWidget {
               ),
               const SizedBox(height: 2),
               Text(
-                formatLatestEngineHoursSubtitle(latestHours),
+                '${formatMeter(engine.currentHours, engine.meterUnit)}${latestHours == null ? '' : ' · Latest work ${formatMeter(latestHours, engine.meterUnit)}'}',
                 style: TextStyle(
                   color: context.appColors.textSecondary,
                   fontSize: 11,

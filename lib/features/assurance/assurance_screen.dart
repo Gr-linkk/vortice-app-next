@@ -21,6 +21,72 @@ class _AssuranceScreenState extends ConsumerState<AssuranceScreen> {
     Map<String, dynamic> item = const {},
     Map<String, dynamic> catalog = const {},
   }) async {
+    if (action == 'open_work') {
+      final existing = item['open_work_order_id'] as String?;
+      if (existing != null) {
+        await context.push('/maintenance/jobs/$existing');
+        return;
+      }
+      try {
+        await ref
+            .read(assuranceRepositoryProvider)
+            .write(
+              'generate',
+              widget.asset ?? item['asset_id'] as String,
+              0,
+              '',
+              {},
+            );
+        ref.invalidate(inspectionRegisterProvider);
+        final items = await ref.read(
+          inspectionRegisterProvider(widget.asset).future,
+        );
+        final work =
+            items
+                    .where((row) => row['id'] == item['id'])
+                    .firstOrNull?['open_work_order_id']
+                as String?;
+        if (!mounted) return;
+        if (work != null) {
+          await context.push('/maintenance/jobs/$work');
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                isSpanish(context)
+                    ? 'El trabajo se creará al acercarse la fecha programada.'
+                    : 'Work will be generated when the scheduled date approaches.',
+              ),
+            ),
+          );
+        }
+      } catch (error) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(friendlyError(context, error))),
+          );
+        }
+      }
+      return;
+    }
+    if (['create', 'schedule'].contains(action)) {
+      try {
+        final maintenance = await ref.read(
+          maintenanceAssetProvider(
+            widget.asset ?? item['asset_id'] as String,
+          ).future,
+        );
+        catalog = {...catalog, 'templates': maintenance['templates']};
+      } catch (error) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(friendlyError(context, error))),
+          );
+        }
+        return;
+      }
+      if (!mounted) return;
+    }
     await Navigator.push(
       context,
       MaterialPageRoute<bool>(
@@ -351,14 +417,25 @@ class InspectionCard extends StatelessWidget {
               spacing: 8,
               runSpacing: 8,
               children: [
-                if (item['can_submit'] == true && pending == null)
+                if (item['can_manage'] == true ||
+                    item['open_work_order_id'] != null)
                   OutlinedButton(
-                    onPressed: () => onAction('submit'),
-                    child: Text(es ? 'Enviar renovación' : 'Submit renewal'),
+                    onPressed: () => onAction('open_work'),
+                    child: Text(
+                      es
+                          ? 'Abrir trabajo de inspección'
+                          : 'Open inspection work',
+                    ),
+                  ),
+                if (item['can_manage'] == true &&
+                    item['open_work_order_id'] == null &&
+                    pending == null)
+                  TextButton(
+                    onPressed: () => onAction('schedule'),
+                    child: Text(es ? 'Editar programación' : 'Edit schedule'),
                   ),
                 OutlinedButton(
-                  onPressed: () =>
-                      context.push('/assurance/assets/${item['asset_id']}'),
+                  onPressed: () => context.push('/assets/${item['asset_id']}'),
                   child: Text(es ? 'Ver equipo' : 'Open asset'),
                 ),
               ],
@@ -407,9 +484,13 @@ class InspectionCard extends StatelessWidget {
                         const SizedBox(height: 8),
                         InspectionEvidence(
                           path: version['evidence_path'] as String,
+                          bucket:
+                              version['evidence_bucket'] as String? ??
+                              'inspection-evidence',
                         ),
                         if (version['status'] == 'pending' &&
-                            item['can_manage'] == true)
+                            item['can_manage'] == true &&
+                            version['work_order_id'] == null)
                           Wrap(
                             spacing: 8,
                             runSpacing: 8,
@@ -442,18 +523,26 @@ class InspectionCard extends StatelessWidget {
 }
 
 class InspectionEvidence extends ConsumerWidget {
-  const InspectionEvidence({super.key, required this.path});
+  const InspectionEvidence({
+    super.key,
+    required this.path,
+    this.bucket = 'inspection-evidence',
+  });
   final String path;
+  final String bucket;
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final es = isSpanish(context);
+    final image = bucket == 'maintenance-evidence'
+        ? inspectionWorkImageProvider(path)
+        : inspectionImageProvider(path);
     Widget retry() => TextButton.icon(
-      onPressed: () => ref.invalidate(inspectionImageProvider(path)),
+      onPressed: () => ref.invalidate(image),
       icon: const Icon(Icons.refresh),
       label: Text(es ? 'Reintentar foto' : 'Retry photo'),
     );
     return ref
-        .watch(inspectionImageProvider(path))
+        .watch(image)
         .when(
           loading: () => const LinearProgressIndicator(),
           error: (_, __) => retry(),

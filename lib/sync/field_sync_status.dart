@@ -4,14 +4,9 @@ import 'package:go_router/go_router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:vortice_app/core/account_storage.dart';
 import 'package:vortice_app/features/operator/operator_checklist_support.dart';
-import 'package:vortice_app/features/assets/asset_provider.dart';
-import 'package:vortice_app/features/assets/client_team_asset_access.dart';
-import 'package:vortice_app/features/auth/auth_provider.dart';
-import 'package:vortice_app/features/checklists/checklist_provider.dart';
-import 'package:vortice_app/features/clients/client_capability_provider.dart';
-import 'package:vortice_app/features/maintenance/maintenance_models.dart';
-import 'package:vortice_app/features/maintenance/maintenance_repository.dart';
-import 'package:vortice_app/features/orgs/org_provider.dart';
+import 'offline_readiness.dart';
+import 'recurring_work_refresh.dart';
+import 'online_action_gate.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:vortice_app/core/user_feedback.dart';
@@ -124,6 +119,13 @@ class _FieldSyncStatusState extends ConsumerState<FieldSyncStatus>
       final queue = ref.read(fieldWorkQueueProvider);
       await queue?.flush();
       await queue?.cleanCompleted();
+      if (mounted && _active) {
+        final connected = await ref.read(onlineActionGateProvider.notifier).check(force:true);
+        if(!mounted || !_active || !connected) return;
+        await refreshRecurringWork(ref);
+        if (!mounted || !_active) return;
+        await ref.read(offlineReadinessProvider.notifier).refresh();
+      }
     } catch (_) {}
   }
 
@@ -144,7 +146,8 @@ class _FieldSyncStatusState extends ConsumerState<FieldSyncStatus>
   Widget build(BuildContext context) {
     final es = isSpanish(context);
     final rows = ref.watch(fieldOperationsProvider).valueOrNull ?? [];
-    if (rows.isEmpty) return const SizedBox.shrink();
+    final readiness = ref.watch(offlineReadinessProvider);
+    final offline = ref.watch(onlineActionGateProvider) == ServerConnection.offline;
     final waiting = rows
         .where((r) => !r.synced && r.status != 'cancelled')
         .length;
@@ -162,7 +165,7 @@ class _FieldSyncStatusState extends ConsumerState<FieldSyncStatus>
                 ? Icons.error_outline
                 : waiting > 0
                 ? Icons.cloud_upload_outlined
-                : Icons.cloud_done_outlined,
+                : offline ? Icons.wifi_off_outlined : Icons.cloud_done_outlined,
           ),
           title: Text(
             failed
@@ -171,9 +174,10 @@ class _FieldSyncStatusState extends ConsumerState<FieldSyncStatus>
                 ? (es
                       ? 'Guardado en este dispositivo · $waiting pendientes'
                       : 'Saved on this device · $waiting pending upload')
-                : (es ? 'Sincronizado' : 'Synced'),
+                : offlineReadinessLabel(readiness, es),
           ),
           trailing: const Icon(Icons.chevron_right),
+          subtitle: offline ? Text(es ? 'Sin conexión · aprobaciones y cambios de acceso requieren conexión' : 'Offline · approvals and access changes require a connection') : null,
           onTap: () => Navigator.of(context).push(
             MaterialPageRoute<void>(builder: (_) => const FieldQueueScreen()),
           ),
@@ -411,6 +415,8 @@ class FieldQueueScreen extends ConsumerWidget {
                                 'responses': data['responses'],
                                 'notes': data['notes'],
                                 'currentHours': data['current_hours'],
+                                'meter_unit': data['meter_unit'],
+                                'issues': data['issues'],
                                 'generalNotes': data['general_notes'],
                                 'photos': photos,
                               }),
@@ -441,82 +447,52 @@ class FieldQueueScreen extends ConsumerWidget {
   }
 }
 
-class OfflinePreparationButton extends ConsumerStatefulWidget {
+class OfflinePreparationButton extends ConsumerWidget {
   const OfflinePreparationButton({super.key});
   @override
-  ConsumerState<OfflinePreparationButton> createState() =>
-      _OfflinePreparationButtonState();
+  Widget build(BuildContext context, WidgetRef ref) {
+    final state = ref.watch(offlineReadinessProvider);
+    final es = isSpanish(context);
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(offlineReadinessLabel(state, es)),
+          TextButton.icon(
+            onPressed: state.refreshing
+                ? null
+                : () => ref
+                      .read(offlineReadinessProvider.notifier)
+                      .refresh(force: true),
+            icon: const Icon(Icons.sync),
+            label: Text(
+              es ? 'Actualizar datos sin conexión' : 'Refresh offline data',
+            ),
+          ),
+          if (state.refreshing) const LinearProgressIndicator(),
+        ],
+      ),
+    );
+  }
 }
 
-class _OfflinePreparationButtonState
-    extends ConsumerState<OfflinePreparationButton> {
-  bool _busy = false;
-  String? _message;
-  Future<void> _prepare() async {
-    final es = isSpanish(context);
-    setState(() {
-      _busy = true;
-      _message = null;
-    });
-    try {
-      final profile = await ref.read(profileProvider.future);
-      if (profile == null) throw StateError('Sign in first');
-      await ref.read(currentUserOrgProvider.future);
-      await ref.read(currentClientFleetAssetsProvider.future);
-      final assets = await ref.read(assetsProvider.future);
-      for (final client in assets.map((a) => a.clientId).toSet()) {
-        await ref.read(clientCapabilitiesProvider(client).future);
-      }
-      final templates = await ref.read(checklistTemplatesProvider.future);
-      for (final template in templates) {
-        await ref.read(checklistItemsProvider(template.id).future);
-      }
-      if (canUseMaintenance(profile.role)) {
-        final repository = ref.read(maintenanceRepositoryProvider);
-        await repository.workspace();
-        final jobs = await repository.jobs();
-        for (final asset in jobs.map((j) => j.assetId).toSet()) {
-          await repository.assetContext(asset);
-        }
-      }
-      if (mounted) {
-        setState(
-          () => _message = es
-              ? 'Trabajos y listas guardados para esta cuenta. Abre los registros que usarás antes de salir.'
-              : 'Jobs and checklists saved for this account. Open the records you will use before leaving.',
-        );
-      }
-    } catch (_) {
-      if (mounted) {
-        setState(
-          () => _message = es
-              ? 'No se pudo preparar todo. Reintenta con conexión.'
-              : 'Could not prepare everything. Retry with a connection.',
-        );
-      }
-    } finally {
-      if (mounted) setState(() => _busy = false);
-    }
+String offlineReadinessLabel(OfflineReadiness state, bool es) {
+  if (state.needsAttention) {
+    return es
+        ? 'Datos sin conexión: necesitan atención'
+        : 'Offline data needs attention';
   }
-
-  @override
-  Widget build(BuildContext context) => Padding(
-    padding: const EdgeInsets.only(bottom: 16),
-    child: Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        OutlinedButton.icon(
-          onPressed: _busy ? null : _prepare,
-          icon: const Icon(Icons.download_for_offline_outlined),
-          label: Text(
-            isSpanish(context)
-                ? 'Preparar trabajo sin conexión'
-                : 'Prepare for offline work',
-          ),
-        ),
-        if (_busy) const LinearProgressIndicator(),
-        if (_message != null) Text(_message!),
-      ],
-    ),
-  );
+  if (state.readyAt(DateTime.now())) {
+    final minutes = DateTime.now().difference(state.updatedAt!).inMinutes;
+    return es
+        ? 'Disponible sin conexión · actualizado hace $minutes min'
+        : 'Ready offline · updated $minutes min ago';
+  }
+  if (state.refreshing) {
+    return es ? 'Actualizando datos sin conexión' : 'Updating offline data';
+  }
+  return es
+      ? 'Conéctate para actualizar los datos sin conexión'
+      : 'Connect to refresh offline data';
 }

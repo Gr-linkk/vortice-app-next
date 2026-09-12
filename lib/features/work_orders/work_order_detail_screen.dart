@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:vortice_app/features/membership/organization_provider_work_panel.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:vortice_app/core/theme.dart';
 import 'package:vortice_app/features/auth/auth_provider.dart';
@@ -17,6 +18,9 @@ class WorkOrderDetailScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context);
     final woAsync = ref.watch(workOrderByIdProvider(workOrderId));
+    if (woAsync.valueOrNull?.providerOrganizationId != null) {
+      return OrganizationProviderWorkPanel(workOrderId: workOrderId);
+    }
     final profile = ref.watch(profileProvider).valueOrNull;
     final isOwner = profile?.role == UserRole.owner;
     final canManage =

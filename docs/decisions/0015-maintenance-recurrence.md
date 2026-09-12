@@ -1,6 +1,8 @@
 # 0015: Configurable maintenance recurrence and explicit transition targets
 
 Status: Accepted
+Automatic work-order generation is superseded by decision 0017 for NEXT-002;
+the other recurrence rules below remain in force.
 Date: 2026-09-07
 Scope: NOW-023, Garrett's configurable hour/calendar recurrence request.
 

@@ -1,5 +1,6 @@
 import 'package:vortice_app/core/app_filter_chip.dart';
 import 'package:flutter/material.dart';
+import 'checklist_procedure_source.dart';
 import 'package:vortice_app/core/user_feedback.dart';
 
 String checklistInputType(Map<String, dynamic> definition) =>
@@ -94,6 +95,17 @@ class ChecklistAnswerFields extends StatelessWidget {
             item['category'] as String,
             style: Theme.of(context).textTheme.labelMedium,
           ),
+        if (checklistEquipmentStates[definition['equipment_state']]
+            case final state?)
+          if ((definition['equipment_state'] as String? ?? '').isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 8),
+              child: Text(
+                es ? state.$2 : state.$1,
+                style: Theme.of(context).textTheme.labelLarge,
+              ),
+            ),
+        ChecklistProcedureLink(item: item),
         Text(title, style: Theme.of(context).textTheme.titleMedium),
         if (definition['critical'] == true)
           Text(

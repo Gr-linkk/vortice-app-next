@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:vortice_app/core/meter_units.dart';
 import 'package:vortice_app/core/theme.dart';
 import 'package:vortice_app/features/checklists/checklist_support.dart';
 
 class OperatorChecklistRunHeader extends StatelessWidget {
+  final String meterUnit;
   final String assetLabel;
   final String checklistLabel;
   final String completedByLabel;
@@ -16,6 +18,7 @@ class OperatorChecklistRunHeader extends StatelessWidget {
   const OperatorChecklistRunHeader({
     super.key,
     required this.assetLabel,
+    this.meterUnit = 'hours',
     required this.checklistLabel,
     required this.completedByLabel,
     required this.completedAt,
@@ -62,8 +65,10 @@ class OperatorChecklistRunHeader extends StatelessWidget {
               keyboardType: const TextInputType.numberWithOptions(
                 decimal: true,
               ),
-              decoration: const InputDecoration(
-                labelText: 'Current hours (optional)',
+              decoration: InputDecoration(
+                labelText:
+                    '${meterName(meterUnit, Localizations.localeOf(context).languageCode == 'es')} (${Localizations.localeOf(context).languageCode == 'es' ? 'opcional' : 'optional'})',
+                suffixText: meterSymbol(meterUnit),
                 isDense: true,
               ),
               onChanged: (value) =>

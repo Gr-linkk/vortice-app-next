@@ -7,6 +7,7 @@ part 'asset_engine.g.dart';
 abstract class AssetEngine with _$AssetEngine {
   const factory AssetEngine({
     required String id,
+    @JsonKey(name: 'meter_unit') @Default('hours') String meterUnit,
     @JsonKey(name: 'asset_id') required String assetId,
     required String label,
     @Default('main') String kind,
@@ -19,5 +20,6 @@ abstract class AssetEngine with _$AssetEngine {
     @JsonKey(name: 'updated_at') DateTime? updatedAt,
   }) = _AssetEngine;
 
-  factory AssetEngine.fromJson(Map<String, dynamic> json) => _$AssetEngineFromJson(json);
+  factory AssetEngine.fromJson(Map<String, dynamic> json) =>
+      _$AssetEngineFromJson(json);
 }

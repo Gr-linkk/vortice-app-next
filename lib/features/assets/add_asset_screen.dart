@@ -11,8 +11,12 @@ import 'package:vortice_app/features/assets/asset_type_provider.dart';
 import 'package:vortice_app/features/auth/auth_provider.dart';
 import 'package:vortice_app/features/clients/client_provider.dart';
 import 'package:vortice_app/features/engines/engine_kind_options.dart';
-import 'package:vortice_app/features/engines/engine_provider.dart';
 import 'package:vortice_app/models/profile.dart';
+import 'package:uuid/uuid.dart';
+import 'package:vortice_app/core/meter_units.dart';
+import 'asset_workspace.dart';
+import 'asset_workflow_policy.dart';
+import 'package:vortice_app/features/membership/membership_provider.dart';
 
 class AddAssetScreen extends ConsumerStatefulWidget {
   const AddAssetScreen({super.key});
@@ -37,6 +41,8 @@ class _AddAssetScreenState extends ConsumerState<AddAssetScreen> {
   String? _selectedAssetTypeId;
   String? _selectedClientId;
   String _engineKind = 'main';
+  String _meterUnit = 'hours';
+  final String _assetId = const Uuid().v4();
 
   @override
   void dispose() {
@@ -57,8 +63,27 @@ class _AddAssetScreenState extends ConsumerState<AddAssetScreen> {
     if (!_formKey.currentState!.validate()) return;
 
     final profile = ref.read(profileProvider).valueOrNull;
+    if (!AssetWorkflowPolicy.canManageProfile(profile)) return;
+    final modern = profile!.membershipManaged;
+    final membership = modern
+        ? ref.read(organizationContextProvider).valueOrNull?.active
+        : null;
+    if (modern && membership == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            isSpanish(context)
+                ? 'Conecta para confirmar tu empresa.'
+                : 'Connect to confirm your company.',
+          ),
+        ),
+      );
+      return;
+    }
 
-    if (profile?.role == UserRole.owner && _selectedClientId == null) {
+    if (!modern &&
+        profile.role == UserRole.owner &&
+        _selectedClientId == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Please select the client this asset belongs to.'),
@@ -68,9 +93,14 @@ class _AddAssetScreenState extends ConsumerState<AddAssetScreen> {
     }
 
     final data = <String, dynamic>{
+      'id': _assetId,
+      'meter_unit': _meterUnit,
       'name': _nameCtrl.text.trim(),
-      'client_id': _selectedClientId ?? profile?.id,
-      'asset_type_id': _selectedAssetTypeId,
+      'client_id': modern
+          ? membership!.ownerProfileId
+          : _selectedClientId ?? profile.id,
+      'asset_type_id':
+          _selectedAssetTypeId ?? '00000000-0000-0000-0000-00000000000d',
       'serial_number': _serialCtrl.text.trim().isNotEmpty
           ? _serialCtrl.text.trim()
           : null,
@@ -91,40 +121,35 @@ class _AddAssetScreenState extends ConsumerState<AddAssetScreen> {
           : null,
     };
 
-    final success = await ref
-        .read(assetControllerProvider.notifier)
-        .createAsset(data);
-
     final hasEngineDetails =
         _engineMakeCtrl.text.trim().isNotEmpty ||
         _engineModelCtrl.text.trim().isNotEmpty ||
         _engineSerialCtrl.text.trim().isNotEmpty;
 
-    // If asset created and engine details were provided, also create the engine
-    if (success && hasEngineDetails) {
-      // Fetch the newly created asset to get its ID
-      final assets = await ref.refresh(assetsProvider.future);
-      final newAsset = assets.firstWhere(
-        (a) => a.name == _nameCtrl.text.trim(),
-        orElse: () => assets.first,
-      );
-      await ref.read(engineControllerProvider.notifier).addEngine({
-        'asset_id': newAsset.id,
-        'label': suggestedEngineLabel(_engineKind),
-        'kind': _engineKind,
-        'make': _engineMakeCtrl.text.trim().isNotEmpty
-            ? _engineMakeCtrl.text.trim()
-            : null,
-        'model': _engineModelCtrl.text.trim().isNotEmpty
-            ? _engineModelCtrl.text.trim()
-            : null,
-        'serial_number': _engineSerialCtrl.text.trim().isNotEmpty
-            ? _engineSerialCtrl.text.trim()
-            : null,
-      });
-    }
+    final engine = hasEngineDetails
+        ? <String, dynamic>{
+            'meter_unit': 'hours',
+            'label': suggestedEngineLabel(_engineKind),
+            'kind': _engineKind,
+            'make': _engineMakeCtrl.text.trim().isNotEmpty
+                ? _engineMakeCtrl.text.trim()
+                : null,
+            'model': _engineModelCtrl.text.trim().isNotEmpty
+                ? _engineModelCtrl.text.trim()
+                : null,
+            'serial_number': _engineSerialCtrl.text.trim().isNotEmpty
+                ? _engineSerialCtrl.text.trim()
+                : null,
+          }
+        : null;
+    final success = await ref
+        .read(assetControllerProvider.notifier)
+        .createAsset(data, engine: engine);
 
-    if (success && mounted) context.pop();
+    if (success && mounted) {
+      ref.invalidate(assetWorkspaceProvider);
+      context.pop();
+    }
     if (!success && mounted) {
       final err = ref.read(assetControllerProvider).error;
       ScaffoldMessenger.of(
@@ -153,11 +178,28 @@ class _AddAssetScreenState extends ConsumerState<AddAssetScreen> {
               // ── Asset Type dropdown ──────────────────────────────
               assetTypesAsync.when(
                 loading: () => const LinearProgressIndicator(),
-                error: (_, __) => const SizedBox.shrink(),
+                error: (_, __) => TextButton.icon(
+                  onPressed: () => ref.invalidate(assetTypesProvider),
+                  icon: const Icon(Icons.refresh),
+                  label: Text(
+                    isSpanish(context)
+                        ? 'Reintentar tipos de equipo'
+                        : 'Retry equipment types',
+                  ),
+                ),
                 data: (types) => AssetTypeField(
                   types: types,
                   selectedId: _selectedAssetTypeId,
-                  onChanged: (v) => setState(() => _selectedAssetTypeId = v),
+                  onChanged: (v) => setState(() {
+                    _selectedAssetTypeId = v;
+                    final configured = types
+                        .where((type) => type.id == v)
+                        .firstOrNull
+                        ?.trackingUnit;
+                    _meterUnit = meterUnits.contains(configured)
+                        ? configured!
+                        : 'hours';
+                  }),
                 ),
               ),
               if (isOwner) ...[
@@ -167,6 +209,29 @@ class _AddAssetScreenState extends ConsumerState<AddAssetScreen> {
                   onChanged: (id) => setState(() => _selectedClientId = id),
                 ),
               ],
+              const SizedBox(height: 16),
+              AppDropdownField<String>(
+                key: ValueKey('usage-unit-$_meterUnit'),
+                initialValue: _meterUnit,
+                decoration: InputDecoration(
+                  labelText: isSpanish(context)
+                      ? 'Seguimiento de uso'
+                      : 'Usage tracking',
+                ),
+                items: meterUnits
+                    .map(
+                      (unit) => DropdownMenuItem(
+                        value: unit,
+                        child: Text(meterName(unit, isSpanish(context))),
+                      ),
+                    )
+                    .toList(),
+                onChanged: isLoading
+                    ? null
+                    : (unit) {
+                        if (unit != null) setState(() => _meterUnit = unit);
+                      },
+              ),
               const SizedBox(height: 16),
               TextFormField(
                 controller: _nameCtrl,

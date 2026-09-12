@@ -1,3 +1,4 @@
+import 'package:vortice_app/core/meter_units.dart';
 import 'maintenance_recurrence_fields.dart';
 import 'package:vortice_app/core/app_dropdown_field.dart';
 import 'package:vortice_app/features/assurance/assurance_repository.dart';
@@ -47,6 +48,7 @@ class _MaintenanceSetupScreenState
     _id = widget.initial['id'] as String? ?? const Uuid().v4();
     _values = {
       'kind': 'engine',
+      'meter_unit': (widget.catalog['asset'] as Map?)?['meter_unit'] ?? 'hours',
       'is_active': true,
       'recurrence_mode': 'completion',
       'covers_plan_ids': <String>[],
@@ -74,14 +76,28 @@ class _MaintenanceSetupScreenState
       'anchor_date',
       'last_service_date',
       'change_reason',
+      'generation_lead_days',
     ]) {
       _text[name] = TextEditingController(
         text:
             widget.initial[name]?.toString() ??
-            (['current_hours', 'last_service_hours'].contains(name) ? '0' : ''),
+            (name == 'generation_lead_days'
+                ? '30'
+                : ['current_hours', 'last_service_hours'].contains(name)
+                ? '0'
+                : ''),
       );
     }
+    _values['meter_unit'] = _meterUnit;
   }
+
+  String get _meterUnit =>
+      maintenanceRows(widget.catalog['components'])
+              .where((e) => e['id'] == _values['engine_id'])
+              .firstOrNull?['meter_unit']
+          as String? ??
+      _values['meter_unit'] as String? ??
+      'hours';
 
   @override
   void dispose() {
@@ -96,6 +112,7 @@ class _MaintenanceSetupScreenState
     if (widget.reviewedSave != null && !_reviewedReadings) return;
     _pending ??= MaintenanceWrite({
       ..._values,
+      'meter_unit': _meterUnit,
       for (final e in _text.entries) e.key: e.value.text.trim(),
       if (widget.kind == 'plan' && _values['recurrence_mode'] != 'fixed') ...{
         'anchor_hours': '',
@@ -206,7 +223,7 @@ class _MaintenanceSetupScreenState
                       int.parse(v) > 10000000)
             ? (es
                   ? 'Ingresa un intervalo entero positivo'
-                  : 'Enter a positive whole-hour interval')
+                  : 'Enter a positive whole-number interval')
             : number &&
                   (double.tryParse(v ?? '')?.isFinite != true ||
                       double.parse(v!) < 0)
@@ -253,6 +270,7 @@ class _MaintenanceSetupScreenState
                 }
                 _reviewedReadings = false;
                 if (key == 'engine_id') {
+                  _values['meter_unit'] = _meterUnit;
                   final selected = maintenanceRows(widget.catalog['templates'])
                       .where((t) => t['id'] == _values['checklist_template_id'])
                       .firstOrNull;
@@ -340,10 +358,14 @@ class _MaintenanceSetupScreenState
                     {'id': 'generator', 'name': es ? 'Generador' : 'Generator'},
                     {'id': 'other', 'name': es ? 'Otro' : 'Other'},
                   ], 'name'),
+                  select('meter_unit', 'Meter unit', 'Unidad del medidor', [
+                    for (final unit in meterUnits)
+                      {'id': unit, 'name': meterName(unit, es)},
+                  ], 'name'),
                   field(
                     'current_hours',
-                    'Initial meter hours',
-                    'Horas iniciales',
+                    'Initial meter (${meterSymbol(_meterUnit)})',
+                    'Medidor inicial (${meterSymbol(_meterUnit)})',
                     number: true,
                   ),
                 ],
@@ -363,28 +385,26 @@ class _MaintenanceSetupScreenState
                 ),
                 if (widget.reviewedSave == null)
                   select('recurrence_basis', 'Schedule by', 'Programar por', [
-                    {
-                      'id': 'hours',
-                      'name': es ? 'Horas de uso' : 'Operating hours',
-                    },
+                    {'id': 'hours', 'name': meterName(_meterUnit, es)},
                     {'id': 'calendar', 'name': es ? 'Calendario' : 'Calendar'},
                     {
                       'id': 'both',
-                      'name': es ? 'Horas o calendario' : 'Hours or calendar',
+                      'name':
+                          '${meterName(_meterUnit, es)} ${es ? 'o calendario' : 'or calendar'}',
                     },
                   ], 'name'),
                 if (_values['recurrence_basis'] != 'calendar')
                   field(
                     'interval_hours',
-                    'Service every (hours)',
-                    'Servicio cada (horas)',
+                    'Service every (${meterSymbol(_meterUnit)})',
+                    'Servicio cada (${meterSymbol(_meterUnit)})',
                     required: true,
                     number: true,
                   ),
                 field(
                   'last_service_hours',
-                  'Last service meter',
-                  'Horas del último servicio',
+                  'Last service meter (${meterSymbol(_meterUnit)})',
+                  'Medidor del último servicio (${meterSymbol(_meterUnit)})',
                   number: true,
                   readOnly:
                       widget.initial['id'] != null &&
@@ -455,11 +475,11 @@ class _MaintenanceSetupScreenState
                               ? (es
                                     ? 'Confirma la base del último servicio y un intervalo válido para calcular el próximo servicio.'
                                     : 'Confirm the last-service baseline and a valid interval to calculate the next service.')
-                              : '${es ? 'Próximo servicio' : 'Next service'}: $previewDue h',
+                              : '${es ? 'Próximo servicio' : 'Next service'}: ${formatMeter(previewDue, _meterUnit)}',
                         ),
                         if (previewDue != null && reviewCurrent != null)
                           Text(
-                            '${previewDue - reviewCurrent} h ${es ? 'respecto al medidor actual' : 'relative to the current meter'}',
+                            '${formatMeter(previewDue - reviewCurrent, _meterUnit)} ${es ? 'respecto al medidor actual' : 'relative to the current meter'}',
                           ),
                       ],
                     ),
@@ -474,8 +494,8 @@ class _MaintenanceSetupScreenState
                       : (v) => setState(() => _reviewedReadings = v ?? false),
                   title: Text(
                     es
-                        ? 'Verifiqué el manual, las horas actuales y el historial de este servicio.'
-                        : 'I verified the manual, current hours and this task’s service history.',
+                        ? 'Verifiqué el manual, el medidor actual y el historial de este servicio.'
+                        : 'I verified the manual, current meter and this task’s service history.',
                   ),
                 ),
               ],

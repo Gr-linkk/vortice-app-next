@@ -1,3 +1,7 @@
+import 'maintenance_recurrence.dart';
+import 'maintenance_progress.dart';
+import 'package:vortice_app/features/parts/work_parts_progress.dart';
+import 'package:vortice_app/core/meter_units.dart';
 import 'package:vortice_app/features/checklists/checklist_answer_fields.dart';
 import 'package:vortice_app/core/app_dropdown_field.dart';
 import 'dart:convert';
@@ -29,13 +33,23 @@ class _MaintenanceReportScreenState
   late final TextEditingController _diagnosis, _repair, _notes, _hours;
   late final Map<String, dynamic> _answers;
   late final List<String> _evidence;
+  final Map<String, TextEditingController> _inspectionFields = {};
+  String? _certificate;
+  bool get _isInspection => widget.job.data['inspection_id'] != null;
+  bool get _inspectionApproved =>
+      widget.job.data['inspection_applied_at'] != null;
+  Map<String, dynamic> get _inspection => {
+    for (final entry in _inspectionFields.entries)
+      entry.key: entry.value.text.trim(),
+    'evidence_path': _certificate,
+  };
   MaintenanceWrite? _pending;
   String? _action;
   bool _saving = false, _uploading = false, _dirty = false;
   Object? _error;
   late final String _account;
   bool _draftReady = false, _draftCleared = false;
-  bool _leaving = false;
+  bool _leaving = false, _showRequirements = false;
   Future<void> _draftWrite = Future.value();
   String get _draftKey =>
       accountStorageKey(_account, 'maintenance_report:${widget.job.id}');
@@ -56,6 +70,14 @@ class _MaintenanceReportScreenState
         _evidence
           ..clear()
           ..addAll((data['evidence'] as List? ?? []).cast<String>());
+        for (final field in _inspectionFields.entries) {
+          if ((data['inspection'] as Map?)?[field.key] is String) {
+            field.value.text = (data['inspection'] as Map)[field.key] as String;
+          }
+        }
+        _certificate =
+            (data['inspection'] as Map?)?['evidence_path'] as String? ??
+            _certificate;
         _dirty = true;
       } catch (_) {
         /* Preserve malformed draft for recovery. */
@@ -73,6 +95,7 @@ class _MaintenanceReportScreenState
       'hours': _hours.text,
       'answers': _answers,
       'evidence': _evidence,
+      if (_isInspection) 'inspection': _inspection,
     });
     _draftWrite = _draftWrite.then((_) async {
       final prefs = await SharedPreferences.getInstance();
@@ -106,7 +129,35 @@ class _MaintenanceReportScreenState
     _answers =
         jsonDecode(jsonEncode(widget.job.answers)) as Map<String, dynamic>;
     _evidence = [...widget.job.evidence];
-    for (final c in [_diagnosis, _repair, _notes, _hours]) {
+    if (_isInspection) {
+      final previous = widget.job.data['inspection_result'] as Map? ?? {};
+      final source = widget.job.data['inspection_snapshot'] as Map? ?? {};
+      final today = DateTime.now();
+      final defaults = <String, String>{
+        'inspected_on': MaintenanceRecurrence.dateText(today),
+        'expires_on': MaintenanceRecurrence.dateText(
+          MaintenanceRecurrence.addMonths(
+            today,
+            (source['interval_months'] as num?)?.toInt() ?? 12,
+          ),
+        ),
+        'procedure_notes': source['procedure_notes'] as String? ?? '',
+        'result_notes': '',
+      };
+      for (final key in defaults.keys) {
+        _inspectionFields[key] = TextEditingController(
+          text: previous[key] as String? ?? defaults[key],
+        );
+      }
+      _certificate = previous['evidence_path'] as String?;
+    }
+    for (final c in [
+      _diagnosis,
+      _repair,
+      _notes,
+      _hours,
+      ..._inspectionFields.values,
+    ]) {
       c.addListener(_saveLocal);
     }
     unawaited(_restoreLocal());
@@ -114,18 +165,48 @@ class _MaintenanceReportScreenState
 
   @override
   void dispose() {
-    for (final c in [_diagnosis, _repair, _notes, _hours]) {
+    for (final c in [
+      _diagnosis,
+      _repair,
+      _notes,
+      _hours,
+      ..._inspectionFields.values,
+    ]) {
       c.dispose();
     }
     super.dispose();
   }
 
   Future<void> _save(String action) async {
+    if (action == 'submit' && _pending == null) {
+      setState(() => _showRequirements = true);
+      if (_diagnosis.text.trim().length < 3 ||
+          _repair.text.trim().length < 3 ||
+          (_isInspection &&
+              !_inspectionApproved &&
+              (_inspectionFields.keys.any(
+                    (key) => _inspectionError(key, false) != null,
+                  ) ||
+                  !_evidence.contains(_certificate))) ||
+          widget.job.checklist.any(
+            (item) =>
+                maintenanceItemRequirement(item, _answers, _evidence, false) !=
+                null,
+          ) ||
+          (widget.job.isService &&
+              widget.job.data['engine_id'] != null &&
+              (double.tryParse(_hours.text)?.isFinite != true ||
+                  double.parse(_hours.text) < 0))) {
+        return;
+      }
+    }
     _action ??= action;
     _pending ??= MaintenanceWrite({
       'diagnosis': _diagnosis.text.trim(),
       'repair': _repair.text.trim(),
       'notes': _notes.text.trim(),
+      'meter_unit': widget.job.data['meter_unit'] ?? 'hours',
+      if (_isInspection) 'inspection': _inspection,
       'completion_hours': _hours.text.trim().isEmpty
           ? null
           : _hours.text.trim(),
@@ -176,6 +257,33 @@ class _MaintenanceReportScreenState
     } finally {
       if (mounted) setState(() => _saving = false);
     }
+  }
+
+  String? _inspectionError(String key, bool es) {
+    final value = _inspectionFields[key]?.text.trim() ?? '';
+    if (key == 'inspected_on' || key == 'expires_on') {
+      final date = MaintenanceRecurrence.parseDate(value);
+      final inspected = MaintenanceRecurrence.parseDate(
+        _inspectionFields['inspected_on']?.text.trim() ?? '',
+      );
+      final today = DateTime.now();
+      if (date == null ||
+          date.year < 1900 ||
+          date.year > 2200 ||
+          (key == 'inspected_on' &&
+              date.isAfter(DateTime(today.year, today.month, today.day))) ||
+          (key == 'expires_on' &&
+              (inspected == null || !date.isAfter(inspected)))) {
+        return es
+            ? 'Revisa la fecha (YYYY-MM-DD)'
+            : 'Check the date (YYYY-MM-DD)';
+      }
+    } else if (value.length < 3) {
+      return es
+          ? 'Describe el procedimiento y el resultado'
+          : 'Describe the procedure and result';
+    }
+    return null;
   }
 
   Future<void> _upload() async {
@@ -262,7 +370,24 @@ class _MaintenanceReportScreenState
         keyboardType: numeric
             ? const TextInputType.numberWithOptions(decimal: true)
             : TextInputType.multiline,
-        decoration: InputDecoration(labelText: es ? spanish : en),
+        decoration: InputDecoration(
+          labelText: es ? spanish : en,
+          errorText: !_showRequirements
+              ? null
+              : (controller == _diagnosis || controller == _repair) &&
+                    controller.text.trim().length < 3
+              ? (es
+                    ? 'Describe los hallazgos y el trabajo realizado'
+                    : 'Describe the findings and work performed')
+              : controller == _hours &&
+                    widget.job.isService &&
+                    (double.tryParse(controller.text)?.isFinite != true ||
+                        (double.tryParse(controller.text) ?? -1) < 0)
+              ? (es
+                    ? 'Ingresa el medidor al completar'
+                    : 'Enter the completion meter')
+              : null,
+        ),
       ),
     );
     return PopScope(
@@ -297,6 +422,42 @@ class _MaintenanceReportScreenState
               style: Theme.of(context).textTheme.titleLarge,
             ),
             Text(widget.job.assetName),
+            if ((widget.job.data['review_note'] as String? ?? '').isNotEmpty)
+              Card(
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        es ? 'Cambios solicitados' : 'Changes requested',
+                        style: Theme.of(context).textTheme.titleMedium,
+                      ),
+                      Text(widget.job.data['review_note'] as String),
+                    ],
+                  ),
+                ),
+              ),
+            if (widget.job.checklist.isNotEmpty)
+              Text(
+                '${es ? 'Lista' : 'Checklist'}: ${maintenanceCompletedItems(widget.job.checklist, _answers, _evidence)} / ${widget.job.checklist.length}',
+              ),
+            WorkPartsProgress(jobId: widget.job.id),
+            if (widget.job.hasRunningLabour)
+              Card(
+                child: ListTile(
+                  leading: const Icon(Icons.timer_outlined),
+                  title: Text(
+                    es ? 'Tiempo de trabajo en curso' : 'Labour timer running',
+                  ),
+                  subtitle: Text(
+                    es
+                        ? 'Pausa el tiempo antes de enviar a revisión.'
+                        : 'Pause labour before submitting for review.',
+                  ),
+                  onTap: () => Navigator.maybePop(context),
+                ),
+              ),
             if (_dirty && _draftReady)
               Text(
                 es
@@ -311,13 +472,83 @@ class _MaintenanceReportScreenState
               'Trabajo realizado y resultados',
             ),
             textField(_notes, 'Additional notes', 'Notas adicionales'),
-            if (widget.job.isService)
+            if (widget.job.data['engine_id'] != null)
               textField(
                 _hours,
-                'Component meter at completion',
-                'Horas al finalizar',
+                'Completion meter (${meterSymbol(widget.job.data['meter_unit'] as String?)})',
+                'Medidor al finalizar (${meterSymbol(widget.job.data['meter_unit'] as String?)})',
                 numeric: true,
               ),
+            if (_isInspection) ...[
+              Text(
+                es ? 'Certificado de inspección' : 'Inspection certificate',
+                style: Theme.of(context).textTheme.titleMedium,
+              ),
+              Text(
+                es
+                    ? 'El certificado actual sigue vigente hasta que se apruebe esta orden.'
+                    : 'The current certificate stays current until this work is approved.',
+              ),
+              for (final entry in _inspectionFields.entries)
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 8),
+                  child: TextField(
+                    controller: entry.value,
+                    enabled: !frozen && !_inspectionApproved,
+                    minLines: entry.key.endsWith('_on') ? 1 : 2,
+                    maxLines: entry.key.endsWith('_on') ? 1 : 5,
+                    decoration: InputDecoration(
+                      labelText: switch (entry.key) {
+                        'inspected_on' =>
+                          es ? 'Fecha de inspección' : 'Inspection date',
+                        'expires_on' =>
+                          es
+                              ? 'Próxima fecha de vencimiento'
+                              : 'Next expiry date',
+                        'procedure_notes' =>
+                          es ? 'Procedimiento aplicado' : 'Procedure performed',
+                        _ =>
+                          es
+                              ? 'Resultado y certificación'
+                              : 'Result and certification',
+                      },
+                      hintText: entry.key.endsWith('_on') ? 'YYYY-MM-DD' : null,
+                      errorText: _showRequirements
+                          ? _inspectionError(entry.key, es)
+                          : null,
+                    ),
+                    onChanged: (_) => setState(() => _dirty = true),
+                  ),
+                ),
+              AppDropdownField<String>(
+                key: ValueKey('certificate:$_certificate'),
+                initialValue: _certificate,
+                isExpanded: true,
+                decoration: InputDecoration(
+                  labelText: es ? 'Foto del certificado' : 'Certificate photo',
+                  errorText:
+                      _showRequirements && !_evidence.contains(_certificate)
+                      ? (es
+                            ? 'Añade y selecciona la evidencia'
+                            : 'Add and select the evidence')
+                      : null,
+                ),
+                items: [
+                  for (var i = 0; i < _evidence.length; i++)
+                    DropdownMenuItem(
+                      value: _evidence[i],
+                      child: Text('${es ? 'Foto' : 'Photo'} ${i + 1}'),
+                    ),
+                ],
+                onChanged: frozen || _inspectionApproved
+                    ? null
+                    : (value) => setState(() {
+                        _certificate = value;
+                        _dirty = true;
+                      }),
+              ),
+              const SizedBox(height: 20),
+            ],
             if (widget.job.checklist.isNotEmpty)
               Text(
                 es ? 'Lista de revisión de la orden' : 'Work order checklist',
@@ -394,6 +625,74 @@ class _MaintenanceReportScreenState
                           ],
                         ),
                       ],
+                      if (_showRequirements &&
+                          maintenanceItemRequirement(
+                                item,
+                                _answers,
+                                _evidence,
+                                es,
+                              ) !=
+                              null)
+                        Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 8),
+                          child: Text(
+                            maintenanceItemRequirement(
+                              item,
+                              _answers,
+                              _evidence,
+                              es,
+                            )!,
+                            style: TextStyle(
+                              color: Theme.of(context).colorScheme.error,
+                            ),
+                          ),
+                        ),
+                      if ((_answers[item['id']] as Map?)?['result'] ==
+                          'fail') ...[
+                        TextFormField(
+                          initialValue:
+                              (_answers[item['id']] as Map?)?['issue_note']
+                                  as String? ??
+                              '',
+                          enabled: !frozen,
+                          minLines: 2,
+                          maxLines: 4,
+                          decoration: InputDecoration(
+                            labelText: es
+                                ? 'Describe el problema para el seguimiento'
+                                : 'Describe the issue for follow-up',
+                          ),
+                          onChanged: (value) => setState(() {
+                            _answers[item['id'] as String] = {
+                              ...?_answers[item['id']] as Map<String, dynamic>?,
+                              'issue_note': value,
+                            };
+                            _dirty = true;
+                          }),
+                        ),
+                        CheckboxListTile(
+                          contentPadding: EdgeInsets.zero,
+                          title: Text(
+                            es
+                                ? 'Crear una falla vinculada al guardar'
+                                : 'Create a linked fault when saved',
+                          ),
+                          value:
+                              (_answers[item['id']]
+                                  as Map?)?['fault_requested'] ==
+                              true,
+                          onChanged: frozen
+                              ? null
+                              : (value) => setState(() {
+                                  _answers[item['id'] as String] = {
+                                    ...?_answers[item['id']]
+                                        as Map<String, dynamic>?,
+                                    'fault_requested': value == true,
+                                  };
+                                  _dirty = true;
+                                }),
+                        ),
+                      ],
                       if (item['requires_photo'] == true) ...[
                         const SizedBox(height: 12),
                         AppDropdownField<String>(
@@ -444,10 +743,13 @@ class _MaintenanceReportScreenState
                 title: Text('${es ? 'Foto' : 'Photo'} ${i + 1}'),
                 trailing: IconButton(
                   tooltip: es ? 'Quitar del informe' : 'Remove from report',
-                  onPressed: frozen
+                  onPressed:
+                      frozen ||
+                          (_inspectionApproved && _evidence[i] == _certificate)
                       ? null
                       : () => setState(() {
                           final path = _evidence.removeAt(i);
+                          if (_certificate == path) _certificate = null;
                           for (final answer in _answers.values) {
                             if (answer is Map && answer['photo_path'] == path) {
                               answer.remove('photo_path');

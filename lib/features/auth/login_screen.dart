@@ -143,6 +143,26 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
+                    FilledButton.icon(
+                      key: const ValueKey('code-sign-in'),
+                      onPressed: isLoading
+                          ? null
+                          : () => context.push('/verify'),
+                      icon: const Icon(Icons.mark_email_read_outlined),
+                      label: Text(
+                        isSpanish(context)
+                            ? 'Acceder con correo o teléfono'
+                            : 'Continue with email or phone',
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    Text(
+                      isSpanish(context)
+                          ? 'O usa tu contraseña actual'
+                          : 'Or use your existing password',
+                      textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: 16),
                     TextFormField(
                       controller: _emailCtrl,
                       keyboardType: TextInputType.emailAddress,

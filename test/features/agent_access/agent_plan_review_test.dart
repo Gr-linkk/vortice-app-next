@@ -87,6 +87,7 @@ void main() {
     client = SupabaseClient(
       'https://hkjpojobdbbtjkhaudki.supabase.co',
       'fixture',
+      authOptions: const AuthClientOptions(autoRefreshToken: false),
     );
     await loadFleetScreenshotFonts();
     final icons = FontLoader('MaterialIcons')
@@ -107,7 +108,7 @@ void main() {
       // Inspect the controller to prove that unknown history was not set to zero.
       final baseline = find.byWidgetPredicate(
         (w) =>
-            w is TextField && w.decoration?.labelText == 'Last service meter',
+            w is TextField && w.decoration?.labelText == 'Last service meter (h)',
       );
       expect(tester.widget<TextField>(baseline).controller!.text, '');
       await tester.scrollUntilVisible(
@@ -140,7 +141,7 @@ void main() {
       final interval = find.byWidgetPredicate(
         (w) =>
             w is TextField &&
-            w.decoration?.labelText == 'Service every (hours)',
+            w.decoration?.labelText == 'Service every (h)',
       );
       await tester.enterText(interval, '300');
       await tester.scrollUntilVisible(

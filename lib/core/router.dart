@@ -5,6 +5,8 @@ import 'package:vortice_app/features/assurance/assurance_screen.dart';
 import 'package:vortice_app/features/coordination/asset_history_screen.dart';
 import 'package:vortice_app/features/coordination/discussion_screen.dart';
 import 'package:vortice_app/features/coordination/fleet_overview_screen.dart';
+import 'package:vortice_app/features/announcements/announcements_screen.dart';
+import 'package:vortice_app/features/membership/organization_services_screen.dart';
 import 'package:vortice_app/features/maintenance/maintenance_list_screen.dart';
 import 'package:vortice_app/features/maintenance/planning/maintenance_planning_screen.dart';
 import 'package:vortice_app/features/maintenance/maintenance_create_screen.dart';
@@ -29,6 +31,9 @@ import 'package:vortice_app/features/assets/asset_list_screen.dart';
 import 'package:vortice_app/features/assets/asset_provider.dart';
 import 'package:vortice_app/features/auth/auth_provider.dart';
 import 'package:vortice_app/features/auth/login_screen.dart';
+import 'package:vortice_app/features/auth/otp_sign_in_screen.dart';
+import 'package:vortice_app/features/membership/organization_onboarding_screen.dart';
+import 'package:vortice_app/features/membership/organization_screen.dart';
 import 'package:vortice_app/features/auth/register_screen.dart';
 import 'package:vortice_app/features/checklists/checklist_screen.dart';
 import 'package:vortice_app/features/dashboard/client_dashboard_router.dart';
@@ -130,6 +135,15 @@ final routerProvider = Provider<GoRouter>((ref) {
     routes: [
       // ── Unauthenticated ────────────────────────────────────────────────
       GoRoute(path: '/login', builder: (_, __) => const LoginScreen()),
+      GoRoute(path: '/verify', builder: (_, __) => const OtpSignInScreen()),
+      GoRoute(
+        path: '/company/setup',
+        builder: (_, __) => const OrganizationOnboardingScreen(),
+      ),
+      GoRoute(
+        path: '/company/join',
+        builder: (_, __) => const OrganizationOnboardingScreen(joinOnly: true),
+      ),
       GoRoute(
         path: '/forgot-password',
         builder: (_, __) => const PasswordRecoveryScreen(),
@@ -184,6 +198,48 @@ final routerProvider = Provider<GoRouter>((ref) {
         routes: [
           GoRoute(path: '/more', builder: (_, __) => const MoreScreen()),
           GoRoute(
+            path: '/assets',
+            builder: (_, state) => AssetListScreen(
+              initialFilter: state.uri.queryParameters['filter'] ?? 'all',
+            ),
+          ),
+          GoRoute(
+            path: '/assets/new',
+            builder: (_, __) => const AddAssetScreen(),
+          ),
+          GoRoute(
+            path: '/assets/:id/engines',
+            builder: (_, state) => EngineScreen(assetId: state.pathParameters['id']!),
+          ),
+          GoRoute(
+            path: '/assets/:id',
+            builder: (_, state) =>
+                AssetDetailScreen(assetId: state.pathParameters['id']!),
+          ),
+          GoRoute(
+            path: '/work-orders/:id',
+            builder: (_, state) =>
+                WorkOrderDetailScreen(workOrderId: state.pathParameters['id']!),
+          ),
+          GoRoute(
+            path: '/company/services',
+            builder: (_, __) => const OrganizationServicesScreen(),
+          ),
+          GoRoute(
+            path: '/announcements',
+            builder: (_, __) => const OrganizationAnnouncementsScreen(),
+          ),
+          GoRoute(
+            path: '/announcements/:id',
+            builder: (_, state) => OrganizationAnnouncementDetailScreen(
+              id: state.pathParameters['id']!,
+            ),
+          ),
+          GoRoute(
+            path: '/company',
+            builder: (_, __) => const OrganizationScreen(),
+          ),
+          GoRoute(
             path: '/history/assets/:id',
             builder: (_, state) =>
                 AssetHistoryScreen(assetId: state.pathParameters['id']!),
@@ -219,6 +275,7 @@ final routerProvider = Provider<GoRouter>((ref) {
           GoRoute(
             path: '/fleet',
             builder: (_, state) => FleetScreen(
+              initialFilter: state.uri.queryParameters['filter'],
               assetId: state.uri.queryParameters['assetId'],
               initialTab: state.uri.queryParameters['tab'] == 'availability'
                   ? 1
@@ -295,7 +352,9 @@ final routerProvider = Provider<GoRouter>((ref) {
           ),
           GoRoute(
             path: '/owner/assets',
-            builder: (_, __) => const AssetListScreen(),
+            builder: (_, state) => AssetListScreen(
+              initialFilter: state.uri.queryParameters['filter'] ?? 'all',
+            ),
           ),
           GoRoute(
             path: '/owner/assets/add',
@@ -418,7 +477,9 @@ final routerProvider = Provider<GoRouter>((ref) {
           // Employee
           GoRoute(
             path: '/employee/assets',
-            builder: (_, __) => const AssetListScreen(),
+            builder: (_, state) => AssetListScreen(
+              initialFilter: state.uri.queryParameters['filter'] ?? 'all',
+            ),
           ),
           GoRoute(
             path: '/employee/assets/:id',
@@ -501,7 +562,9 @@ final routerProvider = Provider<GoRouter>((ref) {
           ),
           GoRoute(
             path: '/client/assets',
-            builder: (_, __) => const AssetListScreen(),
+            builder: (_, state) => AssetListScreen(
+              initialFilter: state.uri.queryParameters['filter'] ?? 'all',
+            ),
           ),
           GoRoute(
             path: '/client/assets/:id',

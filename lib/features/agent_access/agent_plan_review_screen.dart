@@ -95,6 +95,7 @@ class AgentPlanReviewScreen extends ConsumerWidget {
                 ...?e.plan,
                 'interval_label': e.draft['interval_label'],
                 'interval_hours': e.draft['interval_hours'],
+                'meter_unit': e.unit,
                 'engine_id': e.draft['engine_id'],
                 'last_service_hours': e.baseline?.toString() ?? '',
                 if (procedure?['published_template_id'] != null)
@@ -276,6 +277,9 @@ class AgentPlanReviewScreen extends ConsumerWidget {
                             ],
                           ),
                           const SizedBox(height: 12),
+                          if (!e.meterMatches)
+                            Text(es ? 'La unidad del medidor cambió desde la propuesta. Verifica el manual y pide una propuesta nueva.' : 'The meter unit changed since this proposal. Verify the manual and ask for a new proposal.',
+                              style: TextStyle(color: Theme.of(context).colorScheme.error)),
                           if (e.missingPlan ||
                               e.component.isEmpty ||
                               e.catalog['can_plan'] == false)

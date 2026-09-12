@@ -5,6 +5,8 @@ import 'package:vortice_app/core/user_feedback.dart';
 import 'package:vortice_app/features/auth/auth_provider.dart';
 import 'package:vortice_app/models/profile.dart';
 import 'agent_access_repository.dart';
+import 'agent_connection_setup.dart';
+import 'agent_work_proposals_screen.dart';
 import 'maintenance_documents_screen.dart';
 import 'agent_plan_review_screen.dart';
 import 'agent_pending_plans_screen.dart';
@@ -294,7 +296,9 @@ class _AgentAccessPanelState extends State<AgentAccessPanel> {
 
   String _activity(Map<String, dynamic> event) => switch (event['outcome']) {
     'revoked' => t('Disconnected', 'Desconectado'),
-    'read' => t('Fleet information read', 'Información de flota consultada'),
+    'read' => event['action'] == 'connection_test'
+        ? t('Host connection verified', 'Conexión del agente verificada')
+        : t('Fleet information read', 'Información de flota consultada'),
     'replayed' => t(
       'Retry; no duplicate change',
       'Reintento sin cambios duplicados',
@@ -315,6 +319,8 @@ class _AgentAccessPanelState extends State<AgentAccessPanel> {
             )
           : event['action'] == 'create_work_order_draft'
           ? t('Work-order draft created', 'Borrador de orden creado')
+          : event['work_proposal'] == true
+          ? t('Work proposal for review', 'Propuesta de trabajo para revisar')
           : t('Work order updated', 'Orden de trabajo actualizada'),
   };
 
@@ -359,6 +365,7 @@ class _AgentAccessPanelState extends State<AgentAccessPanel> {
         padding: const EdgeInsets.all(16),
         children: [
           if (_busy) const LinearProgressIndicator(),
+          AgentConnectionSetup(es: isSpanish(context)),
           if (_error != null)
             Padding(
               padding: const EdgeInsets.symmetric(vertical: 12),
@@ -602,12 +609,12 @@ class _AgentAccessPanelState extends State<AgentAccessPanel> {
                     _trusted = false;
                   }),
             title: Text(
-              t('Allow work-order management', 'Permitir gestionar órdenes'),
+              t('Allow work proposals', 'Permitir propuestas de trabajo'),
             ),
             subtitle: Text(
               t(
-                'Can assign staff, schedule work and edit scope before work starts. Cannot sign, approve completion or invoice.',
-                'Puede asignar personal, programar trabajo y editar el alcance antes de iniciar. No puede firmar, aprobar la finalización ni facturar.',
+                'Proposes staff, schedules and scope. You review and apply each change in Agents. Cannot sign, approve completion or invoice.',
+                'Propone personal, horarios y alcance. Revisas y aplicas cada cambio en Agentes. No puede firmar, aprobar la finalización ni facturar.',
               ),
             ),
           ),
@@ -664,6 +671,9 @@ class _AgentAccessPanelState extends State<AgentAccessPanel> {
                         '',
                     if (connection['actor_name'] != null)
                       '${t('Authorized by', 'Autorizado por')} ${connection['actor_name']}',
+                    connection['last_tested_at'] == null
+                        ? t('Host not tested yet', 'Agente aún sin comprobar')
+                        : '${t('Last successful host check', 'Última comprobación del agente')}: ${_date(connection['last_tested_at'])}',
                     connection['revoked_at'] != null
                         ? t('Disconnected', 'Desconectado')
                         : DateTime.tryParse(
@@ -709,6 +719,8 @@ class _AgentAccessPanelState extends State<AgentAccessPanel> {
                             ),
                           ),
                         );
+                      } else if (event['work_proposal'] == true) {
+                        Navigator.push(context, MaterialPageRoute<void>(builder: (_) => AgentWorkProposalsScreen(proposalId: event['result_id'] as String)));
                       } else if (event['action'] == 'create_checklist_draft') {
                         widget.onChecklistReview?.call();
                         context.push('/checklist-library');
