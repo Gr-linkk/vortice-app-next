@@ -166,7 +166,16 @@ recommended later check, not something completed by the computer audit.
 
 ## Delivery boundary
 
-These are source changes following Build 33, with computer verification. No new
-APK was built or installed in this pass, and the S24 was not operated. Deliver a
-new numbered APK before checking these fixes on the phone. No service migration
-or email/SMS configuration was needed. The eight suggestions remain unimplemented.
+The six fixes are packaged in internal Build 34 (`1.16.5+34`), built from
+`c02748d67462c755b03675755a552d8d788dc1e9`. Package, version, ARM64 architecture,
+existing signing certificate and isolated Next resources passed inspection.
+`INSTALL-Vortice-Next-Build-34.apk` was checksum-verified in both the S24 Downloads
+folder and `C:\Users\Garrett\Downloads` on September 12, 2026. SHA-256:
+`edf8787ecea87e2067f0ae760cc1a706e55d2741d73b8fff5b62f4145ee2f778`.
+
+Local receipts are `outputs/build34-build-verified.json`,
+`outputs/build34-phone-delivery.json` and
+`outputs/build34-computer-delivery.json`. Build 34 was not installed and its
+physical acceptance remains pending. The S24 UI was not operated during delivery.
+No service migration or email/SMS configuration was needed. The eight suggestions
+remain unimplemented.

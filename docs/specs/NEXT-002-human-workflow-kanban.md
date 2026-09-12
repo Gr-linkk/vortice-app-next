@@ -24,7 +24,9 @@ the accepted specification; the status groups here own remaining work.
   recurring-work/membership contracts and visual checks at normal, desktop and
   enlarged text sizes. Small display and lifecycle defects were corrected;
   larger usability changes remain suggestions. These checks do not close the
-  separate phone acceptance items above.
+  separate phone acceptance items above. The six small fixes are packaged in
+  Build 34 (`1.16.5+34`), checksum-verified in S24 and Windows Downloads;
+  installation and Build 34 phone acceptance remain pending.
 
 Native-phone evidence is recorded separately from unit tests and APK delivery;
 the demo journey does not imply Garrett accepted every role or workflow.
