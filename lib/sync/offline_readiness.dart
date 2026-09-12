@@ -24,6 +24,7 @@ import 'package:vortice_app/features/checklists/work_order_checklist_snapshot_re
 import 'package:vortice_app/features/operator/operator_runs_provider.dart';
 import 'package:vortice_app/features/maintenance/planning/planning_repository.dart';
 import 'package:vortice_app/features/membership/membership_models.dart';
+import 'package:vortice_app/features/membership/organization_work_provider.dart';
 import 'package:vortice_app/models/checklist_template.dart';
 
 class OfflineReadiness {
@@ -299,6 +300,16 @@ final offlineReadinessProvider =
                   w.status != WorkOrderStatus.closed &&
                   w.status != WorkOrderStatus.invoiced,
             )) {
+              if (order.providerOrganizationId != null) {
+                final context = await ref
+                    .read(organizationWorkRepositoryProvider)
+                    .context(order.id);
+                check();
+                await sources.prefetch(
+                  maintenanceRows(context['checklist_snapshot']),
+                );
+                check();
+              }
               final snapshot = await workOrderChecklistSnapshotRepository
                   .fetchByWorkOrderId(order.id);
               check();

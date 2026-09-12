@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
@@ -15,6 +16,8 @@ import 'package:vortice_app/features/maintenance/maintenance_progress.dart';
 import 'package:vortice_app/features/service_reports/service_report_form_sections.dart';
 import 'package:vortice_app/features/service_reports/service_report_media_section.dart';
 import 'package:vortice_app/sync/online_action_gate.dart';
+import 'package:vortice_app/sync/field_evidence.dart';
+import 'package:vortice_app/sync/field_work_provider.dart';
 import 'organization_work_execution.dart';
 import 'organization_work_provider.dart';
 
@@ -107,10 +110,17 @@ class _OrganizationWorkReportEditorState
     if (!_ready || _cleared) return;
     final key = _draftKey;
     final raw = jsonEncode({'data': _payload(), 'pending': _pending});
-    _write = _write.then((_) async {
+    _write = _write.catchError((Object _) {}).then((_) async {
       final prefs = await SharedPreferences.getInstance();
-      await prefs.setString(key, raw);
+      if (!await prefs.setString(key, raw)) {
+        throw StateError('Could not save this draft on the device');
+      }
     });
+    unawaited(
+      _write.catchError((Object error) {
+        if (mounted) setState(() => _error = error);
+      }),
+    );
   }
 
   @override
@@ -122,33 +132,22 @@ class _OrganizationWorkReportEditorState
     super.dispose();
   }
 
-  String? _meterError(bool es) {
-    if (_order['engine_id'] == null && _meter.text.trim().isEmpty) return null;
-    final value = double.tryParse(_meter.text.trim());
-    final start = (_order['hours_at_start'] as num?)?.toDouble() ?? 0;
-    if (value == null ||
-        !value.isFinite ||
-        value < start ||
-        value >= 1000000000) {
-      return es
-          ? 'Introduce una lectura válida, igual o mayor que la inicial.'
-          : 'Enter a valid reading at least as high as the starting meter.';
-    }
-    return null;
-  }
+  WorkReportProgress get _progress => WorkReportProgress(
+    diagnosis: _diagnosis.text,
+    repair: _repair.text,
+    items: maintenanceRows(_data['checklist_snapshot']),
+    answers: _answers,
+    evidence: _evidence,
+    meter: _meter.text,
+    meterRequired: _order['engine_id'] != null,
+    startingMeter: _order['hours_at_start'] as num? ?? 0,
+  );
 
   Future<void> _save(String action) async {
     if (_busy || !_ready) return;
     if (action == 'submit' && _pending == null) {
       setState(() => _requirements = true);
-      if (_diagnosis.text.trim().length < 3 ||
-          _repair.text.trim().length < 3 ||
-          _meterError(false) != null ||
-          maintenanceRows(_data['checklist_snapshot']).any(
-            (item) =>
-                maintenanceItemRequirement(item, _answers, _evidence, false) !=
-                null,
-          )) {
+      if (!_progress.complete) {
         return;
       }
     }
@@ -167,10 +166,12 @@ class _OrganizationWorkReportEditorState
       _busy = true;
       _error = null;
     });
-    _saveLocal();
-    await _write;
+    var requestStarted = false;
     try {
+      _saveLocal();
+      await _write;
       final pending = _pending!;
+      requestStarted = true;
       await ref
           .read(organizationWorkRepositoryProvider)
           .changeOperation(
@@ -192,7 +193,11 @@ class _OrganizationWorkReportEditorState
           _error = error;
           // A definite server rejection did not commit this request. Preserve all
           // input, but permit correction or a refreshed revision on the next attempt.
-          if (error is PostgrestException) _pending = null;
+          if (!requestStarted ||
+              error is PostgrestException ||
+              error is FieldEvidencePendingException) {
+            _pending = null;
+          }
         });
         _saveLocal();
       }
@@ -230,10 +235,7 @@ class _OrganizationWorkReportEditorState
   }
 
   Future<void> _photo(bool camera, {String? item}) async {
-    if (_frozen ||
-        _evidence.length >= 24 ||
-        !await requireOnlineAction(context, ref) ||
-        !mounted) {
+    if (_frozen || _evidence.length >= 24 || !mounted) {
       return;
     }
     setState(() => _busy = true);
@@ -242,6 +244,9 @@ class _OrganizationWorkReportEditorState
           ? await takeServiceReportCameraPhoto(_picker)
           : await pickServiceReportGalleryPhoto(_picker);
       if (bytes == null) return;
+      if (!mounted || ref.read(sessionProvider)?.user.id != _account) {
+        throw const AccountChangedException();
+      }
       final path = await ref
           .read(organizationWorkRepositoryProvider)
           .uploadEvidence(_id, _account, bytes);
@@ -256,6 +261,7 @@ class _OrganizationWorkReportEditorState
         }
       });
       _saveLocal();
+      await _write;
     } catch (error) {
       if (mounted) setState(() => _error = error);
     } finally {
@@ -291,6 +297,17 @@ class _OrganizationWorkReportEditorState
     final es = isSpanish(context),
         items = maintenanceRows(_data['checklist_snapshot']);
     final completed = maintenanceCompletedItems(items, _answers, _evidence);
+    final repository = ref.watch(organizationWorkRepositoryProvider);
+    final pendingPhotos = repository.queue == null
+        ? 0
+        : (ref.watch(fieldOperationsProvider).valueOrNull ?? [])
+              .where(
+                (row) =>
+                    row.kind == 'upload' &&
+                    _evidence.contains(row.payload['path']) &&
+                    !row.synced,
+              )
+              .length;
     return PopScope(
       canPop: !_busy,
       onPopInvokedWithResult: (didPop, result) {
@@ -313,6 +330,18 @@ class _OrganizationWorkReportEditorState
                   ? 'El borrador permanece en este dispositivo. El cliente recibe el informe aprobado.'
                   : 'Your draft stays on this device. The customer receives the approved report.',
             ),
+            const SizedBox(height: 8),
+            Text(
+              es
+                  ? 'Puedes guardar texto y fotos sin conexión. Las fotos pendientes se suben al reconectar. Enviar a revisión requiere conexión.'
+                  : 'Record text and photos offline. Pending photos upload when connected. Submitting for review needs a connection.',
+            ),
+            if (pendingPhotos > 0)
+              Text(
+                es
+                    ? '$pendingPhotos fotos guardadas aquí · pendientes de subir'
+                    : '$pendingPhotos photos saved here · waiting to upload',
+              ),
             Card(
               child: Padding(
                 padding: const EdgeInsets.all(12),
@@ -352,7 +381,9 @@ class _OrganizationWorkReportEditorState
               ),
             if (_error != null) ...[
               Text(
-                friendlyError(context, _error!),
+                _error is FieldEvidencePendingException
+                    ? (_error as FieldEvidencePendingException).label(es)
+                    : friendlyError(context, _error!),
                 style: TextStyle(color: Theme.of(context).colorScheme.error),
               ),
               if (_pending == null)
@@ -380,7 +411,7 @@ class _OrganizationWorkReportEditorState
                         ? 'Describe el problema encontrado'
                         : 'Describe the problem found',
                   ),
-                  if (_requirements && _diagnosis.text.trim().length < 3)
+                  if (_requirements && _progress.diagnosisMissing)
                     Text(
                       es
                           ? 'Describe el diagnóstico.'
@@ -400,7 +431,7 @@ class _OrganizationWorkReportEditorState
                         ? 'Describe el trabajo y su comprobación'
                         : 'Describe the work performed and how it was checked',
                   ),
-                  if (_requirements && _repair.text.trim().length < 3)
+                  if (_requirements && _progress.repairMissing)
                     Text(
                       es
                           ? 'Describe el trabajo realizado.'
@@ -430,7 +461,9 @@ class _OrganizationWorkReportEditorState
                             '${es ? 'Lectura al finalizar' : 'Completion reading'} (${meterSymbol(_order['meter_unit'] as String?)})',
                         helperText:
                             '${es ? 'Inicial' : 'Starting'}: ${formatMeter(_order['hours_at_start'] as num?, _order['meter_unit'] as String?)}',
-                        errorText: _requirements ? _meterError(es) : null,
+                        errorText: _requirements
+                            ? _progress.meterError(es)
+                            : null,
                       ),
                     ),
                   ],
@@ -625,7 +658,7 @@ class _OrganizationWorkReportEditorState
               ),
               TextButton(
                 onPressed: _busy || !_ready ? null : () => _save('save_report'),
-                child: Text(es ? 'Guardar borrador' : 'Save draft'),
+                child: Text(es ? 'Guardar en el servidor' : 'Save to server'),
               ),
             ],
             if (_busy) const LinearProgressIndicator(),

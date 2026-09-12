@@ -45,13 +45,18 @@ class WorkOrderRepository {
               .from(AppConstants.tWorkOrders)
               .select()
               .order('id')
-              .range(offset, offset + 499);
+              .range(offset, offset + 499)
+              .timeout(const Duration(seconds: 6));
           _check();
           rows.addAll(page);
           if (page.length < 500) break;
         }
         if (organizationMembership) {
-          final shared = await _client.rpc('organization_work_orders') as List;
+          final shared =
+              await _client
+                      .rpc('organization_work_orders')
+                      .timeout(const Duration(seconds: 6))
+                  as List;
           final byId = {for (final row in rows) row['id'] as String: row};
           for (final raw in shared) {
             final row = Map<String, dynamic>.from(raw as Map);
@@ -96,12 +101,16 @@ class WorkOrderRepository {
           .from(AppConstants.tWorkOrders)
           .select()
           .eq('id', id)
-          .maybeSingle();
+          .maybeSingle()
+          .timeout(const Duration(seconds: 6));
       if (row == null && organizationMembership) {
         // Customer rows are projected by the server, so internal notes and
         // provider rates never enter the customer's cache.
         final accessible =
-            await _client.rpc('organization_work_orders') as List;
+            await _client
+                    .rpc('organization_work_orders')
+                    .timeout(const Duration(seconds: 6))
+                as List;
         for (final candidate in accessible.whereType<Map>()) {
           if (candidate['id'] == id) row = Map<String, dynamic>.from(candidate);
         }

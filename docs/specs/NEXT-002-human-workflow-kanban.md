@@ -1,6 +1,20 @@
 # NEXT-002 — Human-centered workflow consolidation Kanban
 
-Status: implemented scope delivered in Build 29; external setup and physical acceptance remain active.
+Status: Build 29 delivered. Implementation requirements below are retained as
+the accepted specification; the status groups here own remaining work.
+
+## Current board
+
+- **Delivered, needs phone testing:** .02–.19, .21 and .22. See the acceptance
+  matrix below; .18 also passed five connected demo-role checks.
+- **Deferred setup:** .01 email/SMS providers, at Garrett's request.
+- **Needs external verification:** .20 personal agent host connection;
+  .23 live API quality, latency and usage measurements. The managed agent is an
+  exploration, not a delivered production chat feature.
+- **Authorized follow-up in progress:** the five improvements in
+  `NEXT-003-workflow-follow-through.md`, represented in `BACKLOG.md`.
+
+No card is marked physically accepted from automated tests or APK delivery.
 
 Accepted organization membership and role semantics:
 `../decisions/0016-organization-membership-access.md`.
@@ -490,7 +504,7 @@ long names, empty/populated states and calendar density. Back returns to the
 same asset, filter, date or list position. Report automated evidence separately
 from physical phone acceptance.
 
-## P3 — Later additions
+## P3 — Accepted messaging and agent exploration scope
 
 ### NEXT-002.22 — Organization messaging
 

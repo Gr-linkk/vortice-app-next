@@ -3,6 +3,7 @@ import 'dart:typed_data';
 import 'package:vortice_app/core/account_storage.dart';
 import 'package:vortice_app/sync/field_work_queue.dart';
 import 'package:vortice_app/sync/field_work_provider.dart';
+import 'package:vortice_app/sync/field_evidence.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:uuid/uuid.dart';
@@ -203,16 +204,10 @@ class SupabaseMaintenanceRepository implements MaintenanceRepository {
   ) async {
     if (queue != null) {
       await queue!.submit(
-        FieldOperation(
-          id: 'photo:$path',
-          kind: 'upload',
-          subject: path.split('/').first,
-          payload: {
-            'bucket': 'maintenance-evidence',
-            'path': path,
-            'bytes': base64Encode(bytes),
-            'contentType': contentType,
-          },
+        fieldEvidenceOperation(
+          path: path,
+          bytes: bytes,
+          contentType: contentType,
         ),
       );
       return;

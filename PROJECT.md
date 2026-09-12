@@ -14,6 +14,11 @@ parts, and invoices.
 
 ## Current direction
 
+NEXT-003 is the authorized Build 29 follow-through: account selection, complete
+phone workflow verification, provider offline evidence, shared execution rules
+and a populated Work hub performance guard. See `BACKLOG.md` and
+`docs/specs/NEXT-003-workflow-follow-through.md` for current status.
+
 NEXT-002 is the active workflow-consolidation board. Work orders become the
 common work hub while retaining the Field Notes design, checked completion,
 company isolation, offline drafts and provider billing boundaries. See

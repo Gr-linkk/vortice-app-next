@@ -374,4 +374,52 @@ void main() {
     expect(find.text('Otro perfil de prueba'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
+
+  testWidgets(
+    'modern demos lead, old profiles expand, and current company is explicit',
+    (tester) async {
+      await tester.binding.setSurfaceSize(const Size(320, 700));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+      String? selected;
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: AppTheme.lightTheme,
+          home: Scaffold(
+            body: MediaQuery(
+              data: const MediaQueryData(textScaler: TextScaler.linear(2)),
+              child: DevLoginAccountSheet(
+                configuredEmails: const {
+                  'demo_fleet_owner@vortice.dev',
+                  'demo_fleet_mechanic@vortice.dev',
+                  'owner@vortice.dev',
+                },
+                currentEmail: 'demo_fleet_owner@vortice.dev',
+                currentCompany: 'Next Demo Fleet',
+                currentRoles: const ['company_owner'],
+                onSelected: (email) => selected = email,
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(find.text('Next Demo Fleet'), findsOneWidget);
+      expect(find.text('Company Owner'), findsOneWidget);
+      expect(
+        find.byKey(const ValueKey('dev-account:owner@vortice.dev')),
+        findsNothing,
+      );
+      final other = find.text('Other test accounts');
+      await tester.scrollUntilVisible(other, 180);
+      await tester.pumpAndSettle();
+      await tester.tap(other);
+      await tester.pumpAndSettle();
+      final old = find.byKey(const ValueKey('dev-account:owner@vortice.dev'));
+      await tester.scrollUntilVisible(old, 180);
+      await tester.pumpAndSettle();
+      await tester.tap(old);
+      expect(selected, 'owner@vortice.dev');
+      expect(tester.takeException(), isNull);
+    },
+  );
 }

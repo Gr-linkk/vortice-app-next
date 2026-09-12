@@ -59,6 +59,15 @@ targets, and intentionally deferred work.
 
 ## Database changes
 
+For Work hub/query changes, run `bash scripts/check-work-hub-performance.sh`
+through the configured WSL shell on Windows. This checks 340 assets, 1,500 jobs
+and 340 plans in a disposable, network-disabled PostgreSQL container with the
+full migration chain. It asserts four role scopes, three timing samples per
+scope, a 3-second query budget and bounded overhead for an unrelated company.
+The same check runs in CI. It needs Docker, not hosted credentials; it does not
+measure phone rendering or network latency. The pre-cache query fails the
+isolation-overhead check while the current query passes.
+
 Follow `supabase/README.md`. Setup, verification, app run, and Android build
 scripts never deploy or mutate a remote database. A remote migration requires
 the dedicated deployment helper and its explicit project-ref argument.

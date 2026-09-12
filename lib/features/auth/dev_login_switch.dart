@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:vortice_app/core/user_feedback.dart';
 import 'package:vortice_app/features/auth/auth_provider.dart';
+import 'package:vortice_app/features/orgs/org_provider.dart';
 import 'dev_login_accounts.dart';
 import 'dev_login_credentials.dart';
 
@@ -77,6 +78,12 @@ void showDevAccountPicker(BuildContext context, WidgetRef ref) {
   }
   final emails = ref.read(devLoginPasswordsProvider).keys.toSet();
   final current = ref.read(sessionProvider)?.user.email;
+  final profile = ref.exists(profileProvider)
+      ? ref.read(profileProvider).valueOrNull
+      : null;
+  final organization = ref.exists(currentUserOrgProvider)
+      ? ref.read(currentUserOrgProvider).valueOrNull
+      : null;
   final controller = ref.read(devAccountSwitchProvider.notifier);
   showModalBottomSheet<void>(
     context: context,
@@ -85,6 +92,13 @@ void showDevAccountPicker(BuildContext context, WidgetRef ref) {
     builder: (sheetContext) => DevLoginAccountSheet(
       configuredEmails: emails,
       currentEmail: current,
+      currentCompany:
+          profile?.email == current && organization?.id == profile?.orgId
+          ? organization?.name
+          : null,
+      currentRoles: profile?.email == current
+          ? profile?.organizationRoles ?? []
+          : [],
       onSelected: (email) {
         Navigator.pop(sheetContext);
         controller.switchTo(email);

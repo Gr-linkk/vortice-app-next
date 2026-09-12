@@ -180,23 +180,13 @@ class _MaintenanceReportScreenState
   Future<void> _save(String action) async {
     if (action == 'submit' && _pending == null) {
       setState(() => _showRequirements = true);
-      if (_diagnosis.text.trim().length < 3 ||
-          _repair.text.trim().length < 3 ||
+      if (!_progress.complete ||
           (_isInspection &&
               !_inspectionApproved &&
               (_inspectionFields.keys.any(
                     (key) => _inspectionError(key, false) != null,
                   ) ||
-                  !_evidence.contains(_certificate))) ||
-          widget.job.checklist.any(
-            (item) =>
-                maintenanceItemRequirement(item, _answers, _evidence, false) !=
-                null,
-          ) ||
-          (widget.job.isService &&
-              widget.job.data['engine_id'] != null &&
-              (double.tryParse(_hours.text)?.isFinite != true ||
-                  double.parse(_hours.text) < 0))) {
+                  !_evidence.contains(_certificate)))) {
         return;
       }
     }
@@ -258,6 +248,17 @@ class _MaintenanceReportScreenState
       if (mounted) setState(() => _saving = false);
     }
   }
+
+  WorkReportProgress get _progress => WorkReportProgress(
+    diagnosis: _diagnosis.text,
+    repair: _repair.text,
+    items: widget.job.checklist,
+    answers: _answers,
+    evidence: _evidence,
+    meter: _hours.text,
+    meterRequired: widget.job.isService && widget.job.data['engine_id'] != null,
+    startingMeter: widget.job.data['hours_at_start'] as num? ?? 0,
+  );
 
   String? _inspectionError(String key, bool es) {
     final value = _inspectionFields[key]?.text.trim() ?? '';
@@ -379,13 +380,8 @@ class _MaintenanceReportScreenState
               ? (es
                     ? 'Describe los hallazgos y el trabajo realizado'
                     : 'Describe the findings and work performed')
-              : controller == _hours &&
-                    widget.job.isService &&
-                    (double.tryParse(controller.text)?.isFinite != true ||
-                        (double.tryParse(controller.text) ?? -1) < 0)
-              ? (es
-                    ? 'Ingresa el medidor al completar'
-                    : 'Enter the completion meter')
+              : controller == _hours
+              ? _progress.meterError(es)
               : null,
         ),
       ),

@@ -10,6 +10,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:vortice_app/core/account_storage.dart';
 import 'package:vortice_app/db/database.dart';
 import 'package:vortice_app/features/auth/auth_provider.dart';
+import 'package:vortice_app/features/membership/organization_work_provider.dart';
 import 'package:vortice_app/features/assets/asset_provider.dart';
 import 'package:vortice_app/features/assets/asset_workspace.dart';
 import 'package:vortice_app/features/checklists/checklist_assignment_provider.dart';
@@ -274,6 +275,13 @@ Future<HttpServer> _server(
       value = single ? _service : [];
     } else if (path.endsWith('/organization_work_orders')) {
       value = [_service];
+    } else if (path.endsWith('/organization_work_order_context')) {
+      value = {
+        'work_order': _service,
+        'can_work': false,
+        'is_provider': false,
+        'checklist_snapshot': [],
+      };
     } else if (path.endsWith('/work_order_assignments')) {
       value = [
         {
@@ -497,6 +505,18 @@ void main() {
           ))!.templateVersion,
           1,
         );
+        final shared = await container
+            .read(organizationWorkOrderContextProvider('service-a').future)
+            .timeout(
+              const Duration(seconds: 25),
+              onTimeout: () {
+                throw StateError(
+                  'Provider offline context exceeded 25 seconds',
+                );
+              },
+            );
+        expect((shared['work_order'] as Map)['id'], 'service-a');
+        expect(shared['can_work'], isFalse);
         final jobs = await container
             .read(maintenanceRepositoryProvider)
             .jobs(jobId: 'job-a');

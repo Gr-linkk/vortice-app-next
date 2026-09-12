@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:vortice_app/core/user_feedback.dart';
+import 'package:vortice_app/features/membership/membership_models.dart';
 
 class DevLoginAccount {
   const DevLoginAccount(this.email, this.en, this.es, this.role, this.group);
@@ -11,11 +12,41 @@ class DevLoginAccount {
 /// Internal demo personas; each account keeps its actual saved membership.
 /// Credentials come only from the private debug build configuration.
 const knownDevLoginAccounts = [
-  DevLoginAccount('demo_fleet_owner@vortice.dev', 'Demo fleet owner', 'Propietario de flota demo', 'company_owner', 3),
-  DevLoginAccount('demo_fleet_supervisor@vortice.dev', 'Demo fleet supervisor', 'Supervisor de flota demo', 'supervisor', 3),
-  DevLoginAccount('demo_fleet_mechanic@vortice.dev', 'Demo fleet mechanic', 'Mecánico de flota demo', 'mechanic', 3),
-  DevLoginAccount('demo_fleet_operator@vortice.dev', 'Demo fleet operator', 'Operador de flota demo', 'operator', 3),
-  DevLoginAccount('demo_service_owner@vortice.dev', 'Demo service company owner', 'Propietario del servicio demo', 'company_owner', 3),
+  DevLoginAccount(
+    'demo_fleet_owner@vortice.dev',
+    'Demo fleet owner',
+    'Propietario de flota demo',
+    'company_owner',
+    3,
+  ),
+  DevLoginAccount(
+    'demo_fleet_supervisor@vortice.dev',
+    'Demo fleet supervisor',
+    'Supervisor de flota demo',
+    'supervisor',
+    3,
+  ),
+  DevLoginAccount(
+    'demo_fleet_mechanic@vortice.dev',
+    'Demo fleet mechanic',
+    'Mecánico de flota demo',
+    'mechanic',
+    3,
+  ),
+  DevLoginAccount(
+    'demo_fleet_operator@vortice.dev',
+    'Demo fleet operator',
+    'Operador de flota demo',
+    'operator',
+    3,
+  ),
+  DevLoginAccount(
+    'demo_service_owner@vortice.dev',
+    'Demo service company owner',
+    'Propietario del servicio demo',
+    'company_owner',
+    3,
+  ),
   DevLoginAccount(
     'owner@vortice.dev',
     'Provider owner / administrator',
@@ -67,7 +98,9 @@ List<DevLoginAccount> devLoginAccounts(Iterable<String> configuredEmails) {
       configuredEmails.where((email) => !known.contains(email)).toSet().toList()
         ..sort();
   return [
-    ...knownDevLoginAccounts.where((account) => account.group != 3 || configured.contains(account.email)),
+    ...knownDevLoginAccounts.where(
+      (account) => account.group != 3 || configured.contains(account.email),
+    ),
     for (final email in extra)
       DevLoginAccount(
         email,
@@ -85,15 +118,48 @@ class DevLoginAccountSheet extends StatelessWidget {
     required this.configuredEmails,
     required this.onSelected,
     this.currentEmail,
+    this.currentCompany,
+    this.currentRoles = const [],
   });
   final Set<String> configuredEmails;
   final ValueChanged<String> onSelected;
   final String? currentEmail;
+  final String? currentCompany;
+  final List<String> currentRoles;
 
   @override
   Widget build(BuildContext context) {
     final es = isSpanish(context);
     final accounts = devLoginAccounts(configuredEmails);
+    final current = accounts.where((a) => a.email == currentEmail).firstOrNull;
+    final demos = accounts.where((a) => a.group == 3).toList();
+    Widget accountTile(DevLoginAccount account) => Card(
+      child: ListTile(
+        key: ValueKey('dev-account:${account.email}'),
+        contentPadding: const EdgeInsets.all(16),
+        title: Text(account.label(es)),
+        subtitle: Text(
+          [
+            account.email,
+            if (!configuredEmails.contains(account.email))
+              es
+                  ? 'Acceso no configurado en esta compilación.'
+                  : 'Sign-in is not configured in this build.',
+            if (account.email == currentEmail)
+              es ? 'Cuenta actual' : 'Current account',
+          ].join('\n'),
+        ),
+        selected: account.email == currentEmail,
+        enabled:
+            configuredEmails.contains(account.email) &&
+            account.email != currentEmail,
+        onTap:
+            configuredEmails.contains(account.email) &&
+                account.email != currentEmail
+            ? () => onSelected(account.email)
+            : null,
+      ),
+    );
     return SafeArea(
       child: FractionallySizedBox(
         heightFactor: 0.85,
@@ -110,56 +176,57 @@ class DevLoginAccountSheet extends StatelessWidget {
                   ? 'Elige una cuenta. El trabajo guardado se conserva en su cuenta.'
                   : 'Choose an account. Saved work stays with its account.',
             ),
-            for (final group in [3, 0, 1, 2])
-              if (accounts.any((account) => account.group == group)) ...[
-                Padding(
-                  padding: const EdgeInsets.only(top: 20, bottom: 8),
-                  child: Text(switch (group) {
-                    3 => es ? 'Empresas demo nuevas' : 'New demo companies',
-                    0 => es ? 'Empresa proveedora' : 'Service provider',
-                    1 => es ? 'Empresas clientes' : 'Client companies',
-                    _ =>
-                      es
-                          ? 'Otros perfiles configurados'
-                          : 'Other configured profiles',
-                  }, style: Theme.of(context).textTheme.titleMedium),
+            if (current != null) ...[
+              const SizedBox(height: 12),
+              Text(
+                '${es ? 'Cuenta actual' : 'Current account'}: ${current.label(es)}',
+                key: const ValueKey('dev-current-account'),
+                style: Theme.of(context).textTheme.titleSmall,
+              ),
+              if (currentCompany != null) Text(currentCompany!),
+              if (currentRoles.isNotEmpty)
+                Text(
+                  currentRoles
+                      .map(
+                        (key) =>
+                            OrganizationRole.values
+                                .where((role) => role.key == key)
+                                .firstOrNull
+                                ?.label(es) ??
+                            key,
+                      )
+                      .join(' · '),
                 ),
-                for (final account in accounts.where(
-                  (account) => account.group == group,
-                ))
-                  Card(
-                    child: ListTile(
-                      key: ValueKey('dev-account:${account.email}'),
-                      contentPadding: const EdgeInsets.all(16),
-                      title: Text(account.label(es)),
-                      subtitle: Text(
-                        [
-                          account.email,
-                          if (account.role.isNotEmpty)
-                            '${es ? 'Rol actual' : 'Current role'}: ${account.role}',
-                          if (account.role.isEmpty)
-                            es
-                                ? 'El perfil guardado determina los permisos.'
-                                : 'The saved profile determines permissions.',
-                          if (!configuredEmails.contains(account.email))
-                            es
-                                ? 'Acceso no configurado en esta compilación.'
-                                : 'Sign-in is not configured in this build.',
-                          if (account.email == currentEmail)
-                            es ? 'Cuenta actual' : 'Current account',
-                        ].join('\n'),
-                      ),
-                      enabled:
-                          configuredEmails.contains(account.email) &&
-                          account.email != currentEmail,
-                      onTap:
-                          configuredEmails.contains(account.email) &&
-                              account.email != currentEmail
-                          ? () => onSelected(account.email)
-                          : null,
+            ],
+            for (final account in demos) accountTile(account),
+            ExpansionTile(
+              key: const ValueKey('dev-other-accounts'),
+              initiallyExpanded: demos.isEmpty,
+              title: Text(
+                es ? 'Otras cuentas de prueba' : 'Other test accounts',
+              ),
+              children: [
+                for (final group in [0, 1, 2])
+                  if (accounts.any((account) => account.group == group)) ...[
+                    Padding(
+                      padding: const EdgeInsets.only(top: 20, bottom: 8),
+                      child: Text(switch (group) {
+                        3 => es ? 'Empresas demo nuevas' : 'New demo companies',
+                        0 => es ? 'Empresa proveedora' : 'Service provider',
+                        1 => es ? 'Empresas clientes' : 'Client companies',
+                        _ =>
+                          es
+                              ? 'Otros perfiles configurados'
+                              : 'Other configured profiles',
+                      }, style: Theme.of(context).textTheme.titleMedium),
                     ),
-                  ),
+                    for (final account in accounts.where(
+                      (account) => account.group == group,
+                    ))
+                      accountTile(account),
+                  ],
               ],
+            ),
           ],
         ),
       ),

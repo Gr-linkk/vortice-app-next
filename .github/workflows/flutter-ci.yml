@@ -14,6 +14,16 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  work-hub-performance:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+      - name: Check populated Work hub scope and performance
+        shell: bash
+        run: bash scripts/check-work-hub-performance.sh
+
   verify:
     runs-on: ubuntu-latest
     timeout-minutes: 30

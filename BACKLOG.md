@@ -7,6 +7,15 @@ without creating a new backlog item.
 
 ## Now
 
+### NEXT-003 — Workflow polish and field verification
+
+Garrett authorized all five follow-ups on September 12, 2026: simplify test
+account selection, exercise a complete job on the phone, improve provider
+offline capture, consolidate shared workflow logic, and retain a repeatable
+realistic Work hub performance check. Scope and live status:
+`docs/specs/NEXT-003-workflow-follow-through.md`. Keep the existing design,
+account/company permissions and checked approval. Email/SMS setup stays deferred.
+
 ### NEXT-002 — Human-centered workflow consolidation
 
 Garrett authorized autonomous execution, review, commits/pushes and necessary
