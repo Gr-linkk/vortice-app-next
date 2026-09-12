@@ -147,6 +147,10 @@ class ExecutionFixture extends OrganizationWorkRepository {
         'evidence_paths': data['evidence_paths'],
       };
     }
+    if (action == 'return') {
+      order['status'] = 'in_progress';
+      data['review_note'] = values['note'];
+    }
   }
 
   @override
@@ -235,6 +239,31 @@ void main() {
     await font.load();
   });
   setUp(() => SharedPreferences.setMockInitialValues({}));
+  testWidgets(
+    'return reason remains mounted through the closing sheet animation',
+    (tester) async {
+      final fixture = ExecutionFixture();
+      (fixture.data['work_order'] as Map)['status'] = 'pending_review';
+      await tester.pumpWidget(app(fixture));
+      await tester.pumpAndSettle();
+      await reveal(tester, find.text('Return for changes'));
+      await tester.tap(find.text('Return for changes'));
+      await tester.pumpAndSettle();
+      await tester.enterText(
+        find.byType(TextField),
+        'Add pressure verification.',
+      );
+      tester.testTextInput.hide();
+      await tester.pump();
+      await tester.tap(find.text('Return report'));
+      await tester.pumpAndSettle();
+      expect(tester.takeException(), isNull);
+      expect(fixture.calls.single['action'], 'return');
+      expect(fixture.calls.single['data'], {
+        'note': 'Add pressure verification.',
+      });
+    },
+  );
   testWidgets(
     'timer, required checklist, exact retry, review and approved customer view share one order',
     (tester) async {

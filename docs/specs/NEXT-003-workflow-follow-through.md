@@ -5,9 +5,9 @@ verified independent `codex/kanban-workflows` branch.
 
 | Item | Outcome | Status |
 | --- | --- | --- |
-| 1 | New demo roles first, older profiles collapsed, current company/role clear | Implemented; picker tests pass, including 320 px at 200% text |
-| 2 | Create, assign, perform, return, correct, approve and invoice one job | S24 connected and authorized; pending updated build |
-| 3 | Provider evidence capture survives offline interruption and reopening | SQLite restart, retry and permission tests pass; S24 verification pending |
+| 1 | New demo roles first, older profiles collapsed, current company/role clear | Implemented; native S24 picker checked and tests pass, including 320 px at 200% text |
+| 2 | Create, assign, perform, return, correct, approve and invoice one job | Native S24 job submitted and returned; closing-form defect fixed for Build 33, final acceptance in progress |
+| 3 | Provider evidence capture survives offline interruption and reopening | Build 32 S24 restart, cached Work, recovered report and unsent photo preview passed with both networks disabled; reconnect and submission passed |
 | 4 | Shared execution/evidence rules reduce drift between workflow paths | Shared report readiness and immutable evidence helpers implemented |
 | 5 | Repeatable Work hub performance check with representative populated data | Local positive and historical regression probes pass; CI job added |
 
@@ -44,7 +44,19 @@ outbox update restarted hosted Work hub and service enrichment reads. Build 32
 separates cached/server planning from the local operation projection. A widget
 regression first reproduced the extra fetch, then verified repeated photo retries
 keep Work readable, local work actions still update progress, and explicit
-Refresh still fetches current server data. Physical Build 32 acceptance follows.
+Refresh still fetches current server data. Physical Build 32 acceptance passed:
+the Work list reached its cache in the first 15-second check. A fresh fourth
+test photo was added with both networks disabled, the app was force-stopped,
+and the report and photo reopened while the header still showed one pending
+upload. Offline submission was blocked with a clear message. Reconnecting
+uploaded the evidence and the report was submitted through the native UI.
+
+The return-for-correction step then exposed a closing-sheet lifecycle defect:
+text controllers were disposed while the modal exit animation still used them.
+The return was saved, but Flutter rendered an error. Build 33 gives the sheet
+ownership of its controllers until unmount. A new widget test reproduced the
+disposed-controller error before the fix and passes afterward. This shared form
+also handles provider blockers, starting meters and invoice charge entry.
 
 The performance fixture contains 340 assets, 1,500 jobs and 340 plans. It checks
 three samples for four roles under forced generic query plans, a 3-second ceiling

@@ -87,58 +87,13 @@ class _OrganizationProviderWorkPanelState
     String title,
     List<(String, String, String, bool)> fields,
     String action,
-  ) async {
-    final controllers = {
-      for (final f in fields) f.$1: TextEditingController(text: f.$3),
-    };
-    final result = await showModalBottomSheet<Map<String, String>>(
-      context: context,
-      isScrollControlled: true,
-      useSafeArea: true,
-      builder: (context) => Padding(
-        padding: EdgeInsets.fromLTRB(
-          24,
-          24,
-          24,
-          MediaQuery.viewInsetsOf(context).bottom + 24,
-        ),
-        child: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Text(title, style: Theme.of(context).textTheme.titleLarge),
-              const OnlineOnlyNotice(),
-              const SizedBox(height: 20),
-              for (final f in fields)
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 16),
-                  child: TextField(
-                    controller: controllers[f.$1],
-                    keyboardType: f.$4
-                        ? const TextInputType.numberWithOptions(decimal: true)
-                        : TextInputType.multiline,
-                    maxLines: f.$4 ? 1 : 3,
-                    decoration: InputDecoration(labelText: f.$2),
-                  ),
-                ),
-              FilledButton(
-                onPressed: () => Navigator.pop(context, {
-                  for (final entry in controllers.entries)
-                    entry.key: entry.value.text.trim(),
-                }),
-                child: Text(action),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-    for (final controller in controllers.values) {
-      controller.dispose();
-    }
-    return result;
-  }
+  ) => showModalBottomSheet<Map<String, String>>(
+    context: context,
+    isScrollControlled: true,
+    useSafeArea: true,
+    builder: (_) =>
+        _ProviderWorkFieldsSheet(title: title, fields: fields, action: action),
+  );
 
   Future<void> _action(
     Map<String, dynamic> data,
@@ -667,5 +622,72 @@ class _OrganizationProviderWorkPanelState
             );
           },
         ),
+  );
+}
+
+// Text controllers belong to the mounted sheet, including its exit animation.
+class _ProviderWorkFieldsSheet extends StatefulWidget {
+  const _ProviderWorkFieldsSheet({
+    required this.title,
+    required this.fields,
+    required this.action,
+  });
+  final String title, action;
+  final List<(String, String, String, bool)> fields;
+  @override
+  State<_ProviderWorkFieldsSheet> createState() =>
+      _ProviderWorkFieldsSheetState();
+}
+
+class _ProviderWorkFieldsSheetState extends State<_ProviderWorkFieldsSheet> {
+  late final controllers = {
+    for (final f in widget.fields) f.$1: TextEditingController(text: f.$3),
+  };
+  @override
+  void dispose() {
+    for (final controller in controllers.values) {
+      controller.dispose();
+    }
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => Padding(
+    padding: EdgeInsets.fromLTRB(
+      24,
+      24,
+      24,
+      MediaQuery.viewInsetsOf(context).bottom + 24,
+    ),
+    child: SingleChildScrollView(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text(widget.title, style: Theme.of(context).textTheme.titleLarge),
+          const OnlineOnlyNotice(),
+          const SizedBox(height: 20),
+          for (final f in widget.fields)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 16),
+              child: TextField(
+                controller: controllers[f.$1],
+                keyboardType: f.$4
+                    ? const TextInputType.numberWithOptions(decimal: true)
+                    : TextInputType.multiline,
+                maxLines: f.$4 ? 1 : 3,
+                decoration: InputDecoration(labelText: f.$2),
+              ),
+            ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, {
+              for (final entry in controllers.entries)
+                entry.key: entry.value.text.trim(),
+            }),
+            child: Text(widget.action),
+          ),
+        ],
+      ),
+    ),
   );
 }
