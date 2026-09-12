@@ -220,14 +220,12 @@ List<AppDestination> dashboardActions(
   return [
     if (staff || admin || role == UserRole.clientMechanic)
       AppDestination(
-        role == UserRole.owner || admin
-            ? 'Maintenance planning'
-            : 'My schedule',
-        role == UserRole.owner || admin
-            ? 'Planificación de mantenimiento'
-            : 'Mi programación',
+        'Work orders',
+        'Órdenes de trabajo',
         Icons.calendar_month_outlined,
-        '/maintenance/planning',
+        role == UserRole.owner || admin
+            ? '/maintenance/planning'
+            : '/maintenance/planning?filter=mine',
       ),
     const AppDestination(
       'Report a fault',
@@ -235,33 +233,12 @@ List<AppDestination> dashboardActions(
       Icons.report_problem_outlined,
       '/fleet/report',
     ),
-    if (role == UserRole.owner)
+    if (role == UserRole.owner || admin)
       const AppDestination(
         'New work order',
         'Nueva orden de trabajo',
         Icons.add_task,
         '/maintenance/new',
-      )
-    else if (role == UserRole.employee)
-      const AppDestination(
-        'Work orders',
-        'Órdenes de trabajo',
-        Icons.build_outlined,
-        '/maintenance',
-      )
-    else if (admin)
-      const AppDestination(
-        'New work order',
-        'Nueva orden de trabajo',
-        Icons.add_task,
-        '/maintenance/new',
-      )
-    else if (role == UserRole.clientMechanic)
-      const AppDestination(
-        'My Work',
-        'Mi trabajo',
-        Icons.build_outlined,
-        '/maintenance',
       )
     else if (operationalChecklistsEnabled &&
         (role == UserRole.operator || role == UserRole.clientOperator))
@@ -271,7 +248,7 @@ List<AppDestination> dashboardActions(
         Icons.checklist,
         '/operator/checklist',
       )
-    else
+    else if (!staff && role != UserRole.clientMechanic)
       AppDestination(
         'View assets',
         'Ver equipos',

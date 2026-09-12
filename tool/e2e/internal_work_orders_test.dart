@@ -159,7 +159,7 @@ void main() {
               expect(find.text('Edit work order'), findsNothing);
               await h.tap(find.widgetWithText(FilledButton, 'Start work'));
               await h.tap(find.widgetWithText(TextButton, 'Pause'));
-              await h.tap(find.text('Continue work report'));
+              await h.tap(find.text('Continue service report'));
               await h.fill(
                 h.field('Findings'),
                 '$marker No defects observed in mounting points',

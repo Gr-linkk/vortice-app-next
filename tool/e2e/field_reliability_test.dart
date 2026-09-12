@@ -194,13 +194,13 @@ void main() {
             'report Back navigation preserves the local draft',
             () async {
               await h.go('/maintenance/jobs/$job');
-              await h.tap(find.text('Continue work report'));
+              await h.tap(find.text('Continue service report'));
               await h.fill(
                 h.field('Findings'),
                 '$marker Unsaved local diagnosis',
               );
               await h.tap(find.byType(BackButton));
-              await h.tap(find.text('Continue work report'));
+              await h.tap(find.text('Continue service report'));
               expect(
                 tester.widget<TextField>(h.field('Findings')).controller!.text,
                 '$marker Unsaved local diagnosis',

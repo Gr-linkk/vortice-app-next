@@ -5,12 +5,12 @@ import 'package:vortice_app/features/checklists/asset_checklist_template_filter.
 import 'package:uuid/uuid.dart';
 import 'package:vortice_app/sync/field_work_provider.dart';
 import 'package:vortice_app/core/account_storage.dart';
-import 'dart:convert';
+import 'operator_checklist_draft_store.dart';
 import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+
 import 'package:vortice_app/features/auth/auth_provider.dart';
 import 'package:vortice_app/features/checklists/checklist_provider.dart';
 import 'package:vortice_app/features/checklists/checklist_submission_orchestrator.dart';
@@ -40,173 +40,256 @@ class OperatorChecklistScreenState
   String _operationId = const Uuid().v4();
   late DateTime _startedAt = _completedAt;
   Future<void> _draftWrite = Future.value();
-  String get _draftKey => accountStorageKey(
-    _accountId,
-    widget.initialAssignmentId == null
-        ? operatorChecklistDraftKey
-        : '$operatorChecklistDraftKey:${widget.initialAssignmentId}',
-  );
-
+  late final OperatorChecklistDraftStore _draftStore;
+  List<Map<String, dynamic>> _drafts = [];
+  bool _restoring = false;
+  bool _showDrafts = true;
+  String? _assignmentId;
+  String? _draftError;
+  bool get _sameAccount =>
+      mounted && ref.read(sessionProvider)?.user.id == _accountId;
   @override
   void initState() {
     super.initState();
     _accountId = ref.read(sessionProvider)?.user.id ?? 'signed_out';
+    _assignmentId = widget.initialAssignmentId;
+    final container = ProviderScope.containerOf(context, listen: false);
+    _draftStore = OperatorChecklistDraftStore(
+      _accountId,
+      () => container.read(sessionProvider)?.user.id,
+    );
     WidgetsBinding.instance.addPostFrameCallback((_) => _restoreDraftIfReady());
   }
 
   Future<void> _restoreDraftIfReady() async {
-    if (_restoredDraft) return;
-
+    if (_restoredDraft || _restoring) return;
     final assets = ref.read(operatorAssignedAssetsProvider).valueOrNull;
     final templates = ref.read(checklistTemplatesProvider).valueOrNull;
-    if (templates == null || assets == null) {
+    if (assets == null || templates == null) return;
+    _restoring = true;
+    try {
+      final drafts = await _draftStore.list();
+      if (!_sameAccount) return;
+      _drafts = drafts;
+      if (widget.initialAssignmentId != null) {
+        final draft = drafts
+            .where((d) => d['assignment_id'] == widget.initialAssignmentId)
+            .firstOrNull;
+        await _openAssignment(widget.initialAssignmentId!, draft: draft);
+      } else if (widget.initialAssetId != null) {
+        final asset = assets
+            .where((a) => a['id'] == widget.initialAssetId)
+            .firstOrNull;
+        if (asset == null) {
+          _selectionError = 'asset';
+        } else {
+          // An asset deep link is explicit; an unrelated saved run never wins.
+          _showDrafts = false;
+          _chooseAsset(asset, initialTemplateId: widget.initialTemplateId);
+        }
+      }
+    } catch (_) {
+      if (_sameAccount) _draftError = 'load';
+    } finally {
+      _restoring = false;
+      if (_sameAccount) setState(() => _restoredDraft = true);
+    }
+  }
+
+  Future<void> _openAssignment(
+    String assignmentId, {
+    Map<String, dynamic>? draft,
+  }) async {
+    try {
+      final assignments = await ref.read(myChecklistAssignmentsProvider.future);
+      if (!_sameAccount) return;
+      final assignment = assignments
+          .where((a) => a['id'] == assignmentId)
+          .firstOrNull;
+      final assetId = (assignment?['assets'] as Map?)?['id'];
+      final templateId = (assignment?['checklist_templates'] as Map?)?['id'];
+      if (assignment == null ||
+          !['pending', 'in_progress'].contains(assignment['status']) ||
+          (draft != null &&
+              (draft['assetId'] != assetId ||
+                  draft['templateId'] != templateId))) {
+        _selectionError = 'assignment';
+        return;
+      }
+      if (draft != null) {
+        _restoreRun(draft);
+      } else {
+        final assets =
+            ref.read(operatorAssignedAssetsProvider).valueOrNull ?? [];
+        final templates =
+            ref.read(checklistTemplatesProvider).valueOrNull ?? [];
+        _selectedAsset = assets.where((a) => a['id'] == assetId).firstOrNull;
+        _selectedTemplate = templates
+            .where((t) => t.id == templateId)
+            .firstOrNull;
+        if (_selectedAsset == null ||
+            _selectedTemplate == null ||
+            !_templateMatches(
+              _selectedTemplate!,
+              _selectedAsset!,
+              pinned: true,
+            )) {
+          _selectionError = 'assignment';
+          return;
+        }
+        _assignmentId = assignmentId;
+        await _saveDraft();
+      }
+      _showDrafts = false;
+    } catch (error) {
+      // Only a connection failure may resume the already-started pinned run.
+      // Permission failures and revoked assignments never fall back to a draft.
+      if (_sameAccount && isConnectionFailure(error) && draft != null) {
+        _restoreRun(draft);
+        _showDrafts = false;
+      } else if (_sameAccount) {
+        _selectionError = 'assignment';
+      }
+    }
+  }
+
+  bool _templateMatches(
+    ChecklistTemplate template,
+    Map<String, dynamic> asset, {
+    bool pinned = false,
+  }) => checklistTemplateMatches(
+    pinned ? template.copyWith(isActive: true) : template,
+    kind: 'operator_daily',
+    assetId: asset['id'] as String?,
+    assetTypeId: asset['asset_type_id'] as String?,
+    clientId: asset['client_id'] as String?,
+  );
+
+  bool _draftAvailable(Map<String, dynamic> draft) {
+    final assets = ref.read(operatorAssignedAssetsProvider).valueOrNull ?? [];
+    final templates = ref.read(checklistTemplatesProvider).valueOrNull ?? [];
+    final asset = assets.where((a) => a['id'] == draft['assetId']).firstOrNull;
+    final template = templates
+        .where((t) => t.id == draft['templateId'])
+        .firstOrNull;
+    return asset != null &&
+        template != null &&
+        _templateMatches(template, asset, pinned: true);
+  }
+
+  void _restoreRun(Map<String, dynamic> draft) {
+    if (!_sameAccount || !_draftAvailable(draft)) {
+      _selectionError = 'asset';
       return;
     }
-
-    final prefs = await SharedPreferences.getInstance();
-    final raw = prefs.getString(_draftKey);
-
-    Map<String, dynamic>? assetToSet = _selectedAsset;
-    ChecklistTemplate? templateToSet = _selectedTemplate;
-
-    if (raw != null) {
-      try {
-        final data = jsonDecode(raw) as Map<String, dynamic>;
-        _operationId = data['operation_id'] as String? ?? _operationId;
-        final restored = decodeOperatorChecklistDraft(
-          data,
-          fallbackCompletedAt: _completedAt,
-          assets: assets,
-          templates: templates,
-        );
-        assetToSet = restored.asset;
-        templateToSet = restored.template;
-        _completedAt = restored.completedAt;
-        _startedAt =
-            DateTime.tryParse(data['started_at'] as String? ?? '') ??
-            restored.completedAt;
-        _currentHours = restored.currentHours;
-        _generalNotes = restored.generalNotes;
-
-        if (mounted) {
-          setState(() {
-            _selectedAsset = assetToSet;
-            _selectedTemplate = templateToSet;
-            _responses
-              ..clear()
-              ..addAll(restored.responses);
-            _notes
-              ..clear()
-              ..addAll(restored.notes);
-            _photos
-              ..clear()
-              ..addAll(restored.photos);
-          });
-        }
-      } catch (_) {
-        await prefs.remove(_draftKey);
-      }
-    }
-
-    assetToSet = resolveOperatorInitialAsset(
-      currentAsset: assetToSet,
-      initialAssetId: widget.initialAssetId,
-      assets: assets,
+    final restored = decodeOperatorChecklistDraft(
+      draft,
+      fallbackCompletedAt: DateTime.now(),
+      assets: ref.read(operatorAssignedAssetsProvider).valueOrNull,
+      templates: ref.read(checklistTemplatesProvider).valueOrNull ?? [],
     );
-    templateToSet = resolveOperatorInitialTemplate(
-      currentTemplate: templateToSet,
-      initialTemplateId: widget.initialTemplateId,
-      templates: templates,
-    );
-    if (widget.initialAssignmentId != null) {
-      try {
-        final assignments = await ref.read(
-          myChecklistAssignmentsProvider.future,
-        );
-        final assignment = assignments
-            .where((a) => a['id'] == widget.initialAssignmentId)
-            .firstOrNull;
-        if (assignment == null ||
-            !['pending', 'in_progress'].contains(assignment['status'])) {
-          _selectionError = 'assignment';
-        } else {
-          final assetId = (assignment['assets'] as Map?)?['id'];
-          final templateId = (assignment['checklist_templates'] as Map?)?['id'];
-          assetToSet = assets.where((a) => a['id'] == assetId).firstOrNull;
-          templateToSet = templates
-              .where((t) => t.id == templateId)
-              .firstOrNull;
-          if (assetToSet == null || templateToSet == null) {
-            _selectionError = 'assignment';
-          }
-        }
-      } catch (_) {
-        // A previously started assignment retains its pinned local draft.
-        if (raw == null || assetToSet == null || templateToSet == null) {
-          _selectionError = 'assignment';
-        }
+    _operationId = draft['operation_id'] as String;
+    _assignmentId = draft['assignment_id'] as String?;
+    _selectedAsset = restored.asset;
+    _selectedTemplate = restored.template;
+    _completedAt = restored.completedAt;
+    _startedAt =
+        DateTime.tryParse(draft['started_at'] as String? ?? '') ??
+        restored.completedAt;
+    _currentHours = restored.currentHours;
+    _generalNotes = restored.generalNotes;
+    _responses
+      ..clear()
+      ..addAll(restored.responses);
+    _notes
+      ..clear()
+      ..addAll(restored.notes);
+    _photos
+      ..clear()
+      ..addAll(restored.photos);
+  }
+
+  Future<void> _resumeDraft(Map<String, dynamic> draft) async {
+    if (!_sameAccount || _restoring) return;
+    setState(() => _restoring = true);
+    try {
+      final assignment = draft['assignment_id'] as String?;
+      if (assignment == null) {
+        _restoreRun(draft);
+        _showDrafts = false;
+      } else {
+        await _openAssignment(assignment, draft: draft);
       }
+    } catch (_) {
+      if (_sameAccount) _draftError = 'load';
+    } finally {
+      if (_sameAccount) setState(() => _restoring = false);
     }
-    if (templateToSet != null &&
-        !checklistTemplateMatches(
-          (raw != null || widget.initialAssignmentId != null)
-              ? templateToSet.copyWith(isActive: true)
-              : templateToSet,
-          kind: 'operator_daily',
-          assetId: assetToSet?['id'] as String?,
-          assetTypeId: assetToSet?['asset_type_id'] as String?,
-          clientId: assetToSet?['client_id'] as String?,
-        )) {
-      templateToSet = null;
+  }
+
+  void _chooseAsset(Map<String, dynamic> asset, {String? initialTemplateId}) {
+    final templates = ref.read(checklistTemplatesProvider).valueOrNull ?? [];
+    final matching = operatorTemplatesForAsset(asset, templates);
+    setState(() {
+      _selectedAsset = asset;
+      _selectedTemplate = initialTemplateId == null
+          ? (matching.length == 1 ? matching.single : null)
+          : matching.where((t) => t.id == initialTemplateId).firstOrNull;
       _responses.clear();
       _notes.clear();
       _photos.clear();
-      if (widget.initialAssignmentId != null) _selectionError = 'assignment';
-    }
-    if (mounted) {
-      setState(() {
-        _selectedAsset = assetToSet;
-        _selectedTemplate = templateToSet;
-      });
-    }
-
-    _restoredDraft = true;
+      _startedAt = DateTime.now();
+      _completedAt = _startedAt;
+    });
+    unawaited(_saveDraft());
   }
 
   Future<void> _saveDraft() {
-    final raw = jsonEncode({
+    if (!_sameAccount || _selectedAsset == null || _selectedTemplate == null) {
+      return Future.value();
+    }
+    final data = <String, dynamic>{
       ...encodeOperatorChecklistDraft(
         asset: _selectedAsset,
         template: _selectedTemplate,
-        responses: _responses,
-        notes: _notes,
+        responses: Map.of(_responses),
+        notes: Map.of(_notes),
         completedAt: _completedAt,
         currentHours: _currentHours,
         generalNotes: _generalNotes,
-        photos: _photos,
+        photos: Map.of(_photos),
       ),
       'operation_id': _operationId,
+      'assignment_id': _assignmentId,
       'started_at': _startedAt.toUtc().toIso8601String(),
+    };
+    // Serialize writes; an earlier delayed save cannot overwrite newer input.
+    final write = _draftWrite.then((_) => _draftStore.save(data)).then((_) {
+      if (_sameAccount && _draftError == 'save') {
+        setState(() => _draftError = null);
+      }
     });
-    _draftWrite = _draftWrite.then((_) async {
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setString(_draftKey, raw);
+    _draftWrite = write.catchError((Object error) {
+      if (_sameAccount) setState(() => _draftError = 'save');
     });
     return _draftWrite;
   }
 
   Future<void> _clearDraft() async {
     await _draftWrite;
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.remove(_draftKey);
+    await _draftStore.remove(_operationId);
+    _drafts = await _draftStore.list();
   }
 
-  void _resetChecklist() {
-    if (widget.initialAssignmentId != null) {
-      context.go('/client/dashboard');
-      return;
-    }
+  Future<void> _resetChecklist() async {
+    await _saveDraft();
+    if (!_sameAccount || _draftError == 'save') return;
+    final drafts = await _draftStore.list();
+    if (!_sameAccount) return;
     setState(() {
+      _drafts = drafts;
+      _showDrafts = false;
+      _assignmentId = null;
       _operationId = const Uuid().v4();
       _selectedAsset = null;
       _selectedTemplate = null;
@@ -214,11 +297,61 @@ class OperatorChecklistScreenState
       _notes.clear();
       _photos.clear();
       _completedAt = DateTime.now();
-      _startedAt = DateTime.now();
+      _startedAt = _completedAt;
       _currentHours = null;
       _generalNotes = null;
     });
-    _saveDraft();
+  }
+
+  String _draftSubtitle(BuildContext context, Map<String, dynamic> draft) {
+    final es = Localizations.localeOf(context).languageCode == 'es';
+    final template = ref
+        .read(checklistTemplatesProvider)
+        .valueOrNull!
+        .firstWhere((template) => template.id == draft['templateId']);
+    final started = DateTime.tryParse(
+      '${draft['started_at'] ?? ''}',
+    )?.toLocal();
+    final localizations = MaterialLocalizations.of(context);
+    final startedLabel = started == null
+        ? (es ? 'Hora de inicio no registrada' : 'Start time not recorded')
+        : '${es ? 'Iniciada' : 'Started'} ${localizations.formatShortDate(started)} · ${localizations.formatTimeOfDay(TimeOfDay.fromDateTime(started))}';
+    return '${template.name} · v${template.version}\n$startedLabel\n${es ? 'Guardado en este dispositivo' : 'Saved on this device'}';
+  }
+
+  Widget _draftChoices(BuildContext context) {
+    final es = Localizations.localeOf(context).languageCode == 'es';
+    final assets = ref.read(operatorAssignedAssetsProvider).valueOrNull ?? [];
+    return ListView(
+      padding: const EdgeInsets.all(16),
+      children: [
+        Text(
+          es ? 'Listas sin terminar' : 'Unfinished checklists',
+          style: Theme.of(context).textTheme.titleLarge,
+        ),
+        const SizedBox(height: 8),
+        for (final draft in _drafts.where(_draftAvailable))
+          Card(
+            child: ListTile(
+              leading: const Icon(Icons.restore),
+              title: Text(
+                es
+                    ? 'Continuar lista de ${assets.firstWhere((a) => a['id'] == draft['assetId'])['name']}'
+                    : 'Resume ${assets.firstWhere((a) => a['id'] == draft['assetId'])['name']} checklist',
+              ),
+              subtitle: Text(_draftSubtitle(context, draft)),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () => _resumeDraft(draft),
+            ),
+          ),
+        const SizedBox(height: 12),
+        OutlinedButton.icon(
+          onPressed: () => setState(() => _showDrafts = false),
+          icon: const Icon(Icons.add),
+          label: Text(es ? 'Iniciar otra lista' : 'Start another checklist'),
+        ),
+      ],
+    );
   }
 
   @override
@@ -239,9 +372,79 @@ class OperatorChecklistScreenState
       }
     });
 
+    final es = Localizations.localeOf(context).languageCode == 'es';
+    if (ref.watch(sessionProvider)?.user.id != _accountId) {
+      return Scaffold(
+        appBar: AppBar(title: Text(l10n.operatorChecklistTitle)),
+        body: Center(
+          child: Text(
+            es
+                ? 'La cuenta cambió. Vuelve a abrir esta pantalla.'
+                : 'The account changed. Reopen this screen.',
+          ),
+        ),
+      );
+    }
+    if (assetsAsync.hasError ||
+        templatesAsync.hasError ||
+        _draftError == 'load') {
+      return Scaffold(
+        appBar: AppBar(title: Text(l10n.operatorChecklistTitle)),
+        body: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  es
+                      ? 'No se pudieron cargar los equipos y las listas guardadas.'
+                      : 'Equipment and saved checklists could not be loaded.',
+                ),
+                TextButton(
+                  onPressed: () {
+                    setState(() {
+                      _restoredDraft = false;
+                      _draftError = null;
+                    });
+                    ref.invalidate(operatorAssignedAssetsProvider);
+                    ref.invalidate(checklistTemplatesProvider);
+                    unawaited(_restoreDraftIfReady());
+                  },
+                  child: Text(es ? 'Reintentar' : 'Try again'),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+    if (!_restoredDraft || _restoring) {
+      return Scaffold(
+        appBar: AppBar(title: Text(l10n.operatorChecklistTitle)),
+        body: const Center(child: CircularProgressIndicator()),
+      );
+    }
     return Scaffold(
       appBar: AppBar(title: Text(l10n.operatorChecklistTitle)),
-      body: _selectionError != null
+      body: _draftError == 'save'
+          ? Center(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    es
+                        ? 'No se pudo guardar la lista. Mantén esta pantalla abierta.'
+                        : 'The checklist could not be saved. Keep this screen open.',
+                  ),
+                  TextButton(
+                    onPressed: _saveDraft,
+                    child: Text(es ? 'Reintentar' : 'Try again'),
+                  ),
+                ],
+              ),
+            )
+          : _selectionError != null
           ? Center(
               child: Padding(
                 padding: const EdgeInsets.all(24),
@@ -251,7 +454,7 @@ class OperatorChecklistScreenState
                     Text(
                       Localizations.localeOf(context).languageCode == 'es'
                           ? 'Esta revisión asignada ya no está disponible. Revisa el historial o pide al responsable una nueva asignación.'
-                          : 'This assignment is no longer available. Check its history or ask your manager for a new assignment.',
+                          : 'This equipment or assignment is no longer available. Your draft is kept. Ask your manager to check access.',
                     ),
                     TextButton(
                       onPressed: () => context.go('/client/dashboard'),
@@ -261,22 +464,15 @@ class OperatorChecklistScreenState
                 ),
               ),
             )
+          : _showDrafts && _drafts.any(_draftAvailable)
+          ? _draftChoices(context)
           : _selectedAsset == null || _selectedTemplate == null
           ? OperatorChecklistSelectionStep(
               assetsAsync: assetsAsync,
               templatesAsync: templatesAsync,
               selectedAsset: _selectedAsset,
               selectedTemplate: _selectedTemplate,
-              onAssetSelected: (a) {
-                setState(() {
-                  _selectedAsset = a;
-                  _selectedTemplate = null;
-                  _responses.clear();
-                  _notes.clear();
-                  _photos.clear();
-                });
-                _saveDraft();
-              },
+              onAssetSelected: _chooseAsset,
               onTemplateSelected: (t) {
                 setState(() {
                   _selectedTemplate = t;
@@ -287,6 +483,7 @@ class OperatorChecklistScreenState
               },
             )
           : OperatorChecklistRunForm(
+              key: ValueKey(_operationId),
               assetName: _selectedAsset!['name'] as String,
               template: _selectedTemplate!,
               responses: _responses,
@@ -331,6 +528,7 @@ class OperatorChecklistScreenState
   Future<void> _submit() async {
     final profile = ref.read(profileProvider).valueOrNull;
     await _saveDraft();
+    if (!_sameAccount || _draftError == 'save') return;
     setState(() => _submitting = true);
     try {
       final items = await ref.read(
@@ -343,7 +541,7 @@ class OperatorChecklistScreenState
           .read(operationsChecklistSubmissionProvider)
           .submit(
             operationId: _operationId,
-            assignmentId: widget.initialAssignmentId,
+            assignmentId: _assignmentId,
             startedAt: _startedAt.isAfter(_completedAt)
                 ? _completedAt
                 : _startedAt,
@@ -367,7 +565,9 @@ class OperatorChecklistScreenState
         final queued = (await ref.read(fieldWorkQueueProvider)?.list() ?? [])
             .where((r) => r.id == _operationId)
             .firstOrNull;
-        if (!mounted) return;
+        if (!mounted || ref.read(sessionProvider)?.user.id != _accountId) {
+          return;
+        }
         final es = Localizations.localeOf(context).languageCode == 'es';
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -385,12 +585,14 @@ class OperatorChecklistScreenState
           ),
         );
         ref.invalidate(myChecklistAssignmentsProvider);
-        if (widget.initialAssignmentId != null) {
+        if (_assignmentId != null) {
           context.go('/client/dashboard');
           return;
         }
         setState(() {
           _operationId = const Uuid().v4();
+          _assignmentId = null;
+          _showDrafts = true;
           _selectedAsset = null;
           _selectedTemplate = null;
           _responses.clear();

@@ -258,7 +258,7 @@ class _MaintenanceCreateScreenState
           leading: const FormBackButton(fallbackRoute: '/maintenance'),
           title: Text(
             widget.faultId != null
-                ? (es ? 'Planificar reparación' : 'Plan repair')
+                ? (es ? 'Crear orden de trabajo' : 'Create work order')
                 : (es ? 'Nueva orden' : 'New work order'),
           ),
         ),

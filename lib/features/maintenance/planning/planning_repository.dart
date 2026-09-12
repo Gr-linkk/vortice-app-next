@@ -8,6 +8,7 @@ import 'package:vortice_app/models/work_order.dart';
 import 'package:vortice_app/core/app_navigation.dart';
 import 'package:vortice_app/sync/field_work_provider.dart';
 import 'planning_models.dart';
+import 'planning_service_repository.dart';
 
 abstract class PlanningRepository {
   Future<PlanningData> load(String? assetId);
@@ -27,7 +28,7 @@ class SupabasePlanningRepository implements PlanningRepository {
     Map<String, dynamic>.from(
       await client
               .rpc(
-                'maintenance_planning',
+                'maintenance_work_hub',
                 params: {if (assetId != null) 'p_asset': assetId},
               )
               .timeout(const Duration(seconds: 15))
@@ -74,41 +75,21 @@ final maintenancePlanningProvider = FutureProvider.autoDispose
           : Future.value(<WorkOrder>[]);
       final (managed, orders) = await (managedFuture, ordersFuture).wait;
       final managedIds = managed.jobs.map((job) => job.id).toSet();
-      final serviceJobs = await Future.wait([
+      final serviceOrders = [
         for (final order in orders)
           if (!managedIds.contains(order.id) &&
-              ![
-                WorkOrderStatus.closed,
-                WorkOrderStatus.invoiced,
-              ].contains(order.status) &&
               (assetId == null || order.assetId == assetId))
-            () async {
-              final assetFuture = ref.watch(
-                assetNameProvider(order.assetId).future,
-              );
-              final nameFuture = order.assignedTo == null
-                  ? Future.value('')
-                  : ref.watch(profileNameProvider(order.assignedTo!).future);
-              final (asset, name) = await (assetFuture, nameFuture).wait;
-              return PlanningJob({
-                'id': order.id,
-                'asset_id': order.assetId,
-                'asset_name': asset ?? '',
-                'title': order.title,
-                'status': order.status.dbValue,
-                'assigned_to': order.assignedTo,
-                'assignee_name': name ?? '',
-                'provider_service': true,
-                'service_date': order.scheduledDate
-                    ?.toIso8601String()
-                    .split('T')
-                    .first,
-                'on_hold_reason': order.onHoldReason,
-                'route':
-                    '${roleRoutePrefix(profile.role)}/work-orders/${order.id}',
-              });
-            }(),
-      ]);
+            order,
+      ];
+      final serviceData = serviceOrders.isEmpty
+          ? const PlanningServiceData()
+          : await ref
+                .watch(planningServiceRepositoryProvider)
+                .load(serviceOrders, accountId: profile.id);
+      final serviceJobs = [
+        for (final order in serviceOrders)
+          serviceData.project(order, profile.id, roleRoutePrefix(profile.role)),
+      ];
       return PlanningData(
         jobs: [...managed.jobs, ...serviceJobs],
         plans: managed.plans,

@@ -1,4 +1,5 @@
 import 'package:vortice_app/features/auth/sign_out_button.dart';
+import 'package:vortice_app/features/auth/dev_login_switch.dart';
 import 'package:vortice_app/core/appearance_settings.dart';
 import 'package:vortice_app/sync/field_sync_status.dart';
 import 'package:flutter/material.dart';
@@ -120,6 +121,7 @@ class _MoreScreenState extends ConsumerState<MoreScreen> {
               ),
             ],
           if (query.isEmpty) ...[
+            const DevAccountSwitchEntry(),
             const SizedBox(height: 20),
             Text(
               es ? 'Configuración' : 'Settings',

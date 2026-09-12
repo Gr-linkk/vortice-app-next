@@ -194,7 +194,7 @@ class _MaintenanceReportCard extends StatelessWidget {
           child: Text(
             [
               job.assetName,
-              '${es ? 'Informe de mantenimiento' : 'Maintenance report'} · ${maintenanceStatus(job.status, es)}',
+              '${es ? 'Informe de servicio' : 'Service report'} · ${maintenanceStatus(job.status, es)}',
               if (date != null)
                 DateFormat.yMMMd(es ? 'es' : 'en').format(date.toLocal()),
             ].join('\n'),

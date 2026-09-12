@@ -131,7 +131,8 @@ void main() {
           caught.add(details.exceptionAsString());
         };
         Future<void> settle() async {
-          for (var n = 0; n < 35; n++) {
+          // Cold live data can exceed 3.5 s; keep a bounded 10 s wait and record timing.
+          for (var n = 0; n < 100; n++) {
             await tester.pump(const Duration(milliseconds: 100));
             await Future<void>.delayed(const Duration(milliseconds: 100));
             if (n > 7 &&
@@ -180,6 +181,9 @@ void main() {
                       email == 'client@vortice.dev'))
                 '/client/service-requests/new',
             };
+            if (role.name == 'client' || role.name == 'clientAdmin') {
+              routes.add('/checklist-assignments');
+            }
             if (assets.isNotEmpty) {
               final id = assets.first['id'];
               routes.addAll([
@@ -208,6 +212,7 @@ void main() {
             for (final route in routes) {
               caught.clear();
               final failureStart = observer.failures.length;
+              final routeTimer = Stopwatch()..start();
               router.go(route);
               await settle();
               final labels = tester
@@ -235,6 +240,7 @@ void main() {
                 'role': role.name,
                 'account': email,
                 'requested': route,
+                'settleMilliseconds': routeTimer.elapsedMilliseconds,
                 'actual': router.routeInformationProvider.value.uri.path,
                 'errors': errors,
                 'frameworkErrors': List<String>.from(caught),

@@ -39,7 +39,7 @@ class DashboardCurrentWork extends ConsumerWidget {
       children: [
         DashboardSection(
           title: es ? 'Mi trabajo' : 'My work',
-          onViewAll: () => context.push('/maintenance'),
+          onViewAll: () => context.push('/maintenance/planning?filter=mine'),
         ),
         ref
             .watch(workListProvider(null))

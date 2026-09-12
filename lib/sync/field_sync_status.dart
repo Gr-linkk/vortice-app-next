@@ -335,7 +335,9 @@ class FieldQueueScreen extends ConsumerWidget {
                               ),
                               TextButton(
                                 onPressed: () => Navigator.pop(context, true),
-                                child: Text(es ? 'Apartar cambios' : 'Set aside'),
+                                child: Text(
+                                  es ? 'Apartar cambios' : 'Set aside',
+                                ),
                               ),
                             ],
                           ),
@@ -401,6 +403,8 @@ class FieldQueueScreen extends ConsumerWidget {
                                 operatorChecklistDraftKey,
                               ),
                               jsonEncode({
+                                'assignment_id': data['assignment_id'],
+                                'started_at': data['started_at'],
                                 'assetId': data['asset_id'],
                                 'templateId': data['template_id'],
                                 'completedAt': data['completed_at'],
@@ -423,7 +427,9 @@ class FieldQueueScreen extends ConsumerWidget {
                         }
                       },
                       child: Text(
-                        es ? 'Apartar cambios sin enviar' : 'Set aside unsent changes',
+                        es
+                            ? 'Apartar cambios sin enviar'
+                            : 'Set aside unsent changes',
                       ),
                     ),
                 ],

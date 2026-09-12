@@ -121,7 +121,7 @@ void main() {
             String? target,
           }) async {
             await h.go('/maintenance/jobs/${target ?? job}');
-            await h.tap(find.text('Continue work report'));
+            await h.tap(find.text('Continue service report'));
             await h.fill(h.field('Findings'), '$marker Worn seal $suffix');
             await h.fill(
               h.field('Work performed and results'),
@@ -140,7 +140,7 @@ void main() {
               if (job == null) throw StateError('No created job');
               await report('draft', 'Save draft');
               await h.go('/maintenance/jobs/$job');
-              await h.tap(find.text('Continue work report'));
+              await h.tap(find.text('Continue service report'));
               expect(
                 tester.widget<TextField>(h.field('Findings')).controller!.text,
                 '$marker Worn seal draft',
@@ -213,7 +213,7 @@ void main() {
               save();
               await h.login('paradise@vortice.dev');
               await h.go('/fleet/faults/$fault');
-              await h.tap(find.text('Plan repair'));
+              await h.tap(find.text('Create work order'));
               await h.select('Assigned to', mechanic['name'] as String);
               await h.tap(
                 find.widgetWithText(FilledButton, 'Create & open work order'),

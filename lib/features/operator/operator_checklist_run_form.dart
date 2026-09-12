@@ -112,34 +112,38 @@ class _OperatorChecklistRunFormState
         onHoursChanged: widget.onCurrentHoursChanged,
         onNotesChanged: widget.onGeneralNotesChanged,
       ),
-      Container(
-        padding: const EdgeInsets.all(12),
-        color: context.appColors.surfaceVariant,
-        child: Row(
-          children: [
-            Icon(
-              Icons.directions_boat,
-              color: context.appColors.primary,
-              size: 18,
-            ),
-            const SizedBox(width: 8),
-            Expanded(
-              child: Text(
-                '${widget.assetName} — ${widget.template.name}',
-                style: Theme.of(context).textTheme.titleSmall,
-              ),
-            ),
-            TextButton(
-              onPressed: widget.onReset,
-              child: Text(l10n.change, style: const TextStyle(fontSize: 12)),
-            ),
-          ],
-        ),
-      ),
     ];
 
     return Column(
       children: [
+        Material(
+          color: context.appColors.surfaceVariant,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Text(
+                  widget.assetName,
+                  style: Theme.of(context).textTheme.titleLarge,
+                ),
+                Text('${widget.template.name} · v${widget.template.version}'),
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: TextButton.icon(
+                    onPressed: widget.submitting ? null : widget.onReset,
+                    icon: const Icon(Icons.add),
+                    label: Text(
+                      Localizations.localeOf(context).languageCode == 'es'
+                          ? 'Iniciar otra lista'
+                          : 'Start another checklist',
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
         Expanded(
           child: itemsAsync.when(
             loading: () => const Center(child: CircularProgressIndicator()),

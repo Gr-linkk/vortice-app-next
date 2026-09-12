@@ -88,8 +88,9 @@ class EmployeeDashboard extends ConsumerWidget {
                           ),
                           if (shopQueue.isNotEmpty)
                             TextButton(
-                              onPressed: () =>
-                                  context.push('/employee/work-orders'),
+                              onPressed: () => context.push(
+                                '/maintenance/planning?filter=open',
+                              ),
                               child: Text(
                                 l10n.viewAll,
                                 style: TextStyle(
@@ -132,7 +133,7 @@ class EmployeeDashboard extends ConsumerWidget {
                       Center(
                         child: TextButton(
                           onPressed: () =>
-                              context.push('/employee/work-orders'),
+                              context.push('/maintenance/planning?filter=open'),
                           child: Text(
                             '+${shopQueue.length - 5} more',
                             style: TextStyle(color: context.appColors.primary),

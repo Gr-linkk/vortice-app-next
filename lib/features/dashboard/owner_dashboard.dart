@@ -120,7 +120,8 @@ class OwnerDashboard extends ConsumerWidget {
 
             DashboardSection(
               title: l10n.recentWorkOrders,
-              onViewAll: () => context.go('/owner/work-orders'),
+              onViewAll: () =>
+                  context.push('/maintenance/planning?filter=open'),
             ),
             workOrdersAsync.when(
               loading: () => const Center(

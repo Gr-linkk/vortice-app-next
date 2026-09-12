@@ -8,6 +8,8 @@ import 'package:intl/intl.dart';
 import 'package:vortice_app/core/app_dropdown_field.dart';
 import 'package:vortice_app/core/user_feedback.dart';
 import 'package:vortice_app/features/auth/auth_provider.dart';
+import 'package:vortice_app/models/profile.dart';
+import 'package:vortice_app/models/work_order.dart';
 import 'package:vortice_app/features/work_orders/work_order_provider.dart';
 import '../maintenance_models.dart';
 import '../maintenance_repository.dart';
@@ -16,8 +18,13 @@ import 'planning_repository.dart';
 import 'schedule_job_screen.dart';
 
 class MaintenancePlanningScreen extends ConsumerStatefulWidget {
-  const MaintenancePlanningScreen({super.key, this.assetId, this.jobId});
-  final String? assetId, jobId;
+  const MaintenancePlanningScreen({
+    super.key,
+    this.assetId,
+    this.jobId,
+    this.initialFilter,
+  });
+  final String? assetId, jobId, initialFilter;
   @override
   ConsumerState<MaintenancePlanningScreen> createState() =>
       _MaintenancePlanningScreenState();
@@ -31,10 +38,16 @@ class _MaintenancePlanningScreenState
   String? _openedJobId;
   bool _showFilters = false;
   String? _calendarView;
+  String? _filter, _status, _type, _component;
+  String get _activeFilter => _filter ?? widget.initialFilter ?? 'open';
 
   @override
   void didUpdateWidget(covariant MaintenancePlanningScreen oldWidget) {
     super.didUpdateWidget(oldWidget);
+    if (oldWidget.initialFilter != widget.initialFilter) {
+      _filter = widget.initialFilter;
+      _view = 'list';
+    }
     if (oldWidget.jobId != widget.jobId ||
         oldWidget.assetId != widget.assetId) {
       _openedJobId = null;
@@ -68,10 +81,12 @@ class _MaintenancePlanningScreenState
     final es = isSpanish(context);
     final profile = ref.watch(profileProvider).valueOrNull;
     final manager = isMaintenanceManager(profile?.role);
-    final view = _view ?? (manager ? 'week' : 'today');
+    final view =
+        _view ??
+        (widget.initialFilter != null ? 'list' : (manager ? 'week' : 'today'));
     if (!canUseMaintenance(profile?.role)) {
       return Scaffold(
-        appBar: AppBar(title: Text(es ? 'Planificación' : 'Planning')),
+        appBar: AppBar(title: Text(es ? 'Órdenes de trabajo' : 'Work orders')),
         body: Center(
           child: Text(
             es
@@ -83,11 +98,7 @@ class _MaintenancePlanningScreenState
     }
     return Scaffold(
       appBar: AppBar(
-        title: Text(
-          manager
-              ? (es ? 'Planificación' : 'Planning')
-              : (es ? 'Mi programación' : 'My schedule'),
-        ),
+        title: Text(es ? 'Órdenes de trabajo' : 'Work orders'),
         actions: [
           IconButton(
             tooltip: es ? 'Buscar y filtrar' : 'Search & filters',
@@ -95,7 +106,10 @@ class _MaintenancePlanningScreenState
                 _showFilters ||
                 _query.isNotEmpty ||
                 _asset != null ||
-                _person != null,
+                _person != null ||
+                _status != null ||
+                _type != null ||
+                _component != null,
             onPressed: () => setState(() => _showFilters = !_showFilters),
             icon: const Icon(Icons.tune),
           ),
@@ -119,6 +133,16 @@ class _MaintenancePlanningScreenState
               }
             },
             itemBuilder: (_) => [
+              if (profile?.role == UserRole.owner ||
+                  profile?.role == UserRole.employee)
+                PopupMenuItem(
+                  value: profile?.role == UserRole.owner
+                      ? '/owner/work-orders/create'
+                      : '/employee/work-orders/create',
+                  child: Text(
+                    es ? 'Crear trabajo de proveedor' : 'Create provider work',
+                  ),
+                ),
               PopupMenuItem(
                 value: 'parts',
                 child: Text(
@@ -184,27 +208,41 @@ class _MaintenancePlanningScreenState
                 for (final plan in data.plans) plan.assetId: plan.assetName,
               };
               final people = <String, String>{
-                for (final job in data.jobs)
-                  if (job.assignee != null) job.assignee!: job.assigneeName,
+                for (final job in data.jobs) ...job.workers,
               };
               final selectedAsset = assets.containsKey(_asset) ? _asset : null;
               final selectedPerson = people.containsKey(_person)
                   ? _person
                   : null;
-              final jobs =
+              final components = {
+                for (final job in data.jobs)
+                  if (job.componentName.isNotEmpty) job.componentName,
+              };
+              final scopedJobs =
                   data.jobs
                       .where(
                         (j) =>
                             (selectedAsset == null ||
                                 j.assetId == selectedAsset) &&
                             (selectedPerson == null ||
-                                j.assignee == selectedPerson) &&
-                            '${j.title} ${j.assetName} ${j.assigneeName}'
-                                .toLowerCase()
-                                .contains(_query),
+                                j.workers.containsKey(selectedPerson)) &&
+                            (_component == null ||
+                                j.componentName == _component) &&
+                            (_status == null || j.status == _status) &&
+                            (_type == null || j.workType.dbValue == _type) &&
+                            j.matchesSearch(_query, es),
                       )
                       .toList()
                     ..sort(comparePlanningJobs);
+              final jobs = scopedJobs
+                  .where(
+                    (j) => j.matchesFilter(
+                      _activeFilter,
+                      profile?.id,
+                      DateTime.now(),
+                    ),
+                  )
+                  .toList();
               final plans =
                   data.plans
                       .where(
@@ -232,11 +270,16 @@ class _MaintenancePlanningScreenState
               final displayed = jobs
                   .where(
                     (j) => switch (view) {
-                      'today' || 'month' => j.inPeriod(
+                      'today' => j.inPeriod(
                         _day,
                         DateTime(_day.year, _day.month, _day.day + 1),
                       ),
                       'week' => j.inPeriod(week, until),
+                      'month' => j.inPeriod(
+                        DateTime(_day.year, _day.month),
+                        DateTime(_day.year, _day.month + 1),
+                      ),
+                      'list' => true,
                       'unscheduled' => j.unscheduled,
                       'attention' =>
                         j.overdue(today) ||
@@ -259,7 +302,7 @@ class _MaintenancePlanningScreenState
                       children: [
                         if (manager)
                           FilledButton.icon(
-                            onPressed: () => context.push(
+                            onPressed: () => _open(
                               Uri(
                                 path: '/maintenance/new',
                                 queryParameters: {
@@ -271,18 +314,8 @@ class _MaintenancePlanningScreenState
                               ).toString(),
                             ),
                             icon: const Icon(Icons.add),
-                            label: Text(
-                              es ? 'Planificar trabajo' : 'Plan work',
-                            ),
+                            label: Text(es ? 'Crear trabajo' : 'Create work'),
                           ),
-                        TextButton(
-                          onPressed: () => _open(
-                            '/maintenance${widget.assetId == null ? '' : '?assetId=${widget.assetId}'}',
-                          ),
-                          child: Text(
-                            es ? 'Órdenes de trabajo' : 'Work orders',
-                          ),
-                        ),
                       ],
                     ),
                     if (_showFilters)
@@ -305,7 +338,7 @@ class _MaintenancePlanningScreenState
                             decoration: InputDecoration(
                               labelText: es
                                   ? 'Buscar trabajo o servicio'
-                                  : 'Search work or service',
+                                  : 'Search asset, component, worker or work',
                               prefixIcon: const Icon(Icons.search),
                             ),
                             onChanged: (value) => setState(
@@ -366,6 +399,65 @@ class _MaintenancePlanningScreenState
                               ),
                             ),
                           ],
+                          if (view != 'plans') ...[
+                            const SizedBox(height: 16),
+                            _searchFilter(
+                              'work-status',
+                              es ? 'Estado' : 'Status',
+                              _status,
+                              {
+                                for (final status in WorkOrderStatus.values)
+                                  status.dbValue:
+                                      status == WorkOrderStatus.invoiced
+                                      ? (es ? 'Facturado' : 'Invoiced')
+                                      : maintenanceStatus(status.dbValue, es),
+                              },
+                              (value) => setState(() => _status = value),
+                              es,
+                            ),
+                            const SizedBox(height: 16),
+                            _searchFilter(
+                              'work-type',
+                              es ? 'Tipo de trabajo' : 'Work type',
+                              _type,
+                              {
+                                for (final type in WorkOrderJobType.values)
+                                  type.dbValue: type.label(es),
+                              },
+                              (value) => setState(() => _type = value),
+                              es,
+                            ),
+                            if (components.isNotEmpty) ...[
+                              const SizedBox(height: 16),
+                              _searchFilter(
+                                'work-component',
+                                es ? 'Componente' : 'Component',
+                                _component,
+                                {
+                                  for (final component in components)
+                                    component: component,
+                                },
+                                (value) => setState(() => _component = value),
+                                es,
+                              ),
+                            ],
+                            TextButton(
+                              onPressed: () => setState(() {
+                                _query = '';
+                                _asset = null;
+                                _person = null;
+                                _status = null;
+                                _type = null;
+                                _component = null;
+                                _showFilters = false;
+                              }),
+                              child: Text(
+                                es
+                                    ? 'Limpiar búsqueda y filtros'
+                                    : 'Clear search & filters',
+                              ),
+                            ),
+                          ],
                           const SizedBox(height: 12),
                         ],
                       ),
@@ -373,14 +465,17 @@ class _MaintenancePlanningScreenState
                     DropdownButtonHideUnderline(
                       child: DropdownButton<String>(
                         key: const ValueKey('planning-collection'),
-                        value: ['today', 'week', 'month'].contains(view)
+                        value: ['list', 'today', 'week', 'month'].contains(view)
                             ? 'calendar'
                             : view,
                         isExpanded: true,
                         itemHeight: null,
                         items: [
                           for (final option in [
-                            ('calendar', es ? 'Agenda' : 'Schedule'),
+                            (
+                              'calendar',
+                              es ? 'Órdenes de trabajo' : 'Work orders',
+                            ),
                             (
                               'unscheduled',
                               es ? 'Sin programar' : 'Unscheduled',
@@ -417,12 +512,16 @@ class _MaintenancePlanningScreenState
                         }),
                       ),
                     ),
-                    if (['today', 'week', 'month'].contains(view)) ...[
+                    if (view != 'plans') ...[
+                      _workFilter(scopedJobs, profile?.id, es),
+                    ],
+                    if (['list', 'today', 'week', 'month'].contains(view)) ...[
                       Wrap(
                         spacing: 8,
                         runSpacing: 4,
                         children: [
                           for (final option in [
+                            ('list', es ? 'Lista' : 'List'),
                             ('today', es ? 'Día' : 'Day'),
                             ('week', es ? 'Semana' : 'Week'),
                             ('month', es ? 'Mes' : 'Month'),
@@ -441,59 +540,83 @@ class _MaintenancePlanningScreenState
                           ),
                         ],
                       ),
-                      Row(
-                        children: [
-                          IconButton(
-                            tooltip: es ? 'Anterior' : 'Previous',
-                            onPressed: () => setState(
-                              () => _day = view == 'month'
-                                  ? DateTime(_day.year, _day.month - 1, 1)
-                                  : DateTime(
-                                      _day.year,
-                                      _day.month,
-                                      _day.day - (view == 'week' ? 7 : 1),
-                                    ),
+                      if (view != 'list')
+                        Row(
+                          children: [
+                            IconButton(
+                              tooltip: es ? 'Anterior' : 'Previous',
+                              onPressed: () => setState(
+                                () => _day = view == 'month'
+                                    ? DateTime(_day.year, _day.month - 1, 1)
+                                    : DateTime(
+                                        _day.year,
+                                        _day.month,
+                                        _day.day - (view == 'week' ? 7 : 1),
+                                      ),
+                              ),
+                              icon: const Icon(Icons.chevron_left),
                             ),
-                            icon: const Icon(Icons.chevron_left),
-                          ),
-                          Expanded(
-                            child: Text(
-                              view == 'week'
-                                  ? '${DateFormat.MMMd(es ? 'es' : 'en').format(week)} – ${DateFormat.yMMMd(es ? 'es' : 'en').format(DateTime(week.year, week.month, week.day + 6))}'
-                                  : view == 'month'
-                                  ? DateFormat.yMMMM(
-                                      es ? 'es' : 'en',
-                                    ).format(_day)
-                                  : DateFormat.yMMMd(
-                                      es ? 'es' : 'en',
-                                    ).format(_day),
-                              textAlign: TextAlign.center,
-                              style: Theme.of(context).textTheme.titleMedium,
+                            Expanded(
+                              child: Text(
+                                view == 'week'
+                                    ? '${DateFormat.MMMd(es ? 'es' : 'en').format(week)} – ${DateFormat.yMMMd(es ? 'es' : 'en').format(DateTime(week.year, week.month, week.day + 6))}'
+                                    : view == 'month'
+                                    ? DateFormat.yMMMM(
+                                        es ? 'es' : 'en',
+                                      ).format(_day)
+                                    : DateFormat.yMMMd(
+                                        es ? 'es' : 'en',
+                                      ).format(_day),
+                                textAlign: TextAlign.center,
+                                style: Theme.of(context).textTheme.titleMedium,
+                              ),
                             ),
-                          ),
-                          IconButton(
-                            tooltip: es ? 'Siguiente' : 'Next',
-                            onPressed: () => setState(
-                              () => _day = view == 'month'
-                                  ? DateTime(_day.year, _day.month + 1, 1)
-                                  : DateTime(
-                                      _day.year,
-                                      _day.month,
-                                      _day.day + (view == 'week' ? 7 : 1),
-                                    ),
+                            IconButton(
+                              tooltip: es ? 'Siguiente' : 'Next',
+                              onPressed: () => setState(
+                                () => _day = view == 'month'
+                                    ? DateTime(_day.year, _day.month + 1, 1)
+                                    : DateTime(
+                                        _day.year,
+                                        _day.month,
+                                        _day.day + (view == 'week' ? 7 : 1),
+                                      ),
+                              ),
+                              icon: const Icon(Icons.chevron_right),
                             ),
-                            icon: const Icon(Icons.chevron_right),
-                          ),
-                        ],
-                      ),
+                          ],
+                        ),
                       if (view == 'month')
                         PlanningMonth(
                           day: _day,
                           jobs: jobs,
                           es: es,
-                          onSelect: (date) => setState(() => _day = date),
+                          onSelect: (date) => setState(() {
+                            _day = date;
+                            _view = 'today';
+                            _calendarView = 'today';
+                          }),
                         ),
                     ],
+                    if (['today', 'week', 'month'].contains(view) &&
+                        scopedJobs.any((j) => j.unscheduled))
+                      Align(
+                        alignment: Alignment.centerLeft,
+                        child: ActionChip(
+                          label: Text(
+                            '${es ? 'Sin programar' : 'Unscheduled'} · ${scopedJobs.where((j) => j.unscheduled).length}',
+                          ),
+                          onPressed: () => setState(() {
+                            _view = 'list';
+                            _filter = 'unscheduled';
+                          }),
+                        ),
+                      ),
+                    if (view == 'month')
+                      Text(
+                        es ? 'Trabajos de este mes' : 'Work this month',
+                        style: Theme.of(context).textTheme.titleMedium,
+                      ),
                     if (view == 'plans') ...[
                       Text(
                         es
@@ -605,6 +728,69 @@ class _MaintenancePlanningScreenState
     );
   }
 
+  Widget _searchFilter(
+    String key,
+    String label,
+    String? value,
+    Map<String, String> options,
+    ValueChanged<String?> onChanged,
+    bool es,
+  ) => AppDropdownField<String>(
+    key: ValueKey('$key-$value'),
+    initialValue: options.containsKey(value) ? value! : '',
+    decoration: InputDecoration(labelText: label),
+    items: [
+      DropdownMenuItem(value: '', child: Text(es ? 'Todos' : 'All')),
+      for (final option in options.entries)
+        DropdownMenuItem(value: option.key, child: Text(option.value)),
+    ],
+    onChanged: (selected) => onChanged(selected == '' ? null : selected),
+  );
+
+  Widget _workFilter(List<PlanningJob> jobs, String? userId, bool es) {
+    final options = {
+      'open': es ? 'Abiertos' : 'Open',
+      'mine': es ? 'Míos' : 'Mine',
+      'unassigned': es ? 'Sin asignar' : 'Unassigned',
+      'unscheduled': es ? 'Sin programar' : 'Unscheduled',
+      'review': es ? 'Necesita revisión' : 'Needs review',
+      'completed': es ? 'Completados' : 'Completed',
+      'overdue': es ? 'Trabajo vencido' : 'Work overdue',
+      'parts': es ? 'Esperando piezas' : 'Waiting for parts',
+      'people': es ? 'Esperando personal' : 'Waiting for people',
+      'blocked': es ? 'Otros bloqueos' : 'Other blocked work',
+    };
+    final filter = options.containsKey(_activeFilter) ? _activeFilter : 'open';
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: DropdownButtonFormField<String>(
+        key: ValueKey('work-filter-$filter'),
+        initialValue: filter,
+        isExpanded: true,
+        itemHeight: null,
+        decoration: InputDecoration(
+          labelText: es ? 'Mostrar trabajo' : 'Show work',
+        ),
+        items: [
+          for (final option in options.entries)
+            DropdownMenuItem(
+              value: option.key,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 8),
+                child: Text(
+                  '${option.value} · ${jobs.where((j) => j.matchesFilter(option.key, userId, DateTime.now())).length}',
+                ),
+              ),
+            ),
+        ],
+        onChanged: (value) => setState(() {
+          _filter = value;
+          _view = 'list';
+        }),
+      ),
+    );
+  }
+
   Widget _empty(String message) => Padding(
     padding: const EdgeInsets.symmetric(vertical: 24),
     child: Text(message),
@@ -648,7 +834,7 @@ class _MaintenancePlanningScreenState
               '${job.assetName}${job.data['component_name'] == null ? '' : ' · ${job.data['component_name']}'}',
             ),
             Text(
-              '${job.assigneeName.isEmpty ? (es ? 'Sin asignar' : 'Unassigned') : job.assigneeName} · ${maintenanceStatus(job.status, es)} · ${maintenancePriority(job.priority, es)}',
+              '${job.assigneeName.isEmpty ? (es ? 'Sin asignar' : 'Unassigned') : job.assigneeName} · ${job.status == 'invoiced' ? (es ? 'Facturado' : 'Invoiced') : maintenanceStatus(job.status, es)} · ${maintenancePriority(job.priority, es)}',
             ),
             if (job.dueDate != null)
               Text(
@@ -686,7 +872,9 @@ class _MaintenancePlanningScreenState
                           ? (es
                                 ? 'Abrir orden de servicio'
                                 : 'Open service order')
-                          : job.schedulable
+                          : job.schedulable ||
+                                job.completed ||
+                                job.status == 'pending_review'
                           ? (es ? 'Abrir trabajo' : 'Open work')
                           : (es ? 'Continuar trabajo' : 'Continue work'),
                     ),
@@ -745,7 +933,7 @@ class _MaintenancePlanningScreenState
                 )
               else if (!plan.hasJob && !plan.needsSetup && plan.canManage)
                 FilledButton(
-                  onPressed: () => context.push(
+                  onPressed: () => _open(
                     '/maintenance/new?assetId=${plan.assetId}&planId=${plan.id}&planning=true',
                   ),
                   child: Text(es ? 'Planificar servicio' : 'Plan service'),

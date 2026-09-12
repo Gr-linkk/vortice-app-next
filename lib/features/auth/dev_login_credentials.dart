@@ -8,6 +8,18 @@ const _passwords = kDebugMode
     ? String.fromEnvironment('DEV_LOGIN_PASSWORDS', defaultValue: '{}')
     : '{}';
 
+bool isDevLoginEnvironment({
+  required bool debugBuild,
+  required String supabaseUrl,
+}) => debugBuild && supabaseUrl == 'https://hkjpojobdbbtjkhaudki.supabase.co';
+
+final devLoginEnvironmentProvider = Provider<bool>(
+  (ref) => isDevLoginEnvironment(
+    debugBuild: kDebugMode,
+    supabaseUrl: const String.fromEnvironment('SUPABASE_URL'),
+  ),
+);
+
 final devLoginPasswordsProvider = Provider<Map<String, String>>((ref) {
   return parseDevLoginPasswords(
     _passwords,
@@ -21,8 +33,10 @@ Map<String, String> parseDevLoginPasswords(
   required bool debugBuild,
   required String supabaseUrl,
 }) {
-  if (!debugBuild ||
-      supabaseUrl != 'https://hkjpojobdbbtjkhaudki.supabase.co') {
+  if (!isDevLoginEnvironment(
+    debugBuild: debugBuild,
+    supabaseUrl: supabaseUrl,
+  )) {
     return const {};
   }
   try {
@@ -30,7 +44,7 @@ Map<String, String> parseDevLoginPasswords(
     if (decoded is! Map<String, dynamic>) return const {};
     return Map.unmodifiable({
       for (final entry in decoded.entries)
-        if (entry.key.endsWith('@vortice.dev') &&
+        if (RegExp(r'^[^@\s]+@vortice\.dev$').hasMatch(entry.key) &&
             entry.value is String &&
             (entry.value as String).isNotEmpty)
           entry.key: entry.value as String,

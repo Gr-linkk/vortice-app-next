@@ -56,7 +56,7 @@ void main() {
       find.widgetWithText(FilledButton, 'Assign work order'),
       findsOneWidget,
     );
-    expect(find.text('Continue work report'), findsNothing);
+    expect(find.text('Continue service report'), findsNothing);
     await tester.tap(find.text('Assign work order'));
     await tester.pumpAndSettle();
     expect(find.byType(AlertDialog), findsOneWidget);
@@ -129,9 +129,12 @@ void main() {
       );
       expect(find.text('Start repair'), findsNothing);
       expect(find.text('Assign repair'), findsNothing);
-      expect(find.widgetWithText(FilledButton, 'Plan repair'), findsOneWidget);
+      expect(
+        find.widgetWithText(FilledButton, 'Create work order'),
+        findsOneWidget,
+      );
       await captureFleet(tester, 'direct-01-fault-en');
-      await tester.tap(find.text('Plan repair'));
+      await tester.tap(find.text('Create work order'));
       await tester.pumpAndSettle();
       expect(find.byType(MaintenanceCreateScreen), findsOneWidget);
       expect(
@@ -238,7 +241,7 @@ void main() {
         fleet: faults(linked: true, canOpen: false),
       );
       expect(find.text('Open work order'), findsNothing);
-      expect(find.text('Plan repair'), findsNothing);
+      expect(find.text('Create work order'), findsNothing);
       expect(find.text('More actions'), findsNothing);
       expect(
         find.textContaining('Linked work order: Assigned'),
@@ -282,8 +285,8 @@ void main() {
         repository,
       );
       await captureFleet(tester, 'direct-05-job-en');
-      await tester.ensureVisible(find.text('Continue work report'));
-      await tester.tap(find.text('Continue work report'));
+      await tester.ensureVisible(find.text('Continue service report'));
+      await tester.tap(find.text('Continue service report'));
       await tester.pumpAndSettle();
       expect(find.byType(MaintenanceReportScreen), findsOneWidget);
       await tester.pageBack();
@@ -313,13 +316,13 @@ void main() {
       fleet: faults(),
     );
     await tester.scrollUntilVisible(
-      find.text('Planificar reparación'),
+      find.text('Crear orden de trabajo'),
       250,
       scrollable: find.byType(Scrollable).first,
     );
     await tester.pumpAndSettle();
     await captureFleet(tester, 'direct-06-fault-es-large');
-    await tester.tap(find.text('Planificar reparación'));
+    await tester.tap(find.text('Crear orden de trabajo'));
     await tester.pumpAndSettle();
     await captureFleet(tester, 'direct-07-create-es-large');
     await tester.scrollUntilVisible(
@@ -343,12 +346,12 @@ void main() {
       repository,
     );
     await tester.scrollUntilVisible(
-      find.text('Review work report'),
+      find.text('Review service report'),
       200,
       scrollable: find.byType(Scrollable).first,
     );
     await tester.pumpAndSettle();
-    expect(find.text('Continue work report'), findsNothing);
+    expect(find.text('Continue service report'), findsNothing);
     await captureFleet(tester, 'direct-09-review-en');
     await tester.scrollUntilVisible(
       find.text('Return for changes'),

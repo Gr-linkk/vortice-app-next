@@ -39,9 +39,9 @@ List<AppDestination> primaryDestinations(
       '$prefix/assets',
     ),
     if (canUseMaintenance(role))
-      AppDestination(
-        isMaintenanceManager(role) ? 'Planning' : 'My schedule',
-        isMaintenanceManager(role) ? 'Planificación' : 'Mi programación',
+      const AppDestination(
+        'Work orders',
+        'Órdenes de trabajo',
         Icons.calendar_month_outlined,
         '/maintenance/planning',
       ),
@@ -107,30 +107,12 @@ List<AppDestination> toolDestinations(UserRole role) {
       ),
     if (canUseMaintenance(role))
       const AppDestination(
-        'Work orders',
-        'Órdenes de trabajo',
-        Icons.build_outlined,
-        '/maintenance',
-        description: 'Find active work, reports and completed jobs',
-        descriptionEs: 'Consultar trabajos activos, informes e historial',
-      ),
-    if (canUseMaintenance(role))
-      const AppDestination(
         'Assets & plans',
         'Equipos y planes',
         Icons.event_note_outlined,
         '/maintenance/assets',
         description: 'Manage components and schedule reliable maintenance',
         descriptionEs: 'Administrar componentes y programar mantenimiento',
-      ),
-    if (staff)
-      AppDestination(
-        'Service work orders',
-        'Órdenes de servicio',
-        Icons.build_outlined,
-        '$prefix/work-orders',
-        description: 'Existing provider jobs and customer billing workflows',
-        descriptionEs: 'Trabajos del proveedor y facturación al cliente',
       ),
     if (staff || admin)
       AppDestination(
@@ -228,6 +210,17 @@ int selectedDestination(List<AppDestination> items, String location) {
       path.startsWith('/maintenance/assets/')) {
     final assets = items.indexWhere((item) => item.route.endsWith('/assets'));
     if (assets >= 0) return assets;
+  }
+  if (path == '/maintenance' ||
+      path.startsWith('/maintenance/') ||
+      path == '/owner/work-orders' ||
+      path.startsWith('/owner/work-orders/') ||
+      path == '/employee/work-orders' ||
+      path.startsWith('/employee/work-orders/')) {
+    final work = items.indexWhere(
+      (item) => item.route == '/maintenance/planning',
+    );
+    if (work >= 0) return work;
   }
   for (var i = 0; i < items.length; i++) {
     if (path == items[i].route || path.startsWith('${items[i].route}/')) {

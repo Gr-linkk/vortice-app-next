@@ -1,117 +1,14 @@
 import 'package:vortice_app/core/user_feedback.dart';
 import 'package:go_router/go_router.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:vortice_app/l10n/app_localizations.dart';
 import 'package:vortice_app/core/theme.dart';
 import 'package:vortice_app/features/auth/auth_provider.dart';
-import 'package:vortice_app/features/auth/dev_login_credentials.dart';
-
-// ── Dev login panel — debug builds only ──────────────────────────────────────
-const bool kDevMode = kDebugMode;
-
-class _DevAccount {
-  final String group;
-  final String label;
-  final String subtitle;
-  final List<String> workflows;
-  final String email;
-  final int color;
-
-  const _DevAccount({
-    required this.group,
-    required this.label,
-    required this.subtitle,
-    required this.workflows,
-    required this.email,
-    required this.color,
-  });
-}
-
-const _devAccounts = [
-  _DevAccount(
-    group: 'Vórtice team',
-    label: 'Vórtice Owner/Admin',
-    subtitle:
-        'Service business owner view for clients, assets, work, and billing.',
-    workflows: ['Clients', 'Assets', 'Work orders', 'Billing'],
-    email: 'owner@vortice.dev',
-    color: 0xFF1A6B3C,
-  ),
-  _DevAccount(
-    group: 'Vórtice team',
-    label: 'Vórtice Tech/Mechanic',
-    subtitle: 'Internal mechanic view for assigned work and service reporting.',
-    workflows: ['Assigned work', 'Service reports', 'PM follow-up'],
-    email: 'tech@vortice.dev',
-    color: 0xFF1565C0,
-  ),
-  _DevAccount(
-    group: 'Simulated client admins',
-    label: 'Client 1 Admin',
-    subtitle:
-        'Generic client admin with team, vessel, and checklist workflows.',
-    workflows: ['Team', 'Assets', 'Operator checks'],
-    email: 'paradise@vortice.dev',
-    color: 0xFF004527,
-  ),
-  _DevAccount(
-    group: 'Simulated client admins',
-    label: 'Client 2 Admin',
-    subtitle: 'Second generic client admin for cross-client workflow testing.',
-    workflows: ['Team', 'Assets', 'PM planning'],
-    email: 'client@vortice.dev',
-    color: 0xFF6A1B9A,
-  ),
-  _DevAccount(
-    group: 'Client field team',
-    label: 'Client Mechanic',
-    subtitle: 'Client-side mechanic view for PM checklists and asset history.',
-    workflows: ['Mechanic checks', 'Asset history', 'PM parts'],
-    email: 'client_mechanic@vortice.dev',
-    color: 0xFF4527A0,
-  ),
-  _DevAccount(
-    group: 'Client field team',
-    label: 'Operator/Captain',
-    subtitle: 'Captain/operator view for vessel pre-op and daily checklists.',
-    workflows: ['Pre-op', 'Daily checks', 'Maintenance flags'],
-    email: 'operator@vortice.dev',
-    color: 0xFFE65100,
-  ),
-];
-
-class _DevWorkflowChip extends StatelessWidget {
-  final String label;
-  final Color color;
-
-  const _DevWorkflowChip({required this.label, required this.color});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.08),
-        borderRadius: BorderRadius.circular(999),
-        border: Border.all(color: color.withValues(alpha: 0.18)),
-      ),
-      child: Text(
-        label,
-        style: TextStyle(
-          color: color,
-          fontSize: 10,
-          fontWeight: FontWeight.w600,
-        ),
-      ),
-    );
-  }
-}
+import 'package:vortice_app/features/auth/dev_login_switch.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
-
   @override
   ConsumerState<LoginScreen> createState() => _LoginScreenState();
 }
@@ -121,67 +18,16 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   final _emailCtrl = TextEditingController();
   final _passwordCtrl = TextEditingController();
   bool _obscurePassword = true;
-  void _handleLogoTap() {
-    if (!kDevMode) return;
-    _showDevPanel();
-  }
+  bool _signingIn = false;
 
-  void _showDevPanel() {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: context.appColors.surface,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
-      ),
-      builder: (ctx) => SafeArea(
-        child: FractionallySizedBox(
-          heightFactor: 0.85,
-          child: Column(
-            children: [
-              const SizedBox(height: 8),
-              Container(
-                width: 40,
-                height: 4,
-                decoration: BoxDecoration(
-                  color: context.appColors.divider,
-                  borderRadius: BorderRadius.circular(2),
-                ),
-              ),
-              const Padding(
-                padding: EdgeInsets.fromLTRB(16, 16, 16, 4),
-                child: Text(
-                  'Dev Persona Switchboard',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                    letterSpacing: 0.5,
-                  ),
-                ),
-              ),
-              Padding(
-                padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
-                child: Text(
-                  'Pick a tester persona. Capability chips are static hints for now.',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    color: context.appColors.textSecondary,
-                    fontSize: 12,
-                  ),
-                ),
-              ),
-              const Divider(height: 1),
-              Expanded(
-                child: ListView(
-                  padding: const EdgeInsets.only(bottom: 8),
-                  children: _buildDevAccountTiles(ctx),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
+  bool get _devAvailable => ref.read(devLoginAvailableProvider);
+
+  void _handleLogoTap() {
+    if (_devAvailable &&
+        !_signingIn &&
+        !ref.read(authControllerProvider).isLoading) {
+      showDevAccountPicker(context, ref);
+    }
   }
 
   @override
@@ -193,110 +39,48 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
-    await ref
-        .read(authControllerProvider.notifier)
-        .signIn(_emailCtrl.text.trim(), _passwordCtrl.text);
-
-    final authState = ref.read(authControllerProvider);
-    if (authState.hasError && mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(friendlyError(context, authState.error))),
-      );
-    }
+    if (ref.read(devAccountSwitchProvider).loading) return;
+    ref.read(devAccountSwitchProvider.notifier).clearError();
+    await _signIn(_emailCtrl.text.trim(), _passwordCtrl.text);
   }
 
-  List<Widget> _buildDevAccountTiles(BuildContext sheetContext) {
-    final widgets = <Widget>[];
-    String? currentGroup;
-
-    for (final acct in _devAccounts) {
-      if (acct.group != currentGroup) {
-        currentGroup = acct.group;
-        widgets.add(
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 18, 16, 6),
-            child: Text(
-              currentGroup.toUpperCase(),
-              style: TextStyle(
-                color: context.appColors.textSecondary,
-                fontSize: 11,
-                fontWeight: FontWeight.w700,
-                letterSpacing: 1.1,
-              ),
-            ),
-          ),
+  Future<void> _signIn(String email, String password) async {
+    if (_signingIn ||
+        ref.read(authControllerProvider).isLoading ||
+        ref.read(devAccountSwitchProvider).loading) {
+      return;
+    }
+    setState(() => _signingIn = true);
+    try {
+      await ref.read(authControllerProvider.notifier).signIn(email, password);
+      if (!mounted) return;
+      final state = ref.read(authControllerProvider);
+      if (state.hasError) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(friendlyError(context, state.error))),
         );
       }
-
-      widgets.add(
-        ListTile(
-          leading: CircleAvatar(
-            backgroundColor: Color(acct.color).withValues(alpha: 0.15),
-            child: Text(
-              acct.label.characters.first.toUpperCase(),
-              style: TextStyle(
-                color: Color(acct.color),
-                fontSize: 12,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-          ),
-          title: Text(
-            acct.label,
-            style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
-          ),
-          subtitle: Padding(
-            padding: const EdgeInsets.only(top: 4),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  acct.subtitle,
-                  style: TextStyle(
-                    fontSize: 11,
-                    color: context.appColors.textSecondary,
-                  ),
-                ),
-                const SizedBox(height: 6),
-                Wrap(
-                  spacing: 6,
-                  runSpacing: 4,
-                  children: [
-                    for (final workflow in acct.workflows)
-                      _DevWorkflowChip(
-                        label: workflow,
-                        color: Color(acct.color),
-                      ),
-                  ],
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  acct.email,
-                  style: TextStyle(
-                    fontSize: 10,
-                    color: context.appColors.textSecondary,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          onTap: () {
-            Navigator.pop(sheetContext);
-            _emailCtrl.text = acct.email;
-            _passwordCtrl.text =
-                ref.read(devLoginPasswordsProvider)[acct.email] ?? '';
-          },
-        ),
-      );
+    } catch (error) {
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(friendlyError(context, error))));
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _signingIn = false);
+      }
     }
-
-    return widgets;
   }
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    final isLoading = ref.watch(authControllerProvider).isLoading;
+    final isLoading =
+        _signingIn ||
+        ref.watch(authControllerProvider).isLoading ||
+        ref.watch(devAccountSwitchProvider).loading;
+    final devAvailable = ref.watch(devLoginAvailableProvider);
 
     return Scaffold(
       body: SafeArea(
@@ -427,6 +211,21 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     ),
                     const SizedBox(height: 16),
                     // Language toggle
+                    if (devAvailable) ...[
+                      OutlinedButton.icon(
+                        key: const ValueKey('dev-sign-in'),
+                        onPressed: isLoading
+                            ? null
+                            : () => showDevAccountPicker(context, ref),
+                        icon: const Icon(Icons.switch_account_outlined),
+                        label: Text(
+                          isSpanish(context)
+                              ? 'Acceso de desarrollo'
+                              : 'Developer sign-in',
+                        ),
+                      ),
+                      const DevAccountSwitchNotice(),
+                    ],
                     Center(
                       child: Consumer(
                         builder: (context, ref, _) {

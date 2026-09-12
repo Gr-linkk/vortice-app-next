@@ -29,6 +29,11 @@ String? resolveRouteAccessRedirect({
   required String Function(UserRole? role) dashboardRouteForRole,
 }) {
   if (role == null) return null;
+  if (location == '/checklist-assignments' &&
+      role != UserRole.client &&
+      role != UserRole.clientAdmin) {
+    return dashboardRouteForRole(role);
+  }
   if (location == '/fleet/overview' && !canManageFleet(role)) {
     return dashboardRouteForRole(role);
   }

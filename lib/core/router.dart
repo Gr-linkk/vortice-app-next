@@ -12,6 +12,7 @@ import 'package:vortice_app/features/maintenance/maintenance_job_screen.dart';
 import 'package:vortice_app/features/maintenance/maintenance_asset_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:vortice_app/features/checklist_builder/checklist_library_screen.dart';
+import 'package:vortice_app/features/orgs/org_checklist_assignments_screen.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:vortice_app/core/app_shell.dart';
@@ -170,10 +171,15 @@ final routerProvider = Provider<GoRouter>((ref) {
       // ── Authenticated shell ────────────────────────────────────────────
       ShellRoute(
         navigatorKey: _shellNavigatorKey,
-        builder: (context, state, child) => AppShell(
-          location: state.uri.path,
-          navigatorKey: _shellNavigatorKey,
-          child: child,
+        // Authentication can replace this shell again before an outgoing page
+        // animation finishes. Never overlap two pages sharing its Navigator.
+        pageBuilder: (context, state, child) => NoTransitionPage<void>(
+          key: state.pageKey,
+          child: AppShell(
+            location: state.uri.path,
+            navigatorKey: _shellNavigatorKey,
+            child: child,
+          ),
         ),
         routes: [
           GoRoute(path: '/more', builder: (_, __) => const MoreScreen()),
@@ -197,6 +203,10 @@ final routerProvider = Provider<GoRouter>((ref) {
           GoRoute(
             path: '/checklist-library',
             builder: (_, _) => const ChecklistLibraryScreen(),
+          ),
+          GoRoute(
+            path: '/checklist-assignments',
+            builder: (_, _) => const OrgChecklistAssignmentsScreen(),
           ),
           GoRoute(
             path: '/fleet/reporting',
@@ -242,6 +252,7 @@ final routerProvider = Provider<GoRouter>((ref) {
             builder: (_, state) => MaintenancePlanningScreen(
               assetId: state.uri.queryParameters['assetId'],
               jobId: state.uri.queryParameters['jobId'],
+              initialFilter: state.uri.queryParameters['filter'],
             ),
           ),
           GoRoute(

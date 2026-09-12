@@ -77,7 +77,7 @@ void main() {
             if (fault == null) throw StateError('No fault');
             await h.login('paradise@vortice.dev');
             await h.go('/fleet/faults/$fault');
-            await h.tap(find.text('Plan repair'));
+            await h.tap(find.text('Create work order'));
             await h.select('Assigned to', mechanic['name'] as String);
             await h.tap(
               find.widgetWithText(FilledButton, 'Create & open work order'),
@@ -133,7 +133,7 @@ void main() {
                 (await fleet.faults(faultId: fault)).single.status,
                 FaultStatus.inProgress,
               );
-              await h.tap(find.text('Continue work report'));
+              await h.tap(find.text('Continue service report'));
               await h.fill(h.field('Findings'), '$marker Worn seal');
               await h.fill(
                 h.field('Work performed and results'),
@@ -147,7 +147,7 @@ void main() {
               expect(tester.widget<FilledButton>(submit).onPressed, isNull);
               await h.tap(find.text('Open labour timer'));
               await h.tap(find.widgetWithText(TextButton, 'Pause'));
-              await h.tap(find.text('Continue work report'));
+              await h.tap(find.text('Continue service report'));
               expect(
                 tester.widget<TextField>(h.field('Findings')).controller!.text,
                 '$marker Worn seal',

@@ -1,3 +1,5 @@
+import 'package:vortice_app/core/account_storage.dart';
+import 'package:vortice_app/features/auth/auth_provider.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:vortice_app/core/constants.dart';
 import 'package:vortice_app/core/supabase_client.dart';
@@ -50,8 +52,10 @@ class OperatorChecklistRun {
           : null,
       createdAt: DateTime.parse(json['created_at'] as String),
       responses: responsesJson
-          .map((r) =>
-              OperatorChecklistResponse.fromJson(r as Map<String, dynamic>))
+          .map(
+            (r) =>
+                OperatorChecklistResponse.fromJson(r as Map<String, dynamic>),
+          )
           .toList(),
     );
   }
@@ -150,53 +154,64 @@ class MaintenanceRequest {
 
 /// Fetch operator checklist runs for a specific asset
 final operatorRunsForAssetProvider =
-    FutureProvider.family<List<OperatorChecklistRun>, String>(
-        (ref, assetId) async {
-  final data = await supabase
-      .from(AppConstants.tOperatorChecklistRuns)
-      .select('*, operator_checklist_responses(*)')
-      .eq('asset_id', assetId)
-      .order('created_at', ascending: false)
-      .limit(20);
+    FutureProvider.family<List<OperatorChecklistRun>, String>((
+      ref,
+      assetId,
+    ) async {
+      final data = await supabase
+          .from(AppConstants.tOperatorChecklistRuns)
+          .select('*, operator_checklist_responses(*)')
+          .eq('asset_id', assetId)
+          .order('created_at', ascending: false)
+          .limit(20);
 
-  return (data as List)
-      .map((e) => OperatorChecklistRun.fromJson(e as Map<String, dynamic>))
-      .toList();
-});
+      return (data as List)
+          .map((e) => OperatorChecklistRun.fromJson(e as Map<String, dynamic>))
+          .toList();
+    });
 
 /// Fetch all maintenance requests for a specific asset
 final maintenanceRequestsForAssetProvider =
-    FutureProvider.family<List<MaintenanceRequest>, String>(
-        (ref, assetId) async {
-  final data = await supabase
-      .from(AppConstants.tMaintenanceRequests)
-      .select()
-      .eq('asset_id', assetId)
-      .order('created_at', ascending: false);
+    FutureProvider.family<List<MaintenanceRequest>, String>((
+      ref,
+      assetId,
+    ) async {
+      final data = await supabase
+          .from(AppConstants.tMaintenanceRequests)
+          .select()
+          .eq('asset_id', assetId)
+          .order('created_at', ascending: false);
 
-  return (data as List)
-      .map((e) => MaintenanceRequest.fromJson(e as Map<String, dynamic>))
-      .toList();
-});
+      return (data as List)
+          .map((e) => MaintenanceRequest.fromJson(e as Map<String, dynamic>))
+          .toList();
+    });
 
 /// Fetch all open maintenance requests (for client dashboard)
 final openMaintenanceRequestsProvider =
     FutureProvider<List<MaintenanceRequest>>((ref) async {
-  final data = await supabase
-      .from(AppConstants.tMaintenanceRequests)
-      .select()
-      .inFilter('status', ['open', 'acknowledged', 'converted', 'in_progress', 'pending_review'])
-      .order('created_at', ascending: false);
+      final data = await supabase
+          .from(AppConstants.tMaintenanceRequests)
+          .select()
+          .inFilter('status', [
+            'open',
+            'acknowledged',
+            'converted',
+            'in_progress',
+            'pending_review',
+          ])
+          .order('created_at', ascending: false);
 
-  return (data as List)
-      .map((e) => MaintenanceRequest.fromJson(e as Map<String, dynamic>))
-      .toList();
-});
+      return (data as List)
+          .map((e) => MaintenanceRequest.fromJson(e as Map<String, dynamic>))
+          .toList();
+    });
 
 /// Fetch open maintenance requests with asset name join (for client dashboard UI).
 /// Defined here so the flag screen can invalidate it after submission.
-final clientFlaggedIssuesProvider =
-    FutureProvider<List<Map<String, dynamic>>>((ref) async {
+final clientFlaggedIssuesProvider = FutureProvider<List<Map<String, dynamic>>>((
+  ref,
+) async {
   final assets = await ref.watch(currentClientFleetAssetsProvider.future);
   final assetIds = assets.map((asset) => asset.id).toList();
   if (assetIds.isEmpty) return [];
@@ -204,7 +219,13 @@ final clientFlaggedIssuesProvider =
   final data = await supabase
       .from(AppConstants.tMaintenanceRequests)
       .select('id, description, severity, status, created_at, assets(name, id)')
-      .inFilter('status', ['open', 'acknowledged', 'converted', 'in_progress', 'pending_review'])
+      .inFilter('status', [
+        'open',
+        'acknowledged',
+        'converted',
+        'in_progress',
+        'pending_review',
+      ])
       .inFilter('asset_id', assetIds)
       .order('created_at', ascending: false)
       .limit(10);
@@ -217,6 +238,28 @@ final clientFlaggedIssuesProvider =
 /// all-assets fallback.
 final operatorAssignedAssetsProvider =
     FutureProvider<List<Map<String, dynamic>>>((ref) async {
-  final assets = await ref.watch(currentClientFleetAssetsProvider.future);
-  return assets.map(clientTeamAssetRow).toList();
-});
+      final assets = await ref.watch(currentClientFleetAssetsProvider.future);
+      if (assets.isEmpty) return [];
+      final account = ref.watch(sessionProvider)?.user.id;
+      if (account == null) return [];
+      final custody =
+          await AccountJsonCache(
+            account,
+            () => supabase.auth.currentUser?.id,
+          ).readThrough(
+            'operator_asset_lifecycle',
+            () => supabase
+                .from('asset_custody')
+                .select('asset_id,lifecycle')
+                .inFilter('asset_id', assets.map((a) => a.id).toList())
+                .timeout(const Duration(seconds: 6)),
+          );
+      final inactive = (custody as List)
+          .where((row) => row['lifecycle'] != 'active')
+          .map((row) => row['asset_id'])
+          .toSet();
+      return assets
+          .where((asset) => !inactive.contains(asset.id))
+          .map(clientTeamAssetRow)
+          .toList();
+    });

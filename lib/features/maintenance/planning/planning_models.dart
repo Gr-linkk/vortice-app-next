@@ -13,23 +13,49 @@ class PlanningJob extends MaintenanceJob {
   DateTime? get end => start?.add(Duration(minutes: minutes));
   String? get assignee => data['assigned_to'] as String?;
   String get assigneeName => data['assignee_name'] as String? ?? '';
+  Map<String, String> get workers => data['workers'] is Map
+      ? Map<String, String>.from(data['workers'] as Map)
+      : {if (assignee != null) assignee!: assigneeName};
   bool get providerService => data['provider_service'] == true;
   DateTime? get serviceDate =>
       DateTime.tryParse(data['service_date'] as String? ?? '');
   String get route => data['route'] as String? ?? '/maintenance/jobs/$id';
+  bool get completed => ['closed', 'invoiced'].contains(status);
+  String get componentName => data['component_name'] as String? ?? '';
+  String get blockedCategory => data['blocked_category'] as String? ?? 'other';
   bool get unscheduled => start == null && serviceDate == null && activeBooking;
-  bool inPeriod(DateTime from, DateTime until) =>
-      activeBooking &&
-      (providerService
-          ? serviceDate != null &&
-                !serviceDate!.isBefore(from) &&
-                serviceDate!.isBefore(until)
-          : overlaps(from, until));
+  bool matchesFilter(String filter, String? userId, DateTime now) =>
+      switch (filter) {
+        'mine' =>
+          !completed &&
+              userId != null &&
+              (data['assigned_to_me'] == true || assignee == userId),
+        'unassigned' => activeBooking && workers.isEmpty,
+        'unscheduled' => unscheduled,
+        'review' => status == 'pending_review',
+        'completed' => completed,
+        'overdue' => !completed && overdue(now),
+        'parts' => status == 'on_hold' && blockedCategory == 'parts',
+        'people' => status == 'on_hold' && blockedCategory == 'people',
+        'blocked' =>
+          status == 'on_hold' && !['parts', 'people'].contains(blockedCategory),
+        _ => !completed,
+      };
+  bool matchesSearch(String query, bool es) =>
+      '$title $assetName $componentName $assigneeName $status ${status == 'invoiced' ? (es ? 'Facturado' : 'Invoiced') : maintenanceStatus(status, es)} ${workType.dbValue} ${workType.label(es)}'
+          .toLowerCase()
+          .contains(query.trim().toLowerCase());
+  bool inPeriod(DateTime from, DateTime until) => (providerService
+      ? serviceDate != null &&
+            !serviceDate!.isBefore(from) &&
+            serviceDate!.isBefore(until)
+      : overlaps(from, until));
   bool get conflict => data['conflict'] == true;
   bool get schedulable => !providerService && canManage && activeBooking;
   bool get activeBooking =>
       !['closed', 'invoiced', 'pending_review'].contains(status);
   bool overdue(DateTime now) {
+    if (completed) return false;
     final due = DateTime.tryParse(dueDate ?? '');
     return due != null && due.isBefore(planningDay(now));
   }
@@ -106,8 +132,8 @@ List<PlanningJob> bookingConflicts(
 
 int comparePlanningJobs(PlanningJob a, PlanningJob b) {
   const priorities = {'urgent': 0, 'high': 1, 'normal': 2, 'low': 3};
-  final dates = (a.start ?? DateTime(9999)).compareTo(
-    b.start ?? DateTime(9999),
+  final dates = (a.start ?? a.serviceDate ?? DateTime(9999)).compareTo(
+    b.start ?? b.serviceDate ?? DateTime(9999),
   );
   if (dates != 0) return dates;
   final urgency = (priorities[a.priority] ?? 2).compareTo(

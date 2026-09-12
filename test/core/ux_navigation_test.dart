@@ -285,7 +285,7 @@ void main() {
     final items = primaryDestinations(UserRole.owner);
     expect(
       selectedDestination(items, '/maintenance/planning?view=week'),
-      items.indexWhere((e) => e.en == 'Planning'),
+      items.indexWhere((e) => e.en == 'Work orders'),
     );
     expect(
       selectedDestination(items, '/maintenance/assets/asset'),
@@ -293,8 +293,41 @@ void main() {
     );
     expect(
       selectedDestination(items, '/maintenance/jobs/job'),
-      items.indexWhere((e) => e.en == 'More'),
+      items.indexWhere((e) => e.en == 'Work orders'),
     );
+  });
+  test('one work discovery destination retains detail and Mine context', () {
+    for (final role in [
+      UserRole.owner,
+      UserRole.employee,
+      UserRole.client,
+      UserRole.clientAdmin,
+      UserRole.clientMechanic,
+    ]) {
+      final primary = primaryDestinations(role);
+      expect(primary.where((e) => e.en == 'Work orders'), hasLength(1));
+      expect(
+        toolDestinations(
+          role,
+        ).where((e) => e.en == 'Work orders' || e.en == 'Service work orders'),
+        isEmpty,
+      );
+      if (role == UserRole.owner || role == UserRole.employee) {
+        expect(
+          selectedDestination(
+            primary,
+            '${roleRoutePrefix(role)}/work-orders/job',
+          ),
+          primary.indexWhere((e) => e.en == 'Work orders'),
+        );
+      }
+    }
+    for (final role in [UserRole.employee, UserRole.clientMechanic]) {
+      expect(
+        dashboardActions(role).map((e) => e.route),
+        contains('/maintenance/planning?filter=mine'),
+      );
+    }
   });
   test(
     'every role keeps assets, faults, and tools reachable; field roles omit billing',

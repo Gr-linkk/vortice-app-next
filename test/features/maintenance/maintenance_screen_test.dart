@@ -495,7 +495,7 @@ void main() {
         FixtureMaintenance(job: jobData(enabled: false)),
       );
       expect(find.text('Start labour'), findsNothing);
-      expect(find.text('Continue work report'), findsNothing);
+      expect(find.text('Continue service report'), findsNothing);
       expect(
         find.text('History is available; execution is disabled.'),
         findsOneWidget,

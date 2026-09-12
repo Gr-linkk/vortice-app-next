@@ -160,7 +160,9 @@ class _MaintenanceJobScreenState extends ConsumerState<MaintenanceJobScreen> {
           final report = <Widget>[
             Text(
               job.status == 'pending_review'
-                  ? (es ? 'Revisar informe de trabajo' : 'Review work report')
+                  ? (es
+                        ? 'Revisar informe de servicio'
+                        : 'Review service report')
                   : (es ? 'Informe guardado' : 'Saved report'),
               style: Theme.of(context).textTheme.titleLarge,
             ),
@@ -399,8 +401,8 @@ class _MaintenanceJobScreenState extends ConsumerState<MaintenanceJobScreen> {
               if (job.canWork && job.status == 'assigned') ...[
                 Text(
                   es
-                      ? 'Inicia el tiempo de trabajo; después completa el informe de trabajo.'
-                      : 'Start your labour timer, then complete the work report.',
+                      ? 'Inicia el tiempo de trabajo; después completa el informe de servicio.'
+                      : 'Start your labour timer, then complete the service report.',
                 ),
                 const SizedBox(height: 8),
                 FilledButton.icon(
@@ -425,8 +427,8 @@ class _MaintenanceJobScreenState extends ConsumerState<MaintenanceJobScreen> {
                   icon: const Icon(Icons.edit_note),
                   label: Text(
                     es
-                        ? 'Continuar informe de trabajo'
-                        : 'Continue work report',
+                        ? 'Continuar informe de servicio'
+                        : 'Continue service report',
                   ),
                 ),
               if (job.status == 'pending_review') ...report,

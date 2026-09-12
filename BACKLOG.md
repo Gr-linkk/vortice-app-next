@@ -7,6 +7,20 @@ without creating a new backlog item.
 
 ## Now
 
+### NEXT-002 — Human-centered workflow consolidation
+
+Garrett authorized autonomous execution, review, commits/pushes and necessary
+Next Supabase migrations on September 12, 2026. The board and dependency order
+are `docs/specs/NEXT-002-human-workflow-kanban.md`; decision 0016 owns the
+organization-membership direction. First slices: .02 work hub/calendar/filters,
+.05 explicit operator asset/draft selection, .09 fault next-action wording,
+and .17 truthful invite controls and focused Team. Preserve current access and
+data while larger migrations wait for prerequisites. Physical phone acceptance
+stays separate. Batch 1 implementation, review and verification are recorded in
+`docs/specs/NEXT-002-workflow-batch-1.md`; larger cards remain open.
+
+## Prior delivery and acceptance references
+
 NOW-022, NOW-023 and NOW-024 are merged, verified and delivered as Build 27.
 Integration evidence: `docs/specs/NOW-022-024-integration.md`.
 
@@ -42,8 +56,9 @@ outside-service costs, interval-correct downtime, possible repeat faults,
 source drill-down and CSV export. Missing data remains explicit.
 Scope and acceptance: `docs/specs/NOW-024-equipment-reporting.md`.
 
-Implemented and locally verified: clean analysis, 595 Flutter tests and the
-reporting database contract pass. Hosted activation and integration are pending.
+Implemented, integrated and active on Next in Build 27. Combined verification,
+hosted contracts and delivery evidence are recorded in
+`docs/specs/NOW-022-024-integration.md`; physical phone review remains separate.
 
 ### NOW-021 — Populate the existing app for a demo
 
@@ -405,6 +420,8 @@ Acceptance criteria:
 - Flutter verification, database authorization tests and rendered UI checks
   pass; the isolated internal APK is copied to the phone's Downloads folder.
 
+## Pending product decision
+
 ### NOW-001 — Choose the product identity
 
 Outcome: replace the working Vortice Next name with the chosen product name.
@@ -423,6 +440,24 @@ Acceptance criteria:
 
 Confirm invoice RLS, client scoping, export authorization, and role-based UI
 behavior together before non-mock invoice data is introduced.
+
+### NEXT-002 — Board reference (active under Now)
+
+Garrett initially saved the workflow-simplicity Kanban from the September 10-11
+app review, then authorized execution on September 12. Make work
+orders the common work hub; connect planning, recurring maintenance,
+inspections, faults, service requests, checklists, service reports, parts and
+record discussions through clear next actions. The board also records
+onboarding, flexible meters, additional land-equipment artwork, personal agent
+access and later messaging/managed-agent ideas.
+
+Execution status is recorded on the board. Consolidated priorities, decisions, acceptance criteria and
+open choices: `docs/specs/NEXT-002-human-workflow-kanban.md`. The accepted
+organization membership and role direction is decision 0016.
+
+NEXT-002 takes priority over the unselected feature inventory retained under
+NOW-006. Keep those older ideas as reference; do not select additional feature
+expansion until Garrett revisits that direction after this workflow board.
 
 ## Later
 

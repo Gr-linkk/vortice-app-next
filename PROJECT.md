@@ -14,6 +14,14 @@ parts, and invoices.
 
 ## Current direction
 
+NEXT-002 is the active workflow-consolidation board. Work orders become the
+common work hub while retaining the Field Notes design, checked completion,
+company isolation, offline drafts and provider billing boundaries. See
+`docs/specs/NEXT-002-human-workflow-kanban.md` for staged scope and dependencies.
+First delivery and remaining scope: `docs/specs/NEXT-002-workflow-batch-1.md`.
+Decision 0016 defines the accepted organization membership direction; current
+profile roles remain transitional until a coordinated access migration.
+
 NOW-022, NOW-023 and NOW-024 are merged, verified and delivered as Build 27.
 Integration evidence: `docs/specs/NOW-022-024-integration.md`.
 
@@ -26,7 +34,7 @@ a confirmed connection and preserve replay identity for uncertain outcomes.
 Maintenance plans support configurable hour and calendar recurrence, explicit
 transition targets and optional included services on the same component. Fixed
 milestones stay aligned after early/late completion; appointment moves remain
-separate. See NOW-023 and decision 0015. Hosted activation is tracked separately.
+separate. See NOW-023 and decision 0015. Hosted activation is verified in Build 27.
 Equipment reporting is selected under NOW-024: managers compare recorded costs,
 explicit downtime and possible repeat faults, inspect sources and export the
 same report. Calculation, coverage and access rules are in

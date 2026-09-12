@@ -286,7 +286,9 @@ class _MaintenanceReportScreenState
         }
       },
       child: Scaffold(
-        appBar: AppBar(title: Text(es ? 'Informe de trabajo' : 'Work report')),
+        appBar: AppBar(
+          title: Text(es ? 'Informe de servicio' : 'Service report'),
+        ),
         body: ListView(
           padding: const EdgeInsets.all(20),
           children: [

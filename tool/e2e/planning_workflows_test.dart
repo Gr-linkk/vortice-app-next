@@ -209,7 +209,7 @@ void main() {
               await h.tap(find.text('Continue work'));
               await h.tap(find.widgetWithText(FilledButton, 'Start work'));
               await h.tap(find.widgetWithText(TextButton, 'Pause'));
-              await h.tap(find.text('Continue work report'));
+              await h.tap(find.text('Continue service report'));
               await h.fill(
                 h.field('Findings'),
                 '$marker Planned generator service',

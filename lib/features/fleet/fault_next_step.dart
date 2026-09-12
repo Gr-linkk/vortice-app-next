@@ -132,7 +132,7 @@ class FaultNextStep extends ConsumerWidget {
       label = es ? 'Abrir orden de trabajo' : 'Open work order';
       next = openJob;
     } else if (canPlan) {
-      label = es ? 'Planificar reparación' : 'Plan repair';
+      label = es ? 'Crear orden de trabajo' : 'Create work order';
       next = () async {
         await context.push(
           '/maintenance/new?faultId=${Uri.encodeComponent(fault.id)}',

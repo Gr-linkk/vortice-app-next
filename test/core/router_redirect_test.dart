@@ -4,6 +4,29 @@ import 'package:vortice_app/features/auth/auth_provider.dart';
 import 'package:vortice_app/models/profile.dart';
 
 void main() {
+  test('team checklist assignment route retains manager-only access', () {
+    for (final role in UserRole.values) {
+      final redirect = resolveAuthRedirect(
+        authStatus: AppAuthStatus(
+          isLoading: false,
+          isAuthenticated: true,
+          profile: Profile(
+            id: 'member',
+            email: 'member@example.test',
+            fullName: 'Member',
+            role: role,
+          ),
+        ),
+        location: '/checklist-assignments',
+      );
+      expect(
+        redirect,
+        role == UserRole.client || role == UserRole.clientAdmin
+            ? null
+            : dashboardRouteForRole(role),
+      );
+    }
+  });
   group('dashboardRouteForRole', () {
     test('maps staff and client roles to dashboard routes', () {
       expect(dashboardRouteForRole(UserRole.owner), '/owner/dashboard');
@@ -82,42 +105,44 @@ void main() {
       );
     });
 
-    test('redirects client-side roles away from internal work-order routes',
-        () {
-      const mechanic = Profile(
-        id: 'p-3',
-        email: 'mechanic@vortice.dev',
-        role: UserRole.clientMechanic,
-        fullName: 'Client Mechanic',
-      );
-      const status = AppAuthStatus(
-        isLoading: false,
-        isAuthenticated: true,
-        profile: mechanic,
-      );
+    test(
+      'redirects client-side roles away from internal work-order routes',
+      () {
+        const mechanic = Profile(
+          id: 'p-3',
+          email: 'mechanic@vortice.dev',
+          role: UserRole.clientMechanic,
+          fullName: 'Client Mechanic',
+        );
+        const status = AppAuthStatus(
+          isLoading: false,
+          isAuthenticated: true,
+          profile: mechanic,
+        );
 
-      expect(
-        resolveAuthRedirect(
-          authStatus: status,
-          location: '/client/work-orders',
-        ),
-        '/client/dashboard',
-      );
-      expect(
-        resolveAuthRedirect(
-          authStatus: status,
-          location: '/client/work-orders/wo-1',
-        ),
-        '/client/dashboard',
-      );
-      expect(
-        resolveAuthRedirect(
-          authStatus: status,
-          location: '/client/checklists/wo-1',
-        ),
-        '/client/dashboard',
-      );
-    });
+        expect(
+          resolveAuthRedirect(
+            authStatus: status,
+            location: '/client/work-orders',
+          ),
+          '/client/dashboard',
+        );
+        expect(
+          resolveAuthRedirect(
+            authStatus: status,
+            location: '/client/work-orders/wo-1',
+          ),
+          '/client/dashboard',
+        );
+        expect(
+          resolveAuthRedirect(
+            authStatus: status,
+            location: '/client/checklists/wo-1',
+          ),
+          '/client/dashboard',
+        );
+      },
+    );
 
     test('redirects stale meeting request route to the role dashboard', () {
       const owner = Profile(

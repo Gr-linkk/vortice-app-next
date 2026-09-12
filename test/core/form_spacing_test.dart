@@ -19,84 +19,97 @@ import '../features/fleet/fleet_test_support.dart';
 
 void main() {
   setUpAll(loadFleetScreenshotFonts);
-  testWidgets('legacy asset and checklist menus fit narrow large-text forms', (
-    tester,
-  ) async {
-    const asset = Asset(
-      id: 'asset',
-      clientId: 'company',
-      assetTypeId: 'type',
-      name: 'Generador auxiliar de estribor para servicios de emergencia',
-    );
-    const template = ChecklistTemplate(
-      id: 'template',
-      name: 'Inspección diaria del sistema de refrigeración y seguridad',
-      checklistType: 'operator_daily',
-    );
-    String? requestedAsset;
-    ChecklistTemplate? selectedTemplate;
-    await pumpMaintenance(
-      tester,
-      Scaffold(
-        body: SingleChildScrollView(
-          child: Column(
-            children: [
-              Padding(
-                padding: const EdgeInsets.all(16),
-                child: ServiceRequestFormAssetField(
-                  assets: const [asset],
-                  value: asset.id,
-                  onChanged: (value) => requestedAsset = value,
-                ),
+  testWidgets(
+    'asset menus and checklist selection fit narrow large-text forms',
+    (tester) async {
+      const asset = Asset(
+        id: 'asset',
+        clientId: 'company',
+        assetTypeId: 'type',
+        name: 'Generador auxiliar de estribor para servicios de emergencia',
+      );
+      const template = ChecklistTemplate(
+        id: 'template',
+        name: 'Inspección diaria del sistema de refrigeración y seguridad',
+        checklistType: 'operator_daily',
+      );
+      String? requestedAsset;
+      ChecklistTemplate? selectedTemplate;
+      await pumpMaintenance(
+        tester,
+        Scaffold(
+          body: SingleChildScrollView(
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: ServiceRequestFormAssetField(
+                assets: const [asset],
+                value: asset.id,
+                onChanged: (value) => requestedAsset = value,
               ),
-              OperatorChecklistSelectionStep(
-                assetsAsync: AsyncData([
-                  {'id': 'asset', 'name': asset.name},
-                ]),
-                templatesAsync: const AsyncData([template]),
-                selectedAsset: const {'id': 'asset'},
-                selectedTemplate: template,
-                onAssetSelected: (_) {},
-                onTemplateSelected: (value) => selectedTemplate = value,
-              ),
-            ],
+            ),
           ),
         ),
-      ),
-      FixtureMaintenance(),
-      es: true,
-      width: 320,
-      scale: 1.5,
-    );
-    expect(tester.takeException(), isNull);
-    await captureFleet(tester, 'form-legacy-selectors-es-large');
-    await tester.tap(find.byType(DropdownButtonFormField<String>).first);
-    await tester.pumpAndSettle();
-    await captureFleet(tester, 'form-service-asset-menu-es-large');
-    await tester.tap(find.text('Otro').last);
-    await tester.pumpAndSettle();
-    expect(requestedAsset, isNotNull);
-    await tester.ensureVisible(
-      find.byType(DropdownButtonFormField<String>).last,
-    );
-    await tester.pumpAndSettle();
-    await tester.tap(find.byType(DropdownButtonFormField<String>).last);
-    await tester.pumpAndSettle();
-    final menuText = find.descendant(
-      of: find.byType(Scrollable).last,
-      matching: find.text(template.name),
-    );
-    expect(
-      tester.renderObject<RenderParagraph>(menuText).didExceedMaxLines,
-      isFalse,
-    );
-    await captureFleet(tester, 'form-checklist-menu-es-large');
-    await tester.tap(menuText);
-    await tester.pumpAndSettle();
-    expect(selectedTemplate, template);
-    expect(tester.takeException(), isNull);
-  });
+        FixtureMaintenance(),
+        es: true,
+        width: 320,
+        scale: 1.5,
+      );
+      expect(tester.takeException(), isNull);
+      await captureFleet(tester, 'form-service-asset-es-large');
+      await tester.tap(find.byType(DropdownButtonFormField<String>));
+      await tester.pumpAndSettle();
+      await captureFleet(tester, 'form-service-asset-menu-es-large');
+      await tester.tap(find.text('Otro').last);
+      await tester.pumpAndSettle();
+      expect(requestedAsset, isNotNull);
 
+      // The operator selector now owns its scroll view in a bounded screen body.
+      // Exercise that real composition, including both long selectable labels.
+      Map<String, dynamic>? selectedAsset;
+      await pumpMaintenance(
+        tester,
+        Scaffold(
+          body: OperatorChecklistSelectionStep(
+            assetsAsync: AsyncData([
+              {'id': asset.id, 'name': asset.name},
+            ]),
+            templatesAsync: const AsyncData([template]),
+            selectedAsset: const {'id': 'asset'},
+            selectedTemplate: null,
+            onAssetSelected: (value) => selectedAsset = value,
+            onTemplateSelected: (value) => selectedTemplate = value,
+          ),
+        ),
+        FixtureMaintenance(),
+        es: true,
+        width: 320,
+        scale: 1.5,
+      );
+      expect(tester.takeException(), isNull);
+      final assetText = find.text(asset.name);
+      expect(
+        tester.renderObject<RenderParagraph>(assetText).didExceedMaxLines,
+        isFalse,
+      );
+      expect(tester.getSize(assetText).height, greaterThan(48));
+      await tester.tap(assetText);
+      await tester.pumpAndSettle();
+      expect(selectedAsset?['id'], asset.id);
+      final templateText = find.text(template.name);
+      await tester.ensureVisible(templateText);
+      await tester.pumpAndSettle();
+      expect(
+        tester.renderObject<RenderParagraph>(templateText).didExceedMaxLines,
+        isFalse,
+      );
+      expect(tester.getSize(templateText).height, greaterThan(48));
+      await captureFleet(tester, 'form-checklist-selector-es-large');
+      await tester.tap(templateText);
+      await tester.pumpAndSettle();
+      expect(selectedTemplate, template);
+      expect(tester.takeException(), isNull);
+    },
+  );
   testWidgets('parts dialog separates fields and scrolls above the keyboard', (
     tester,
   ) async {

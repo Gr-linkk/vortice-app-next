@@ -286,7 +286,7 @@ void main() {
               if (fault == null) throw StateError('No fault');
               await h.login('paradise@vortice.dev');
               await h.go('/fleet/faults/$fault');
-              await h.tap(find.text('Plan repair'));
+              await h.tap(find.text('Create work order'));
               await h.select('Assigned to', mechanic['name'] as String);
               await h.tap(
                 find.widgetWithText(FilledButton, 'Create & open work order'),
@@ -297,7 +297,7 @@ void main() {
               await h.go('/maintenance/jobs/$repair');
               await h.tap(find.widgetWithText(FilledButton, 'Start work'));
               await h.tap(find.widgetWithText(TextButton, 'Pause'));
-              await h.tap(find.text('Continue work report'));
+              await h.tap(find.text('Continue service report'));
               await h.fill(
                 h.field('Findings'),
                 '$marker Loose fastener confirmed',
@@ -422,7 +422,7 @@ void main() {
               );
               h.container.invalidate(maintenanceJobProvider(pmJob!));
               await h.go('/maintenance/jobs/$pmJob');
-              await h.tap(find.text('Continue work report'));
+              await h.tap(find.text('Continue service report'));
               await h.fill(h.field('Reading'), '80');
               expect(
                 find.text('Outside range · review required'),

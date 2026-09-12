@@ -7,6 +7,7 @@ import 'package:vortice_app/core/app_navigation.dart';
 import 'package:vortice_app/core/theme.dart';
 import 'package:vortice_app/features/maintenance/planning/planning_models.dart';
 import 'package:vortice_app/features/maintenance/planning/planning_repository.dart';
+import 'package:vortice_app/features/maintenance/planning/planning_service_repository.dart';
 import 'package:vortice_app/features/maintenance/planning/maintenance_planning_screen.dart';
 import 'package:vortice_app/features/maintenance/planning/schedule_job_screen.dart';
 import 'package:vortice_app/models/profile.dart';
@@ -39,6 +40,16 @@ PlanningJob booking(
   'can_manage': manager,
   'due_date': due,
 });
+
+class FixturePlanningServices implements PlanningServiceRepository {
+  const FixturePlanningServices(this.data);
+  final PlanningServiceData data;
+  @override
+  Future<PlanningServiceData> load(
+    List<WorkOrder> orders, {
+    required String accountId,
+  }) async => data;
+}
 
 class FixturePlanning implements PlanningRepository {
   FixturePlanning(this.data);
@@ -258,13 +269,13 @@ void main() {
   );
   test('planning stays separate from general work navigation', () {
     final items = primaryDestinations(UserRole.clientAdmin);
-    expect(items[2].en, 'Planning');
+    expect(items[2].en, 'Work orders');
     expect(selectedDestination(items, '/maintenance/planning'), 2);
     expect(
       selectedDestination(items, '/maintenance/jobs/job'),
-      items.indexWhere((item) => item.en == 'More'),
+      items.indexWhere((item) => item.en == 'Work orders'),
     );
-    expect(primaryDestinations(UserRole.clientMechanic)[2].en, 'My schedule');
+    expect(primaryDestinations(UserRole.clientMechanic)[2].en, 'Work orders');
   });
 
   testWidgets('manager sees forward week and opens unscheduled booking', (
@@ -274,7 +285,7 @@ void main() {
       PlanningData(jobs: [booking('unplanned')], plans: []),
     );
     await showPlanning(tester, const MaintenancePlanningScreen(), fixture);
-    expect(find.text('Planning'), findsOneWidget);
+    expect(find.text('Work orders').first, findsOneWidget);
     await tester.tap(find.byKey(const ValueKey('planning-collection')));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Unscheduled').last);
@@ -309,7 +320,7 @@ void main() {
       expect(find.widgetWithText(ChoiceChip, 'Day'), findsNothing);
       await tester.tap(find.byKey(const ValueKey('planning-collection')));
       await tester.pumpAndSettle();
-      await tester.tap(find.text('Schedule').last);
+      await tester.tap(find.text('Work orders').last);
       await tester.pumpAndSettle();
       expect(
         tester
@@ -407,7 +418,7 @@ void main() {
       fixture,
       role: UserRole.clientMechanic,
     );
-    expect(find.text('My schedule'), findsOneWidget);
+    expect(find.text('Work orders').first, findsOneWidget);
     expect(find.text('Plan work'), findsNothing);
     expect(find.text('Service plans'), findsNothing);
     await reveal(tester, find.text('Continue work'));
@@ -428,7 +439,7 @@ void main() {
     await tester.tap(find.text('Try again'));
     await tester.pumpAndSettle();
     expect(fixture.reads, greaterThan(before));
-    expect(find.text('Planning'), findsOneWidget);
+    expect(find.text('Work orders').first, findsOneWidget);
   });
   testWidgets('uncertain scheduling retry preserves exact identity and input', (
     tester,
@@ -533,6 +544,11 @@ void main() {
       role: UserRole.owner,
       overrides: [
         planningRepositoryProvider.overrideWithValue(fixture),
+        planningServiceRepositoryProvider.overrideWithValue(
+          const FixturePlanningServices(
+            PlanningServiceData(assetNames: {'asset': 'Harbour generator'}),
+          ),
+        ),
         workOrdersProvider.overrideWith(
           (_) async => [
             WorkOrder(
@@ -550,6 +566,10 @@ void main() {
         assetNameProvider(
           'asset',
         ).overrideWith((_) async => 'Harbour generator'),
+        workOrderAssignmentsProvider('service').overrideWith((_) async => []),
+        currentUserAssignedToWorkOrderProvider(
+          'service',
+        ).overrideWith((_) async => false),
       ],
     );
     await reveal(tester, find.text('Open service order'));

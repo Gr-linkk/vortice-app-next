@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
+import 'package:vortice_app/features/auth/auth_provider.dart';
+import 'package:vortice_app/models/profile.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:uuid/uuid.dart';
 import 'package:vortice_app/core/user_feedback.dart';
@@ -49,9 +52,25 @@ class _ChecklistLibraryScreenState
   Widget build(BuildContext context) {
     final es = isSpanish(context);
     final state = ref.watch(checklistLibraryProvider);
+    final role = ref.watch(profileProvider).valueOrNull?.role;
     return Scaffold(
       appBar: AppBar(
         title: Text(es ? 'Listas de revisión' : 'Checklist library'),
+        actions: [
+          if (role == UserRole.client || role == UserRole.clientAdmin)
+            PopupMenuButton<String>(
+              tooltip: es ? 'Más acciones' : 'More actions',
+              onSelected: (_) => context.push('/checklist-assignments'),
+              itemBuilder: (_) => [
+                PopupMenuItem(
+                  value: 'assignments',
+                  child: Text(
+                    es ? 'Revisiones asignadas' : 'Assigned checklists',
+                  ),
+                ),
+              ],
+            ),
+        ],
       ),
       body: state.when(
         loading: () => const Center(child: CircularProgressIndicator()),
