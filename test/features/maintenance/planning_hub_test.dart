@@ -1,4 +1,8 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:vortice_app/sync/field_work_provider.dart';
+import 'package:vortice_app/sync/field_work_queue.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:vortice_app/features/maintenance/planning/maintenance_planning_screen.dart';
@@ -36,6 +40,40 @@ Future<void> chooseFilter(WidgetTester tester, String label) async {
 void main() {
   setUp(() => SharedPreferences.setMockInitialValues({}));
   setUpAll(loadFleetScreenshotFonts);
+  testWidgets('photo retry updates keep Work readable without another server read', (tester) async {
+    final updates = StreamController<List<FieldOperation>>();
+    addTearDown(updates.close);
+    final fixture = FixturePlanning(PlanningData(jobs: [booking('offline')], plans: []));
+    await pumpMaintenance(tester,
+      const MaintenancePlanningScreen(initialFilter: 'open'), FixtureMaintenance(),
+      overrides: [
+        planningRepositoryProvider.overrideWithValue(fixture),
+        fieldOperationsProvider.overrideWith((_) async* {
+          yield [];
+          yield* updates.stream;
+        }),
+      ],
+    );
+    expect(find.text('Service offline'), findsOneWidget);
+    final initialReads = fixture.reads;
+    for (var attempt = 1; attempt <= 3; attempt++) {
+      updates.add([FieldOperation(id: 'photo', kind: 'upload', subject: 'offline',
+        payload: const {}, attempts: attempt, error: 'Offline')]);
+      await tester.pumpAndSettle();
+      expect(find.text('Service offline'), findsOneWidget);
+      expect(fixture.reads, initialReads, reason: 'An upload retry must not restart hosted Work reads');
+    }
+    updates.add([const FieldOperation(id: 'start', kind: 'apply_maintenance_field_action', subject: 'offline',
+      payload: {'p_revision': 2, 'p_action': 'start', 'p_data': {'_actor': 'mechanic'},
+        'p_recorded_at': '2026-09-12T12:00:00Z'})]);
+    await tester.pumpAndSettle();
+    final container = ProviderScope.containerOf(tester.element(find.byType(MaintenancePlanningScreen)));
+    expect((await container.read(displayedMaintenancePlanningProvider(null).future)).jobs.single.status, 'in_progress');
+    expect(fixture.reads, initialReads);
+    await tester.tap(find.byTooltip('Refresh'));
+    await tester.pumpAndSettle();
+    expect(fixture.reads, initialReads + 1);
+  });
   test('saved filters agree on active, review, completed and blocked work', () {
     final now = DateTime(2026, 9, 12);
     final completed = booking('done', status: 'closed', due: '2026-09-01');

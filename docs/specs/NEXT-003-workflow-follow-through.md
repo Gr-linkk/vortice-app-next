@@ -39,6 +39,13 @@ read limit as other workspace reads. A stalled-transport regression verifies
 that the warmed asset, component and worker details return within 15 seconds.
 This correction is packaged as Build 31; Build 30 remains an intermediate receipt.
 
+Build 31's repeated phone test exposed another refresh dependency: every photo
+outbox update restarted hosted Work hub and service enrichment reads. Build 32
+separates cached/server planning from the local operation projection. A widget
+regression first reproduced the extra fetch, then verified repeated photo retries
+keep Work readable, local work actions still update progress, and explicit
+Refresh still fetches current server data. Physical Build 32 acceptance follows.
+
 The performance fixture contains 340 assets, 1,500 jobs and 340 plans. It checks
 three samples for four roles under forced generic query plans, a 3-second ceiling
 and a same-machine isolation budget. Current medians were about 471 ms for the

@@ -161,7 +161,7 @@ class _MaintenancePlanningScreenState
         ],
       ),
       body: ref
-          .watch(maintenancePlanningProvider(widget.assetId))
+          .watch(displayedMaintenancePlanningProvider(widget.assetId))
           .when(
             skipLoadingOnRefresh: false,
             loading: () => const Center(child: CircularProgressIndicator()),

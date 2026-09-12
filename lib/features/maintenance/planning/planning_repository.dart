@@ -71,7 +71,6 @@ final maintenancePlanningProvider = FutureProvider.autoDispose
         return PlanningData(jobs: [], plans: []);
       }
       // Connected reads refresh permissions; cached tasks stay readable offline.
-      final operations = await ref.watch(fieldOperationsProvider.future);
       final managedFuture = ref.watch(planningRepositoryProvider).load(assetId);
       final staff = profile.membershipManaged || [UserRole.owner, UserRole.employee].contains(profile.role);
       final ordersFuture = staff
@@ -95,7 +94,22 @@ final maintenancePlanningProvider = FutureProvider.autoDispose
           serviceData.project(order, profile.id, roleRoutePrefix(profile.role)),
       ];
       return PlanningData(
-        jobs: [for(final job in managed.jobs) PlanningJob(projectMaintenanceFieldWork(job.data,operations).data), ...serviceJobs],
+        jobs: [...managed.jobs, ...serviceJobs],
         plans: managed.plans,
+      );
+    });
+
+// Outbox retries update local presentation without restarting hosted reads.
+// Keep refresh/invalidation on maintenancePlanningProvider so explicit refreshes
+// still recheck permissions and replace cached server data.
+final displayedMaintenancePlanningProvider = FutureProvider.autoDispose
+    .family<PlanningData, String?>((ref, assetId) async {
+      final page = await ref.watch(maintenancePlanningProvider(assetId).future);
+      final operations = await ref.watch(fieldOperationsProvider.future);
+      return PlanningData(
+        jobs: [for (final job in page.jobs)
+          if (job.providerService) job
+          else PlanningJob(projectMaintenanceFieldWork(job.data, operations).data)],
+        plans: page.plans,
       );
     });

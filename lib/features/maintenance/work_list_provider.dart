@@ -48,7 +48,7 @@ class WorkListEntry {
 final workListProvider = FutureProvider.autoDispose.family<List<WorkListEntry>,String?>((ref,assetId) async {
   final profile = await ref.watch(profileProvider.future);
   if(profile == null || !profile.membershipManaged && !canUseMaintenance(profile.role)) return [];
-  final page = await ref.watch(maintenancePlanningProvider(assetId).future);
+  final page = await ref.watch(displayedMaintenancePlanningProvider(assetId).future);
   final entries = [for(final job in page.jobs) WorkListEntry(
     id:job.id,title:job.title,assetName:job.assetName,status:job.status,route:job.route,
     assignedToMe:job.data['assigned_to_me'] == true || job.assignee == profile.id,
