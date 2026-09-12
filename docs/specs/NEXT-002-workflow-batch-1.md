@@ -107,8 +107,29 @@ Representative PNGs were visually inspected in `outputs/kanban-ui/`.
 These checks are separate from installation and physical Android acceptance.
 
 The authentication-shell correction was exercised by the exact connected
-regression and focused navigation checks after the full suite. Final APK
-inspection and source delivery receipts follow below.
+regression and all 32 focused navigation/back-button checks after the full
+suite. The final shortened picker copy also passed the 107 rendered workflow
+checks. The final picker was inspected at 320 pixels with 200% Spanish text.
+
+## Build 28 and source delivery
+
+Source commit: `b25d245cf61c7f24fe8a46172fa322ad1907e00b` on
+`codex/kanban-workflows`. The guarded APK build and package inspection passed.
+Inspection confirms version 1.15.0+28, the Next package/backend/Firebase,
+signing certificate, notification service, recovery link, bundled equipment
+artwork and the new work hub, checklist, invite and account-switcher code.
+Normalized source matches that commit.
+
+Artifact: `outputs/builds/INSTALL-Vortice-Next-Build-28.apk` (200,135,202 bytes).
+SHA-256: `71bd0275c2738051209aa511c8a486accb0f888d2a0c25e85d8be450b0f03620`.
+Inspection receipt: `outputs/build28-build-verified.json`.
+The APK is prepared locally; installation and physical phone acceptance have
+not been performed.
+
+For profile testing, open **More > Switch test account**, or **Developer
+sign-in** on Login, then tap the desired profile. Test accounts use their real
+current permissions. Creating the future Company Owner/multiple-working-role
+test matrix remains part of the coordinated .18 migration.
 
 ## Remaining scope and next sequence
 
