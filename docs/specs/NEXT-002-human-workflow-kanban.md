@@ -1,20 +1,27 @@
 # NEXT-002 — Human-centered workflow consolidation Kanban
 
-Status: Build 29 delivered. Implementation requirements below are retained as
+Status: Build 29 scope delivered; NEXT-003 follow-ups delivered in Build 33.
+Implementation requirements below are retained as
 the accepted specification; the status groups here own remaining work.
 
 ## Current board
 
-- **Delivered, needs phone testing:** .02–.19, .21 and .22. See the acceptance
-  matrix below; .18 also passed five connected demo-role checks.
+- **Native S24 demo paths verified:** provider creation/assignment, checklist,
+  report/photo recovery, return/correction, approval, customer visibility and
+  issued invoice; modern account switching with collapsed older accounts.
+  See `NEXT-003-workflow-follow-through.md` for the exact Build 32/33 evidence.
+- **Further phone checks:** remaining role, recurrence, source-page, parts,
+  catalog, notification and access-revocation cases in the matrix below.
+  .18 also passed five connected demo-role checks.
 - **Deferred setup:** .01 email/SMS providers, at Garrett's request.
 - **Needs external verification:** .20 personal agent host connection;
   .23 live API quality, latency and usage measurements. The managed agent is an
   exploration, not a delivered production chat feature.
-- **Authorized follow-up in progress:** the five improvements in
+- **Completed follow-up:** all five improvements in
   `NEXT-003-workflow-follow-through.md`, represented in `BACKLOG.md`.
 
-No card is marked physically accepted from automated tests or APK delivery.
+Native-phone evidence is recorded separately from unit tests and APK delivery;
+the demo journey does not imply Garrett accepted every role or workflow.
 
 Accepted organization membership and role semantics:
 `../decisions/0016-organization-membership-access.md`.
@@ -33,26 +40,26 @@ Whole-board scope is below. Implementation does not replace physical acceptance.
 | Card | Implemented scope | Remaining acceptance |
 | --- | --- | --- |
 | .01 | Email/phone code entry, recovery and organization routing; truthful unavailable state in this build | Garrett deferred email/SMS provider setup and real delivery; see `NEXT-002-code-sign-in-setup.md` |
-| .02 | Common work hub, calendar views, search, matching filters and preserved booking context | Physical phone acceptance |
-| .03 | Asset/fault/plan/request/inspection source context and frozen work procedures | Physical provider workflow acceptance |
+| .02 | Common work hub, calendar views, search, matching filters and preserved booking context | Native cached Work and Completed discovery passed; calendar/other-role checks remain |
+| .03 | Asset/fault/plan/request/inspection source context and frozen work procedures | Native provider/asset/frozen checklist journey passed; other source entries remain |
 | .04 | Automatic cycle generation, no automatic booking/assignment, checked once-only advancement | Hourly scheduler verified active; physical phone journey |
-| .05 | Explicit operator asset/draft choice and frozen attached checklist progress | Physical checklist/evidence journey |
+| .05 | Explicit operator asset/draft choice and frozen attached checklist progress | Native provider checklist/evidence passed; operator asset/draft journey remains |
 | .06 | Exact manual page links, adjustable state sequence and offline source-page cache | Physical offline source-page acceptance |
-| .07 | Common service-report language, retained returned work and approved publication boundary | Physical provider workflow acceptance |
-| .08 | Work-contained progress, missing requirements, evidence, report and labour | Physical provider timer/checklist journey |
+| .07 | Common service-report language, retained returned work and approved publication boundary | Native return/correction/publication and pre/post-approval customer views passed |
+| .08 | Work-contained progress, missing requirements, evidence, report and labour | Native provider timer/checklist/report/photo journey passed; other role cases remain |
 | .09 | Linked fault-to-work, explicit repair verification and availability decision | Physical phone acceptance |
-| .10 | Relationship-scoped request acceptance, linked work, approved report and invoice | Physical modern provider workflow acceptance |
+| .10 | Relationship-scoped request acceptance, linked work, approved report and invoice | Native linked demo job through approved report and issued zero-dollar invoice passed; other relationship cases remain |
 | .11 | Shared lifecycle labels; actual bookings distinguished from assignment/due dates | Physical phone acceptance |
 | .12 | Home exceptions use domain filters and matching result counts; Mine preserved | Physical phone acceptance |
 | .13 | Canonical asset context, current work, meters, custody, inspections and immutable history | Physical phone acceptance |
 | .14 | Needed/reserved/ordered/received/used/returned parts in the work context | Physical parts workflow acceptance |
-| .15 | Original hours/km/mi in work, reports and history; distance display preference | Physical provider workflow acceptance |
+| .15 | Original hours/km/mi in work, reports and history; distance display preference | Native 62000 km preserved through approved report; other units/preferences remain |
 | .16 | Six selected land types, stable catalog IDs, bundled drawings and searchable Add/Edit | Physical catalog acceptance |
-| .17 | Automatic foreground offline readiness, cached work/source pages, truthful queue states and online action gates | Physical airplane-mode/process-kill/reconnect journey |
+| .17 | Automatic foreground offline readiness, cached work/source pages, truthful queue states and online action gates | Native Wi-Fi/data-off force-stop, cached Work, unsent photo preview and reconnect/submit passed; source pages and other field paths remain |
 | .18 | Additive membership/permissions, invitations, revocation, company relationships and scoped provider work | Five live demo role checks passed; physical acceptance remains |
 | .19 | Checklist issue details, fault handoff and contextual discussions with company boundaries | Physical evidence/notification acceptance |
 | .20 | Guided scoped MCP setup, real backend grant check, reviewed proposals and narrow audited tools | A real user-selected agent host connection |
-| .21 | Internal account switcher and five verified modern demo identities alongside existing accounts | Installation and human phone journeys remain open |
+| .21 | Internal account switcher and five verified modern demo identities alongside existing accounts | Build 33 installed; native fleet/service-owner switching and collapsed older accounts passed; other role journeys follow their cards |
 | .22 | Company announcements, unread state, attachments and notifications | Physical delivery/tap acceptance |
 | .23 | Managed-agent architecture and executed budget/dispatcher spike | Live API quality/latency/usage measurements need an API credential; see `NEXT-002-managed-agent-exploration.md` |
 

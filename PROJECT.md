@@ -14,9 +14,10 @@ parts, and invoices.
 
 ## Current direction
 
-NEXT-003 is the authorized Build 29 follow-through: account selection, complete
-phone workflow verification, provider offline evidence, shared execution rules
-and a populated Work hub performance guard. See `BACKLOG.md` and
+NEXT-003's five follow-ups are complete and delivered as internal Build 33:
+account selection, a complete native S24 demo job through invoicing, provider
+offline evidence, shared execution rules and a populated Work hub performance
+guard. See `BACKLOG.md` and
 `docs/specs/NEXT-003-workflow-follow-through.md` for current status.
 
 NEXT-002 is the active workflow-consolidation board. Work orders become the

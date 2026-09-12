@@ -7,15 +7,6 @@ without creating a new backlog item.
 
 ## Now
 
-### NEXT-003 — Workflow polish and field verification
-
-Garrett authorized all five follow-ups on September 12, 2026: simplify test
-account selection, exercise a complete job on the phone, improve provider
-offline capture, consolidate shared workflow logic, and retain a repeatable
-realistic Work hub performance check. Scope and live status:
-`docs/specs/NEXT-003-workflow-follow-through.md`. Keep the existing design,
-account/company permissions and checked approval. Email/SMS setup stays deferred.
-
 ### NEXT-002 — Human-centered workflow consolidation
 
 Garrett authorized autonomous execution, review, commits/pushes and necessary
@@ -31,6 +22,17 @@ at Garrett's request. Existing accounts and the Ellicott graph are preserved;
 the transition is additive and does not perform the proposed account reset.
 
 ## Prior delivery and acceptance references
+
+### NEXT-003 — Completed: workflow polish and field verification
+
+All five authorized follow-ups are delivered in internal Build 33 (`1.16.4+33`),
+installed and checksum-verified on the S24. The native demo journey reached
+corrected/approved publication and an issued zero-dollar invoice; offline report
+and unsent-photo recovery passed. Full guarded verification passed 726 tests.
+Picker simplification, shared report/evidence rules and the populated Work hub
+performance guard are complete. Evidence and precise acceptance boundaries:
+`docs/specs/NEXT-003-workflow-follow-through.md`. Remaining NEXT-002 role/setup
+checks stay on that board; email/SMS setup remains deferred.
 
 NOW-022, NOW-023 and NOW-024 are merged, verified and delivered as Build 27.
 Integration evidence: `docs/specs/NOW-022-024-integration.md`.

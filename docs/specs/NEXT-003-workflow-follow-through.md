@@ -3,10 +3,13 @@
 Authorized September 12, 2026, following internal Build 29. Continue on the
 verified independent `codex/kanban-workflows` branch.
 
+Status: all five follow-ups completed September 12, 2026. Final internal
+Build 33 (`1.16.4+33`) is installed on the S24 with existing data preserved.
+
 | Item | Outcome | Status |
 | --- | --- | --- |
 | 1 | New demo roles first, older profiles collapsed, current company/role clear | Implemented; native S24 picker checked and tests pass, including 320 px at 200% text |
-| 2 | Create, assign, perform, return, correct, approve and invoice one job | Native S24 job submitted and returned; closing-form defect fixed for Build 33, final acceptance in progress |
+| 2 | Create, assign, perform, return, correct, approve and invoice one job | Native S24 demo journey passed; Build 33 return, correction, approval and issued invoice confirmed in provider and customer views |
 | 3 | Provider evidence capture survives offline interruption and reopening | Build 32 S24 restart, cached Work, recovered report and unsent photo preview passed with both networks disabled; reconnect and submission passed |
 | 4 | Shared execution/evidence rules reduce drift between workflow paths | Shared report readiness and immutable evidence helpers implemented |
 | 5 | Repeatable Work hub performance check with representative populated data | Local positive and historical regression probes pass; CI job added |
@@ -58,6 +61,52 @@ ownership of its controllers until unmount. A new widget test reproduced the
 disposed-controller error before the fix and passes afterward. This shared form
 also handles provider blockers, starting meters and invoice charge entry.
 
+## Final delivery and phone evidence
+
+- Source: `dfaf7272a5427bd6c5aaf2ce9624274cdd2409e9`, with the earlier follow-up
+  commits retained on `codex/kanban-workflows` and pushed only to Next.
+- Full guarded verification: **726 tests passed**, code generation and analysis
+  passed. Logs: `outputs/kanban/next003-build33-verify.log` and
+  `outputs/kanban/next003-build33.log`. APK inspection verifies package,
+  signing certificate, dedicated Next backend/Firebase and bundled features.
+- APK: `outputs/builds/INSTALL-Vortice-Next-Build-33.apk`, **139,034,653 bytes**.
+  SHA-256: `f1eefeb31e90b1adeba77a1452262a8dc9a00d9de55e9140f14ef2b11145a349`.
+  Installed with `adb install -r` and saved in S24 Downloads; receipts:
+  `outputs/build33-build-verified.json`, `outputs/build33-phone-delivery.json`.
+  The separate `outputs/build33-native-acceptance.json` records the completed
+  phone checks and hashes their native screenshots/XML.
+- Native fixture: `NEXT003 S24 pressure verification`, work ID
+  `5b529c9b-b916-4248-9fed-ac2041446497`, Demo Truck 01. The original **62000 km**
+  reading is unchanged. Recorded labour is 8m06s (0.14 h when rounded for billing).
+- The three attached checklist answers and four synthetic gallery photos
+  survived the workflow. Build 32 proved the fresh pending-photo restart;
+  Build 33 proved the repaired return-sheet exit and invoice entry. The final
+  repair includes the requested pressure result, and the review correction
+  retains prior answers and evidence.
+- Customer report visibility was checked before and after approval on the
+  actual phone. The pending report was hidden. The completed view exposes the
+  approved report, three answers, four photo previews and issued invoice,
+  without provider internal labour/cost controls.
+- Invoice `INV-20260912-D5FAE54FA70E` is **issued**, for **0 USD / 0 MXN**,
+  against the explicitly labeled demo record. It was not marked paid.
+- Read-only hosted verification confirms the same work/report/invoice IDs in
+  both company views and successfully retrieves all four evidence objects
+  under each account's permissions. Receipt:
+  `outputs/next003-phone/server-work-final-receipt.json`.
+- Native XML/PNG evidence is under `outputs/next003-phone/`: `109` shows the
+  recovered unsent photo and pending upload, `110` the offline submission gate,
+  `123`/`127` the account picker, `126` the private pre-approval customer view,
+  `129` the successful Build 33 return, and `137`–`139` the completed customer
+  report, invoice and photo. Wi-Fi/mobile data are restored and rotation is free.
+
+This is an automated native-phone demo journey, not Garrett's acceptance of
+every role or production workflow. Camera capture, offline manual source pages,
+recurrence, parts, and closed-app notifications retain their separate NEXT-002
+checks. Email/SMS setup remains deferred; live agent-host/API checks remain
+external. No additional implementation is implied by those remaining checks.
+
+## Performance regression evidence
+
 The performance fixture contains 340 assets, 1,500 jobs and 340 plans. It checks
 three samples for four roles under forced generic query plans, a 3-second ceiling
 and a same-machine isolation budget. Current medians were about 471 ms for the
@@ -65,3 +114,5 @@ provider owner, 491 ms for the fleet owner, 419 ms for the assigned mechanic and
 72 ms for an unrelated company. Reinstating the historical slow function in the
 disposable test database failed the isolation budget (760 ms versus 609 ms).
 This is local repeatable regression evidence, not hosted load or remote CI proof.
+Logs: `outputs/kanban/next003-performance-final.log` and
+`outputs/kanban/next003-performance-negative-final.log`.

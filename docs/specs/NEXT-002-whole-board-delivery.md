@@ -119,6 +119,16 @@ accounts remain available. Keep existing app data so draft recovery can be teste
 
 ## Phone acceptance checklist
 
+September 12 follow-up: `NEXT-003-workflow-follow-through.md` records the later
+Build 33 install and completed native S24 demo journey. It covers provider work
+creation/assignment, checklist/report/photo recovery, review return/correction,
+approved customer publication and an issued zero-dollar invoice. A fresh unsent
+photo survived force-stop with Wi-Fi and mobile data disabled on Build 32;
+the final form fix passed on Build 33. The customer could not see the report
+before approval and could read the report, evidence and invoice afterward.
+The checklist below remains the broader role/field acceptance reference;
+unexercised recurrence, source-page, parts and notification cases remain open.
+
 Use the new demo company entries in **More → Switch test account** after
 installing the delivered build. Existing test accounts remain available too.
 
