@@ -1,6 +1,6 @@
 # NEXT-002 — Human-centered workflow consolidation Kanban
 
-Status: active; whole-board implementation is in final integration and verification.
+Status: implemented scope delivered in Build 29; external setup and physical acceptance remain active.
 
 Accepted organization membership and role semantics:
 `../decisions/0016-organization-membership-access.md`.
@@ -43,8 +43,8 @@ Whole-board scope is below. Implementation does not replace physical acceptance.
 | .23 | Managed-agent architecture and executed budget/dispatcher spike | Live API quality/latency/usage measurements need an API credential; see `NEXT-002-managed-agent-exploration.md` |
 
 - On September 12 Garrett requested execution of the whole board and APK
-  delivery to S24 Downloads. Build 28 was delivered and checksum-verified;
-  the whole-board build is being prepared separately.
+  delivery to S24 Downloads. Build 29 is delivered and checksum-verified;
+  `NEXT-002-whole-board-delivery.md` records verification and remaining acceptance.
 - .18 organization membership precedes .01 owner onboarding. Legacy `owner`
   grants provider/platform authority, not the new Company Owner role. Migrate
   membership, invitations, routes and backend access together; do not implement

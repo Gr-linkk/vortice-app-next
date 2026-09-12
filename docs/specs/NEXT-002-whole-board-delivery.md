@@ -1,10 +1,10 @@
 # NEXT-002 — Whole-board delivery
 
-Status: final integration and verification in progress, September 12, 2026.
-The independent Next branch is `codex/kanban-workflows`. Build 28 was already
-placed in S24 Downloads and checksum-verified; this continuation targets Build
-29 (`1.16.0+29`). This document will record the final verification and delivery
-receipts when those operations finish.
+Status: implemented scope delivered as internal Build 29 (`1.16.0+29`),
+September 12, 2026. External setup and physical acceptance remain open below.
+The independent branch is `codex/kanban-workflows`. The APK is in S24 Downloads
+and its checksum matches the inspected local artifact. Installation and human
+phone acceptance have not been performed by this delivery.
 
 ## Scope
 
@@ -62,9 +62,45 @@ grants for five roles: the owner hub fell from 3,189 ms to 181 ms, and the moder
 company owner from 7,183 ms to 46 ms. These are database timings from that
 comparison, separate from end-to-end network/UI measurements.
 
-Hosted regression, final connected route, APK inspection and transfer results
-are still being collected. Intermediate logs under `outputs/kanban/` include
-failed attempts as well as successful reruns; use the final receipts below.
+All **45 SQL contracts** passed across the local full run and focused reruns,
+and all 45 passed on hosted Next. The 24 migrations through
+`20260912233500_work_hub_visibility_cache.sql` are deployed only to
+`hkjpojobdbbtjkhaudki`; its hourly recurrence job is active. The final connected
+audit passed **114 routes across six existing roles**, with no error text,
+framework error or hidden provider failure. After deployment, authenticated
+REST hub loads measured 0.738 s for the existing owner and 0.287 s for the new
+company owner.
+
+Source commit: `a7109a5` on `codex/kanban-workflows`. Final local evidence:
+
+- `outputs/kanban/final-verify.log`: generation, clean analysis, 718 tests.
+- `outputs/kanban/hosted-contracts-final.json`: 45 passing contract files/hashes.
+- `outputs/kanban/hub-candidate-comparison.json`: exact five-role responses and
+  access properties, with before/after timing.
+- `outputs/kanban-live-Vuyiw23r/`: final connected legacy route audit.
+- `outputs/modern-connected-LcFWJJJ9/`: five modern role/picker checks.
+- `outputs/kanban/provider-ui/`: inspected native provider screenshots.
+
+Earlier logs include failed attempts; they are not the final release result.
+
+## Build 29 delivery
+
+- APK: `outputs/builds/INSTALL-Vortice-Next-Build-29.apk`.
+- Version/package: `1.16.0+29`, `com.example.vortice_app_next`, ARM64 internal debug.
+- Size: 139,024,493 bytes.
+- SHA-256: `1f253324d8ca5023a71fb7e68f0372415104c5a2f2f363a3d0b3288272a4029b`.
+- S24 model/destination: `SM-S928W`, `/storage/emulated/0/Download/INSTALL-Vortice-Next-Build-29.apk`.
+- Device checksum verified: `2026-09-12T10:47:15.846769+00:00`.
+- Next backend, dedicated Firebase project, signing certificate, notification
+  service, recovery deep link and bundled equipment artwork were inspected.
+- Receipts: `outputs/build29-build-verified.json` and
+  `outputs/build29-phone-delivery.json`.
+
+Open the APK from **My Files → Downloads** to install the update. Then use
+**More → Switch test account → Demo fleet owner** (or the supervisor,
+mechanic, operator or service-company demo) for the checks below. Existing
+accounts remain available. Keep existing app data so draft recovery can be tested.
+
 
 ## Explicit remaining boundaries
 

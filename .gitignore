@@ -25,6 +25,7 @@ Thumbs.db
 android/local.properties
 android/key.properties
 android/.gradle/
+android/.kotlin/
 
 # iOS
 ios/Pods/

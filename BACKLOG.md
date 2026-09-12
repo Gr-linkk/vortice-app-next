@@ -15,7 +15,9 @@ are `docs/specs/NEXT-002-human-workflow-kanban.md`; decision 0016 owns the
 organization-membership direction. Garrett subsequently requested the entire
 board and APK delivery to S24 Downloads. Whole-board scope, integration evidence
 and remaining external/physical acceptance are recorded in
-`docs/specs/NEXT-002-whole-board-delivery.md`. Email/SMS provider setup is deferred
+`docs/specs/NEXT-002-whole-board-delivery.md`. Build 29 is delivered and checksum-verified
+in S24 Downloads; the remaining work is the recorded setup and acceptance.
+Email/SMS provider setup is deferred
 at Garrett's request. Existing accounts and the Ellicott graph are preserved;
 the transition is additive and does not perform the proposed account reset.
 

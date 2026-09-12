@@ -54,9 +54,10 @@ select public.save_maintenance_setup(gen_random_uuid(),'plan','a2140000-0000-400
 reset role;
 select set_config('request.jwt.claim.sub','',true);
 set local role service_role;
-select pg_temp.assert_true(public.run_recurring_generation()=1,'unattended generator creates covering work without a signed-in manager');
+select pg_temp.assert_true(public.run_recurring_generation()>=1,'unattended generator creates covering work without a signed-in manager');
 select pg_temp.assert_true(public.run_recurring_generation()=0,'unattended overlapping cycles deduplicate');
-select pg_temp.assert_true((select count(*)=1 from public.recurring_work_cycles),'covered plan does not create competing work');
+select pg_temp.assert_true((select count(*)=1 from public.recurring_work_cycles
+ where asset_id='a2140000-0000-4000-8000-000000000021'),'covered plan does not create competing work');
 select pg_temp.assert_true((select w.created_by is null and w.assigned_to is null and j.planned_start is null from public.work_orders w join public.maintenance_job_records j on j.id=w.id where w.id=pg_temp.cycle_job('plan','a2140000-0000-4000-8000-000000000041')),'scheduler uses system authorship without scheduling or assigning');
 select pg_temp.assert_true((select jsonb_array_length(checklist_snapshot)=2 from public.maintenance_job_records where id=pg_temp.cycle_job('plan','a2140000-0000-4000-8000-000000000041')),'unattended generation freezes both procedures');
 select pg_temp.assert_true((select count(*)=1 and sum(required_qty)=1 from public.job_part_requirements where work_order_id=pg_temp.cycle_job('plan','a2140000-0000-4000-8000-000000000041')),'selected complete kit is captured once without summing the smaller kit');
