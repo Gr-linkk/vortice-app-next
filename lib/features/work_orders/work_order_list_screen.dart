@@ -53,7 +53,7 @@ class _WorkOrderListScreenState extends ConsumerState<WorkOrderListScreen>
     };
 
     final es = Localizations.localeOf(context).languageCode == 'es';
-    final title = es ? 'Órdenes de servicio' : 'Service orders';
+    final title = es ? 'Órdenes de trabajo' : 'Work orders';
 
     return Scaffold(
       appBar: AppBar(

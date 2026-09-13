@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:vortice_app/core/app_dropdown_field.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -19,7 +20,7 @@ class _OrganizationScreenState extends ConsumerState<OrganizationScreen> {
   bool _busy = false;
   String _t(String en, String es) => isSpanish(context) ? es : en;
   Future<void> _switch(String organizationId) async {
-    if(!await requireOnlineAction(context,ref) || !mounted) return;
+    if (!await requireOnlineAction(context, ref) || !mounted) return;
     setState(() => _busy = true);
     try {
       await ref
@@ -76,7 +77,7 @@ class _OrganizationScreenState extends ConsumerState<OrganizationScreen> {
                 padding: const EdgeInsets.all(20),
                 children: [
                   if (data.memberships.length > 1) ...[
-                    DropdownButtonFormField<String>(
+                    AppDropdownField<String>(
                       initialValue: active?.organizationId,
                       isExpanded: true,
                       decoration: InputDecoration(
@@ -326,7 +327,7 @@ class _MembershipEditorState extends ConsumerState<MembershipEditor> {
 
   Future<void> _save({bool revoke = false}) async {
     if (_busy || _roles.isEmpty) return;
-    if(!await requireOnlineAction(context,ref) || !mounted) return;
+    if (!await requireOnlineAction(context, ref) || !mounted) return;
     setState(() {
       _busy = true;
       _error = null;
@@ -448,8 +449,8 @@ class _MembershipEditorState extends ConsumerState<MembershipEditor> {
               ),
             ),
             const SizedBox(height: 20),
-                      const OnlineOnlyNotice(),
-                      FilledButton.icon(
+            const OnlineOnlyNotice(),
+            FilledButton.icon(
               onPressed: _share,
               icon: const Icon(Icons.share_outlined),
               label: Text(_t('Share invitation', 'Compartir invitación')),

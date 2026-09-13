@@ -28,17 +28,29 @@ class SupabasePlanningRepository implements PlanningRepository {
   final SupabaseClient client;
   @override
   Future<PlanningData> load(String? assetId) async {
-    final cache=AccountJsonCache(client.auth.currentUser?.id ?? 'signed_out',()=>client.auth.currentUser?.id);
-    final params={if(assetId != null) 'p_asset':assetId};
-    final key='maintenance_work_hub:${jsonEncode(params)}';
+    final cache = AccountJsonCache(
+      client.auth.currentUser?.id ?? 'signed_out',
+      () => client.auth.currentUser?.id,
+    );
+    final params = {if (assetId != null) 'p_asset': assetId};
+    final key = 'maintenance_work_hub:${jsonEncode(params)}';
     Future<dynamic>? request;
-    Future<dynamic> remote() => request ??= client.rpc('maintenance_work_hub',params:params).timeout(const Duration(seconds:6));
+    Future<dynamic> remote() => request ??= client
+        .rpc('maintenance_work_hub', params: params)
+        .timeout(const Duration(seconds: 6));
     // Store the permission-bearing lists separately so removal of a job or plan
     // invalidates stale details through AccountJsonCache's existing epoch rule.
-    final jobs=await cache.readThrough('$key:jobs',() async => (await remote() as Map)['jobs'] ?? []);
-    final plans=await cache.readThrough('$key:plans',() async => (await remote() as Map)['plans'] ?? []);
-    return PlanningData.fromJson({'jobs':jobs,'plans':plans});
+    final jobs = await cache.readThrough(
+      '$key:jobs',
+      () async => (await remote() as Map)['jobs'] ?? [],
+    );
+    final plans = await cache.readThrough(
+      '$key:plans',
+      () async => (await remote() as Map)['plans'] ?? [],
+    );
+    return PlanningData.fromJson({'jobs': jobs, 'plans': plans});
   }
+
   @override
   Future<void> schedule(
     String jobId,
@@ -72,7 +84,9 @@ final maintenancePlanningProvider = FutureProvider.autoDispose
       }
       // Connected reads refresh permissions; cached tasks stay readable offline.
       final managedFuture = ref.watch(planningRepositoryProvider).load(assetId);
-      final staff = profile.membershipManaged || [UserRole.owner, UserRole.employee].contains(profile.role);
+      final staff =
+          profile.membershipManaged ||
+          [UserRole.owner, UserRole.employee].contains(profile.role);
       final ordersFuture = staff
           ? ref.watch(workOrdersProvider.future)
           : Future.value(<WorkOrder>[]);
@@ -91,7 +105,16 @@ final maintenancePlanningProvider = FutureProvider.autoDispose
                 .load(serviceOrders, accountId: profile.id);
       final serviceJobs = [
         for (final order in serviceOrders)
-          serviceData.project(order, profile.id, roleRoutePrefix(profile.role)),
+          PlanningJob({
+            ...serviceData
+                .project(order, profile.id, roleRoutePrefix(profile.role))
+                .data,
+            'own_equipment': profile.membershipManaged
+                ? order.customerOrganizationId == profile.orgId
+                : order.clientId == profile.id ||
+                      (profile.orgId != null &&
+                          order.customerOrganizationId == profile.orgId),
+          }),
       ];
       return PlanningData(
         jobs: [...managed.jobs, ...serviceJobs],
@@ -107,9 +130,15 @@ final displayedMaintenancePlanningProvider = FutureProvider.autoDispose
       final page = await ref.watch(maintenancePlanningProvider(assetId).future);
       final operations = await ref.watch(fieldOperationsProvider.future);
       return PlanningData(
-        jobs: [for (final job in page.jobs)
-          if (job.providerService) job
-          else PlanningJob(projectMaintenanceFieldWork(job.data, operations).data)],
+        jobs: [
+          for (final job in page.jobs)
+            if (job.providerService)
+              job
+            else
+              PlanningJob(
+                projectMaintenanceFieldWork(job.data, operations).data,
+              ),
+        ],
         plans: page.plans,
       );
     });

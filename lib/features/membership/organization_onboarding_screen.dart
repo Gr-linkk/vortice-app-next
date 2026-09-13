@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:uuid/uuid.dart';
+import 'company_purpose.dart';
 import 'package:vortice_app/core/user_feedback.dart';
 import 'package:vortice_app/features/auth/auth_provider.dart';
 import 'package:vortice_app/features/membership/membership_provider.dart';
@@ -22,6 +24,8 @@ class _OrganizationOnboardingScreenState
   final _invitation = TextEditingController();
   bool _join = false;
   bool _busy = false;
+  CompanyPurpose? _purpose;
+  final _operation = const Uuid().v4();
   String? _error;
   String _t(String en, String es) => isSpanish(context) ? es : en;
   @override
@@ -41,6 +45,15 @@ class _OrganizationOnboardingScreenState
 
   Future<void> _submit() async {
     if (_busy || !_form.currentState!.validate()) return;
+    if (!_join && _purpose == null) {
+      setState(
+        () => _error = _t(
+          'Choose how your company will use the app.',
+          'Elige cómo usará tu empresa la aplicación.',
+        ),
+      );
+      return;
+    }
     setState(() {
       _busy = true;
       _error = null;
@@ -50,7 +63,12 @@ class _OrganizationOnboardingScreenState
       if (_join) {
         await repository.redeem(_invitation.text, _name.text);
       } else {
-        await repository.createCompany(_company.text, _name.text);
+        await repository.createCompanyWithPurpose(
+          _company.text,
+          _name.text,
+          _purpose!,
+          _operation,
+        );
       }
       if (!mounted) return;
       await refreshMembership(ref);
@@ -173,6 +191,19 @@ class _OrganizationOnboardingScreenState
                             )
                           : null,
                     ),
+                  if (!_join) ...[
+                    const SizedBox(height: 24),
+                    CompanyPurposePicker(
+                      value: _purpose,
+                      spanish: isSpanish(context),
+                      onChanged: _busy
+                          ? null
+                          : (value) => setState(() {
+                              _purpose = value;
+                              _error = null;
+                            }),
+                    ),
+                  ],
                   if (_error != null)
                     Padding(
                       padding: const EdgeInsets.symmetric(vertical: 16),

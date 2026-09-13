@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
+import 'package:vortice_app/core/app_dropdown_field.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:vortice_app/core/meter_units.dart';
 import 'package:vortice_app/core/user_feedback.dart';
@@ -384,7 +385,7 @@ class _OrganizationWorkSetupSheetState
               style: Theme.of(context).textTheme.titleLarge,
             ),
             const SizedBox(height: 16),
-            DropdownButtonFormField<String>(
+            AppDropdownField<String>(
               isExpanded: true,
               initialValue: _template ?? '',
               decoration: InputDecoration(
@@ -395,16 +396,12 @@ class _OrganizationWorkSetupSheetState
                   value: '',
                   child: Text(
                     es ? 'Sin lista adjunta' : 'No attached checklist',
-                    overflow: TextOverflow.ellipsis,
                   ),
                 ),
                 for (final row in templates)
                   DropdownMenuItem(
                     value: row['id'] as String,
-                    child: Text(
-                      '${row['name']} · v${row['version']}',
-                      overflow: TextOverflow.ellipsis,
-                    ),
+                    child: Text('${row['name']} · v${row['version']}'),
                   ),
               ],
               onChanged: frozen

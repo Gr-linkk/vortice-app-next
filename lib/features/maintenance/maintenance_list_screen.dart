@@ -6,6 +6,8 @@ import 'package:vortice_app/features/auth/auth_provider.dart';
 import 'maintenance_models.dart';
 import 'maintenance_repository.dart';
 import 'work_list_provider.dart';
+import 'work_focus.dart';
+import 'create_work_entry.dart';
 import 'package:vortice_app/features/work_orders/work_order_provider.dart';
 
 class MaintenanceListScreen extends ConsumerStatefulWidget {
@@ -35,6 +37,9 @@ class _MaintenanceListScreenState extends ConsumerState<MaintenanceListScreen> {
       );
     }
     final result = ref.watch(workListProvider(widget.assetId));
+    final focus = widget.assetId == null
+        ? ref.watch(workFocusProvider).valueOrNull ?? WorkFocus.all
+        : WorkFocus.all;
     void refresh() {
       ref.invalidate(maintenanceJobsProvider(widget.assetId));
       ref.invalidate(workOrdersProvider);
@@ -60,19 +65,18 @@ class _MaintenanceListScreenState extends ConsumerState<MaintenanceListScreen> {
       floatingActionButton: !isMaintenanceManager(profile?.role)
           ? null
           : FloatingActionButton.extended(
-              onPressed: () => context.push(
-                Uri(
-                  path: '/maintenance/new',
-                  queryParameters: {
-                    if (widget.assetId != null) 'assetId': widget.assetId!,
-                  },
-                ).toString(),
-              ),
+              onPressed: () =>
+                  openNewWorkOrder(context, ref, assetId: widget.assetId),
               icon: const Icon(Icons.add),
               label: Text(es ? 'Nueva orden' : 'New work order'),
             ),
       body: Column(
         children: [
+          if (widget.assetId == null)
+            const Padding(
+              padding: EdgeInsets.fromLTRB(16, 12, 16, 0),
+              child: WorkFocusSelector(),
+            ),
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
             child: TextField(
@@ -125,7 +129,11 @@ class _MaintenanceListScreenState extends ConsumerState<MaintenanceListScreen> {
               ),
               data: (jobs) {
                 final visible = jobs
-                    .where((entry) => entry.matches(_filter, _search))
+                    .where(
+                      (entry) =>
+                          focus.includes(entry.ownEquipment) &&
+                          entry.matches(_filter, _search),
+                    )
                     .toList();
                 return RefreshIndicator(
                   onRefresh: () async {
@@ -150,7 +158,7 @@ class _MaintenanceListScreenState extends ConsumerState<MaintenanceListScreen> {
                           child: ListTile(
                             title: Text(job.title),
                             subtitle: Text(
-                              '${job.assetName}\n${job.service ? (es ? 'Orden de servicio' : 'Service order') : (es ? 'Orden interna' : 'Internal work order')}${job.workType == null ? '' : ' · ${job.workType!.label(es)}'} · ${job.lifecycleLabel(es)}${job.status == 'invoiced' ? (es ? ' · Facturado' : ' · Invoiced') : ''}${job.priority == null ? '' : ' · ${maintenancePriority(job.priority!, es)}'}${job.dueDate == null ? '' : ' · ${maintenanceDate(job.dueDate, es)}'}',
+                              '${job.assetName}\n${(job.ownEquipment ? WorkFocus.own : WorkFocus.customer).label(es)}${job.workType == null ? '' : ' · ${job.workType!.label(es)}'} · ${job.lifecycleLabel(es)}${job.status == 'invoiced' ? (es ? ' · Facturado' : ' · Invoiced') : ''}${job.priority == null ? '' : ' · ${maintenancePriority(job.priority!, es)}'}${job.dueDate == null ? '' : ' · ${maintenanceDate(job.dueDate, es)}'}',
                             ),
                             isThreeLine: true,
                             trailing: const Icon(Icons.chevron_right),

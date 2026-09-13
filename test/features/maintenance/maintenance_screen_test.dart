@@ -236,8 +236,7 @@ Future<void> pumpMaintenance(
       GoRoute(path: '/', builder: (_, __) => screen),
       GoRoute(
         path: '/owner/work-orders/service',
-        builder: (_, state) =>
-            const Scaffold(body: Text('Service order service')),
+        builder: (_, state) => const Scaffold(body: Text('Work order service')),
       ),
       GoRoute(
         path: '/owner/service-reports/new',

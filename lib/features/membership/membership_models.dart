@@ -1,4 +1,5 @@
 import 'package:vortice_app/models/profile.dart';
+import 'company_purpose.dart';
 
 enum OrganizationRole {
   companyOwner('company_owner', 'Company Owner', 'Propietario de empresa'),
@@ -87,24 +88,29 @@ class OrganizationMembership {
     required this.ownerProfileId,
     required this.roles,
     required this.permissions,
+    this.companyPurpose,
+    this.providerEnabled = false,
   });
   final String organizationId;
   final String name;
   final String ownerProfileId;
   final List<String> roles;
   final List<String> permissions;
+  final CompanyPurpose? companyPurpose;
+  final bool providerEnabled;
   bool can(String permission) =>
       membershipAllows(roles, permissions, permission);
-  factory OrganizationMembership.fromJson(Map<String, dynamic> json) =>
-      OrganizationMembership(
-        organizationId: json['organization_id'] as String,
-        name: json['name'] as String,
-        ownerProfileId: json['owner_profile_id'] as String,
-        roles: List<String>.from(json['roles'] as List),
-        permissions: List<String>.from(
-          json['permissions'] as List? ?? const [],
-        ),
-      );
+  factory OrganizationMembership.fromJson(
+    Map<String, dynamic> json,
+  ) => OrganizationMembership(
+    organizationId: json['organization_id'] as String,
+    companyPurpose: CompanyPurpose.parse(json['company_purpose'] as String?),
+    providerEnabled: json['provider_enabled'] == true,
+    name: json['name'] as String,
+    ownerProfileId: json['owner_profile_id'] as String,
+    roles: List<String>.from(json['roles'] as List),
+    permissions: List<String>.from(json['permissions'] as List? ?? const []),
+  );
 }
 
 class OrganizationContext {

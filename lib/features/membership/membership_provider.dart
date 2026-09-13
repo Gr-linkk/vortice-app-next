@@ -3,6 +3,7 @@ import 'package:vortice_app/core/account_storage.dart';
 import 'package:vortice_app/core/supabase_client.dart';
 import 'package:vortice_app/features/auth/auth_provider.dart';
 import 'package:vortice_app/features/membership/membership_models.dart';
+import 'company_purpose.dart';
 
 class MembershipRepository {
   Future<OrganizationContext> context() async {
@@ -44,6 +45,30 @@ class MembershipRepository {
             params: {'p_name': name.trim(), 'p_full_name': fullName.trim()},
           )
           as String;
+  Future<String> createCompanyWithPurpose(
+    String name,
+    String fullName,
+    CompanyPurpose purpose,
+    String operation,
+  ) async =>
+      await supabase.rpc(
+            'create_company_with_purpose',
+            params: {
+              'p_name': name.trim(),
+              'p_full_name': fullName.trim(),
+              'p_purpose': purpose.name,
+              'p_operation': operation,
+            },
+          )
+          as String;
+
+  Future<void> setPurpose(CompanyPurpose purpose) async {
+    await supabase.rpc(
+      'set_company_purpose',
+      params: {'p_purpose': purpose.name},
+    );
+  }
+
   Future<String> redeem(String code, String fullName) async =>
       await supabase.rpc(
             'redeem_membership_invite',

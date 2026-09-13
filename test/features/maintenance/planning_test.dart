@@ -146,9 +146,13 @@ Future<void> showPlanning(
     role: role,
     overrides: [
       planningRepositoryProvider.overrideWithValue(fixture),
-      onlineActionGateProvider.overrideWith((ref) => OnlineActionGate(
-        account:'fixture', currentAccount:()=> 'fixture', probe:() async {},
-      )),
+      onlineActionGateProvider.overrideWith(
+        (ref) => OnlineActionGate(
+          account: 'fixture',
+          currentAccount: () => 'fixture',
+          probe: () async {},
+        ),
+      ),
     ],
   );
   if (screen is ScheduleJobScreen) {
@@ -312,8 +316,8 @@ void main() {
         ),
       );
       await showPlanning(tester, const MaintenancePlanningScreen(), fixture);
-      await reveal(tester, find.widgetWithText(FilledButton, 'Open work'));
-      expect(find.widgetWithText(TextButton, 'Reschedule'), findsOneWidget);
+      await reveal(tester, find.text('Service booked'));
+      expect(find.byTooltip('Reschedule'), findsOneWidget);
       expect(find.widgetWithText(FilledButton, 'Reschedule'), findsNothing);
       await tester.drag(find.byType(ListView).first, const Offset(0, 800));
       await tester.pumpAndSettle();
@@ -427,8 +431,8 @@ void main() {
     expect(find.text('Work orders').first, findsOneWidget);
     expect(find.text('Plan work'), findsNothing);
     expect(find.text('Service plans'), findsNothing);
-    await reveal(tester, find.text('Continue work'));
-    await tester.tap(find.text('Continue work'));
+    await reveal(tester, find.text('Service today'));
+    await tester.tap(find.text('Service today'));
     await tester.pumpAndSettle();
     expect(find.text('Job saved'), findsOneWidget);
   });
@@ -578,10 +582,10 @@ void main() {
         ).overrideWith((_) async => false),
       ],
     );
-    await reveal(tester, find.text('Open service order'));
-    await tester.tap(find.text('Open service order'));
+    await reveal(tester, find.text('Legacy service visit'));
+    await tester.tap(find.text('Legacy service visit'));
     await tester.pumpAndSettle();
-    expect(find.text('Service order service'), findsOneWidget);
+    expect(find.text('Work order service'), findsOneWidget);
   });
   testWidgets('missing scheduling reason prevents a write', (tester) async {
     final job = booking('empty');

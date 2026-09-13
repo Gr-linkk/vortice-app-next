@@ -177,14 +177,31 @@ class ConnectedHarness {
       // A preceding action can leave a lazily built control above the viewport.
       // Return to the start before searching downward through this scroll view.
       final scroll = tester.state<ScrollableState>(scrollable);
-      scroll.position.jumpTo(scroll.position.minScrollExtent);
-      await tester.pump(const Duration(milliseconds: 300));
-      await tester.scrollUntilVisible(
-        target,
-        240,
-        scrollable: scrollable,
-        maxScrolls: 30,
-      );
+      // Variable-height lazy rows can correct the offset during their first
+      // layout (especially after a text-scale change). Let that layout settle
+      // before starting the downward search from the actual top.
+      for (var reset = 0; reset < 8; reset++) {
+        scroll.position.jumpTo(scroll.position.minScrollExtent);
+        await tester.pump(const Duration(milliseconds: 100));
+        if (scroll.position.pixels <= scroll.position.minScrollExtent) break;
+      }
+      // Keep the actual scroll state: a lazy child can build another ListView,
+      // changing what the live `.last` finder refers to during a long scroll.
+      for (
+        var attempt = 0;
+        attempt < 100 && target.evaluate().isEmpty;
+        attempt++
+      ) {
+        if (!scroll.mounted) break;
+        final position = scroll.position;
+        final next = (position.pixels + position.viewportDimension / 2).clamp(
+          position.minScrollExtent,
+          position.maxScrollExtent,
+        );
+        if (next == position.pixels) break;
+        position.jumpTo(next);
+        await tester.pump(const Duration(milliseconds: 100));
+      }
     }
     expect(target, findsWidgets);
     await tester.ensureVisible(target.last);
@@ -264,6 +281,8 @@ class ConnectedHarness {
   }
 
   Future<void> screenshot(String name) async {
+    // Capture settled controls, including floating labels after text entry.
+    await settle(3);
     final render =
         boundary.currentContext?.findRenderObject() as RenderRepaintBoundary?;
     if (render == null) return;
@@ -279,12 +298,24 @@ class ConnectedHarness {
   }
 
   Future<void> close() async {
+    // End the account session while its scope can still process cancellation.
+    // Then flush pending provider disposals before releasing the test container.
+    await supabase.auth.signOut(scope: SignOutScope.local);
+    await settle();
+    // Keep the provider scope mounted while removing its consumers. Riverpod's
+    // scheduled Flutter callback still needs a frame to dispose those providers.
+    await tester.pumpWidget(
+      UncontrolledProviderScope(container: container, child: const SizedBox()),
+    );
+    await tester.pump();
+    final pending = container.pump();
+    await tester.pump();
+    await pending.timeout(const Duration(seconds: 5));
     await tester.pumpWidget(const SizedBox());
     container.dispose();
     for (final database in _databases.values) {
       await database.close();
     }
-    await supabase.auth.signOut(scope: SignOutScope.local);
     await Supabase.instance.dispose();
     tester.view.resetPhysicalSize();
     tester.view.resetDevicePixelRatio();

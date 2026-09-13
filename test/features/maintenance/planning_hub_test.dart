@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:vortice_app/core/app_dropdown_field.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:vortice_app/sync/field_work_provider.dart';
 import 'package:vortice_app/sync/field_work_queue.dart';
@@ -27,7 +28,7 @@ import 'planning_test.dart'
 Future<void> chooseFilter(WidgetTester tester, String label) async {
   final picker = find.byWidgetPredicate(
     (w) =>
-        w is DropdownButtonFormField<String> &&
+        w is AppDropdownField<String> &&
         w.key.toString().contains('work-filter-'),
   );
   await reveal(tester, picker);
@@ -40,40 +41,76 @@ Future<void> chooseFilter(WidgetTester tester, String label) async {
 void main() {
   setUp(() => SharedPreferences.setMockInitialValues({}));
   setUpAll(loadFleetScreenshotFonts);
-  testWidgets('photo retry updates keep Work readable without another server read', (tester) async {
-    final updates = StreamController<List<FieldOperation>>();
-    addTearDown(updates.close);
-    final fixture = FixturePlanning(PlanningData(jobs: [booking('offline')], plans: []));
-    await pumpMaintenance(tester,
-      const MaintenancePlanningScreen(initialFilter: 'open'), FixtureMaintenance(),
-      overrides: [
-        planningRepositoryProvider.overrideWithValue(fixture),
-        fieldOperationsProvider.overrideWith((_) async* {
-          yield [];
-          yield* updates.stream;
-        }),
-      ],
-    );
-    expect(find.text('Service offline'), findsOneWidget);
-    final initialReads = fixture.reads;
-    for (var attempt = 1; attempt <= 3; attempt++) {
-      updates.add([FieldOperation(id: 'photo', kind: 'upload', subject: 'offline',
-        payload: const {}, attempts: attempt, error: 'Offline')]);
-      await tester.pumpAndSettle();
+  testWidgets(
+    'photo retry updates keep Work readable without another server read',
+    (tester) async {
+      final updates = StreamController<List<FieldOperation>>();
+      addTearDown(updates.close);
+      final fixture = FixturePlanning(
+        PlanningData(jobs: [booking('offline')], plans: []),
+      );
+      await pumpMaintenance(
+        tester,
+        const MaintenancePlanningScreen(initialFilter: 'open'),
+        FixtureMaintenance(),
+        overrides: [
+          planningRepositoryProvider.overrideWithValue(fixture),
+          fieldOperationsProvider.overrideWith((_) async* {
+            yield [];
+            yield* updates.stream;
+          }),
+        ],
+      );
       expect(find.text('Service offline'), findsOneWidget);
-      expect(fixture.reads, initialReads, reason: 'An upload retry must not restart hosted Work reads');
-    }
-    updates.add([const FieldOperation(id: 'start', kind: 'apply_maintenance_field_action', subject: 'offline',
-      payload: {'p_revision': 2, 'p_action': 'start', 'p_data': {'_actor': 'mechanic'},
-        'p_recorded_at': '2026-09-12T12:00:00Z'})]);
-    await tester.pumpAndSettle();
-    final container = ProviderScope.containerOf(tester.element(find.byType(MaintenancePlanningScreen)));
-    expect((await container.read(displayedMaintenancePlanningProvider(null).future)).jobs.single.status, 'in_progress');
-    expect(fixture.reads, initialReads);
-    await tester.tap(find.byTooltip('Refresh'));
-    await tester.pumpAndSettle();
-    expect(fixture.reads, initialReads + 1);
-  });
+      final initialReads = fixture.reads;
+      for (var attempt = 1; attempt <= 3; attempt++) {
+        updates.add([
+          FieldOperation(
+            id: 'photo',
+            kind: 'upload',
+            subject: 'offline',
+            payload: const {},
+            attempts: attempt,
+            error: 'Offline',
+          ),
+        ]);
+        await tester.pumpAndSettle();
+        expect(find.text('Service offline'), findsOneWidget);
+        expect(
+          fixture.reads,
+          initialReads,
+          reason: 'An upload retry must not restart hosted Work reads',
+        );
+      }
+      updates.add([
+        const FieldOperation(
+          id: 'start',
+          kind: 'apply_maintenance_field_action',
+          subject: 'offline',
+          payload: {
+            'p_revision': 2,
+            'p_action': 'start',
+            'p_data': {'_actor': 'mechanic'},
+            'p_recorded_at': '2026-09-12T12:00:00Z',
+          },
+        ),
+      ]);
+      await tester.pumpAndSettle();
+      final container = ProviderScope.containerOf(
+        tester.element(find.byType(MaintenancePlanningScreen)),
+      );
+      expect(
+        (await container.read(
+          displayedMaintenancePlanningProvider(null).future,
+        )).jobs.single.status,
+        'in_progress',
+      );
+      expect(fixture.reads, initialReads);
+      await tester.tap(find.byTooltip('Refresh'));
+      await tester.pumpAndSettle();
+      expect(fixture.reads, initialReads + 1);
+    },
+  );
   test('saved filters agree on active, review, completed and blocked work', () {
     final now = DateTime(2026, 9, 12);
     final completed = booking('done', status: 'closed', due: '2026-09-01');
@@ -161,7 +198,7 @@ void main() {
   ) async {
     await showPlanning(
       tester,
-      const MaintenancePlanningScreen(),
+      const MaintenancePlanningScreen(initialFilter: 'open'),
       FixturePlanning(
         PlanningData(
           jobs: [
@@ -181,7 +218,7 @@ void main() {
   });
 
   testWidgets(
-    'month shows actual work beyond selected day and retains unscheduled access',
+    'month selects a day without leaving the calendar and retains unscheduled access',
     (tester) async {
       final now = DateTime.now();
       final later = DateTime(now.year, now.month, now.day == 28 ? 27 : 28, 10);
@@ -201,6 +238,19 @@ void main() {
       await reveal(tester, find.widgetWithText(ChoiceChip, 'Month'));
       await tester.tap(find.widgetWithText(ChoiceChip, 'Month'));
       await tester.pumpAndSettle();
+      final date = DateTime(later.year, later.month, later.day);
+      final day = find.byKey(
+        ValueKey('calendar-day-${date.toIso8601String()}'),
+      );
+      await reveal(tester, day);
+      await tester.tap(day);
+      await tester.pumpAndSettle();
+      expect(
+        tester
+            .widget<ChoiceChip>(find.widgetWithText(ChoiceChip, 'Month'))
+            .selected,
+        isTrue,
+      );
       await reveal(tester, find.text('Service later in month'));
       expect(find.text('Service later in month'), findsOneWidget);
       expect(find.text('Service not yet booked'), findsNothing);
@@ -244,8 +294,8 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.byTooltip('Next'));
     await tester.pumpAndSettle();
-    await reveal(tester, find.widgetWithText(FilledButton, 'Open work'));
-    await tester.tap(find.widgetWithText(FilledButton, 'Open work'));
+    await reveal(tester, find.text('Service my work'));
+    await tester.tap(find.text('Service my work'));
     await tester.pumpAndSettle();
     expect(find.text('Job saved'), findsOneWidget);
     tester.state<NavigatorState>(find.byType(Navigator).last).pop();
@@ -320,10 +370,10 @@ void main() {
     );
     await reveal(tester, find.text('Completed service visit'));
     expect(find.textContaining('Invoiced'), findsOneWidget);
-    await reveal(tester, find.text('Open service order'));
-    await tester.tap(find.text('Open service order'));
+    await reveal(tester, find.text('Open work order'));
+    await tester.tap(find.text('Open work order'));
     await tester.pumpAndSettle();
-    expect(find.text('Service order service'), findsOneWidget);
+    expect(find.text('Work order service'), findsOneWidget);
   });
 
   testWidgets(

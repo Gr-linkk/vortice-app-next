@@ -3,6 +3,10 @@
 Accepted 2026-09-11 for NEXT-002 after Garrett approved the simplified
 onboarding and organization-role direction.
 
+Extended by [decision 0018](0018-company-purpose-and-work-orders.md) on
+2026-09-13: company-purpose onboarding, shared fleet capabilities and one
+work-order vocabulary. Working roles and invitation access below still apply.
+
 A person's identity is separate from their organization membership. A new
 unaffiliated person who creates a company becomes that organization's Company
 Owner. People who arrive through an invitation join the inviting organization

@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:vortice_app/core/app_dropdown_field.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -533,7 +534,7 @@ class _OrganizationWorkReportEditorState
                                 ),
                               if (item['requires_photo'] == true) ...[
                                 const SizedBox(height: 16),
-                                DropdownButtonFormField<String>(
+                                AppDropdownField<String>(
                                   isExpanded: true,
                                   key: ValueKey(
                                     'photo-${item['id']}-${_itemPhoto(item)}',

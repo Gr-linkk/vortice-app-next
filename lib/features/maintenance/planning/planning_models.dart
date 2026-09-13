@@ -1,5 +1,6 @@
 import 'package:vortice_app/core/meter_units.dart';
 import '../maintenance_models.dart';
+import '../work_focus.dart';
 
 DateTime planningDay(DateTime value) =>
     DateTime(value.year, value.month, value.day);
@@ -18,6 +19,8 @@ class PlanningJob extends MaintenanceJob {
       ? Map<String, String>.from(data['workers'] as Map)
       : {if (assignee != null) assignee!: assigneeName};
   bool get providerService => data['provider_service'] == true;
+  bool get ownEquipment => data['own_equipment'] as bool? ?? !providerService;
+  bool matchesWorkFocus(WorkFocus focus) => focus.includes(ownEquipment);
   DateTime? get serviceDate =>
       DateTime.tryParse(data['service_date'] as String? ?? '');
   String get route => data['route'] as String? ?? '/maintenance/jobs/$id';

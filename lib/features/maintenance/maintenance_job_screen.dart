@@ -349,7 +349,7 @@ class _MaintenanceJobScreenState extends ConsumerState<MaintenanceJobScreen> {
                   ),
                 ),
               Text(job.title, style: Theme.of(context).textTheme.headlineSmall),
-              Text(es ? 'Orden de trabajo interna' : 'Internal work order'),
+              Text(es ? 'Orden de trabajo' : 'Work order'),
               TextButton.icon(
                 onPressed: () =>
                     context.push('/maintenance/assets/${job.assetId}'),

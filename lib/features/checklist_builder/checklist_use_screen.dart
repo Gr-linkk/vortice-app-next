@@ -285,8 +285,8 @@ class _ChecklistUseScreenState extends ConsumerState<ChecklistUseScreen> {
                             ),
                             child: Text(
                               es
-                                  ? 'Crear orden de servicio del proveedor'
-                                  : 'Create provider service order',
+                                  ? 'Crear orden de trabajo'
+                                  : 'Create work order',
                             ),
                           ),
                       ],

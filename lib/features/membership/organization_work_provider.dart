@@ -46,6 +46,26 @@ class OrganizationWorkRepository {
       _read('organization_service_configuration');
   Future<Map<String, dynamic>> requestContext() =>
       _read('organization_service_request_context');
+  Future<Map<String, dynamic>> customerCreationContext() =>
+      _read('customer_work_creation_context');
+  Future<String> createCustomerWork(
+    String operation,
+    String relationship,
+    String asset,
+    String title,
+    String note,
+  ) async =>
+      await client.rpc(
+            'create_customer_work',
+            params: {
+              'p_operation': operation,
+              'p_relationship': relationship,
+              'p_asset': asset,
+              'p_title': title.trim(),
+              'p_note': note.trim(),
+            },
+          )
+          as String;
   Future<void> configure(bool provider, bool billing) async {
     await client.rpc(
       'configure_organization_services',

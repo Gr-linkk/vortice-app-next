@@ -92,11 +92,29 @@ void main() {
             maintenancePlanningProvider.overrideWith((_, assetId) async {
               providerReads++;
               expect(assetId, 'asset');
-              return PlanningData(jobs: [
-                PlanningJob({'id':'job','asset_id':'asset','title':'Internal repair','asset_name':'Generator 02','status':'assigned'}),
-                if (role == UserRole.owner)
-                  PlanningJob({'id':'service','asset_id':'asset','title':'Provider repair','asset_name':'Generator 02','status':'assigned','provider_service':true,'assigned_to_me':true,'route':'/owner/work-orders/service'}),
-              ],plans:[]);
+              return PlanningData(
+                jobs: [
+                  PlanningJob({
+                    'id': 'job',
+                    'asset_id': 'asset',
+                    'title': 'Internal repair',
+                    'asset_name': 'Generator 02',
+                    'status': 'assigned',
+                  }),
+                  if (role == UserRole.owner)
+                    PlanningJob({
+                      'id': 'service',
+                      'asset_id': 'asset',
+                      'title': 'Provider repair',
+                      'asset_name': 'Generator 02',
+                      'status': 'assigned',
+                      'provider_service': true,
+                      'assigned_to_me': true,
+                      'route': '/owner/work-orders/service',
+                    }),
+                ],
+                plans: [],
+              );
             }),
           ],
         );
@@ -187,7 +205,7 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.text('Pump seal service'));
     await tester.pumpAndSettle();
-    expect(find.text('Service order service'), findsOneWidget);
+    expect(find.text('Work order service'), findsOneWidget);
   });
 
   for (final state in ['missing', 'submitted', 'loading', 'error']) {

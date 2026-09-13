@@ -4,6 +4,10 @@ Status: Accepted
 Date: 2026-09-07
 Scope: NOW-014, explicitly approved by Garrett.
 
+User-facing naming and company-purpose setup are clarified by
+[decision 0018](0018-company-purpose-and-work-orders.md), accepted 2026-09-13.
+The checked completion, ownership and cost boundaries below still apply.
+
 A client company manages internal work orders for its own fleet. Repair is one
 work type alongside preventive maintenance, inspection and general work. The
 owner's familiar work-order structure is the reference for creation, assignment,

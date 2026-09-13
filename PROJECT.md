@@ -14,12 +14,20 @@ parts, and invoices.
 
 ## Current direction
 
-NEXT-006 is the next implementation round: make routine work obvious through
-small changes to existing names, job context and next actions. Its scope is in
+NEXT-006 implements routine-work clarity through
+company-purpose onboarding and one work-order experience, with small
+changes to existing names, job context and next actions. Decision 0018 defines
+Fleet owner, Service provider and Both: all retain own-equipment maintenance,
+with customer work additionally enabled for service providers. "Service order"
+is retired from the selected user-facing vocabulary. Its scope is in
 `docs/specs/NEXT-006-routine-work-usability.md` and priority is in `BACKLOG.md`.
 The usability completion requirement in `AGENTS.md` applies to every future
-product change and build delivery. New features and major redesigns are deferred
-during this round. Existing NEXT-002 external/physical acceptance remains open.
+product change and build delivery. Apart from the selected onboarding/capability
+refinement, new features and major redesigns are deferred
+during this round. The calendar follow-up adds selected-day agendas, work counts,
+grouped weeks and direct job opening. Build 37 packaging is in progress after
+clean analysis and 738 tests. Existing NEXT-002 external/physical acceptance
+remains open.
 
 NEXT-003's five follow-ups are complete and delivered as internal Build 33:
 account selection, a complete native S24 demo job through invoicing, provider

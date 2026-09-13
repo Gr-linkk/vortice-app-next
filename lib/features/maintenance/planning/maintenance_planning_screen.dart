@@ -7,6 +7,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:vortice_app/core/app_dropdown_field.dart';
+import 'package:vortice_app/core/list_label_order.dart';
 import 'package:vortice_app/core/user_feedback.dart';
 import 'package:vortice_app/features/auth/auth_provider.dart';
 import 'package:vortice_app/models/profile.dart';
@@ -17,6 +18,8 @@ import '../maintenance_repository.dart';
 import 'planning_models.dart';
 import 'planning_repository.dart';
 import 'schedule_job_screen.dart';
+import '../work_focus.dart';
+import '../create_work_entry.dart';
 
 class MaintenancePlanningScreen extends ConsumerStatefulWidget {
   const MaintenancePlanningScreen({
@@ -82,6 +85,9 @@ class _MaintenancePlanningScreenState
     final es = isSpanish(context);
     final profile = ref.watch(profileProvider).valueOrNull;
     final manager = isMaintenanceManager(profile?.role);
+    final focus = widget.assetId == null
+        ? ref.watch(workFocusProvider).valueOrNull ?? WorkFocus.all
+        : WorkFocus.all;
     final view =
         _view ??
         (widget.initialFilter != null ? 'list' : (manager ? 'week' : 'today'));
@@ -223,6 +229,7 @@ class _MaintenancePlanningScreenState
                   data.jobs
                       .where(
                         (j) =>
+                            j.matchesWorkFocus(focus) &&
                             (selectedAsset == null ||
                                 j.assetId == selectedAsset) &&
                             (selectedPerson == null ||
@@ -277,8 +284,8 @@ class _MaintenancePlanningScreenState
                       ),
                       'week' => j.inPeriod(week, until),
                       'month' => j.inPeriod(
-                        DateTime(_day.year, _day.month),
-                        DateTime(_day.year, _day.month + 1),
+                        _day,
+                        DateTime(_day.year, _day.month, _day.day + 1),
                       ),
                       'list' => true,
                       'unscheduled' => j.unscheduled,
@@ -294,25 +301,25 @@ class _MaintenancePlanningScreenState
               return RefreshIndicator(
                 onRefresh: _refresh,
                 child: ListView(
+                  key: const ValueKey('work-hub-list'),
                   physics: const AlwaysScrollableScrollPhysics(),
                   padding: const EdgeInsets.fromLTRB(16, 12, 16, 40),
                   children: [
+                    if (widget.assetId == null && view != 'plans') ...[
+                      const WorkFocusSelector(),
+                      const SizedBox(height: 12),
+                    ],
                     Wrap(
                       spacing: 8,
                       runSpacing: 8,
                       children: [
                         if (manager)
                           FilledButton.icon(
-                            onPressed: () => _open(
-                              Uri(
-                                path: '/maintenance/new',
-                                queryParameters: {
-                                  'planning': 'true',
-                                  if (widget.assetId ?? selectedAsset
-                                      case final String id)
-                                    'assetId': id,
-                                },
-                              ).toString(),
+                            onPressed: () => openNewWorkOrder(
+                              context,
+                              ref,
+                              assetId: widget.assetId ?? selectedAsset,
+                              planning: true,
                             ),
                             icon: const Icon(Icons.add),
                             label: Text(es ? 'Crear trabajo' : 'Create work'),
@@ -361,7 +368,11 @@ class _MaintenancePlanningScreenState
                                     es ? 'Todos los equipos' : 'All assets',
                                   ),
                                 ),
-                                for (final asset in assets.entries)
+                                for (final asset
+                                    in (assets.entries.toList()..sort(
+                                      (a, b) =>
+                                          compareListLabels(a.value, b.value),
+                                    )))
                                   DropdownMenuItem(
                                     value: asset.key,
                                     child: Text(asset.value),
@@ -389,7 +400,11 @@ class _MaintenancePlanningScreenState
                                     es ? 'Todo el equipo' : 'Whole team',
                                   ),
                                 ),
-                                for (final person in people.entries)
+                                for (final person
+                                    in (people.entries.toList()..sort(
+                                      (a, b) =>
+                                          compareListLabels(a.value, b.value),
+                                    )))
                                   DropdownMenuItem(
                                     value: person.key,
                                     child: Text(person.value),
@@ -408,9 +423,14 @@ class _MaintenancePlanningScreenState
                               _status,
                               {
                                 for (final status in const [
-                                  'draft', 'scheduled', 'unscheduled',
-                                  'in_progress', 'on_hold', 'pending_review',
-                                  'returned', 'completed',
+                                  'draft',
+                                  'scheduled',
+                                  'unscheduled',
+                                  'in_progress',
+                                  'on_hold',
+                                  'pending_review',
+                                  'returned',
+                                  'completed',
                                 ])
                                   status: maintenanceStatus(status, es),
                               },
@@ -595,8 +615,6 @@ class _MaintenancePlanningScreenState
                           es: es,
                           onSelect: (date) => setState(() {
                             _day = date;
-                            _view = 'today';
-                            _calendarView = 'today';
                           }),
                         ),
                     ],
@@ -613,11 +631,6 @@ class _MaintenancePlanningScreenState
                             _filter = 'unscheduled';
                           }),
                         ),
-                      ),
-                    if (view == 'month')
-                      Text(
-                        es ? 'Trabajos de este mes' : 'Work this month',
-                        style: Theme.of(context).textTheme.titleMedium,
                       ),
                     if (view == 'plans') ...[
                       Text(
@@ -668,6 +681,25 @@ class _MaintenancePlanningScreenState
                               ? 'No hay planes con este filtro. Abre Equipos y planes para configurar los servicios.'
                               : 'No plans match this view. Open Assets & plans to set up services.',
                         ),
+                    ] else if (['today', 'week', 'month'].contains(view)) ...[
+                      for (
+                        var offset = 0;
+                        offset < (view == 'week' ? 7 : 1);
+                        offset++
+                      )
+                        PlanningDayAgenda(
+                          day: view == 'week'
+                              ? DateTime(
+                                  week.year,
+                                  week.month,
+                                  week.day + offset,
+                                )
+                              : _day,
+                          jobs: displayed,
+                          es: es,
+                          onOpen: (job) => _open(job.route),
+                          onSchedule: (job) => _schedule(job, data.jobs),
+                        ),
                     ] else ...[
                       if (displayed.isEmpty)
                         _empty(
@@ -709,8 +741,8 @@ class _MaintenancePlanningScreenState
                               ),
                             Text(
                               es
-                                  ? 'Son estimaciones, no disponibilidad confirmada. Las órdenes de servicio sin hora no suman horas.'
-                                  : 'Estimates, not confirmed availability. Untimed service orders add no booked hours.',
+                                  ? 'Son estimaciones, no disponibilidad confirmada. Las órdenes de trabajo sin hora no suman horas.'
+                                  : 'Estimates, not confirmed availability. Untimed work orders add no booked hours.',
                             ),
                           ],
                         ),
@@ -766,12 +798,10 @@ class _MaintenancePlanningScreenState
     final filter = options.containsKey(_activeFilter) ? _activeFilter : 'open';
     return Padding(
       padding: const EdgeInsets.only(bottom: 8),
-      child: DropdownButtonFormField<String>(
+      child: AppDropdownField<String>(
         key: ValueKey('work-filter-$filter'),
         initialValue: filter,
         isExpanded: true,
-        isDense: false,
-        itemHeight: null,
         decoration: InputDecoration(
           labelText: es ? 'Mostrar trabajo' : 'Show work',
         ),
@@ -779,17 +809,13 @@ class _MaintenancePlanningScreenState
           for (final option in options.entries)
             DropdownMenuItem(
               value: option.key,
-              child: Padding(
-                padding: const EdgeInsets.symmetric(vertical: 8),
-                child: Text(
-                  '${option.value} · ${jobs.where((j) => j.matchesFilter(option.key, userId, DateTime.now())).length}',
-                ),
+              child: Text(
+                '${option.value} · ${jobs.where((j) => j.matchesFilter(option.key, userId, DateTime.now())).length}',
               ),
             ),
         ],
         onChanged: (value) => setState(() {
           _filter = value;
-          _view = 'list';
         }),
       ),
     );
@@ -817,13 +843,10 @@ class _MaintenancePlanningScreenState
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            if (job.providerService)
-              Text(
-                es
-                    ? 'Orden de servicio · sin hora reservada'
-                    : 'Service order · no time booked',
-                style: Theme.of(context).textTheme.labelLarge,
-              ),
+            Text(
+              (job.ownEquipment ? WorkFocus.own : WorkFocus.customer).label(es),
+              style: Theme.of(context).textTheme.labelLarge,
+            ),
             if (job.serviceDate != null)
               Text(DateFormat.yMMMd(es ? 'es' : 'en').format(job.serviceDate!)),
             if (job.start != null)
@@ -880,9 +903,7 @@ class _MaintenancePlanningScreenState
                     onPressed: () => _open(job.route),
                     child: Text(
                       job.providerService
-                          ? (es
-                                ? 'Abrir orden de servicio'
-                                : 'Open service order')
+                          ? (es ? 'Abrir orden de trabajo' : 'Open work order')
                           : job.schedulable ||
                                 job.completed ||
                                 job.status == 'pending_review'
@@ -961,6 +982,115 @@ class _MaintenancePlanningScreenState
   );
 }
 
+class PlanningDayAgenda extends StatelessWidget {
+  const PlanningDayAgenda({
+    super.key,
+    required this.day,
+    required this.jobs,
+    required this.es,
+    required this.onOpen,
+    required this.onSchedule,
+  });
+  final DateTime day;
+  final List<PlanningJob> jobs;
+  final bool es;
+  final ValueChanged<PlanningJob> onOpen, onSchedule;
+
+  @override
+  Widget build(BuildContext context) {
+    final next = DateTime(day.year, day.month, day.day + 1);
+    final entries = jobs.where((job) => job.inPeriod(day, next)).toList()
+      ..sort(comparePlanningJobs);
+    final locale = es ? 'es' : 'en';
+    final theme = Theme.of(context);
+    return Padding(
+      key: ValueKey('calendar-agenda-${day.toIso8601String()}'),
+      padding: const EdgeInsets.only(top: 16, bottom: 8),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text(
+            '${DateFormat.yMMMMEEEEd(locale).format(day)} · ${entries.length}',
+            style: theme.textTheme.titleMedium,
+          ),
+          const SizedBox(height: 8),
+          if (entries.isEmpty)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 8),
+              child: Text(
+                es
+                    ? 'No hay órdenes de trabajo para este día.'
+                    : 'No work orders scheduled for this day.',
+              ),
+            ),
+          for (final job in entries)
+            Card(
+              key: ValueKey('calendar-work-${job.id}-${day.day}'),
+              clipBehavior: Clip.antiAlias,
+              child: InkWell(
+                onTap: () => onOpen(job),
+                child: Padding(
+                  padding: const EdgeInsets.all(12),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Wrap(
+                        spacing: 12,
+                        runSpacing: 4,
+                        alignment: WrapAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            job.start == null
+                                ? (es ? 'Sin hora reservada' : 'No time booked')
+                                : job.start!.isBefore(day)
+                                ? (es
+                                      ? 'Continúa del día anterior'
+                                      : 'Continues from previous day')
+                                : '${DateFormat.Hm(locale).format(job.start!)} – ${job.end!.isBefore(next) ? DateFormat.Hm(locale).format(job.end!) : DateFormat.MMMd(locale).add_Hm().format(job.end!)}',
+                            style: theme.textTheme.labelLarge,
+                          ),
+                          Text(
+                            job.lifecycleLabel(es),
+                            style: theme.textTheme.labelLarge,
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 6),
+                      Text(job.title, style: theme.textTheme.titleMedium),
+                      Text(job.assetName),
+                      Text(
+                        '${(job.ownEquipment ? WorkFocus.own : WorkFocus.customer).label(es)} · ${job.assigneeName.isEmpty ? (es ? 'Sin asignar' : 'Unassigned') : job.assigneeName}',
+                        style: theme.textTheme.bodySmall,
+                      ),
+                      if (job.conflict)
+                        Text(
+                          es ? 'Conflicto de horario' : 'Schedule overlap',
+                          style: TextStyle(color: theme.colorScheme.error),
+                        ),
+                      Align(
+                        alignment: AlignmentDirectional.centerEnd,
+                        child: job.schedulable
+                            ? IconButton(
+                                tooltip: es ? 'Reprogramar' : 'Reschedule',
+                                onPressed: () => onSchedule(job),
+                                icon: const Icon(Icons.edit_calendar_outlined),
+                              )
+                            : const Padding(
+                                padding: EdgeInsets.only(top: 8),
+                                child: Icon(Icons.chevron_right),
+                              ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
 class PlanningMonth extends StatelessWidget {
   const PlanningMonth({
     super.key,
@@ -978,8 +1108,18 @@ class PlanningMonth extends StatelessWidget {
     final first = DateTime(day.year, day.month, 1);
     final count = DateTime(day.year, day.month + 1, 0).day;
     final offset = first.weekday - 1;
+    final today = planningDay(DateTime.now());
+    final colors = Theme.of(context).colorScheme;
     return Column(
       children: [
+        Padding(
+          padding: const EdgeInsets.symmetric(vertical: 8),
+          child: Text(
+            es
+                ? 'Elige un día para ver sus órdenes de trabajo.'
+                : 'Select a day to see its work orders.',
+          ),
+        ),
         Row(
           children: [
             for (final label
@@ -990,72 +1130,113 @@ class PlanningMonth extends StatelessWidget {
           ],
         ),
         for (var row = 0; row < ((offset + count) / 7).ceil(); row++)
-          Row(
-            children: [
-              for (var column = 0; column < 7; column++)
-                Expanded(
-                  child: Builder(
-                    builder: (context) {
-                      final number = row * 7 + column - offset + 1;
-                      if (number < 1 || number > count) {
-                        return const SizedBox(height: 64);
-                      }
-                      final date = DateTime(day.year, day.month, number);
-                      final total = jobs
-                          .where(
-                            (j) => j.inPeriod(
-                              date,
-                              DateTime(day.year, day.month, number + 1),
+          IntrinsicHeight(
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                for (var column = 0; column < 7; column++)
+                  Expanded(
+                    child: Builder(
+                      builder: (context) {
+                        final number = row * 7 + column - offset + 1;
+                        if (number < 1 || number > count) {
+                          return const SizedBox(height: 56);
+                        }
+                        final date = DateTime(day.year, day.month, number);
+                        final total = jobs
+                            .where(
+                              (j) => j.inPeriod(
+                                date,
+                                DateTime(day.year, day.month, number + 1),
+                              ),
+                            )
+                            .length;
+                        return Semantics(
+                          button: true,
+                          selected: number == day.day,
+                          label:
+                              '${DateFormat.yMMMd(es ? 'es' : 'en').format(date)}, $total ${es ? 'trabajos' : 'jobs'}',
+                          child: InkWell(
+                            key: ValueKey(
+                              'calendar-day-${date.toIso8601String()}',
                             ),
-                          )
-                          .length;
-                      return Semantics(
-                        button: true,
-                        selected: number == day.day,
-                        label:
-                            '${DateFormat.yMMMd(es ? 'es' : 'en').format(date)}, $total ${es ? 'trabajos' : 'jobs'}',
-                        child: InkWell(
-                          onTap: () => onSelect(date),
-                          child: Container(
-                            constraints: const BoxConstraints(minHeight: 64),
-                            margin: const EdgeInsets.all(2),
-                            padding: const EdgeInsets.symmetric(vertical: 4),
-                            decoration: BoxDecoration(
-                              color: number == day.day
-                                  ? Theme.of(
-                                      context,
-                                    ).colorScheme.primaryContainer
-                                  : null,
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: Column(
-                              children: [
-                                Text('$number'),
-                                if (total > 0)
+                            onTap: () => onSelect(date),
+                            child: Container(
+                              constraints: const BoxConstraints(minHeight: 56),
+                              margin: const EdgeInsets.all(2),
+                              padding: const EdgeInsets.symmetric(vertical: 4),
+                              decoration: BoxDecoration(
+                                color: number == day.day
+                                    ? colors.primary
+                                    : null,
+                                border: Border.all(
+                                  color: date == today
+                                      ? colors.primary
+                                      : colors.outlineVariant,
+                                ),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: Column(
+                                children: [
                                   Text(
-                                    '$total',
-                                    style: Theme.of(context)
-                                        .textTheme
-                                        .labelSmall
-                                        ?.copyWith(
-                                          color: number == day.day
-                                              ? Theme.of(
-                                                  context,
-                                                ).colorScheme.onPrimaryContainer
-                                              : null,
-                                        ),
+                                    '$number',
+                                    style: TextStyle(
+                                      color: number == day.day
+                                          ? colors.onPrimary
+                                          : null,
+                                      fontWeight:
+                                          date == today || number == day.day
+                                          ? FontWeight.bold
+                                          : null,
+                                    ),
                                   ),
-                              ],
+                                  if (total > 0)
+                                    Container(
+                                      margin: const EdgeInsets.only(top: 2),
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 5,
+                                        vertical: 1,
+                                      ),
+                                      decoration: BoxDecoration(
+                                        color: number == day.day
+                                            ? colors.onPrimary
+                                            : colors.secondaryContainer,
+                                        borderRadius: BorderRadius.circular(8),
+                                      ),
+                                      child: FittedBox(
+                                        fit: BoxFit.scaleDown,
+                                        child: Text(
+                                          total > 9 ? '9+' : '$total',
+                                          style: Theme.of(context)
+                                              .textTheme
+                                              .labelSmall
+                                              ?.copyWith(
+                                                color: number == day.day
+                                                    ? colors.primary
+                                                    : colors
+                                                          .onSecondaryContainer,
+                                              ),
+                                        ),
+                                      ),
+                                    ),
+                                ],
+                              ),
                             ),
                           ),
-                        ),
-                      );
-                    },
+                        );
+                      },
+                    ),
                   ),
-                ),
-            ],
+              ],
+            ),
           ),
         const SizedBox(height: 12),
+        Text(
+          es
+              ? 'Las insignias indican órdenes de trabajo.'
+              : 'Badges show the number of work orders.',
+          style: Theme.of(context).textTheme.bodySmall,
+        ),
       ],
     );
   }

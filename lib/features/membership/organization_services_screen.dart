@@ -3,6 +3,9 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:uuid/uuid.dart';
+import 'company_purpose.dart';
+import 'membership_provider.dart';
+import 'package:vortice_app/core/app_dropdown_field.dart';
 import 'package:vortice_app/core/user_feedback.dart';
 import 'package:vortice_app/features/membership/organization_work_provider.dart';
 import 'package:vortice_app/features/work_orders/work_order_provider.dart';
@@ -24,6 +27,7 @@ class _OrganizationServicesScreenState
       await action();
       ref.invalidate(organizationServiceConfigurationProvider);
       ref.invalidate(organizationServiceRequestContextProvider);
+      ref.invalidate(organizationContextProvider);
     } catch (error) {
       if (mounted) {
         ScaffoldMessenger.of(
@@ -103,23 +107,20 @@ class _OrganizationServicesScreenState
                   style: Theme.of(context).textTheme.titleMedium,
                 ),
                 const SizedBox(height: 16),
-                SwitchListTile(
-                  contentPadding: EdgeInsets.zero,
-                  value: provider,
-                  title: Text(
-                    _t(
-                      'Provide service to other companies',
-                      'Prestar servicio a otras empresas',
-                    ),
+                CompanyPurposePicker(
+                  value: CompanyPurpose.parse(
+                    settings['company_purpose'] as String?,
                   ),
+                  spanish: isSpanish(context),
                   onChanged: !owner || _busy
                       ? null
                       : (value) => _run(
                           () => ref
-                              .read(organizationWorkRepositoryProvider)
-                              .configure(value, billing),
+                              .read(membershipRepositoryProvider)
+                              .setPurpose(value),
                         ),
                 ),
+                const SizedBox(height: 16),
                 SwitchListTile(
                   contentPadding: EdgeInsets.zero,
                   value: billing,
@@ -379,7 +380,7 @@ class _OrganizationServiceRequestSheetState
                     ),
                   )
                 else ...[
-                  DropdownButtonFormField<String>(
+                  AppDropdownField<String>(
                     isExpanded: true,
                     initialValue: _provider,
                     decoration: InputDecoration(
@@ -398,7 +399,7 @@ class _OrganizationServiceRequestSheetState
                         : (value) => setState(() => _provider = value),
                   ),
                   const SizedBox(height: 16),
-                  DropdownButtonFormField<String>(
+                  AppDropdownField<String>(
                     isExpanded: true,
                     initialValue: _asset,
                     decoration: InputDecoration(

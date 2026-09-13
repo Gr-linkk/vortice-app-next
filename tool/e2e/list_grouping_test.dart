@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:vortice_app/core/list_group_heading.dart';
 import 'package:vortice_app/features/assets/asset_type_field.dart';
 import 'package:vortice_app/features/checklists/checklist_provider.dart';
+import 'package:vortice_app/features/checklist_builder/checklist_builder_repository.dart';
 import 'connected_harness.dart';
 
 void main() {
@@ -56,11 +57,22 @@ void main() {
             );
             await h.reveal(find.text('Demo Ellicott 460SL'));
             await h.screenshot('library-ellicott-group');
+            final library = await h.container.read(
+              checklistLibraryProvider.future,
+            );
+            final expected = (library['procedures'] as List)
+                .where(
+                  (row) =>
+                      (row['draft'] as Map)['scope_asset_id'] ==
+                      'df8fd7a1-fc9f-5447-a6fd-c83a181df18c',
+                )
+                .length;
+            expect(expected, greaterThan(0));
             expect(
               tester
                   .widget<ListGroupHeading>(find.byType(ListGroupHeading).first)
                   .count,
-              5,
+              expected,
             );
           },
         );
