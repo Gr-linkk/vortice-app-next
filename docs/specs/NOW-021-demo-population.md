@@ -213,3 +213,24 @@ and `Record engine hours` first; it failed before the fix. This correction chang
 presentation order, not the authored instructions or submission requirements.
 Physical phone acceptance remains separate. Reopen the app online to retrieve
 the new data; install Build 35 for the checklist-order correction.
+
+Final connected verification passed all five role stages in
+`outputs/demo-equipment-refresh-wp3tQzoN/`: owner, supervisor and mechanic can
+read the five checklists and configured plans; operator can read the 49-step
+pre-op checklist and pending assignment; the service-company account cannot
+read the private dredge, checklist library or document. The owner can retrieve
+the copied ladder source page. Home and checklist screenshots were visually
+reviewed, including the corrected truck artwork and first checklist step.
+Focused Dart analysis found no issues. The prior 728-test full suite was not
+rerun for this one-line ordering correction; the new connected assertion failed
+before the correction (`9wMrl5ag`) and passed afterward (`wp3tQzoN`).
+
+Build 35 source is `777eee5cc38f437cdf48b622ff4e120080b7ce7e`. Guarded Android
+build and package, version, architecture, signing, Next backend/Firebase and
+bundled-artwork inspection passed. SHA-256:
+`ae56c23129e572a864044105c4efeb08bbb9104b469e9a70726061e994320bb3`.
+`INSTALL-Vortice-Next-Build-35.apk` is checksum-verified in both S24 and Windows
+Downloads. Receipts: `outputs/build35-build-verified.json`,
+`outputs/build35-phone-delivery.json`, and
+`outputs/build35-computer-delivery.json`. The APK was not installed and the
+phone UI was not operated during this follow-up.

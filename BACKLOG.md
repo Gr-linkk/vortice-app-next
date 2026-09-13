@@ -26,6 +26,9 @@ the requested **Hwy truck** model label. A separate **Demo Ellicott 460SL** is
 available in Next Demo Fleet with its components, five checklists, configured
 maintenance plans, parts requirements and manual pages. The original Ellicott
 graph remains unchanged. See the follow-up in `docs/specs/NOW-021-demo-population.md`.
+The connected check also exposed reversed checklist ordering; its one-line
+correction is in Build 35 (`1.16.6+35`), checksum-delivered to S24 and Windows
+Downloads. Installation and phone acceptance remain pending.
 
 ## Prior delivery and acceptance references
 
