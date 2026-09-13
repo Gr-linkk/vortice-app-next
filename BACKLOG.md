@@ -7,6 +7,20 @@ without creating a new backlog item.
 
 ## Now
 
+### NEXT-006 — Next round: make routine work obvious
+
+Garrett selected this as the next round after repeated usability feedback did
+not carry through to subsequent builds. Apply the standing usability completion
+requirement in AGENTS.md. Follow an ordinary job from equipment/problem through
+work, evidence and completion; fix inconsistent names, disconnected job context
+and unclear next actions with small changes. Begin with the unexplained
+"Service order" wording inside Work orders. No new features or major redesign.
+
+Scope and observable completion checks:
+`docs/specs/NEXT-006-routine-work-usability.md`. This round is queued; recording
+the requirement does not mean the app has passed it. Existing NEXT-002 external
+and physical acceptance remains open.
+
 ### NEXT-002 — Human-centered workflow consolidation
 
 Garrett authorized autonomous execution, review, commits/pushes and necessary

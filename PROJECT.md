@@ -14,6 +14,13 @@ parts, and invoices.
 
 ## Current direction
 
+NEXT-006 is the next implementation round: make routine work obvious through
+small changes to existing names, job context and next actions. Its scope is in
+`docs/specs/NEXT-006-routine-work-usability.md` and priority is in `BACKLOG.md`.
+The usability completion requirement in `AGENTS.md` applies to every future
+product change and build delivery. New features and major redesigns are deferred
+during this round. Existing NEXT-002 external/physical acceptance remains open.
+
 NEXT-003's five follow-ups are complete and delivered as internal Build 33:
 account selection, a complete native S24 demo job through invoicing, provider
 offline evidence, shared execution rules and a populated Work hub performance

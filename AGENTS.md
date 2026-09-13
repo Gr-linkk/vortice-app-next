@@ -39,6 +39,26 @@ was separated from `https://github.com/Gr-linkk/vortice-app` at commit
 
 ## Development
 
+### Usability completion requirement
+
+- Make routine work obvious. Apply this to every product change and release,
+  not only to a dedicated usability pass. Use NEXT-006 in BACKLOG.md for the
+  current cleanup scope.
+- Use consistent user-facing names across entry points, lists, details and
+  actions. Explain distinctions only where they affect a user's decision;
+  database or billing terminology must not become unexplained navigation.
+- Keep related checklists, findings, photos, parts and labour accessible from
+  the equipment or job. Make the next action and its result clear, including
+  what is still required to finish. Keep secondary actions secondary.
+- Before delivering a build, walk through the affected ordinary workflow from
+  its normal entry as a first-time user. Check real rendered screens, selection
+  and completion at phone size and with large text. Record the path, findings,
+  fixes and remaining limitations in the owning scope document. Passing code
+  tests alone does not satisfy this requirement; distinguish rendered checks
+  from physical phone acceptance.
+- In the NEXT-006 round, prioritize small fixes to the existing workflow and
+  preserve the Field Notes design. Defer new features and major redesigns.
+
 - Continue an existing authorized task on its verified branch. For independent
   new work, use a short-lived `codex/` branch from the agreed current base; do not
   reset or switch an active checkout merely to satisfy a startup ritual.
