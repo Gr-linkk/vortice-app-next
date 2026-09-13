@@ -7,33 +7,6 @@ without creating a new backlog item.
 
 ## Now
 
-### NEXT-006 — Implemented: company purpose, work focus and calendar clarity
-
-Garrett selected this as the next round after repeated usability feedback did
-not carry through to subsequent builds. Apply the standing usability completion
-requirement in AGENTS.md. Follow an ordinary job from equipment/problem through
-work, evidence and completion; fix inconsistent names, disconnected job context
-and unclear next actions with small changes.
-
-September 13 direction: begin with new-owner onboarding asking Fleet owner,
-Service provider, or Both. Every choice retains full own-equipment maintenance;
-service providers additionally perform work for outside customers. Use one
-Company Owner role and "Work order" throughout; Garrett rejected "Service
-order" as a user-facing job name. Make own-equipment versus customer work easy
-to prioritize in the same workspace. Decision 0018 records the accepted model;
-the scope document records the implemented view defaults and acceptance evidence.
-This selected onboarding/capability refinement comes before the remaining
-routine-work cleanup. Other new features and major redesigns remain deferred.
-
-Scope and observable completion checks:
-`docs/specs/NEXT-006-routine-work-usability.md`. Implementation includes the
-requested calendar follow-up: visible day counts, selected-day agenda, grouped
-weeks, direct job opening and calendar-preserving filters. Guarded verification
-passes analysis and 738 Flutter tests; both local and hosted SQL pass 47 suites.
-Connected rendered workflow and calendar evidence is recorded in the scope.
-Build 37 packaging is in progress. Existing NEXT-002 external and physical
-acceptance remains open.
-
 ### NEXT-002 — Human-centered workflow consolidation
 
 Garrett authorized autonomous execution, review, commits/pushes and necessary
@@ -58,6 +31,33 @@ correction is in Build 35 (`1.16.6+35`), checksum-delivered to S24 and Windows
 Downloads. Installation and phone acceptance remain pending.
 
 ## Prior delivery and acceptance references
+
+### NEXT-006 — Completed: company purpose, work focus and calendar clarity
+
+Garrett selected this as the next round after repeated usability feedback did
+not carry through to subsequent builds. Apply the standing usability completion
+requirement in AGENTS.md. Follow an ordinary job from equipment/problem through
+work, evidence and completion; fix inconsistent names, disconnected job context
+and unclear next actions with small changes.
+
+September 13 direction: begin with new-owner onboarding asking Fleet owner,
+Service provider, or Both. Every choice retains full own-equipment maintenance;
+service providers additionally perform work for outside customers. Use one
+Company Owner role and "Work order" throughout; Garrett rejected "Service
+order" as a user-facing job name. Make own-equipment versus customer work easy
+to prioritize in the same workspace. Decision 0018 records the accepted model;
+the scope document records the implemented view defaults and acceptance evidence.
+This selected onboarding/capability refinement comes before the remaining
+routine-work cleanup. Other new features and major redesigns remain deferred.
+
+Scope and observable completion checks:
+`docs/specs/NEXT-006-routine-work-usability.md`. Implementation includes the
+requested calendar follow-up: visible day counts, selected-day agenda, grouped
+weeks, direct job opening and calendar-preserving filters. Guarded verification
+passes analysis and 738 Flutter tests; both local and hosted SQL pass 47 suites.
+Connected rendered workflow and calendar evidence is recorded in the scope.
+Build 37 (`1.17.0+37`) is checksum-verified in S24 and Windows Downloads.
+Installation and existing NEXT-002 external/physical acceptance remain open.
 
 ### NEXT-005 — Completed: grouped equipment and checklist choices
 

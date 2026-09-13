@@ -25,8 +25,9 @@ The usability completion requirement in `AGENTS.md` applies to every future
 product change and build delivery. Apart from the selected onboarding/capability
 refinement, new features and major redesigns are deferred
 during this round. The calendar follow-up adds selected-day agendas, work counts,
-grouped weeks and direct job opening. Build 37 packaging is in progress after
-clean analysis and 738 tests. Existing NEXT-002 external/physical acceptance
+grouped weeks and direct job opening. Build 37 is checksum-delivered to S24 and
+Windows Downloads after clean analysis and 738 tests. Installation is pending.
+Existing NEXT-002 external/physical acceptance
 remains open.
 
 NEXT-003's five follow-ups are complete and delivered as internal Build 33:

@@ -1,7 +1,8 @@
 # NEXT-006 — Make routine work obvious
 
-Status: September 13 implementation and computer acceptance complete; Build 37
-packaging/delivery in progress. Physical phone acceptance remains separate.
+Status: September 13 implementation and computer acceptance complete. Build 37
+is checksum-verified in S24 and Windows Downloads. Installation and physical
+phone acceptance remain separate.
 
 ## Outcome
 
@@ -177,6 +178,39 @@ The connected scroll helper now handles variable-height lazy lists after text
 scale changes and holds the actual scroll state while finding a control.
 Screenshot capture settles floating-label animations before saving an image.
 These test corrections preserve hit-test and error assertions.
+
+Final connected onboarding/work acceptance completes all seven stages and exits
+successfully in `outputs/next006-e2e-kBrEJL96/`. Account transitions explicitly
+await the current work-focus and planning data before selecting a filter. The
+harness now signs out, removes consumers while retaining the provider scope,
+and pumps the scheduled provider cleanup before disposing the container. This
+resolves intermittent teardown failures and a wait on a Flutter callback whose
+scope had already been removed; assertions and error reporting remain enabled.
+
+All temporary fixture data is removed: four test identities, three isolated
+companies, 38 equipment records and their test jobs/reports. Exact cleanup
+receipts verify unchanged unrelated counts (including 215 existing work orders,
+14 profiles and four companies): `outputs/next006-cleanup/`. The usual test
+account picker retains 11 choices. This was fixture cleanup, not an account or
+demo reset.
+
+Build 37 (`1.17.0+37`) is produced from source commit
+`827c09ff9b54d944b01c393e94d584c7924921a0`. APK inspection verifies
+`com.example.vortice_app_next`, ARM64, the established signing certificate,
+Next backend and Firebase configuration, notification service/recovery link,
+bundled artwork and the new company-purpose, work-focus and customer-work code.
+Evidence: `outputs/build37-build.log`, `outputs/build37-build-verified.json`.
+The Kotlin-plugin compatibility notice concerns a future Flutter upgrade; the
+current guarded build completed successfully without changing dependencies.
+
+`INSTALL-Vortice-Next-Build-37.apk` (139,068,973 bytes) is checksum-verified in
+`C:\Users\Garrett\Downloads` and S24 `/storage/emulated/0/Download`.
+SHA-256: `b2e94c74b7e4fed57425a0795f3d4391cd7a5ab951e1571243875023fb474f89`.
+The S24 transfer resumed its partial file after a stalled connection and verified
+the complete file before renaming it. Receipts:
+`outputs/build37-computer-delivery.json`, `outputs/build37-phone-delivery.json`.
+The APK has not been installed. Physical installation and normal phone use remain
+Garrett's next acceptance step; existing NEXT-002 acceptance is unchanged.
 
 Limits: connected tests use a native Flutter test host and temporary account
 storage, not the Android installation. Existing unit/SQL suites cover draft,
