@@ -20,6 +20,7 @@ class MaintenanceCreateScreen extends ConsumerStatefulWidget {
     this.parentJobId,
     this.faultId,
     this.planning = false,
+    this.selectedDay,
     this.checklistTemplateId,
     this.componentId,
     this.initialTitle,
@@ -27,6 +28,7 @@ class MaintenanceCreateScreen extends ConsumerStatefulWidget {
   });
   final String? assetId, planId, parentJobId, faultId;
   final bool planning;
+  final DateTime? selectedDay;
   final String? checklistTemplateId,
       componentId,
       initialTitle,
@@ -146,7 +148,7 @@ class _MaintenanceCreateScreenState
       refreshMaintenance(ref);
       context.go(
         widget.planning
-            ? '/maintenance/planning?jobId=$id'
+            ? '/maintenance/planning?jobId=$id${widget.selectedDay == null ? '' : '&day=${widget.selectedDay!.toIso8601String().split('T').first}'}'
             : '/maintenance/jobs/$id',
       );
     } catch (error) {

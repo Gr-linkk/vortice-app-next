@@ -75,6 +75,15 @@ and no email. It does not prove app deep-link handling or inbox delivery.
 
 ## Exact cleanup
 
+`fleet_import_calendar_test.dart` exercises Assets import through column mapping,
+server preview, atomic save, service-baseline persistence and calendar creation /
+booking / rescheduling. It uses the prepared modern fleet and service-owner demos
+and writes exact `NEXT-007-fixture-*.json` cleanup manifests.
+`fleet_import_xlsx_test.dart` reads real XLSX bytes with a test-selected file path,
+then checks worksheet/header selection and existing-fleet duplicate rejection.
+It never confirms a write. Both use the configuration and run-directory setup
+above; system-picker interaction on a physical Android device remains separate.
+
 After a failed file, inspect its evidence and clean up **before retrying**: a
 synthetic labour timer can otherwise affect the next run. Keep the authenticated
 Supabase CLI on PATH, inspect the selected run's manifests, then execute:

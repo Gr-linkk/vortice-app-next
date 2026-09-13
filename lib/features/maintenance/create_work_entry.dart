@@ -16,12 +16,15 @@ Future<void> openNewWorkOrder(
   WidgetRef ref, {
   String? assetId,
   bool planning = false,
+  DateTime? selectedDay,
 }) async {
   final ownRoute = Uri(
     path: '/maintenance/new',
     queryParameters: {
       if (assetId != null) 'assetId': assetId,
       if (planning) 'planning': 'true',
+      if (selectedDay != null)
+        'day': selectedDay.toIso8601String().split('T').first,
     },
   ).toString();
   final profile = ref.read(profileProvider).valueOrNull;
@@ -88,7 +91,7 @@ Future<void> openNewWorkOrder(
       context: context,
       isScrollControlled: true,
       useSafeArea: true,
-      builder: (_) => const CustomerWorkSheet(),
+      builder: (_) => CustomerWorkSheet(selectedDay: selectedDay),
     );
   } else {
     await context.push(ownRoute);
@@ -104,7 +107,8 @@ final customerWorkCreationProvider =
     });
 
 class CustomerWorkSheet extends ConsumerStatefulWidget {
-  const CustomerWorkSheet({super.key});
+  const CustomerWorkSheet({super.key, this.selectedDay});
+  final DateTime? selectedDay;
   @override
   ConsumerState<CustomerWorkSheet> createState() => _CustomerWorkSheetState();
 }
@@ -135,13 +139,20 @@ class _CustomerWorkSheetState extends ConsumerState<CustomerWorkSheet> {
             equipment['asset_id'] as String,
             _title.text,
             _note.text,
+            serviceDate: widget.selectedDay,
           );
       ref.invalidate(workOrdersProvider);
       ref.invalidate(maintenancePlanningProvider);
       if (!mounted) return;
       final router = GoRouter.of(context);
       Navigator.pop(context);
-      router.push('/work-orders/$id');
+      if (widget.selectedDay != null) {
+        router.go(
+          '/maintenance/planning?day=${widget.selectedDay!.toIso8601String().split('T').first}',
+        );
+      } else {
+        router.push('/work-orders/$id');
+      }
     } catch (error) {
       if (mounted) setState(() => _error = friendlyError(context, error));
     } finally {

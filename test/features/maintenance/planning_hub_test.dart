@@ -17,6 +17,7 @@ import 'package:vortice_app/models/work_order_assignment.dart';
 import '../fleet/fleet_test_support.dart'
     show captureFleet, loadFleetScreenshotFonts;
 import 'maintenance_screen_test.dart' show pumpMaintenance, FixtureMaintenance;
+import 'planning_test.dart' show chooseView, applyFilters;
 import 'planning_test.dart'
     show
         booking,
@@ -26,16 +27,22 @@ import 'planning_test.dart'
         reveal;
 
 Future<void> chooseFilter(WidgetTester tester, String label) async {
+  await tester.tap(find.byTooltip('Search & filters'));
+  await tester.pumpAndSettle();
   final picker = find.byWidgetPredicate(
     (w) =>
-        w is AppDropdownField<String> &&
-        w.key.toString().contains('work-filter-'),
+        w is AppDropdownField<String> && w.key.toString().contains('filter-'),
   );
-  await reveal(tester, picker);
+  await tester.scrollUntilVisible(
+    picker,
+    250,
+    scrollable: find.byType(Scrollable).last,
+  );
   await tester.tap(picker);
   await tester.pumpAndSettle();
-  await tester.tap(find.textContaining('$label ·').last);
+  await tester.tap(find.text(label).last);
   await tester.pumpAndSettle();
+  await applyFilters(tester);
 }
 
 void main() {
@@ -51,7 +58,10 @@ void main() {
       );
       await pumpMaintenance(
         tester,
-        const MaintenancePlanningScreen(initialFilter: 'open'),
+        const MaintenancePlanningScreen(
+          initialFilter: 'open',
+          initialView: 'list',
+        ),
         FixtureMaintenance(),
         overrides: [
           planningRepositoryProvider.overrideWithValue(fixture),
@@ -198,7 +208,10 @@ void main() {
   ) async {
     await showPlanning(
       tester,
-      const MaintenancePlanningScreen(initialFilter: 'open'),
+      const MaintenancePlanningScreen(
+        initialFilter: 'open',
+        initialView: 'list',
+      ),
       FixturePlanning(
         PlanningData(
           jobs: [
@@ -235,8 +248,7 @@ void main() {
           ),
         ),
       );
-      await reveal(tester, find.widgetWithText(ChoiceChip, 'Month'));
-      await tester.tap(find.widgetWithText(ChoiceChip, 'Month'));
+      expect(find.byType(PlanningMonth), findsOneWidget);
       await tester.pumpAndSettle();
       final date = DateTime(later.year, later.month, later.day);
       final day = find.byKey(
@@ -245,12 +257,7 @@ void main() {
       await reveal(tester, day);
       await tester.tap(day);
       await tester.pumpAndSettle();
-      expect(
-        tester
-            .widget<ChoiceChip>(find.widgetWithText(ChoiceChip, 'Month'))
-            .selected,
-        isTrue,
-      );
+      expect(find.byType(PlanningMonth), findsOneWidget);
       await reveal(tester, find.text('Service later in month'));
       expect(find.text('Service later in month'), findsOneWidget);
       expect(find.text('Service not yet booked'), findsNothing);
@@ -271,7 +278,10 @@ void main() {
     final now = DateTime.now();
     await showPlanning(
       tester,
-      const MaintenancePlanningScreen(initialFilter: 'mine'),
+      const MaintenancePlanningScreen(
+        initialFilter: 'mine',
+        initialView: 'list',
+      ),
       FixturePlanning(
         PlanningData(
           jobs: [
@@ -289,8 +299,7 @@ void main() {
         ),
       ),
     );
-    await reveal(tester, find.widgetWithText(ChoiceChip, 'Day'));
-    await tester.tap(find.widgetWithText(ChoiceChip, 'Day'));
+    await chooseView(tester, 'Day');
     await tester.pumpAndSettle();
     await tester.tap(find.byTooltip('Next'));
     await tester.pumpAndSettle();
@@ -315,14 +324,17 @@ void main() {
     });
     await showPlanning(
       tester,
-      const MaintenancePlanningScreen(initialFilter: 'open'),
+      const MaintenancePlanningScreen(
+        initialFilter: 'open',
+        initialView: 'list',
+      ),
       FixturePlanning(PlanningData(jobs: [pump, booking('repair')], plans: [])),
     );
     await tester.tap(find.byTooltip('Search & filters'));
     await tester.pumpAndSettle();
-    await tester.enterText(find.byType(TextFormField).first, 'port pump');
+    await tester.enterText(find.byType(TextField).first, 'port pump');
     await tester.pumpAndSettle();
-    await tester.tap(find.byTooltip('Search & filters'));
+    await applyFilters(tester);
     await tester.pumpAndSettle();
     await reveal(tester, find.text('Service pump'));
     expect(find.text('Service repair'), findsNothing);
@@ -333,7 +345,10 @@ void main() {
   ) async {
     await pumpMaintenance(
       tester,
-      const MaintenancePlanningScreen(initialFilter: 'completed'),
+      const MaintenancePlanningScreen(
+        initialFilter: 'completed',
+        initialView: 'list',
+      ),
       FixtureMaintenance(),
       role: UserRole.owner,
       overrides: [
@@ -383,7 +398,10 @@ void main() {
       var detailReads = 0;
       await pumpMaintenance(
         tester,
-        const MaintenancePlanningScreen(initialFilter: 'mine'),
+        const MaintenancePlanningScreen(
+          initialFilter: 'mine',
+          initialView: 'list',
+        ),
         FixtureMaintenance(),
         role: UserRole.employee,
         overrides: [
@@ -472,7 +490,10 @@ void main() {
     var detailReads = 0;
     await pumpMaintenance(
       tester,
-      const MaintenancePlanningScreen(initialFilter: 'mine'),
+      const MaintenancePlanningScreen(
+        initialFilter: 'mine',
+        initialView: 'list',
+      ),
       FixtureMaintenance(),
       role: UserRole.employee,
       overrides: [
@@ -543,7 +564,10 @@ void main() {
       final now = DateTime.now();
       await showPlanning(
         tester,
-        const MaintenancePlanningScreen(initialFilter: 'review'),
+        const MaintenancePlanningScreen(
+          initialFilter: 'review',
+          initialView: 'list',
+        ),
         FixturePlanning(
           PlanningData(
             jobs: [

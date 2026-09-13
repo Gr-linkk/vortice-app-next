@@ -32,6 +32,18 @@ Downloads. Installation and phone acceptance remain pending.
 
 ## Prior delivery and acceptance references
 
+### NEXT-007 — Completed: calendar workspace and reviewed fleet import
+
+September 13: implemented the approved Month workspace, in-context day agendas,
+selected-day creation/scheduling and on-demand filters. Reviewed fleet import
+supports XLSX/CSV/TSV/TXT/pasted tables, column/type mapping, grouped components,
+opening readings, service baselines, published checklists and safe batch retries.
+Internal Build 38 (`1.18.0+38`) passed 748 tests, clean analysis, 48 database
+contracts and connected native import/calendar journeys. Next migrations are
+active. APK checksum, screenshots, exact fixture cleanup and integration scope:
+`docs/specs/NEXT-007-calendar-and-fleet-import.md`. Physical phone/system-picker
+acceptance and installation remain unclaimed.
+
 ### NEXT-006 — Completed: company purpose, work focus and calendar clarity
 
 Garrett selected this as the next round after repeated usability feedback did

@@ -14,9 +14,15 @@ import 'planning_repository.dart';
 import 'package:vortice_app/sync/online_action_gate.dart';
 
 class ScheduleJobScreen extends ConsumerStatefulWidget {
-  const ScheduleJobScreen({super.key, required this.job, required this.jobs});
+  const ScheduleJobScreen({
+    super.key,
+    required this.job,
+    required this.jobs,
+    this.initialDay,
+  });
   final PlanningJob job;
   final List<PlanningJob> jobs;
+  final DateTime? initialDay;
   @override
   ConsumerState<ScheduleJobScreen> createState() => _ScheduleJobScreenState();
 }
@@ -36,7 +42,10 @@ class _ScheduleJobScreenState extends ConsumerState<ScheduleJobScreen> {
   void initState() {
     super.initState();
     _job = widget.job;
-    _start = widget.job.start;
+    final day = widget.initialDay;
+    _start =
+        widget.job.start ??
+        (day == null ? null : DateTime(day.year, day.month, day.day, 8));
     _due = DateTime.tryParse(widget.job.dueDate ?? '');
     _assignee = widget.job.assignee;
     _priority = widget.job.priority;
@@ -90,7 +99,7 @@ class _ScheduleJobScreenState extends ConsumerState<ScheduleJobScreen> {
 
   Future<void> _save() async {
     if (!_form.currentState!.validate()) return;
-    if(!await requireOnlineAction(context,ref) || !mounted) return;
+    if (!await requireOnlineAction(context, ref) || !mounted) return;
     setState(() {
       _busy = true;
       _error = null;

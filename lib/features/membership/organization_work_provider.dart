@@ -53,8 +53,9 @@ class OrganizationWorkRepository {
     String relationship,
     String asset,
     String title,
-    String note,
-  ) async =>
+    String note, {
+    DateTime? serviceDate,
+  }) async =>
       await client.rpc(
             'create_customer_work',
             params: {
@@ -63,6 +64,11 @@ class OrganizationWorkRepository {
               'p_asset': asset,
               'p_title': title.trim(),
               'p_note': note.trim(),
+              if (serviceDate != null)
+                'p_service_date': serviceDate
+                    .toIso8601String()
+                    .split('T')
+                    .first,
             },
           )
           as String;

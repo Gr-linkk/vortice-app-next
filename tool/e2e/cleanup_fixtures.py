@@ -34,11 +34,11 @@ verify_repository(connection_root)
 assets={}
 stocks={}
 builder_markers=set()
-for pattern in ['NOW-010-fixture-*.json','NOW-010-custody-live-*.json','NOW-011-fixture-*.json','NOW-012-fixture-*.json','NOW-013-fixture-*.json','NOW-014-fixture-*.json','NOW-015-fixture-*.json','NOW-022-fixture-*.json']:
+for pattern in ['NEXT-007-fixture-*.json','NOW-010-fixture-*.json','NOW-010-custody-live-*.json','NOW-011-fixture-*.json','NOW-012-fixture-*.json','NOW-013-fixture-*.json','NOW-014-fixture-*.json','NOW-015-fixture-*.json','NOW-022-fixture-*.json']:
     for file in manifest_dir.glob(pattern):
         assert file.resolve().parent==manifest_dir, 'Manifest must belong to the selected run directory'
         item=json.loads(file.read_text(encoding='utf-8-sig'))
-        assert item['marker'].startswith(('E2E-010','E2E-011','E2E-012','E2E-013','E2E-014','E2E-015','E2E-022'))
+        assert item['marker'].startswith(('E2E-007','E2E-010','E2E-011','E2E-012','E2E-013','E2E-014','E2E-015','E2E-022'))
         for stock in item.get('stocks',[]):
             assert stock['description'].startswith(item['marker']+' ')
             stocks[str(uuid.UUID(stock['id']))]=stock['description']
@@ -162,11 +162,16 @@ alter table public.invoices disable trigger invoice_closeout;
 delete from public.invoices where work_order_id in ({jobs});
 alter table public.invoices enable trigger invoice_closeout;
 delete from public.closeout_operations where
+ (kind='asset_create' and result in ({ids}))
+ or
  (kind='meter' and payload->>'asset' in (select id::text from public.assets where id in ({ids})))
  or (kind='provider_save' and result in ({jobs}))
  or (kind='request_submission' and result in (select id from public.service_requests where asset_id in ({ids})))
  or (kind='report_submission' and result in (select id from public.service_reports where work_order_id in ({jobs})));
 delete from public.service_requests where asset_id in ({ids});
+delete from public.fleet_import_batches b where
+ exists(select 1 from jsonb_array_elements(b.result->'assets') a where (a->>'id')::uuid in ({ids}))
+ and not exists(select 1 from jsonb_array_elements(b.result->'assets') a where (a->>'id')::uuid not in ({ids}));
 delete from public.hour_logs where asset_id in ({ids}) or work_order_id in ({jobs});
 delete from public.maintenance_requests where asset_id in ({ids});
 select set_config('app.parts_stock_write','on',true);

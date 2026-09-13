@@ -45,9 +45,14 @@ select pg_temp.expect_error($q$select public.create_customer_work(gen_random_uui
 select public.create_customer_work('b0190000-0000-4000-8000-000000000080',(select value::uuid from fixture where key='relationship'),'b0190000-0000-4000-8000-000000000021','Follow up repair','Preserve context');
 select public.create_customer_work('b0190000-0000-4000-8000-000000000080',(select value::uuid from fixture where key='relationship'),'b0190000-0000-4000-8000-000000000021','Follow up repair','Preserve context');
 select pg_temp.assert_true((select count(*)=2 from public.organization_work_orders()),'follow up and request each appear once');
+select public.create_customer_work('b0190000-0000-4000-8000-000000000081',(select value::uuid from fixture where key='relationship'),'b0190000-0000-4000-8000-000000000021','Calendar repair','Selected day','2026-09-20');
+select public.create_customer_work('b0190000-0000-4000-8000-000000000081',(select value::uuid from fixture where key='relationship'),'b0190000-0000-4000-8000-000000000021','Calendar repair','Selected day','2026-09-20');
+select pg_temp.assert_true((select scheduled_date='2026-09-20'::date from public.work_orders where id='b0190000-0000-4000-8000-000000000081'),'calendar creation preserves selected service day');
+select pg_temp.expect_error($q$select public.create_customer_work('b0190000-0000-4000-8000-000000000081',(select value::uuid from fixture where key='relationship'),'b0190000-0000-4000-8000-000000000021','Calendar repair','Selected day','2026-09-21')$q$,'Retry input differs');
 select pg_temp.expect_error($q$select public.create_customer_work('b0190000-0000-4000-8000-000000000080',(select value::uuid from fixture where key='relationship'),'b0190000-0000-4000-8000-000000000021','Changed repair','')$q$,'Retry input differs');
 select set_config('request.jwt.claim.sub','b0190000-0000-4000-8000-000000000003',true);
 select pg_temp.assert_true(jsonb_array_length(public.customer_work_creation_context()->'equipment')=0,'mechanic cannot create customer work');
+select pg_temp.expect_error($q$select public.create_customer_work(gen_random_uuid(),(select value::uuid from fixture where key='relationship'),'b0190000-0000-4000-8000-000000000021','Unauthorized repair','','2026-09-20')$q$,'not available');
 select pg_temp.expect_error($q$select public.create_customer_work(gen_random_uuid(),(select value::uuid from fixture where key='relationship'),'b0190000-0000-4000-8000-000000000021','Unauthorized repair','')$q$,'not available');
 select set_config('request.jwt.claim.sub','b0190000-0000-4000-8000-000000000002',true);
 select pg_temp.assert_true(not(public.organization_work_order_context('b0190000-0000-4000-8000-000000000080')->'work_order' ? 'notes_internal'),'customer sees follow up without private notes');

@@ -67,7 +67,22 @@ class _AssetListScreenState extends ConsumerState<AssetListScreen> {
         (canAdd || profile?.role == UserRole.employee);
 
     return Scaffold(
-      appBar: AppBar(title: Text(l10n.assetsTitle)),
+      appBar: AppBar(
+        title: Text(l10n.assetsTitle),
+        actions: [
+          if (canAdd)
+            PopupMenuButton<String>(
+              tooltip: es ? 'Más acciones' : 'More actions',
+              onSelected: (_) => context.push('/assets/import'),
+              itemBuilder: (_) => [
+                PopupMenuItem(
+                  value: 'import',
+                  child: Text(es ? 'Importar equipos' : 'Import equipment'),
+                ),
+              ],
+            ),
+        ],
+      ),
       body: Column(
         children: [
           Padding(

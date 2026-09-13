@@ -13,6 +13,7 @@ import 'package:vortice_app/features/maintenance/maintenance_create_screen.dart'
 import 'package:vortice_app/features/maintenance/maintenance_job_screen.dart';
 import 'package:vortice_app/features/maintenance/maintenance_asset_screen.dart';
 import 'package:flutter/material.dart';
+import 'package:vortice_app/features/assets/import/fleet_import_screen.dart';
 import 'package:vortice_app/features/checklist_builder/checklist_library_screen.dart';
 import 'package:vortice_app/features/orgs/org_checklist_assignments_screen.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -208,8 +209,13 @@ final routerProvider = Provider<GoRouter>((ref) {
             builder: (_, __) => const AddAssetScreen(),
           ),
           GoRoute(
+            path: '/assets/import',
+            builder: (_, __) => const FleetImportScreen(),
+          ),
+          GoRoute(
             path: '/assets/:id/engines',
-            builder: (_, state) => EngineScreen(assetId: state.pathParameters['id']!),
+            builder: (_, state) =>
+                EngineScreen(assetId: state.pathParameters['id']!),
           ),
           GoRoute(
             path: '/assets/:id',
@@ -310,6 +316,9 @@ final routerProvider = Provider<GoRouter>((ref) {
               assetId: state.uri.queryParameters['assetId'],
               jobId: state.uri.queryParameters['jobId'],
               initialFilter: state.uri.queryParameters['filter'],
+              initialDay: DateTime.tryParse(
+                state.uri.queryParameters['day'] ?? '',
+              ),
             ),
           ),
           GoRoute(
@@ -318,6 +327,9 @@ final routerProvider = Provider<GoRouter>((ref) {
               assetId: state.uri.queryParameters['assetId'],
               planId: state.uri.queryParameters['planId'],
               planning: state.uri.queryParameters['planning'] == 'true',
+              selectedDay: DateTime.tryParse(
+                state.uri.queryParameters['day'] ?? '',
+              ),
               parentJobId: state.uri.queryParameters['parentJobId'],
               faultId: state.uri.queryParameters['faultId'],
             ),

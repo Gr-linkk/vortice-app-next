@@ -170,6 +170,41 @@ Future<void> reveal(WidgetTester tester, Finder finder) async {
   await tester.pumpAndSettle();
 }
 
+Future<void> chooseView(WidgetTester tester, String label) async {
+  await reveal(tester, find.byKey(const ValueKey('planning-collection')));
+  await tester.tap(find.byKey(const ValueKey('planning-collection')));
+  await tester.pumpAndSettle();
+  await tester.tap(find.text(label).last);
+  await tester.pumpAndSettle();
+}
+
+Future<void> showUnscheduled(WidgetTester tester, {bool es = false}) async {
+  final chip = find.byWidgetPredicate(
+    (w) =>
+        w is ActionChip &&
+        w.label is Text &&
+        ((w.label as Text).data ?? '').startsWith(
+          es ? 'Sin programar' : 'Unscheduled',
+        ),
+  );
+  await reveal(tester, chip);
+  await tester.tap(chip);
+  await tester.pumpAndSettle();
+}
+
+Future<void> applyFilters(WidgetTester tester, {bool es = false}) async {
+  final button = find.text(
+    es ? 'Mostrar órdenes de trabajo' : 'Show work orders',
+  );
+  await tester.scrollUntilVisible(
+    button,
+    250,
+    scrollable: find.byType(Scrollable).last,
+  );
+  await tester.tap(button);
+  await tester.pumpAndSettle();
+}
+
 void main() {
   setUp(() => SharedPreferences.setMockInitialValues({}));
   setUpAll(loadFleetScreenshotFonts);
@@ -296,10 +331,7 @@ void main() {
     );
     await showPlanning(tester, const MaintenancePlanningScreen(), fixture);
     expect(find.text('Work orders').first, findsOneWidget);
-    await tester.tap(find.byKey(const ValueKey('planning-collection')));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Unscheduled').last);
-    await tester.pumpAndSettle();
+    await showUnscheduled(tester);
     await reveal(tester, find.text('Schedule'));
     await tester.tap(find.text('Schedule'));
     await tester.pumpAndSettle();
@@ -321,23 +353,15 @@ void main() {
       expect(find.widgetWithText(FilledButton, 'Reschedule'), findsNothing);
       await tester.drag(find.byType(ListView).first, const Offset(0, 800));
       await tester.pumpAndSettle();
-      await tester.tap(find.widgetWithText(ChoiceChip, 'Day'));
+      await chooseView(tester, 'Day');
       await tester.pumpAndSettle();
-      await tester.tap(find.byKey(const ValueKey('planning-collection')));
+      await showUnscheduled(tester);
+      expect(find.text('Day'), findsOneWidget);
+      await reveal(tester, find.text('Back to day'));
+      await tester.tap(find.text('Back to day'));
       await tester.pumpAndSettle();
-      await tester.tap(find.text('Unscheduled').last);
-      await tester.pumpAndSettle();
-      expect(find.widgetWithText(ChoiceChip, 'Day'), findsNothing);
-      await tester.tap(find.byKey(const ValueKey('planning-collection')));
-      await tester.pumpAndSettle();
-      await tester.tap(find.text('Work orders').last);
-      await tester.pumpAndSettle();
-      expect(
-        tester
-            .widget<ChoiceChip>(find.widgetWithText(ChoiceChip, 'Day'))
-            .selected,
-        isTrue,
-      );
+      await reveal(tester, find.text('Service booked'));
+      expect(find.text('Service booked'), findsOneWidget);
     },
   );
 
@@ -357,20 +381,13 @@ void main() {
       );
       await tester.tap(find.byTooltip('Buscar y filtrar'));
       await tester.pumpAndSettle();
-      await tester.enterText(find.byType(TextFormField).first, 'pump');
-      await tester.pumpAndSettle();
-      await tester.tap(find.byTooltip('Buscar y filtrar'));
-      await tester.pumpAndSettle();
+      await tester.enterText(find.byType(TextField).first, 'pump');
+      await applyFilters(tester, es: true);
       await tester.tap(find.byTooltip('Buscar y filtrar'));
       await tester.pumpAndSettle();
       expect(find.text('pump'), findsOneWidget);
-      await tester.tap(find.byTooltip('Buscar y filtrar'));
-      await tester.pumpAndSettle();
-      await reveal(tester, find.byKey(const ValueKey('planning-collection')));
-      await tester.tap(find.byKey(const ValueKey('planning-collection')));
-      await tester.pumpAndSettle();
-      await tester.tap(find.text('Sin programar').last);
-      await tester.pumpAndSettle();
+      await applyFilters(tester, es: true);
+      await showUnscheduled(tester, es: true);
       await reveal(tester, find.text('Programar'));
       expect(tester.takeException(), isNull);
     },
@@ -649,14 +666,7 @@ void main() {
             tester,
             'planning-${light ? 'light' : 'dark'}-${spanish ? 'es' : 'en'}',
           );
-          await reveal(
-            tester,
-            find.widgetWithText(ChoiceChip, spanish ? 'Mes' : 'Month'),
-          );
-          await tester.tap(
-            find.widgetWithText(ChoiceChip, spanish ? 'Mes' : 'Month'),
-          );
-          await tester.pumpAndSettle();
+          expect(find.byType(PlanningMonth), findsOneWidget);
           await reveal(tester, find.byType(PlanningMonth));
           await captureFleet(
             tester,

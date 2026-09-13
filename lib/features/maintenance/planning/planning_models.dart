@@ -35,6 +35,7 @@ class PlanningJob extends MaintenanceJob {
   bool get unscheduled => start == null && serviceDate == null && activeBooking;
   bool matchesFilter(String filter, String? userId, DateTime now) =>
       switch (filter) {
+        'all' => true,
         'mine' =>
           !completed &&
               userId != null &&

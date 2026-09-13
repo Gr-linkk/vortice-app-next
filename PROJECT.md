@@ -14,6 +14,13 @@ parts, and invoices.
 
 ## Current direction
 
+NEXT-007 implements Month as the normal Work orders workspace and reviewed
+XLSX/CSV/TSV/pasted-table fleet import in internal Build 38 (`1.18.0+38`). The
+connected import, selected-day booking/rescheduling and company-boundary journeys
+passed, as did 748 Flutter tests and all 48 database contracts. Scope, APK checksum
+and acceptance evidence are in `docs/specs/NEXT-007-calendar-and-fleet-import.md`.
+It extends NEXT-006 below; physical/external acceptance remains open.
+
 NEXT-006 implements routine-work clarity through
 company-purpose onboarding and one work-order experience, with small
 changes to existing names, job context and next actions. Decision 0018 defines

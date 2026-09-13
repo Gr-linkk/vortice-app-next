@@ -34,16 +34,10 @@ void main() {
         ),
       ),
     );
-    await reveal(tester, find.widgetWithText(ChoiceChip, 'Month'));
-    await tester.tap(find.widgetWithText(ChoiceChip, 'Month'));
+    expect(find.byType(PlanningMonth), findsOneWidget);
     await tester.pumpAndSettle();
     await chooseFilter(tester, 'Completed');
-    expect(
-      tester
-          .widget<ChoiceChip>(find.widgetWithText(ChoiceChip, 'Month'))
-          .selected,
-      isTrue,
-    );
+    expect(find.byType(PlanningMonth), findsOneWidget);
     await reveal(tester, find.text('Service completed'));
     expect(find.text('Service scheduled'), findsNothing);
     await tester.tap(find.text('Service completed'));
@@ -90,12 +84,7 @@ void main() {
           scale: 2,
           light: true,
         );
-        await reveal(
-          tester,
-          find.widgetWithText(ChoiceChip, es ? 'Mes' : 'Month'),
-        );
-        await tester.tap(find.widgetWithText(ChoiceChip, es ? 'Mes' : 'Month'));
-        await tester.pumpAndSettle();
+        expect(find.byType(PlanningMonth), findsOneWidget);
         await reveal(tester, find.byType(PlanningMonth));
         await captureFleet(tester, 'calendar-month-320-${es ? 'es' : 'en'}');
         await reveal(
