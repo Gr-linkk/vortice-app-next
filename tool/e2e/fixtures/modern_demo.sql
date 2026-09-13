@@ -11,8 +11,7 @@ do $$ begin
   raise exception 'Apply organization membership/provider migrations first';
  end if;
  if exists(select 1 from auth.users u join demo_identities d on u.id=d.id or lower(u.email)=d.email)
- or exists(select 1 from public.assets where id='d0210000-0000-4000-8000-000000000010')
- or exists(select 1 from public.asset_types where id='d0210000-0000-4000-8000-000000000020') then
+ or exists(select 1 from public.assets where id='d0210000-0000-4000-8000-000000000010') then
   raise exception 'Demo identity or asset already exists; refusing to overwrite';
  end if;
 end $$;
@@ -45,10 +44,10 @@ select public.set_organization_relationship((select value::uuid from demo_contex
 select set_config('request.jwt.claim.sub','d0210000-0000-4000-8000-000000000001',true);
 select public.set_organization_relationship((select value::uuid from demo_context where key='provider'),(select value::uuid from demo_context where key='fleet'),'accept');
 reset role;
-insert into public.asset_types(id,category,name) values('d0210000-0000-4000-8000-000000000020','land','Demo road truck');
+-- Use the catalog identity so every screen selects the bundled truck drawing.
 insert into public.assets(id,client_id,asset_type_id,name,make,model,serial_number,location,notes,meter_unit)
-values('d0210000-0000-4000-8000-000000000010','d0210000-0000-4000-8000-000000000001','d0210000-0000-4000-8000-000000000020',
- 'Demo Truck 01','Demo','Road truck','NEXT-DEMO-TRUCK-01','Demo yard','Synthetic modern membership acceptance asset.','km');
+values('d0210000-0000-4000-8000-000000000010','d0210000-0000-4000-8000-000000000001','00000000-0000-0000-0000-000000000022',
+ 'Demo Truck 01','Demo','Hwy truck','NEXT-DEMO-TRUCK-01','Demo yard','Synthetic modern membership acceptance asset.','km');
 insert into public.client_capabilities(client_id,capability_key,enabled)
 select 'd0210000-0000-4000-8000-000000000001'::uuid,key,true
 from unnest(array['pm_checklists','maintenance_planning','operational_checklists']) key

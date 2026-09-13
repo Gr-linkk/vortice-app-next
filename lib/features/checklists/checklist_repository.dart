@@ -69,7 +69,7 @@ class ChecklistRepository {
           .from(AppConstants.tChecklistItems)
           .select()
           .eq('template_id', templateId)
-          .order('sort_order')
+          .order('sort_order', ascending: true)
           .timeout(const Duration(seconds: 6)),
     );
     return (remote as List)

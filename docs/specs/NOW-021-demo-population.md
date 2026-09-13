@@ -162,3 +162,54 @@ manifests and SQL, attachment receipts, audit logs and rendered screenshots.
 One-time preparation scripts are saved there for traceability. They are not a
 reusable seed command; any future cleanup must use exact saved IDs and check
 for subsequent user edits before removing data.
+
+## September 12: current demo fleet and truck correction
+
+Garrett reported the generic drawing beside Demo Truck 01, requested the wording
+**Hwy truck**, and asked to bring the Ellicott and its checklist setup into the
+current demo. Build 34 already contains the required artwork and screens, so
+the truck and demo-data changes appear after an online refresh. A subsequently
+discovered checklist-order correction is packaged separately in Build 35
+(`1.16.6+35`).
+
+The truck's synthetic type `d0210000-0000-4000-8000-000000000020` had no artwork
+mapping. The asset now uses the canonical Highway Truck type ending `022`, and
+its model is `Hwy truck`. The unused synthetic type was removed after checking
+asset, checklist and imported-document references. The modern-demo fixture now
+seeds the canonical type and requested wording, preserving the truck identity,
+62,000 km meter and its existing work/report/invoice history.
+
+`Demo Ellicott 460SL` (`df8fd7a1-fc9f-5447-a6fd-c83a181df18c`) belongs to
+Next Demo Fleet. It is a separate demo copy of the preserved Next Ellicott:
+
+- Three components: main engine, generator, and ladder/gimbal demo meter.
+- Five independently published company checklists: daily pre-operation,
+  250-hour, 500-hour, 1,000-hour, and ladder lubrication; 196 retained steps.
+- Four configured component plans and 38 copied checklist parts requirements.
+  The original's four unconfigured legacy interval placeholders were not added
+  as duplicate plans. Existing synthetic baselines are labeled as demo values.
+- Three byte-verified manual pages in the new company's document storage;
+  ladder checklist source links point to the new document.
+- One pending daily pre-operation assignment for Demo Fleet Operator.
+
+The additive setup was exercised in a rollback transaction before application.
+Source asset, component, interval, checklist, item and parts rows were compared
+against their snapshots before and after copying. No original history, jobs,
+reports, invoices, identities or permissions were moved or reset. New demo
+components use synthetic meters and do not connect to live telemetry.
+
+Evidence is under ignored `outputs/demo-refresh-*`: source snapshots, rollback
+and application receipts, exact-ID manifest and document-copy hashes. One-time
+helpers are `work/kanban-rollout/demo-refresh-*`; they are not safe to rerun as a
+general seed or cleanup routine. The connected acceptance test is
+`tool/e2e/demo_equipment_refresh_test.dart`; it checks actual role scope and
+rendered Home, asset, maintenance and operator checklist entry.
+
+Visual inspection revealed that the operator form began with final-documentation
+steps. The saved order was correct, but the installed PostgREST client defaults
+`order()` to descending. `ChecklistRepository.listItemsForTemplate` now explicitly
+requests ascending order. The connected regression requires all 49 pre-op steps
+and `Record engine hours` first; it failed before the fix. This correction changes
+presentation order, not the authored instructions or submission requirements.
+Physical phone acceptance remains separate. Reopen the app online to retrieve
+the new data; install Build 35 for the checklist-order correction.

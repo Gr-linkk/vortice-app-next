@@ -21,6 +21,12 @@ Email/SMS provider setup is deferred
 at Garrett's request. Existing accounts and the Ellicott graph are preserved;
 the transition is additive and does not perform the proposed account reset.
 
+September 12 demo follow-up: the truck now uses the canonical truck artwork and
+the requested **Hwy truck** model label. A separate **Demo Ellicott 460SL** is
+available in Next Demo Fleet with its components, five checklists, configured
+maintenance plans, parts requirements and manual pages. The original Ellicott
+graph remains unchanged. See the follow-up in `docs/specs/NOW-021-demo-population.md`.
+
 ## Prior delivery and acceptance references
 
 ### NEXT-004 — Completed: computer acceptance and first-time usability audit
