@@ -49,3 +49,16 @@ screenshots were visually reviewed, including 320 px / 200% text. An initial
 capture attempted to scroll before the account transition settled; explicitly
 waiting for the current account's templates and screen resolved the harness
 timing issue. No production access rule or selection shortcut was changed.
+
+Build 36 was produced from commit `0d9234b8276f1d2ab2359612f4b8049ff312154b`.
+APK inspection verified package `com.example.vortice_app_next`, version
+`1.16.7+36`, ARM64, the established signing certificate, Next backend/Firebase,
+notification service, recovery link and bundled artwork. Evidence:
+`outputs/build36-build-verified.json` and `outputs/build36-build.log`.
+
+`INSTALL-Vortice-Next-Build-36.apk` (139,044,569 bytes) was checksum-verified in
+Windows Downloads and S24 Downloads. SHA-256:
+`1985c853c510e173482d605bfe385ca0c014e6bcb2d59ca9d31da205d2a61f38`.
+Receipts: `outputs/build36-computer-delivery.json` and
+`outputs/build36-phone-delivery.json`. The APK was not installed; physical
+acceptance remains separate from the completed automated and rendered checks.
