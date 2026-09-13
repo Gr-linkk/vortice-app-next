@@ -7,6 +7,15 @@ without creating a new backlog item.
 
 ## Now
 
+### NEXT-005 — Group related choices in lists
+
+Garrett requested a small grouping pass after testing the equipment-type picker.
+Group the catalog by equipment category, checklist libraries by equipment/type,
+and operator choices by equipment type and specific/general applicability.
+Preserve search, IDs, permissions, drafts and single-tap selection. Keep numbered
+equipment and service names in natural order. Scope and evidence:
+`docs/specs/NEXT-005-list-grouping.md`. Delivery targets internal Build 36.
+
 ### NEXT-002 — Human-centered workflow consolidation
 
 Garrett authorized autonomous execution, review, commits/pushes and necessary

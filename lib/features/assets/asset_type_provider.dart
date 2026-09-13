@@ -29,7 +29,7 @@ final assetTypesProvider = FutureProvider<List<AssetType>>((ref) async {
   final data = await supabase
       .from(AppConstants.tAssetTypes)
       .select('id, name, category, tracking_unit')
-      .order('name');
+      .order('name', ascending: true);
 
   return (data as List)
       .map((e) => AssetType.fromJson(e as Map<String, dynamic>))

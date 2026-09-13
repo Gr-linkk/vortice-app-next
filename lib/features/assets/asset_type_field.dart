@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:vortice_app/core/list_group_heading.dart';
 import 'package:vortice_app/core/equipment_art_catalog.dart';
 import 'package:vortice_app/core/equipment_illustration.dart';
 import 'package:vortice_app/features/assets/asset_type_provider.dart';
@@ -97,6 +98,7 @@ String _categoryLabel(String category, bool spanish) => !spanish
     ? category
     : switch (category) {
         'Marine Vessels' => 'Embarcaciones',
+        'Commercial Fishing' => 'Pesca comercial',
         'Dredging Equipment' => 'Equipos de dragado',
         'Heavy Equipment' => 'Maquinaria pesada',
         'Power Generation' => 'Generación eléctrica',
@@ -122,8 +124,11 @@ class _AssetTypePickerState extends State<_AssetTypePicker> {
   Widget build(BuildContext context) {
     final spanish = Localizations.localeOf(context).languageCode == 'es';
     final matches = widget.types.where((type) {
+      final category = type.category.trim().isEmpty
+          ? 'Other'
+          : type.category.trim();
       final text =
-          '${type.name} ${assetTypeLabel(type, true)} ${type.category} ${_categoryLabel(type.category, true)}'
+          '${type.name} ${assetTypeLabel(type, true)} $category ${_categoryLabel(category, true)}'
               .toLowerCase();
       return _query
           .trim()
@@ -131,6 +136,34 @@ class _AssetTypePickerState extends State<_AssetTypePicker> {
           .split(RegExp(r'\s+'))
           .every(text.contains);
     }).toList();
+    final groups = <String, List<AssetType>>{};
+    for (final type in matches) {
+      final category = type.category.trim().isEmpty
+          ? 'Other'
+          : type.category.trim();
+      groups.putIfAbsent(category, () => []).add(type);
+    }
+    final categories = groups.keys.toList()
+      ..sort((a, b) {
+        if (a == 'Other') return b == 'Other' ? 0 : 1;
+        if (b == 'Other') return -1;
+        return _categoryLabel(
+          a,
+          spanish,
+        ).toLowerCase().compareTo(_categoryLabel(b, spanish).toLowerCase());
+      });
+    final entries = <Object>[];
+    for (final category in categories) {
+      final types = groups[category]!
+        ..sort(
+          (a, b) => assetTypeLabel(
+            a,
+            spanish,
+          ).toLowerCase().compareTo(assetTypeLabel(b, spanish).toLowerCase()),
+        );
+      entries.add(category);
+      entries.addAll(types);
+    }
     return Scaffold(
       appBar: AppBar(
         leading: const CloseButton(),
@@ -169,15 +202,23 @@ class _AssetTypePickerState extends State<_AssetTypePicker> {
                       keyboardDismissBehavior:
                           ScrollViewKeyboardDismissBehavior.onDrag,
                       padding: const EdgeInsets.only(bottom: 16),
-                      itemCount: matches.length,
+                      itemCount: entries.length,
                       itemBuilder: (context, index) {
-                        final type = matches[index];
+                        final entry = entries[index];
+                        if (entry is String) {
+                          return ListGroupHeading(
+                            key: ValueKey('asset-category-$entry'),
+                            label: _categoryLabel(entry, spanish),
+                            count: groups[entry]!.length,
+                          );
+                        }
+                        final type = entry as AssetType;
                         return ListTile(
                           key: ValueKey('asset-type-${type.id}'),
                           selected: widget.selectedId == type.id,
                           contentPadding: const EdgeInsets.symmetric(
                             horizontal: 16,
-                            vertical: 8,
+                            vertical: 4,
                           ),
                           leading: ExcludeSemantics(
                             child: EquipmentIllustration(
@@ -187,9 +228,6 @@ class _AssetTypePickerState extends State<_AssetTypePicker> {
                             ),
                           ),
                           title: Text(assetTypeLabel(type, spanish)),
-                          subtitle: type.category.isEmpty
-                              ? null
-                              : Text(_categoryLabel(type.category, spanish)),
                           trailing: widget.selectedId == type.id
                               ? const Icon(Icons.check)
                               : null,

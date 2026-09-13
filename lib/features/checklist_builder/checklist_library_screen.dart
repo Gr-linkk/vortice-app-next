@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:vortice_app/core/list_group_heading.dart';
 import 'package:go_router/go_router.dart';
 import 'package:vortice_app/features/auth/auth_provider.dart';
 import 'package:vortice_app/models/profile.dart';
@@ -8,6 +9,7 @@ import 'package:vortice_app/core/user_feedback.dart';
 import 'package:vortice_app/features/checklists/checklist_provider.dart';
 import 'package:vortice_app/features/parts/pm_parts_setup_screen.dart';
 import 'checklist_builder_repository.dart';
+import 'checklist_library_groups.dart';
 import 'checklist_editor_screen.dart';
 import 'checklist_preview_screen.dart';
 import 'checklist_use_screen.dart';
@@ -99,10 +101,11 @@ class _ChecklistLibraryScreenState
           final rows = source.where((row) {
             final data = row['draft'] as Map? ?? row;
             return (_kind == 'all' || data['checklist_type'] == _kind) &&
-                '${data['name']} ${data['description'] ?? ''}'
+                '${data['name']} ${data['description'] ?? ''} ${checklistGroupLabel(checklistGroupKey(row), catalog, es)}'
                     .toLowerCase()
                     .contains(query);
           }).toList();
+          final groups = groupChecklistLibrary(rows, catalog, es);
           return RefreshIndicator(
             onRefresh: () async {
               ref.invalidate(checklistLibraryProvider);
@@ -187,164 +190,176 @@ class _ChecklistLibraryScreenState
                           : 'No checklists here. Create one or copy a published starter.',
                     ),
                   ),
-                for (final row in rows)
-                  Builder(
-                    builder: (context) {
-                      final data = Map<String, dynamic>.from(
-                        row['draft'] as Map? ?? row,
-                      );
-                      final isProcedure = row.containsKey('draft'),
-                          archived = row['archived'] == true;
-                      final isPM = data['checklist_type'] == 'pm';
-                      final published = isProcedure
-                          ? checklistRows(catalog['templates'])
-                                .where(
-                                  (t) =>
-                                      t['id'] == row['published_template_id'],
-                                )
-                                .firstOrNull
-                          : row;
-                      final canCopy = isPM
-                          ? catalog['can_pm'] == true
-                          : catalog['can_preop'] == true;
-                      return Card(
-                        margin: const EdgeInsets.symmetric(vertical: 8),
-                        child: Padding(
-                          padding: const EdgeInsets.all(16),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                data['name'] as String? ?? '',
-                                style: Theme.of(context).textTheme.titleLarge,
-                              ),
-                              Text(
-                                '${isPM ? (es ? 'Mantenimiento preventivo' : 'Preventive maintenance') : (es ? 'Antes de operar' : 'Pre-operation')} · ${archived
-                                    ? (es ? 'Archivada' : 'Archived')
-                                    : published == null
-                                    ? (es ? 'Borrador' : 'Draft')
-                                    : '${es ? 'Publicada v' : 'Published v'}${published['version']}'}',
-                              ),
-                              if (!isProcedure)
+                for (final group in groups.entries) ...[
+                  ListGroupHeading(
+                    key: ValueKey('checklist-group-${group.key}'),
+                    label: checklistGroupLabel(group.key, catalog, es),
+                    count: group.value.length,
+                  ),
+                  for (final row in group.value)
+                    Builder(
+                      builder: (context) {
+                        final data = Map<String, dynamic>.from(
+                          row['draft'] as Map? ?? row,
+                        );
+                        final isProcedure = row.containsKey('draft'),
+                            archived = row['archived'] == true;
+                        final isPM = data['checklist_type'] == 'pm';
+                        final published = isProcedure
+                            ? checklistRows(catalog['templates'])
+                                  .where(
+                                    (t) =>
+                                        t['id'] == row['published_template_id'],
+                                  )
+                                  .firstOrNull
+                            : row;
+                        final canCopy = isPM
+                            ? catalog['can_pm'] == true
+                            : catalog['can_preop'] == true;
+                        return Card(
+                          margin: const EdgeInsets.symmetric(vertical: 8),
+                          child: Padding(
+                            padding: const EdgeInsets.all(16),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
                                 Text(
-                                  row['client_id'] == null
-                                      ? (es
-                                            ? 'Plantilla compartida'
-                                            : 'Shared starter')
-                                      : (es
-                                            ? 'Biblioteca de empresa'
-                                            : 'Company library'),
+                                  data['name'] as String? ?? '',
+                                  style: Theme.of(context).textTheme.titleLarge,
                                 ),
-                              if (isProcedure &&
-                                  published != null &&
-                                  (row['revision'] as num? ?? 0) >
-                                      (row['published_revision'] as num? ?? 0))
                                 Text(
-                                  es
-                                      ? 'Hay cambios de borrador sin publicar.'
-                                      : 'Draft changes have not been published.',
+                                  '${isPM ? (es ? 'Mantenimiento preventivo' : 'Preventive maintenance') : (es ? 'Antes de operar' : 'Pre-operation')} · ${archived
+                                      ? (es ? 'Archivada' : 'Archived')
+                                      : published == null
+                                      ? (es ? 'Borrador' : 'Draft')
+                                      : '${es ? 'Publicada v' : 'Published v'}${published['version']}'}',
                                 ),
-                              Wrap(
-                                spacing: 8,
-                                runSpacing: 8,
-                                children: [
-                                  if (isPM && published != null)
-                                    TextButton(
-                                      onPressed: () => Navigator.push(
-                                        context,
-                                        MaterialPageRoute<void>(
-                                          builder: (_) => PmPartsSetupScreen(
-                                            templateId:
-                                                published['id'] as String,
-                                            templateName:
-                                                published['name'] as String,
-                                            readOnly:
-                                                !canCopy ||
-                                                published['client_id'] !=
-                                                    catalog['client_id'],
-                                          ),
-                                        ),
-                                      ),
-                                      child: Text(
-                                        es
-                                            ? 'Kit de repuestos PM'
-                                            : 'PM parts kit',
-                                      ),
-                                    ),
-                                  TextButton(
-                                    onPressed: () => Navigator.push(
-                                      context,
-                                      MaterialPageRoute(
-                                        builder: (_) =>
-                                            ChecklistPreviewScreen(draft: data),
-                                      ),
-                                    ),
-                                    child: Text(
-                                      es ? 'Vista previa' : 'Preview',
-                                    ),
+                                if (!isProcedure)
+                                  Text(
+                                    row['client_id'] == null
+                                        ? (es
+                                              ? 'Plantilla compartida'
+                                              : 'Shared starter')
+                                        : (es
+                                              ? 'Biblioteca de empresa'
+                                              : 'Company library'),
                                   ),
-                                  if (isProcedure && !archived)
-                                    TextButton(
-                                      onPressed: () =>
-                                          _editor(catalog, procedure: row),
-                                      child: Text(
-                                        es ? 'Editar borrador' : 'Edit draft',
-                                      ),
-                                    ),
-                                  if (published != null && !archived)
-                                    TextButton(
-                                      onPressed: () => Navigator.push(
-                                        context,
-                                        MaterialPageRoute(
-                                          builder: (_) => ChecklistUseScreen(
-                                            template: published,
-                                            catalog: catalog,
+                                if (isProcedure &&
+                                    published != null &&
+                                    (row['revision'] as num? ?? 0) >
+                                        (row['published_revision'] as num? ??
+                                            0))
+                                  Text(
+                                    es
+                                        ? 'Hay cambios de borrador sin publicar.'
+                                        : 'Draft changes have not been published.',
+                                  ),
+                                Wrap(
+                                  spacing: 8,
+                                  runSpacing: 8,
+                                  children: [
+                                    if (isPM && published != null)
+                                      TextButton(
+                                        onPressed: () => Navigator.push(
+                                          context,
+                                          MaterialPageRoute<void>(
+                                            builder: (_) => PmPartsSetupScreen(
+                                              templateId:
+                                                  published['id'] as String,
+                                              templateName:
+                                                  published['name'] as String,
+                                              readOnly:
+                                                  !canCopy ||
+                                                  published['client_id'] !=
+                                                      catalog['client_id'],
+                                            ),
                                           ),
                                         ),
+                                        child: Text(
+                                          es
+                                              ? 'Kit de repuestos PM'
+                                              : 'PM parts kit',
+                                        ),
                                       ),
-                                      child: Text(
-                                        es ? 'Usar lista' : 'Use checklist',
-                                      ),
-                                    ),
-                                  if (canCopy)
-                                    TextButton(
-                                      onPressed: () => _editor(
-                                        catalog,
-                                        initial: isProcedure
-                                            ? {
-                                                ...data,
-                                                'name':
-                                                    '${data['name']} (copy)',
-                                                'source_template_id':
-                                                    row['published_template_id'],
-                                              }
-                                            : copiedChecklistDraft(row),
-                                      ),
-                                      child: Text(
-                                        es ? 'Crear copia' : 'Make a copy',
-                                      ),
-                                    ),
-                                  if (isProcedure && !archived)
                                     TextButton(
                                       onPressed: () => Navigator.push(
                                         context,
                                         MaterialPageRoute(
                                           builder: (_) =>
-                                              _ArchiveChecklistScreen(
-                                                procedure: row,
+                                              ChecklistPreviewScreen(
+                                                draft: data,
                                               ),
                                         ),
                                       ),
-                                      child: Text(es ? 'Archivar' : 'Archive'),
+                                      child: Text(
+                                        es ? 'Vista previa' : 'Preview',
+                                      ),
                                     ),
-                                ],
-                              ),
-                            ],
+                                    if (isProcedure && !archived)
+                                      TextButton(
+                                        onPressed: () =>
+                                            _editor(catalog, procedure: row),
+                                        child: Text(
+                                          es ? 'Editar borrador' : 'Edit draft',
+                                        ),
+                                      ),
+                                    if (published != null && !archived)
+                                      TextButton(
+                                        onPressed: () => Navigator.push(
+                                          context,
+                                          MaterialPageRoute(
+                                            builder: (_) => ChecklistUseScreen(
+                                              template: published,
+                                              catalog: catalog,
+                                            ),
+                                          ),
+                                        ),
+                                        child: Text(
+                                          es ? 'Usar lista' : 'Use checklist',
+                                        ),
+                                      ),
+                                    if (canCopy)
+                                      TextButton(
+                                        onPressed: () => _editor(
+                                          catalog,
+                                          initial: isProcedure
+                                              ? {
+                                                  ...data,
+                                                  'name':
+                                                      '${data['name']} (copy)',
+                                                  'source_template_id':
+                                                      row['published_template_id'],
+                                                }
+                                              : copiedChecklistDraft(row),
+                                        ),
+                                        child: Text(
+                                          es ? 'Crear copia' : 'Make a copy',
+                                        ),
+                                      ),
+                                    if (isProcedure && !archived)
+                                      TextButton(
+                                        onPressed: () => Navigator.push(
+                                          context,
+                                          MaterialPageRoute(
+                                            builder: (_) =>
+                                                _ArchiveChecklistScreen(
+                                                  procedure: row,
+                                                ),
+                                          ),
+                                        ),
+                                        child: Text(
+                                          es ? 'Archivar' : 'Archive',
+                                        ),
+                                      ),
+                                  ],
+                                ),
+                              ],
+                            ),
                           ),
-                        ),
-                      );
-                    },
-                  ),
+                        );
+                      },
+                    ),
+                ],
               ],
             ),
           );

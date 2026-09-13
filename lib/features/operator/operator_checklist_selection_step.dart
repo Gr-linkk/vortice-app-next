@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:vortice_app/core/equipment_art_catalog.dart';
+import 'package:vortice_app/core/list_group_heading.dart';
+import 'package:vortice_app/core/list_label_order.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:vortice_app/features/checklists/asset_checklist_template_filter.dart';
 import 'package:vortice_app/l10n/app_localizations.dart';
@@ -7,17 +10,19 @@ import 'package:vortice_app/models/checklist_template.dart';
 List<ChecklistTemplate> operatorTemplatesForAsset(
   Map<String, dynamic> asset,
   List<ChecklistTemplate> templates,
-) => templates
-    .where(
-      (t) => checklistTemplateMatches(
-        t,
-        kind: 'operator_daily',
-        assetId: asset['id'] as String?,
-        assetTypeId: asset['asset_type_id'] as String?,
-        clientId: asset['client_id'] as String?,
-      ),
-    )
-    .toList();
+) =>
+    templates
+        .where(
+          (t) => checklistTemplateMatches(
+            t,
+            kind: 'operator_daily',
+            assetId: asset['id'] as String?,
+            assetTypeId: asset['asset_type_id'] as String?,
+            clientId: asset['client_id'] as String?,
+          ),
+        )
+        .toList()
+      ..sort((a, b) => compareListLabels(a.name, b.name));
 
 class OperatorChecklistSelectionStep extends StatefulWidget {
   final AsyncValue<List<Map<String, dynamic>>> assetsAsync;
@@ -67,13 +72,33 @@ class _SelectionState extends State<OperatorChecklistSelectionStep> {
                     : 'No equipment is available to you. Ask your manager for access.',
               );
             }
+            String equipmentLabel(Map<String, dynamic> asset) {
+              final art = equipmentArtFor(
+                assetTypeId: asset['asset_type_id'] as String?,
+              );
+              return es ? art.spanishLabel : art.label;
+            }
+
             final visible = assets
                 .where(
-                  (a) => '${a['name']} ${a['make'] ?? ''} ${a['model'] ?? ''}'
-                      .toLowerCase()
-                      .contains(_search.toLowerCase()),
+                  (a) =>
+                      '${a['name']} ${a['make'] ?? ''} ${a['model'] ?? ''} ${equipmentLabel(a)}'
+                          .toLowerCase()
+                          .contains(_search.trim().toLowerCase()),
                 )
                 .toList();
+
+            final groups = <String, List<Map<String, dynamic>>>{};
+            for (final asset in visible) {
+              groups.putIfAbsent(equipmentLabel(asset), () => []).add(asset);
+            }
+            final names = groups.keys.toList()
+              ..sort((a, b) => a.toLowerCase().compareTo(b.toLowerCase()));
+            for (final group in groups.values) {
+              group.sort(
+                (a, b) => compareListLabels('${a['name']}', '${b['name']}'),
+              );
+            }
             return Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
@@ -93,31 +118,35 @@ class _SelectionState extends State<OperatorChecklistSelectionStep> {
                         ? 'No hay equipos que coincidan.'
                         : 'No equipment matches your search.',
                   ),
-                for (final asset in visible)
-                  Card(
-                    child: ListTile(
-                      selected: widget.selectedAsset?['id'] == asset['id'],
-                      title: Text('${asset['name']}'),
-                      subtitle:
-                          [asset['make'], asset['model']]
-                              .whereType<String>()
-                              .where((s) => s.isNotEmpty)
-                              .isEmpty
-                          ? null
-                          : Text(
-                              [
-                                asset['make'],
-                                asset['model'],
-                              ].whereType<String>().join(' '),
-                            ),
-                      trailing: Icon(
-                        widget.selectedAsset?['id'] == asset['id']
-                            ? Icons.check_circle
-                            : Icons.chevron_right,
+                for (final name in names) ...[
+                  if (groups.length > 1)
+                    ListGroupHeading(label: name, count: groups[name]!.length),
+                  for (final asset in groups[name]!)
+                    Card(
+                      child: ListTile(
+                        selected: widget.selectedAsset?['id'] == asset['id'],
+                        title: Text('${asset['name']}'),
+                        subtitle:
+                            [asset['make'], asset['model']]
+                                .whereType<String>()
+                                .where((s) => s.isNotEmpty)
+                                .isEmpty
+                            ? null
+                            : Text(
+                                [
+                                  asset['make'],
+                                  asset['model'],
+                                ].whereType<String>().join(' '),
+                              ),
+                        trailing: Icon(
+                          widget.selectedAsset?['id'] == asset['id']
+                              ? Icons.check_circle
+                              : Icons.chevron_right,
+                        ),
+                        onTap: () => widget.onAssetSelected(asset),
                       ),
-                      onTap: () => widget.onAssetSelected(asset),
                     ),
-                  ),
+                ],
               ],
             );
           },
@@ -150,15 +179,30 @@ class _SelectionState extends State<OperatorChecklistSelectionStep> {
               }
               return Column(
                 children: [
-                  for (final template in matching)
-                    Card(
-                      child: ListTile(
-                        title: Text(template.name),
-                        subtitle: Text('v${template.version}'),
-                        trailing: const Icon(Icons.chevron_right),
-                        onTap: () => widget.onTemplateSelected(template),
+                  for (final specific in [true, false]) ...[
+                    if (matching.any(
+                      (t) => (t.scopeAssetId != null) == specific,
+                    ))
+                      ListGroupHeading(
+                        label: specific
+                            ? (es ? 'Para este equipo' : 'For this equipment')
+                            : (es ? 'Revisiones generales' : 'General checks'),
+                        count: matching
+                            .where((t) => (t.scopeAssetId != null) == specific)
+                            .length,
                       ),
-                    ),
+                    for (final template in matching.where(
+                      (t) => (t.scopeAssetId != null) == specific,
+                    ))
+                      Card(
+                        child: ListTile(
+                          title: Text(template.name),
+                          subtitle: Text('v${template.version}'),
+                          trailing: const Icon(Icons.chevron_right),
+                          onTap: () => widget.onTemplateSelected(template),
+                        ),
+                      ),
+                  ],
                 ],
               );
             },

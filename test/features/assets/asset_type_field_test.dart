@@ -47,6 +47,77 @@ void main() {
     await loadFleetScreenshotFonts();
   });
 
+  testWidgets(
+    'groups interleaved types and sorts names without changing selection IDs',
+    (tester) async {
+      tester.view.physicalSize = const Size(390, 1000);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+      final input = [
+        const AssetType(
+          id: 'wheel',
+          name: 'Wheel Loader',
+          category: 'Heavy Equipment',
+        ),
+        const AssetType(id: 'tug', name: 'Tugboat', category: 'Marine Vessels'),
+        const AssetType(
+          id: 'backhoe',
+          name: 'Backhoe Loader',
+          category: 'Heavy Equipment',
+        ),
+        const AssetType(
+          id: 'mower',
+          name: 'Zero-Turn Mower',
+          category: 'Agriculture & Grounds',
+        ),
+      ];
+      String? selected;
+      final boundary = GlobalKey();
+      await tester.pumpWidget(
+        _app(
+          AssetTypeField(
+            types: input,
+            selectedId: 'wheel',
+            onChanged: (id) => selected = id,
+          ),
+          dark: true,
+          boundary: boundary,
+        ),
+      );
+      await tester.tap(find.byKey(const ValueKey('asset-type-picker')));
+      await tester.pumpAndSettle();
+      final headings = [
+        'Agriculture & Grounds',
+        'Heavy Equipment',
+        'Marine Vessels',
+      ];
+      for (final heading in headings) {
+        expect(find.text(heading), findsOneWidget);
+      }
+      expect(
+        tester.getTopLeft(find.text('Agriculture & Grounds')).dy,
+        lessThan(tester.getTopLeft(find.text('Heavy Equipment')).dy),
+      );
+      expect(
+        tester.getTopLeft(find.text('Backhoe Loader')).dy,
+        lessThan(tester.getTopLeft(find.text('Wheel Loader').last).dy),
+      );
+      await _capture(tester, boundary, 'grouped-types-dark');
+      await tester.enterText(
+        find.byKey(const ValueKey('asset-type-search')),
+        'marine',
+      );
+      await tester.pumpAndSettle();
+      expect(find.text('Heavy Equipment'), findsNothing);
+      expect(find.byKey(const ValueKey('asset-type-tug')), findsOneWidget);
+      await tester.tap(find.byKey(const ValueKey('asset-type-tug')));
+      await tester.pumpAndSettle();
+      expect(selected, 'tug');
+      expect(input.first.id, 'wheel');
+    },
+  );
+
   testWidgets('required selection returns the stable ID; cancel preserves it', (
     tester,
   ) async {
