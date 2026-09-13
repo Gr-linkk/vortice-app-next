@@ -22,6 +22,26 @@ rows can describe separate components or separate service plans on one component
 when their equipment and component details agree. Identical duplicate rows must
 be excluded explicitly.
 
+Supported source formats:
+
+| Source | Supported details |
+| --- | --- |
+| Excel `.xlsx` | Multiple worksheets, selectable header row, text and numeric cells, native Excel dates |
+| `.csv` | Comma, semicolon or tab separators; quoted fields and line breaks |
+| `.tsv` | Tab-separated spreadsheet exports |
+| `.txt` | Delimited tables or one equipment name per line using **No header** |
+| Pasted text | Copied spreadsheet tables or plain equipment-name lists |
+
+Text files support UTF-8 (with or without a BOM) and UTF-16 little/big endian
+with a BOM. For older Windows encodings, save the export as **CSV UTF-8** first.
+Choose the decimal-comma setting for readings such as `125,5`; omit thousands
+separators. Formula cells in mapped fields must be replaced with values.
+
+Legacy `.xls`, macro-enabled `.xlsm`, `.ods`, `.numbers`, PDF, images, Word and
+JSON files are not accepted directly. Export an `.xlsx` or UTF-8 CSV, or copy
+the table into the paste field. A Google Sheets link is not an import source;
+download its Excel/CSV export or paste its cells.
+
 An opening equipment reading creates an **Equipment meter**. A named component
 can have its own reading and unit. Service-plan columns refer to the named
 component, or to the equipment meter when no component is named. A meter-based

@@ -131,3 +131,23 @@ SHA-256: `39c4fe5652cbf5aecc167d2f86a41fa068e891e43eabbf15b542c32389a2a266`.
 
 These tests exercise rendered Flutter screens and real Next persistence; physical
 Android installation, system-picker behaviour and phone acceptance are not claimed.
+
+### Format acceptance follow-up (2026-09-13)
+
+- Added 25 format regression cases in
+  `test/features/assets/fleet_import_formats_test.dart`: CSV separators and line
+  endings, TSV/TXT, uppercase extensions, UTF-8/BOM and UTF-16 LE/BE, accented
+  names, leading-zero text serials, pasted tables and headerless lists, XLSX
+  worksheets/header offsets/date cells, explicit decimal comma, nine unsupported
+  extensions, corrupt workbooks and legacy Windows-1252 rejection.
+- All **35 targeted parser/mapping/import-screen tests passed**, including the
+  existing English/Spanish phone-size and large-text checks. Analyzer reports no
+  issues for the new test file. This was a focused follow-up, not a repeat of the
+  full 748-test release run above.
+- Fresh connected XLSX run `outputs/next007-xlsx-PonIlfdq` completed both steps
+  with no recorded issues: picker cancellation and actual workbook decoding,
+  worksheet/header mapping and duplicate preview. The system picker was mocked;
+  no records were saved. The run passed with Drift's debug warning about multiple
+  database instances during harness sign-out; it recorded no test failure.
+- Updated the import guide with supported encodings, export advice and formats
+  that require conversion. App code and Build 38 are unchanged.
