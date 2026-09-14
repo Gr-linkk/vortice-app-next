@@ -7,6 +7,15 @@ without creating a new backlog item.
 
 ## Now
 
+### NEXT-008 — Checklist and date at work-order creation
+
+Garrett requested checklist attachment and an editable scheduled date directly
+on the new-work-order page. Extend the customer creation flow shown in his
+screenshot with compatible published checklists and a visible calendar-day
+default that can be changed or cleared before saving. Preserve atomic creation,
+company access and immutable checklist/parts snapshots. Scope and verification:
+`docs/specs/NEXT-008-work-order-creation.md`.
+
 ### NEXT-002 — Human-centered workflow consolidation
 
 Garrett authorized autonomous execution, review, commits/pushes and necessary

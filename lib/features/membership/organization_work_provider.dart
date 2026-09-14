@@ -55,6 +55,7 @@ class OrganizationWorkRepository {
     String title,
     String note, {
     DateTime? serviceDate,
+    String? checklistTemplateId,
   }) async =>
       await client.rpc(
             'create_customer_work',
@@ -64,11 +65,8 @@ class OrganizationWorkRepository {
               'p_asset': asset,
               'p_title': title.trim(),
               'p_note': note.trim(),
-              if (serviceDate != null)
-                'p_service_date': serviceDate
-                    .toIso8601String()
-                    .split('T')
-                    .first,
+              'p_service_date': serviceDate?.toIso8601String().split('T').first,
+              'p_checklist_template': checklistTemplateId,
             },
           )
           as String;
