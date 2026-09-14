@@ -7,15 +7,6 @@ without creating a new backlog item.
 
 ## Now
 
-### NEXT-008 — Checklist and date at work-order creation
-
-Garrett requested checklist attachment and an editable scheduled date directly
-on the new-work-order page. Extend the customer creation flow shown in his
-screenshot with compatible published checklists and a visible calendar-day
-default that can be changed or cleared before saving. Preserve atomic creation,
-company access and immutable checklist/parts snapshots. Scope and verification:
-`docs/specs/NEXT-008-work-order-creation.md`.
-
 ### NEXT-002 — Human-centered workflow consolidation
 
 Garrett authorized autonomous execution, review, commits/pushes and necessary
@@ -40,6 +31,16 @@ correction is in Build 35 (`1.16.6+35`), checksum-delivered to S24 and Windows
 Downloads. Installation and phone acceptance remain pending.
 
 ## Prior delivery and acceptance references
+
+### NEXT-008 — Completed: checklist and date at work-order creation
+
+Build 39 (`1.18.1+39`) replaces the customer creation sheet with a full page,
+compatible published-checklist selection and an editable/clearable scheduled day.
+Atomic creation preserves checklist/parts snapshots and exact retries. All 779
+Flutter tests, 48 local database suites, the hosted creation contract and the
+connected calendar -> create -> reopen journey passed. Scope, UI evidence and
+artifact verification: `docs/specs/NEXT-008-work-order-creation.md`.
+Physical Android installation and acceptance remain separate.
 
 ### NEXT-007 — Completed: calendar workspace and reviewed fleet import
 

@@ -14,6 +14,13 @@ parts, and invoices.
 
 ## Current direction
 
+NEXT-008 adds published-checklist attachment and an editable scheduled date to
+the customer work-order creation page in internal Build 39 (`1.18.1+39`). The
+calendar day is visible before saving and can be changed or cleared. Creation,
+checklist snapshot and booking persist atomically. All 779 Flutter tests, 48
+local SQL contracts and the connected native creation/reopen journey passed.
+See `docs/specs/NEXT-008-work-order-creation.md` for delivery and acceptance.
+
 NEXT-007 implements Month as the normal Work orders workspace and reviewed
 XLSX/CSV/TSV/pasted-table fleet import in internal Build 38 (`1.18.0+38`). The
 connected import, selected-day booking/rescheduling and company-boundary journeys

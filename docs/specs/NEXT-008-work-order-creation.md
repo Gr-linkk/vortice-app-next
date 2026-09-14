@@ -68,3 +68,24 @@ and build delivery are reported separately.
 
 Build target: internal Android `1.18.1+39`. Physical installation and acceptance
 are separate from the automated native journey and artifact delivery.
+
+## Build 39
+
+The guarded WSL Android build passed. APK inspection verifies the displayed and
+package versions, dedicated Next backend/Firebase configuration, Android package
+`com.example.vortice_app_next`, arm64 architecture and the existing Next debug
+signing certificate. The first packaging attempt exposed an old in-app version
+label; it was corrected and the final APK rebuilt and reverified before delivery.
+
+- App source commit: `5c5e2d6547ae914db8d9d162df64481d2b099db0`.
+- APK: `outputs/builds/INSTALL-Vortice-Next-Build-39.apk`.
+- Version: `1.18.1+39`; size: 139,132,785 bytes.
+- SHA-256: `0d5f375fa53175d981e5d2ee8db928fb27e5fb65d2d82566bb10d93e8d4ac663`.
+- Windows Downloads copy is verified against the same SHA-256.
+- S24 (SM-S928W) Downloads copy is verified against the same SHA-256:
+  `/storage/emulated/0/Download/INSTALL-Vortice-Next-Build-39.apk`.
+  Receipt: `outputs/build39-phone-delivery.json`, verified September 14 at
+  02:00 UTC. No installation or physical workflow acceptance is claimed.
+- Source is pushed to `origin/codex/work-order-creation-details`.
+
+Installation is not claimed from a build, transfer or checksum.
