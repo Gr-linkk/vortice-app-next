@@ -50,7 +50,7 @@ class AppConstants {
   static const String prefLocale = 'app_locale';
 
   // ── App metadata ───────────────────────────────────────────────────────────
-  static const String appVersion = '1.18.0+38';
+  static const String appVersion = '1.18.1+39';
   static const String supportEmail = 'soporte@vorticemechanical.com';
 
   // ── Invoice defaults ──────────────────────────────────────────────────────
