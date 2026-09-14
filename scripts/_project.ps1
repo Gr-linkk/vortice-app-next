@@ -52,16 +52,22 @@ function Assert-RepositoryIdentity {
     throw "Expected exactly one Git remote named origin; found: $($remotes -join ', ')"
   }
 
-  $origin = (& git -C $script:ProjectRoot remote get-url origin).Trim()
-  if ($LASTEXITCODE -ne 0 -or
-      (Get-NormalizedUrl $origin) -ne (Get-NormalizedUrl $script:ExpectedOrigin)) {
-    throw "Unexpected origin remote: $origin"
+  foreach ($direction in @('fetch', 'push')) {
+    $remoteArguments = @('remote', 'get-url', '--all', 'origin')
+    if ($direction -eq 'push') { $remoteArguments = @('remote', 'get-url', '--push', '--all', 'origin') }
+    $urls = @(& git -C $script:ProjectRoot @remoteArguments)
+    if ($LASTEXITCODE -ne 0 -or $urls.Count -eq 0) { throw 'Could not verify origin URLs.' }
+    foreach ($url in $urls) {
+      if ((Get-NormalizedUrl $url) -ne (Get-NormalizedUrl $script:ExpectedOrigin)) {
+        throw 'Every origin fetch and push URL must target the independent repository.'
+      }
+    }
   }
 }
 
 function Get-NormalizedUrl {
   param([Parameter(Mandatory = $true)][string]$Url)
-  return $Url.Trim().TrimEnd('/').Replace('.git', '').ToLowerInvariant()
+  return ($Url.Trim().TrimEnd('/') -replace '\.git$', '').ToLowerInvariant()
 }
 
 function Assert-LocalSupabaseConfig {

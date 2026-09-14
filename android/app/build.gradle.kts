@@ -45,10 +45,15 @@ android {
 
     buildTypes {
         release {
-            // TODO: Add your own signing config for the release build.
-            // Signing with the debug keys for now, so `flutter run --release` works.
-            signingConfig = signingConfigs.getByName("debug")
+            // No fallback to debug signing. Production identity and protected
+            // signing must be deliberately implemented under NEXT-009.
         }
+    }
+}
+
+gradle.taskGraph.whenReady {
+    if (allTasks.any { it.project == project && it.name.endsWith("Release") }) {
+        throw GradleException("Production release is not configured. Complete NEXT-009 identity and signing gates; use scripts/build-android.cmd for internal debug builds.")
     }
 }
 

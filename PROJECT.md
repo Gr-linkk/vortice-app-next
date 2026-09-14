@@ -14,6 +14,15 @@ parts, and invoices.
 
 ## Current direction
 
+NEXT-009 is the current production-readiness closeout. Finish the existing
+workflows, release safeguards, access verification, recovery preparation and
+customer operating material before expanding features. Its specification
+consolidates remaining acceptance and Garrett's decisions. The company-purpose
+model in decision 0018 and Field Notes design remain authoritative. Subscription
+prices discussed on September 14 are hypotheses, not accepted product tiers.
+Build 39 below is the current internal app delivery; housekeeping does not
+constitute a production release.
+
 NEXT-008 adds published-checklist attachment and an editable scheduled date to
 the customer work-order creation page in internal Build 39 (`1.18.1+39`). The
 calendar day is visible before saving and can be changed or cleared. Creation,
@@ -50,7 +59,8 @@ offline evidence, shared execution rules and a populated Work hub performance
 guard. See `BACKLOG.md` and
 `docs/specs/NEXT-003-workflow-follow-through.md` for current status.
 
-NEXT-002 is the active workflow-consolidation board. Work orders become the
+NEXT-002 records the implemented workflow-consolidation board; remaining
+external acceptance is consolidated under NEXT-009. Work orders become the
 common work hub while retaining the Field Notes design, checked completion,
 company isolation, offline drafts and provider billing boundaries. See
 `docs/specs/NEXT-002-human-workflow-kanban.md` for implemented scope and remaining acceptance.

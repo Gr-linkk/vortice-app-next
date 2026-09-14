@@ -24,6 +24,11 @@ Thumbs.db
 # Android
 android/local.properties
 android/key.properties
+*.keystore
+*.jks
+*.p12
+*.pfx
+__pycache__/
 android/.gradle/
 android/.kotlin/
 

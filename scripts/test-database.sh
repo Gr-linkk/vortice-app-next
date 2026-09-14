@@ -5,6 +5,8 @@ root="$(pwd -P)"
 test "$(git rev-parse --show-toplevel)" = "$root"
 test "$(git remote)" = origin
 test "$(git remote get-url origin)" = https://github.com/Gr-linkk/vortice-app-next.git
+restore_drill=false
+if [ "${1:-}" = --restore-drill ]; then restore_drill=true; shift; fi
 container="vortice-next-contract-$$"
 trap 'docker rm -f "$container" >/dev/null 2>&1 || true' EXIT
 docker run --rm -d --network none --name "$container" \
@@ -60,4 +62,19 @@ else
       echo "PASS $contract"
     fi
   done
+fi
+
+if $restore_drill; then
+  # Persist our invoice scenario only after all contracts have rolled back.
+  # This runs solely in our network-disabled disposable container.
+  sed 's/^rollback;[[:space:]]*$/commit;/' supabase/tests/invoice_closeout.sql | \
+    docker exec -i -e PGOPTIONS='-c search_path=public,extensions' "$container" \
+      psql -U postgres -v ON_ERROR_STOP=1 >/dev/null
+  docker exec "$container" pg_dump -U postgres -Fc -f /tmp/next009.dump postgres
+  docker exec "$container" createdb -U postgres next009_restored
+  docker exec "$container" pg_restore -U postgres --exit-on-error \
+    --dbname next009_restored /tmp/next009.dump
+  docker exec -i "$container" psql -U postgres -d next009_restored \
+    -v ON_ERROR_STOP=1 < supabase/tests/fixtures/readiness_restore_assert.sql >/dev/null
+  echo 'PASS isolated PostgreSQL archive restore, frozen invoice history and restored RLS'
 fi

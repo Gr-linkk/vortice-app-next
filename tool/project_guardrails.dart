@@ -51,9 +51,19 @@ void checkRepositoryIdentity() {
   if (remotes.length != 1 || remotes.single != 'origin') {
     _fail('Expected exactly one Git remote named origin; found $remotes');
   }
-  final origin = runGit(['remote', 'get-url', 'origin']).stdout.toString();
-  if (normalizeUrl(origin) != expectedOrigin) {
-    _fail('Unexpected origin remote: ${origin.trim()}');
+  for (final direction in [
+    <String>[],
+    ['--push'],
+  ]) {
+    final urls = lines(
+      runGit(['remote', 'get-url', ...direction, '--all', 'origin']).stdout,
+    );
+    if (urls.isEmpty ||
+        urls.any((url) => normalizeUrl(url) != expectedOrigin)) {
+      _fail(
+        'Every origin fetch and push URL must target the independent repository.',
+      );
+    }
   }
 }
 
@@ -161,6 +171,8 @@ void checkLocalPathsAreIgnored() {
     'config/vortice-next.local.json',
     'outputs/guardrail-probe.txt',
     'work/guardrail-probe.txt',
+    'config/signing-probe.jks',
+    'config/signing-probe.keystore',
   ]) {
     final result = runGit([
       'check-ignore',
@@ -204,6 +216,7 @@ void checkTrackedSecrets() {
     '.toml',
     '.js',
     '.ps1',
+    '.py',
     '.sh',
     '.kts',
     '.gradle',

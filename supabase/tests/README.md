@@ -23,6 +23,13 @@ the application access boundaries. Do not run the bootstrap against a real servi
 
 These checks do not prove HTTP Auth/PostgREST behavior or replace device testing.
 
+`bash scripts/test-database.sh --restore-drill` additionally commits the existing
+invoice scenario in the disposable source database after all contracts pass,
+exports a PostgreSQL custom archive and restores it to a second database in the
+same isolated container. It verifies frozen invoice/correction history and
+customer/other-company access after restore. This runs in CI. It is not a
+hosted Supabase or uploaded-file recovery drill; those remain release gates.
+
 From this checkout, `bash scripts/test-database.sh` automates the isolated run.
 It verifies the repository identity, uses an existing `postgres:17` Docker image,
 loads all migrations, runs all contracts, and removes only its disposable

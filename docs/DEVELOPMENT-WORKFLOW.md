@@ -59,6 +59,14 @@ targets, and intentionally deferred work.
 
 ## Database changes
 
+CI now runs all database contracts and a populated archive restore through
+`bash scripts/test-database.sh --restore-drill`, in addition to the Work hub
+performance check. The restore stays inside a network-disabled disposable
+PostgreSQL container. It does not restore hosted Supabase or Storage objects.
+
+For one-shot hosted operational checks and local backup staging, see
+`docs/operations/PRODUCTION-RUNBOOK.md`. These do not schedule jobs or send alerts.
+
 For Work hub/query changes, run `bash scripts/check-work-hub-performance.sh`
 through the configured WSL shell on Windows. This checks 340 assets, 1,500 jobs
 and 340 plans in a disposable, network-disabled PostgreSQL container with the

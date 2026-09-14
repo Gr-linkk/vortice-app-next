@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:vortice_app/app.dart';
 import 'package:vortice_app/core/constants.dart';
+import 'package:vortice_app/core/backend_config.dart';
 import 'package:vortice_app/features/auth/password_recovery.dart';
 import 'package:vortice_app/core/push_notifications.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -11,14 +12,7 @@ import 'package:vortice_app/core/appearance_settings.dart';
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  if (AppConstants.supabaseUrl.isEmpty ||
-      AppConstants.supabaseAnonKey.isEmpty) {
-    throw StateError(
-      'Missing isolated backend configuration. Pass SUPABASE_URL and '
-      'SUPABASE_ANON_KEY with --dart-define. Do not use the original '
-      'Vortice Supabase project.',
-    );
-  }
+  validateBackendConfig(AppConstants.supabaseUrl, AppConstants.supabaseAnonKey);
 
   // Supabase: this independent project requires an explicit backend target.
   await Supabase.initialize(

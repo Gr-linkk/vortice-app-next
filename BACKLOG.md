@@ -7,6 +7,22 @@ without creating a new backlog item.
 
 ## Now
 
+### NEXT-009 — Production-readiness housekeeping
+
+Garrett authorized autonomous housekeeping on September 14, 2026, followed by
+one concrete list of decisions, account setup and acceptance work for him.
+Stabilize and verify the existing product; preserve the Field Notes design,
+company-purpose model and shared Work order vocabulary. Pricing remains a
+proposal. Do not expand the feature roadmap or activate commercial charges.
+
+Scope, evidence, release gates and Garrett's next actions:
+`docs/specs/NEXT-009-production-readiness.md`. This is the current closeout
+priority; it consolidates the remaining NEXT-002 acceptance and NEXT-001 invoice
+audit without discarding their original evidence. Production launch remains
+conditional on the recorded external decisions and acceptance.
+
+## Prior delivery and acceptance references
+
 ### NEXT-002 — Human-centered workflow consolidation
 
 Garrett authorized autonomous execution, review, commits/pushes and necessary
@@ -29,8 +45,6 @@ graph remains unchanged. See the follow-up in `docs/specs/NOW-021-demo-populatio
 The connected check also exposed reversed checklist ordering; its one-line
 correction is in Build 35 (`1.16.6+35`), checksum-delivered to S24 and Windows
 Downloads. Installation and phone acceptance remain pending.
-
-## Prior delivery and acceptance references
 
 ### NEXT-008 — Completed: checklist and date at work-order creation
 
@@ -531,6 +545,12 @@ Acceptance criteria:
 
 Confirm invoice RLS, client scoping, export authorization, and role-based UI
 behavior together before non-mock invoice data is introduced.
+
+NEXT-009 consolidates this gate: September 14 local/hosted invoice and organization
+billing contracts, account-isolation/export tests and populated restore checks
+pass. Final signed-release customer/export acceptance and regional invoice rules
+remain open in `docs/specs/NEXT-009-production-readiness.md`; this entry is not a
+request to rebuild invoice authorization already covered by those checks.
 
 ### NEXT-002 — Board reference (active under Now)
 

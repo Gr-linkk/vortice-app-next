@@ -1,10 +1,12 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:vortice_app/core/constants.dart';
+import 'package:vortice_app/core/backend_config.dart';
 
 void main() {
   test('runtime backend settings use the supplied build configuration', () {
     const url = String.fromEnvironment('SUPABASE_URL');
     const key = String.fromEnvironment('SUPABASE_ANON_KEY');
+    if (url.isNotEmpty || key.isNotEmpty) validateBackendConfig(url, key);
     // Compare booleans so failures never print real build credentials.
     expect(
       AppConstants.supabaseUrl == url,

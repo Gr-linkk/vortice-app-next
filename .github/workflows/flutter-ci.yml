@@ -14,6 +14,18 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  database-contracts:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+      - name: Verify all database contracts and isolated restore
+        shell: bash
+        run: |
+          python3 scripts/test_operations_tools.py
+          bash scripts/test-database.sh --restore-drill
+
   work-hub-performance:
     runs-on: ubuntu-latest
     timeout-minutes: 10
