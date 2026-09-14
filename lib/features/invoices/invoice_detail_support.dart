@@ -27,11 +27,35 @@ bool canMarkInvoicePaidFromList({
   required InvoiceStatus status,
 }) => role == UserRole.owner && status == InvoiceStatus.sent;
 
-String formatInvoiceCurrency(double? value, {bool mxn = false}) {
-  if (value == null) return mxn ? '\$0.00 MXN' : '\$0.00 USD';
-  return mxn
-      ? '\$${value.toStringAsFixed(2)} MXN'
-      : '\$${value.toStringAsFixed(2)} USD';
+enum InvoiceCurrency { usd, mxn, cad }
+
+extension InvoiceCurrencyValues on InvoiceCurrency {
+  String get code => name.toUpperCase();
+  double? rate(Invoice invoice) => switch (this) {
+    InvoiceCurrency.usd => 1,
+    InvoiceCurrency.mxn => invoice.exchangeRate,
+    InvoiceCurrency.cad => invoice.cadExchangeRate,
+  };
+  double? total(Invoice invoice) => switch (this) {
+    InvoiceCurrency.usd => invoice.totalUsd,
+    InvoiceCurrency.mxn => invoice.totalMxn,
+    InvoiceCurrency.cad => invoice.totalCad,
+  };
+  String amount(double? usd, Invoice invoice) => formatInvoiceCurrency(
+    rate(invoice) == null ? null : (usd ?? 0) * rate(invoice)!,
+    currency: this,
+  );
+}
+
+String formatInvoiceCurrency(
+  double? value, {
+  bool mxn = false,
+  InvoiceCurrency? currency,
+}) {
+  final selected =
+      currency ?? (mxn ? InvoiceCurrency.mxn : InvoiceCurrency.usd);
+  if (value == null && currency != null) return '- ${selected.code}';
+  return '\$${(value ?? 0).toStringAsFixed(2)} ${selected.code}';
 }
 
 double convertInvoiceAmount(

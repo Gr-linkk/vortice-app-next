@@ -10,12 +10,12 @@ import 'package:vortice_app/models/invoice.dart';
 
 class InvoiceDetailLineItemsCard extends ConsumerWidget {
   final Invoice invoice;
-  final bool showMxn;
+  final InvoiceCurrency currency;
 
   const InvoiceDetailLineItemsCard({
     super.key,
     required this.invoice,
-    required this.showMxn,
+    required this.currency,
   });
 
   @override
@@ -54,18 +54,8 @@ class InvoiceDetailLineItemsCard extends ConsumerWidget {
           InvoiceDetailLineItemRow(
             label: l10n.labour,
             detail:
-                '${invoice.labourHours?.toStringAsFixed(1) ?? 0} hrs @ ${formatInvoiceCurrency(
-                  convertInvoiceAmount(invoice.billableRateUsd, showMxn: showMxn, exchangeRate: invoice.exchangeRate),
-                  mxn: showMxn,
-                )}/hr',
-            amount: formatInvoiceCurrency(
-              convertInvoiceAmount(
-                labourTotal,
-                showMxn: showMxn,
-                exchangeRate: invoice.exchangeRate,
-              ),
-              mxn: showMxn,
-            ),
+                '${invoice.labourHours?.toStringAsFixed(1) ?? 0} hrs @ ${currency.amount(invoice.billableRateUsd, invoice)}/hr',
+            amount: currency.amount(labourTotal, invoice),
           ),
           const SizedBox(height: 12),
           if (partLines.isNotEmpty) ...[
@@ -74,20 +64,15 @@ class InvoiceDetailLineItemsCard extends ConsumerWidget {
                 padding: const EdgeInsets.only(bottom: 12),
                 child: InvoiceDetailLineItemRow(
                   label: formatInvoicePartLineLabel(line),
-                  detail: formatInvoicePartLineDetail(
-                    line,
-                    spanish: isSpanish(context),
-                    exchangeRate: showMxn ? (invoice.exchangeRate ?? 1) : 1,
-                    currency: showMxn ? 'MXN' : 'USD',
-                  ),
-                  amount: formatInvoiceCurrency(
-                    convertInvoiceAmount(
-                      line.lineTotalUsd,
-                      showMxn: showMxn,
-                      exchangeRate: invoice.exchangeRate,
-                    ),
-                    mxn: showMxn,
-                  ),
+                  detail: currency.rate(invoice) == null
+                      ? null
+                      : formatInvoicePartLineDetail(
+                          line,
+                          spanish: isSpanish(context),
+                          exchangeRate: currency.rate(invoice) ?? 1,
+                          currency: currency.code,
+                        ),
+                  amount: currency.amount(line.lineTotalUsd, invoice),
                 ),
               ),
             ),
@@ -97,50 +82,25 @@ class InvoiceDetailLineItemsCard extends ConsumerWidget {
                 label: isSpanish(context)
                     ? 'Ajuste de piezas'
                     : 'Parts adjustment',
-                amount: formatInvoiceCurrency(
-                  convertInvoiceAmount(
-                    partsTotalUsd - sumInvoicePartLineTotals(partLines),
-                    showMxn: showMxn,
-                    exchangeRate: invoice.exchangeRate,
-                  ),
-                  mxn: showMxn,
+                amount: currency.amount(
+                  partsTotalUsd - sumInvoicePartLineTotals(partLines),
+                  invoice,
                 ),
               ),
             InvoiceDetailLineItemRow(
               label: l10n.partsWithMarkup,
-              amount: formatInvoiceCurrency(
-                convertInvoiceAmount(
-                  partsTotalUsd,
-                  showMxn: showMxn,
-                  exchangeRate: invoice.exchangeRate,
-                ),
-                mxn: showMxn,
-              ),
+              amount: currency.amount(partsTotalUsd, invoice),
               isSubtle: true,
             ),
           ] else
             InvoiceDetailLineItemRow(
               label: l10n.partsWithMarkup,
-              amount: formatInvoiceCurrency(
-                convertInvoiceAmount(
-                  invoice.partsTotalUsd,
-                  showMxn: showMxn,
-                  exchangeRate: invoice.exchangeRate,
-                ),
-                mxn: showMxn,
-              ),
+              amount: currency.amount(invoice.partsTotalUsd, invoice),
             ),
           const SizedBox(height: 12),
           InvoiceDetailLineItemRow(
             label: l10n.consumables,
-            amount: formatInvoiceCurrency(
-              convertInvoiceAmount(
-                invoice.consumablesTotalUsd,
-                showMxn: showMxn,
-                exchangeRate: invoice.exchangeRate,
-              ),
-              mxn: showMxn,
-            ),
+            amount: currency.amount(invoice.consumablesTotalUsd, invoice),
             isSubtle: true,
           ),
         ],
@@ -191,14 +151,17 @@ class InvoiceDetailLineItemRow extends StatelessWidget {
             ],
           ),
         ),
-        Text(
-          amount,
-          style: TextStyle(
-            color: isSubtle
-                ? context.appColors.textSecondary
-                : context.appColors.primary,
-            fontSize: 14,
-            fontWeight: FontWeight.w600,
+        Flexible(
+          child: Text(
+            amount,
+            textAlign: TextAlign.end,
+            style: TextStyle(
+              color: isSubtle
+                  ? context.appColors.textSecondary
+                  : context.appColors.primary,
+              fontSize: 14,
+              fontWeight: FontWeight.w600,
+            ),
           ),
         ),
       ],
@@ -246,6 +209,12 @@ class InvoiceDetailEditableLineItems extends StatelessWidget {
               fontWeight: FontWeight.w600,
               letterSpacing: 1,
             ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            isSpanish(context)
+                ? 'Importes ingresados en USD'
+                : 'Enter amounts in USD',
           ),
           const SizedBox(height: 16),
           Row(

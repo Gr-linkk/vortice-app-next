@@ -27,7 +27,7 @@ class InvoiceDetailScreen extends ConsumerStatefulWidget {
 }
 
 class _InvoiceDetailScreenState extends ConsumerState<InvoiceDetailScreen> {
-  bool _showMxn = false;
+  InvoiceCurrency _currency = InvoiceCurrency.usd;
   bool _isEditing = false;
   bool _isFileActionRunning = false;
 
@@ -309,9 +309,18 @@ class _InvoiceDetailScreenState extends ConsumerState<InvoiceDetailScreen> {
                 InvoiceDetailHeader(invoice: invoice),
                 const SizedBox(height: 16),
                 InvoiceDetailCurrencyToggle(
-                  showMxn: _showMxn,
-                  onChanged: (v) => setState(() => _showMxn = v),
+                  currency: _currency,
+                  onChanged: (v) => setState(() => _currency = v),
                 ),
+                if (_currency.rate(invoice) == null)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 8),
+                    child: Text(
+                      isSpanish(context)
+                          ? 'Esta factura no tiene un tipo de cambio ${_currency.code} guardado.'
+                          : 'This invoice has no saved ${_currency.code} exchange rate.',
+                    ),
+                  ),
                 const SizedBox(height: 16),
                 _isEditing
                     ? InvoiceDetailEditableLineItems(
@@ -323,10 +332,10 @@ class _InvoiceDetailScreenState extends ConsumerState<InvoiceDetailScreen> {
                       )
                     : InvoiceDetailLineItemsCard(
                         invoice: invoice,
-                        showMxn: _showMxn,
+                        currency: _currency,
                       ),
                 const SizedBox(height: 16),
-                InvoiceDetailSummaryCard(invoice: invoice, showMxn: _showMxn),
+                InvoiceDetailSummaryCard(invoice: invoice, currency: _currency),
                 const SizedBox(height: 24),
                 if (_isEditing) ...[
                   Row(

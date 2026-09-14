@@ -1,33 +1,34 @@
 import 'package:flutter/material.dart';
+import 'invoice_detail_support.dart';
 import 'package:vortice_app/core/theme.dart';
 
 class InvoiceDetailCurrencyToggle extends StatelessWidget {
-  final bool showMxn;
-  final ValueChanged<bool> onChanged;
+  final InvoiceCurrency currency;
+  final ValueChanged<InvoiceCurrency> onChanged;
 
   const InvoiceDetailCurrencyToggle({
     super.key,
-    required this.showMxn,
+    required this.currency,
     required this.onChanged,
   });
 
   @override
   Widget build(BuildContext context) {
-    return Row(
+    return Wrap(
+      spacing: 8,
+      runSpacing: 8,
       children: [
-        InvoiceDetailCurrencyButton(
-          label: 'USD',
-          flag: '\u{1F1FA}\u{1F1F8}',
-          selected: !showMxn,
-          onTap: () => onChanged(false),
-        ),
-        const SizedBox(width: 8),
-        InvoiceDetailCurrencyButton(
-          label: 'MXN',
-          flag: '\u{1F1F2}\u{1F1FD}',
-          selected: showMxn,
-          onTap: () => onChanged(true),
-        ),
+        for (final value in InvoiceCurrency.values)
+          InvoiceDetailCurrencyButton(
+            label: value.code,
+            flag: switch (value) {
+              InvoiceCurrency.usd => '🇺🇸',
+              InvoiceCurrency.mxn => '🇲🇽',
+              InvoiceCurrency.cad => '🇨🇦',
+            },
+            selected: currency == value,
+            onTap: () => onChanged(value),
+          ),
       ],
     );
   }

@@ -100,11 +100,12 @@ or encryption-root-key recovery is claimed.
 
 ## Product/commercial findings that affect the next decision
 
-1. Customer-job screens and PDF/XLSX exports use USD/MXN. The older invoice
+1. NEXT-010 adds saved CAD alongside USD/MXN to customer-job screens and
+   PDF/XLSX exports following Garrett's September 14 request. The older invoice
    service applies fixed IVA/consumables; the organization flow accepts explicit
    tax/charge inputs. Neither is a completed Canadian invoicing implementation.
    Subscription pricing is a different decision. Choose the initial region and
-   whether customer invoicing is in the pilot before changing tax/currency rules.
+   whether customer invoicing is in the pilot before changing tax rules. CAD currency support itself is implemented.
 2. Signature capture uses Syncfusion SignaturePad/core licensing. The generated
    inventory covers 156 resolved runtime-graph packages and 31 tracked assets,
    retaining package license texts and file hashes. Obtain applicable entitlement or select a replacement. The fork
@@ -139,7 +140,8 @@ NEXT-009, not a competing backlog. No production release is approved by this lis
 
 Latest previously delivered artifact: `INSTALL-Vortice-Next-Build-39.apk` in S24
 Downloads (see NEXT-008 for checksum). No newer APK is delivered by this source
-housekeeping. Record the installed version before testing; repeat release-specific
+housekeeping itself. The subsequent NEXT-010 request produces Build 40 in Windows
+Downloads; transfer and install it for CAD acceptance. Record the installed version before testing; repeat release-specific
 checks on the final signed candidate later. Preserve current app data/drafts.
 
 1. **Owner:** From equipment, create/schedule/assign work with a published
@@ -161,7 +163,8 @@ checks on the final signed candidate later. Preserve current app data/drafts.
    denial/re-enable and account switching. Server 'sent' is not this proof.
 7. **Customer:** If provider billing is selected, prove private drafts/notes stay
    hidden, approved evidence is visible, and the customer gets the same permitted
-   issued/void invoice/export. Do not treat the current USD/MXN output as CAD.
+   issued/void invoice/export. On Build 40, select CAD and verify the stored rate and
+   matching PDF/XLSX total; historical invoices without CAD should show it unavailable.
 8. **Usability:** Repeat the ordinary path with large text; check labels, scrolling,
    keyboard/system bars and the selected supported languages.
 

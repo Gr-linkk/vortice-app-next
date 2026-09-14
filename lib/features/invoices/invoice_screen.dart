@@ -303,6 +303,14 @@ class _InvoiceTile extends ConsumerWidget {
                 fontSize: 14,
               ),
             ),
+            if (invoice.totalCad != null)
+              Text(
+                '\$${invoice.totalCad!.toStringAsFixed(2)} CAD',
+                style: TextStyle(
+                  color: context.appColors.textSecondary,
+                  fontSize: 11,
+                ),
+              ),
             if (invoice.totalMxn != null)
               Text(
                 '\$${invoice.totalMxn!.toStringAsFixed(2)} MXN',

@@ -82,6 +82,25 @@ class InvoicePdfService {
       pw.MultiPage(
         pageFormat: PdfPageFormat.letter,
         margin: const pw.EdgeInsets.symmetric(horizontal: 48, vertical: 40),
+        footer: (_) => pw.Column(
+          children: [
+            pw.Divider(color: _borderGrey),
+            pw.SizedBox(height: 6),
+            pw.Row(
+              mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+              children: [
+                pw.Text(
+                  'Vortice Mechanical — Puerto Vallarta, Jalisco, Mexico',
+                  style: const pw.TextStyle(color: _midGrey, fontSize: 8),
+                ),
+                pw.Text(
+                  invoice.invoiceNumber,
+                  style: const pw.TextStyle(color: _midGrey, fontSize: 8),
+                ),
+              ],
+            ),
+          ],
+        ),
         build: (context) =>
             _buildPage(invoice, exportContext: exportContext, spanish: spanish),
       ),
@@ -289,7 +308,7 @@ class InvoicePdfService {
                 _totalRow('Subtotal', '\$${subtotal.toStringAsFixed(2)} USD'),
                 pw.SizedBox(height: 4),
                 _totalRow(
-                  'IVA (${invoice.ivaPct.toStringAsFixed(0)}%)',
+                  '${spanish ? 'Impuesto' : 'Tax'} (${invoice.ivaPct}%)',
                   '\$${iva.toStringAsFixed(2)} USD',
                 ),
                 pw.Divider(color: _borderGrey, height: 14),
@@ -305,6 +324,24 @@ class InvoicePdfService {
                   '\$${totalMxn.toStringAsFixed(2)}',
                   bold: true,
                   color: _accent,
+                ),
+                pw.SizedBox(height: 4),
+                _totalRow(
+                  (spanish ? 'Total (CAD)' : 'Total Due (CAD)'),
+                  invoice.totalCad == null
+                      ? '-'
+                      : '\$${invoice.totalCad!.toStringAsFixed(2)}',
+                  bold: true,
+                  color: _accent,
+                ),
+                pw.SizedBox(height: 6),
+                pw.Text(
+                  invoice.cadExchangeRate == null
+                      ? (spanish
+                            ? 'CAD: sin tipo de cambio guardado'
+                            : 'CAD: no saved exchange rate')
+                      : '1 USD = ${invoice.cadExchangeRate!.toStringAsFixed(6)} CAD',
+                  style: const pw.TextStyle(color: _midGrey, fontSize: 8),
                 ),
                 pw.SizedBox(height: 6),
                 pw.Text(
@@ -335,23 +372,6 @@ class InvoicePdfService {
           ),
         ),
       ],
-
-      // ── Footer ──────────────────────────────────────────────────
-      pw.Divider(color: _borderGrey),
-      pw.SizedBox(height: 6),
-      pw.Row(
-        mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
-        children: [
-          pw.Text(
-            'Vortice Mechanical — Puerto Vallarta, Jalisco, Mexico',
-            style: const pw.TextStyle(color: _midGrey, fontSize: 8),
-          ),
-          pw.Text(
-            invoice.invoiceNumber,
-            style: const pw.TextStyle(color: _midGrey, fontSize: 8),
-          ),
-        ],
-      ),
     ];
   }
 

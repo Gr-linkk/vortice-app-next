@@ -20,8 +20,13 @@ customer operating material before expanding features. Its specification
 consolidates remaining acceptance and Garrett's decisions. The company-purpose
 model in decision 0018 and Field Notes design remain authoritative. Subscription
 prices discussed on September 14 are hypotheses, not accepted product tiers.
-Build 39 below is the current internal app delivery; housekeeping does not
-constitute a production release.
+The requested NEXT-010 follow-up adds CAD alongside USD/MXN in internal Build 40
+(`1.19.0+40`). Currency support preserves existing tax settings; it does not
+complete regional tax/issuer setup. Scope and evidence:
+`docs/specs/NEXT-010-canadian-currency.md`. Naming proposals are in
+`docs/operations/PRODUCT-NAME-SHORTLIST.md`; domain selection remains deferred.
+Build 39 remains the last phone-delivered artifact until Build 40 is transferred.
+These internal builds do not constitute a production release.
 
 NEXT-008 adds published-checklist attachment and an editable scheduled date to
 the customer work-order creation page in internal Build 39 (`1.18.1+39`). The

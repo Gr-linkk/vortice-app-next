@@ -1,3 +1,4 @@
+import 'package:vortice_app/core/invoice_service.dart';
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -225,6 +226,8 @@ class _OrganizationProviderWorkPanelState
   }
 
   Future<void> _invoice() async {
+    final rates = await InvoiceService.fetchExchangeRateResult();
+    if (!mounted) return;
     final values = await _fields(
       _t('Customer charges', 'Cargos al cliente'),
       [
@@ -241,7 +244,18 @@ class _OrganizationProviderWorkPanelState
           true,
         ),
         ('tax_percent', _t('Tax (%)', 'Impuesto (%)'), '0', true),
-        ('exchange_rate', _t('MXN per USD', 'MXN por USD'), '1', true),
+        (
+          'exchange_rate',
+          _t('MXN per USD', 'MXN por USD'),
+          rates.isFallback ? '' : rates.rate.toString(),
+          true,
+        ),
+        (
+          'cad_exchange_rate',
+          _t('CAD per USD', 'CAD por USD'),
+          rates.cadRate?.toString() ?? '',
+          true,
+        ),
       ],
       _t('Generate invoice draft', 'Generar borrador de factura'),
     );
@@ -580,7 +594,7 @@ class _OrganizationProviderWorkPanelState
                       style: Theme.of(context).textTheme.titleLarge,
                     ),
                     Text(
-                      '${invoice['total_usd']} USD · ${invoice['total_mxn']} MXN',
+                      '${invoice['total_usd']} USD · ${invoice['total_mxn']} MXN · ${invoice['total_cad'] ?? '-'} CAD',
                     ),
                     Text(
                       invoice['status'] == 'draft'
@@ -640,6 +654,24 @@ class _ProviderWorkFieldsSheet extends StatefulWidget {
 }
 
 class _ProviderWorkFieldsSheetState extends State<_ProviderWorkFieldsSheet> {
+  Set<String> _invalidRates = {};
+  void _submit() {
+    final invalid = <String>{};
+    for (final key in ['exchange_rate', 'cad_exchange_rate']) {
+      if (!controllers.containsKey(key)) continue;
+      final rate = double.tryParse(controllers[key]!.text.trim());
+      if (rate == null || !rate.isFinite || rate <= 0 || rate >= 1000000) {
+        invalid.add(key);
+      }
+    }
+    setState(() => _invalidRates = invalid);
+    if (invalid.isNotEmpty) return;
+    Navigator.pop(context, {
+      for (final entry in controllers.entries)
+        entry.key: entry.value.text.trim(),
+    });
+  }
+
   late final controllers = {
     for (final f in widget.fields) f.$1: TextEditingController(text: f.$3),
   };
@@ -676,16 +708,17 @@ class _ProviderWorkFieldsSheetState extends State<_ProviderWorkFieldsSheet> {
                     ? const TextInputType.numberWithOptions(decimal: true)
                     : TextInputType.multiline,
                 maxLines: f.$4 ? 1 : 3,
-                decoration: InputDecoration(labelText: f.$2),
+                decoration: InputDecoration(
+                  labelText: f.$2,
+                  errorText: _invalidRates.contains(f.$1)
+                      ? (isSpanish(context)
+                            ? 'Ingresa un tipo de cambio positivo.'
+                            : 'Enter a positive exchange rate.')
+                      : null,
+                ),
               ),
             ),
-          FilledButton(
-            onPressed: () => Navigator.pop(context, {
-              for (final entry in controllers.entries)
-                entry.key: entry.value.text.trim(),
-            }),
-            child: Text(widget.action),
-          ),
+          FilledButton(onPressed: _submit, child: Text(widget.action)),
         ],
       ),
     ),

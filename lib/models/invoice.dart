@@ -38,6 +38,8 @@ abstract class Invoice with _$Invoice {
     @JsonKey(name: 'total_usd') double? totalUsd,
     @JsonKey(name: 'exchange_rate') double? exchangeRate,
     @JsonKey(name: 'total_mxn') double? totalMxn,
+    @JsonKey(name: 'cad_exchange_rate') double? cadExchangeRate,
+    @JsonKey(name: 'total_cad') double? totalCad,
     @JsonKey(name: 'export_snapshot') Map<String, dynamic>? exportSnapshot,
     @JsonKey(name: 'void_reason') String? voidReason,
     String? notes,

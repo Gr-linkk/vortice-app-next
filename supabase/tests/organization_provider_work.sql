@@ -79,8 +79,12 @@ select public.post_coordination_message('b0190000-0000-4000-8000-000000000052','
 select pg_temp.assert_true(jsonb_array_length(public.coordination_thread('job','b0190000-0000-4000-8000-000000000030')->'posts')=2,'customer reads own team and shared messages');
 select set_config('request.jwt.claim.sub','b0190000-0000-4000-8000-000000000001',true);
 select pg_temp.assert_true(jsonb_array_length(public.coordination_thread('job','b0190000-0000-4000-8000-000000000030')->'posts')=2,'provider cannot read customer private team discussion');
-insert into fixture values('invoice',public.organization_invoice_action('b0190000-0000-4000-8000-000000000030','generate','{"billable_rate":100,"parts_total":50,"exchange_rate":1,"tax_percent":0}')::text);
+insert into fixture values('invoice',public.organization_invoice_action('b0190000-0000-4000-8000-000000000030','generate','{"billable_rate":100,"parts_total":50,"exchange_rate":17.5,"cad_exchange_rate":1.375,"tax_percent":0}')::text);
 select pg_temp.assert_true(public.organization_work_order_context('b0190000-0000-4000-8000-000000000030')->'invoice'->>'total_usd'='250.00','existing invoice calculation uses explicit customer charges');
+select pg_temp.assert_true(public.organization_work_order_context('b0190000-0000-4000-8000-000000000030')->'invoice'->>'total_cad'='343.75','organization invoice includes CAD');
+select public.organization_invoice_action('b0190000-0000-4000-8000-000000000030','generate','{"cad_exchange_rate":2}');
+select pg_temp.assert_true(public.organization_work_order_context('b0190000-0000-4000-8000-000000000030')->'invoice'->>'total_cad'='343.75','organization retry preserves CAD');
+select pg_temp.expect_error($q$select public.generate_provider_invoice('b0190000-0000-4000-8000-000000000030',17.5,1.375)$q$,'Use organization billing');
 select public.organization_invoice_action('b0190000-0000-4000-8000-000000000030','sent');
 select set_config('request.jwt.claim.sub','b0190000-0000-4000-8000-000000000002',true);
 select pg_temp.assert_true(public.organization_work_order_context('b0190000-0000-4000-8000-000000000030')->'invoice'->>'status'='sent','customer Billing permission sees issued invoice');

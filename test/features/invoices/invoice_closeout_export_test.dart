@@ -29,6 +29,8 @@ void main() {
         totalUsd: 1272.52,
         exchangeRate: 17.5,
         totalMxn: 22269.1,
+        cadExchangeRate: 1.375,
+        totalCad: 1749.72,
         createdAt: DateTime(2026, 9, 6),
         sentAt: DateTime(2026, 9, 7),
       );
@@ -69,6 +71,9 @@ void main() {
           contains(spanish ? 'Ajuste de piezas' : 'Parts adjustment'),
         );
         expect(cells, contains(spanish ? 'EMITIDA' : 'ISSUED'));
+        expect(cells, contains(spanish ? 'Importe (CAD)' : 'Amount (CAD)'));
+        expect(cells, contains('1749.72'));
+        expect(cells, contains('1 USD = 1.375000 CAD'));
         final out = Platform.environment['VORTICE_INVOICE_CAPTURE'];
         if (out != null) {
           await Directory(out).create(recursive: true);

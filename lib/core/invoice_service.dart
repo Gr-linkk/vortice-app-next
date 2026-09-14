@@ -14,16 +14,17 @@ class InvoiceService {
   static const double _ivaPct = 0.16; // 16% IVA
   static const double fallbackExchangeRate = 17.50;
 
-  /// Fetches the current USD to MXN exchange rate from exchangerate-api.com
-  static Future<ExchangeRateResult> fetchExchangeRateResult() async {
+  /// Fetches MXN and CAD per USD from the same rate response.
+  static Future<ExchangeRateResult> fetchExchangeRateResult({
+    http.Client? client,
+  }) async {
     try {
-      final response = await http
-          .get(Uri.parse('https://api.exchangerate-api.com/v4/latest/USD'))
+      final uri = Uri.parse('https://api.exchangerate-api.com/v4/latest/USD');
+      final response = await (client == null ? http.get(uri) : client.get(uri))
           .timeout(const Duration(seconds: 8));
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body) as Map<String, dynamic>;
-        final rates = data['rates'] as Map<String, dynamic>;
-        return ExchangeRateResult.live((rates['MXN'] as num).toDouble());
+        return ExchangeRateResult.fromResponse(data);
       }
     } catch (_) {
       // Fallback to a reasonable default if API fails
@@ -133,7 +134,8 @@ class InvoiceService {
     final totalUsd = subtotal + ivaTotal;
 
     // Exchange rate
-    final exchangeRate = await fetchExchangeRate();
+    final rates = await fetchExchangeRateResult();
+    final exchangeRate = rates.rate;
     final totalMxn = totalUsd * exchangeRate;
 
     return InvoiceCalculation(
@@ -152,6 +154,8 @@ class InvoiceService {
       totalUsd: totalUsd,
       exchangeRate: exchangeRate,
       totalMxn: totalMxn,
+      cadExchangeRate: rates.cadRate,
+      totalCad: rates.cadRate == null ? null : totalUsd * rates.cadRate!,
       parts: parts,
     );
   }
@@ -169,6 +173,7 @@ class InvoiceService {
           params: {
             'p_work_order': workOrderId,
             'p_exchange_rate': exchangeRate.rate,
+            'p_cad_exchange_rate': exchangeRate.cadRate,
           },
         )
         as String;
@@ -200,23 +205,9 @@ class InvoiceService {
         .eq('id', invoiceId)
         .single();
 
-    final currentLabourTotal =
-        labourTotal ?? invoiceData['labour_total_usd'] as double?;
-    final currentPartsTotal =
-        partsTotal ?? invoiceData['parts_total_usd'] as double?;
-    final currentConsumablesTotal =
-        consumablesTotal ?? invoiceData['consumables_total_usd'] as double?;
-
-    final subtotal =
-        (currentLabourTotal ?? 0) +
-        (currentPartsTotal ?? 0) +
-        (currentConsumablesTotal ?? 0);
-    final ivaTotal = subtotal * _ivaPct;
-    final totalUsd = subtotal + ivaTotal;
-
-    final exchangeRate =
-        invoiceData['exchange_rate'] as double? ?? await fetchExchangeRate();
-    final totalMxn = totalUsd * exchangeRate;
+    if (invoiceData['status'] != 'draft') {
+      throw StateError('Issued invoices are frozen.');
+    }
 
     await supabase
         .from(AppConstants.tInvoices)
@@ -227,10 +218,6 @@ class InvoiceService {
           if (partsTotal != null) 'parts_total_usd': partsTotal,
           if (consumablesTotal != null)
             'consumables_total_usd': consumablesTotal,
-          'subtotal_usd': subtotal,
-          'iva_total_usd': ivaTotal,
-          'total_usd': totalUsd,
-          'total_mxn': totalMxn,
           if (notes != null) 'notes': notes,
           'updated_at': DateTime.now().toIso8601String(),
         })
@@ -247,20 +234,11 @@ class InvoiceService {
         'Live exchange rate unavailable. Try again when connected.',
       );
     }
-    final invoiceData = await supabase
-        .from(AppConstants.tInvoices)
-        .select('total_usd')
-        .eq('id', invoiceId)
-        .single();
-
-    final totalUsd = invoiceData['total_usd'] as double? ?? 0;
-    final totalMxn = totalUsd * exchangeRate.rate;
-
     await supabase
         .from(AppConstants.tInvoices)
         .update({
           'exchange_rate': exchangeRate.rate,
-          'total_mxn': totalMxn,
+          'cad_exchange_rate': exchangeRate.cadRate,
           'updated_at': DateTime.now().toIso8601String(),
         })
         .eq('id', invoiceId);
@@ -272,11 +250,30 @@ class InvoiceService {
 class ExchangeRateResult {
   final double rate;
   final bool isFallback;
+  final double? cadRate;
 
-  const ExchangeRateResult._({required this.rate, required this.isFallback});
+  const ExchangeRateResult._({
+    required this.rate,
+    required this.isFallback,
+    this.cadRate,
+  });
 
-  const ExchangeRateResult.live(double rate)
-    : this._(rate: rate, isFallback: false);
+  const ExchangeRateResult.live(double rate, {double? cadRate})
+    : this._(rate: rate, isFallback: false, cadRate: cadRate);
+
+  factory ExchangeRateResult.fromResponse(Map<String, dynamic> data) {
+    if (data['base'] != 'USD') throw const FormatException('USD base required');
+    final rates = data['rates'] as Map<String, dynamic>;
+    double validated(String code) {
+      final value = (rates[code] as num).toDouble();
+      if (!value.isFinite || value <= 0 || value >= 1000000) {
+        throw FormatException('Invalid $code exchange rate');
+      }
+      return double.parse(value.toStringAsFixed(code == 'CAD' ? 6 : 4));
+    }
+
+    return ExchangeRateResult.live(validated('MXN'), cadRate: validated('CAD'));
+  }
 
   const ExchangeRateResult.fallback(double rate)
     : this._(rate: rate, isFallback: true);
@@ -299,6 +296,8 @@ class InvoiceCalculation {
   final double totalUsd;
   final double exchangeRate;
   final double totalMxn;
+  final double? cadExchangeRate;
+  final double? totalCad;
   final List<Part> parts;
 
   const InvoiceCalculation({
@@ -317,6 +316,8 @@ class InvoiceCalculation {
     required this.totalUsd,
     required this.exchangeRate,
     required this.totalMxn,
+    this.cadExchangeRate,
+    this.totalCad,
     required this.parts,
   });
 }

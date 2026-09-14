@@ -7,6 +7,13 @@ without creating a new backlog item.
 
 ## Now
 
+### NEXT-010 — Canadian dollar support
+
+Garrett requested CAD alongside USD and MXN on September 14, 2026. Preserve
+USD accounting, stored exchange rates, issued history and current tax settings.
+Scope and verification: `docs/specs/NEXT-010-canadian-currency.md`.
+Naming is a proposal; domain selection is deferred until Garrett is home.
+
 ### NEXT-009 — Production-readiness housekeeping
 
 Garrett authorized autonomous housekeeping on September 14, 2026, followed by

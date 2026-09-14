@@ -1,17 +1,19 @@
+import 'package:vortice_app/features/invoices/invoice_detail_support.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:vortice_app/features/invoices/invoice_detail_currency_toggle.dart';
 
 void main() {
-  testWidgets('InvoiceDetailCurrencyToggle calls onChanged for USD and MXN',
-      (tester) async {
-    bool? lastValue;
+  testWidgets('InvoiceDetailCurrencyToggle calls onChanged for USD and MXN', (
+    tester,
+  ) async {
+    InvoiceCurrency? lastValue;
 
     await tester.pumpWidget(
       MaterialApp(
         home: Scaffold(
           body: InvoiceDetailCurrencyToggle(
-            showMxn: false,
+            currency: InvoiceCurrency.usd,
             onChanged: (value) => lastValue = value,
           ),
         ),
@@ -23,10 +25,13 @@ void main() {
 
     await tester.tap(find.textContaining('MXN'));
     await tester.pumpAndSettle();
-    expect(lastValue, isTrue);
+    expect(lastValue, InvoiceCurrency.mxn);
 
     await tester.tap(find.textContaining('USD'));
     await tester.pumpAndSettle();
-    expect(lastValue, isFalse);
+    expect(lastValue, InvoiceCurrency.usd);
+    await tester.tap(find.textContaining('CAD'));
+    await tester.pumpAndSettle();
+    expect(lastValue, InvoiceCurrency.cad);
   });
 }

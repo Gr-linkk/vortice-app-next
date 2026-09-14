@@ -6,12 +6,12 @@ import 'package:vortice_app/models/invoice.dart';
 
 class InvoiceDetailSummaryCard extends StatelessWidget {
   final Invoice invoice;
-  final bool showMxn;
+  final InvoiceCurrency currency;
 
   const InvoiceDetailSummaryCard({
     super.key,
     required this.invoice,
-    required this.showMxn,
+    required this.currency,
   });
 
   @override
@@ -31,56 +31,47 @@ class InvoiceDetailSummaryCard extends StatelessWidget {
         children: [
           InvoiceDetailSummaryRow(
             label: l10n.subtotal,
-            value: formatInvoiceCurrency(
-              convertInvoiceAmount(
-                invoice.subtotalUsd,
-                showMxn: showMxn,
-                exchangeRate: invoice.exchangeRate,
-              ),
-              mxn: showMxn,
-            ),
+            value: currency.amount(invoice.subtotalUsd, invoice),
           ),
           InvoiceDetailSummaryRow(
-            label: 'IVA (${invoice.ivaPct.toStringAsFixed(0)}%)',
-            value: formatInvoiceCurrency(
-              convertInvoiceAmount(
-                invoice.ivaTotalUsd,
-                showMxn: showMxn,
-                exchangeRate: invoice.exchangeRate,
-              ),
-              mxn: showMxn,
-            ),
+            label:
+                '${Localizations.localeOf(context).languageCode == 'es' ? 'Impuesto' : 'Tax'} (${invoice.ivaPct}%)',
+            value: currency.amount(invoice.ivaTotalUsd, invoice),
           ),
           Divider(color: context.appColors.divider, height: 24),
           InvoiceDetailSummaryRow(
             label: l10n.totalDue,
-            value: showMxn
-                ? formatInvoiceCurrency(invoice.totalMxn, mxn: true)
-                : formatInvoiceCurrency(invoice.totalUsd, mxn: false),
+            value: formatInvoiceCurrency(
+              currency.total(invoice),
+              currency: currency,
+            ),
             isGrand: true,
           ),
-          if (!showMxn && invoice.totalMxn != null)
+          for (final other in InvoiceCurrency.values.where(
+            (v) => v != currency && v.total(invoice) != null,
+          ))
             Padding(
               padding: const EdgeInsets.only(top: 8),
               child: Text(
-                '(${formatInvoiceCurrency(invoice.totalMxn, mxn: true)})',
+                formatInvoiceCurrency(other.total(invoice), currency: other),
                 style: TextStyle(
                   color: context.appColors.textSecondary,
                   fontSize: 12,
                 ),
               ),
             ),
-          if (invoice.exchangeRate != null)
-            Padding(
-              padding: const EdgeInsets.only(top: 8),
-              child: Text(
-                '${l10n.exchangeRate}: 1 USD = ${invoice.exchangeRate!.toStringAsFixed(4)} MXN',
-                style: TextStyle(
-                  color: context.appColors.textSecondary,
-                  fontSize: 11,
+          for (final other in [InvoiceCurrency.mxn, InvoiceCurrency.cad])
+            if (other.rate(invoice) != null)
+              Padding(
+                padding: const EdgeInsets.only(top: 8),
+                child: Text(
+                  '${l10n.exchangeRate}: 1 USD = ${other.rate(invoice)!.toStringAsFixed(other == InvoiceCurrency.cad ? 6 : 4)} ${other.code}',
+                  style: TextStyle(
+                    color: context.appColors.textSecondary,
+                    fontSize: 11,
+                  ),
                 ),
               ),
-            ),
         ],
       ),
     );
@@ -103,8 +94,10 @@ class InvoiceDetailSummaryRow extends StatelessWidget {
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 6),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      child: Wrap(
+        alignment: WrapAlignment.spaceBetween,
+        spacing: 12,
+        runSpacing: 4,
         children: [
           Text(
             label,

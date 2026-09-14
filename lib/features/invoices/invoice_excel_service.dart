@@ -225,6 +225,7 @@ class InvoiceExcelService {
       (spanish ? 'Detalle' : 'Detail'),
       (spanish ? 'Importe (USD)' : 'Amount (USD)'),
       (spanish ? 'Importe (MXN)' : 'Amount (MXN)'),
+      (spanish ? 'Importe (CAD)' : 'Amount (CAD)'),
     ];
     for (var i = 0; i < colHeaders.length; i++) {
       final cell = sheet.cell(
@@ -277,6 +278,15 @@ class InvoiceExcelService {
               .cell(CellIndex.indexByColumnRow(columnIndex: 3, rowIndex: row))
               .cellStyle =
           currencyStyle;
+      final cadCell = sheet.cell(
+        CellIndex.indexByColumnRow(columnIndex: 4, rowIndex: row),
+      );
+      cadCell.value = invoice.cadExchangeRate == null
+          ? TextCellValue('-')
+          : DoubleCellValue(
+              double.parse((usd * invoice.cadExchangeRate!).toStringAsFixed(2)),
+            );
+      cadCell.cellStyle = currencyStyle;
       row++;
     }
 
@@ -363,12 +373,21 @@ class InvoiceExcelService {
           .cellStyle = isTotal
           ? totalStyle
           : currencyStyle;
+      final cadCell = sheet.cell(
+        CellIndex.indexByColumnRow(columnIndex: 4, rowIndex: row),
+      );
+      cadCell.value = invoice.cadExchangeRate == null
+          ? TextCellValue('-')
+          : DoubleCellValue(
+              double.parse((usd * invoice.cadExchangeRate!).toStringAsFixed(2)),
+            );
+      cadCell.cellStyle = currencyStyle;
       row++;
     }
 
     addSummaryRow('Subtotal', invoice.subtotalUsd ?? 0);
     addSummaryRow(
-      'IVA (${invoice.ivaPct.toStringAsFixed(0)}%)',
+      '${spanish ? 'Impuesto' : 'Tax'} (${invoice.ivaPct}%)',
       invoice.ivaTotalUsd ?? 0,
     );
 
@@ -398,12 +417,19 @@ class InvoiceExcelService {
     sheet
         .cell(CellIndex.indexByColumnRow(columnIndex: 3, rowIndex: row))
         .value = DoubleCellValue(
-      (invoice.totalUsd ?? 0) * rate,
+      invoice.totalMxn ?? 0,
     );
     sheet
             .cell(CellIndex.indexByColumnRow(columnIndex: 3, rowIndex: row))
             .cellStyle =
         totalStyle;
+    final cadTotal = sheet.cell(
+      CellIndex.indexByColumnRow(columnIndex: 4, rowIndex: row),
+    );
+    cadTotal.value = invoice.totalCad == null
+        ? TextCellValue('-')
+        : DoubleCellValue(invoice.totalCad!);
+    cadTotal.cellStyle = totalStyle;
     row++;
 
     row += 2;
@@ -419,6 +445,17 @@ class InvoiceExcelService {
             .cellStyle =
         exchangeRateStyle;
 
+    row++;
+    sheet.cell(CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: row))
+      ..value = TextCellValue(
+        invoice.cadExchangeRate == null
+            ? (spanish
+                  ? 'CAD: sin tipo de cambio guardado'
+                  : 'CAD: no saved exchange rate')
+            : '1 USD = ${invoice.cadExchangeRate!.toStringAsFixed(6)} CAD',
+      )
+      ..cellStyle = exchangeRateStyle;
+    sheet.setColumnWidth(4, 18);
     // Set column widths
     sheet.setColumnWidth(0, 25);
     sheet.setColumnWidth(1, 35);
