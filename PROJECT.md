@@ -14,6 +14,16 @@ parts, and invoices.
 
 ## Current direction
 
+September 24 direction: prepare an Android Google Play launch for Canadian
+general-construction companies; pursue iOS after the Android release. Fleet
+owners retain their own-equipment workflows without needing customer invoicing.
+Service providers and companies using Both may invoice customer work with
+separate Billing permission. The first province, production identity, domain,
+signer, pilot company and commercial terms remain unselected. NEXT-011 owns
+Canadian money and invoicing; NEXT-012 owns Google Play preparation. Continue
+to use only the independent Next repository and services authorized in
+`AGENTS.md`.
+
 NEXT-009 is the current production-readiness closeout. Finish the existing
 workflows, release safeguards, access verification, recovery preparation and
 customer operating material before expanding features. Its specification

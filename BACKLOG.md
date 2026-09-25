@@ -7,6 +7,26 @@ without creating a new backlog item.
 
 ## Now
 
+### NEXT-012 — Prepare the independent Android app for Google Play
+
+Garrett selected an Android Google Play launch on September 24, 2026. iOS is a
+near-term follow-up, not part of the first release. Prepare the independent
+repository, production identity, signing, Play disclosures, account deletion,
+delivery channels, recovery and phone acceptance without publishing an
+unreviewed release. The current Linux source checkout is
+`/home/garrett/projects/vortice-app-next`; the Documents copy is reference-only.
+Scope and gates: `docs/specs/NEXT-012-google-play-readiness.md`.
+
+### NEXT-011 — Canadian company money and provider invoicing
+
+The first target is a general construction company in Canada. Fleet owners use
+their own-equipment maintenance without customer invoicing; Service provider and
+Both retain customer invoicing with explicit Billing permission. Make new
+Canadian company costs and charges honestly CAD, preserve historical USD/MXN
+invoices, and require an explicit, reviewed province and tax treatment before a
+Canadian invoice can be issued. No first province or pilot company is selected.
+Scope and acceptance: `docs/specs/NEXT-011-canadian-billing.md`.
+
 ### NEXT-010 — Canadian dollar support
 
 Garrett requested CAD alongside USD and MXN on September 14, 2026. Preserve
