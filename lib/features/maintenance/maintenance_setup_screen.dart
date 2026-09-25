@@ -1,4 +1,5 @@
 import 'package:vortice_app/core/meter_units.dart';
+import 'package:vortice_app/core/localized_text.dart';
 import 'maintenance_recurrence_fields.dart';
 import 'package:vortice_app/core/app_dropdown_field.dart';
 import 'package:vortice_app/features/assurance/assurance_repository.dart';
@@ -360,7 +361,10 @@ class _MaintenanceSetupScreenState
                   ], 'name'),
                   select('meter_unit', 'Meter unit', 'Unidad del medidor', [
                     for (final unit in meterUnits)
-                      {'id': unit, 'name': meterName(unit, es)},
+                      {
+                        'id': unit,
+                        'name': meterName(unit, es, french: isFrench(context)),
+                      },
                   ], 'name'),
                   field(
                     'current_hours',
@@ -385,12 +389,23 @@ class _MaintenanceSetupScreenState
                 ),
                 if (widget.reviewedSave == null)
                   select('recurrence_basis', 'Schedule by', 'Programar por', [
-                    {'id': 'hours', 'name': meterName(_meterUnit, es)},
+                    {
+                      'id': 'hours',
+                      'name': meterName(
+                        _meterUnit,
+                        es,
+                        french: isFrench(context),
+                      ),
+                    },
                     {'id': 'calendar', 'name': es ? 'Calendario' : 'Calendar'},
                     {
                       'id': 'both',
                       'name':
-                          '${meterName(_meterUnit, es)} ${es ? 'o calendario' : 'or calendar'}',
+                          '${meterName(_meterUnit, es, french: isFrench(context))} ${es
+                              ? 'o calendario'
+                              : isFrench(context)
+                              ? 'ou par calendrier'
+                              : 'or calendar'}',
                     },
                   ], 'name'),
                 if (_values['recurrence_basis'] != 'calendar')

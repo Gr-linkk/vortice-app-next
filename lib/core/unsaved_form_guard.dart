@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:vortice_app/core/user_feedback.dart';
+import 'package:vortice_app/core/localized_text.dart';
 
 class FormBackButton extends StatelessWidget {
   const FormBackButton({super.key, required this.fallbackRoute});
@@ -44,24 +44,42 @@ class _UnsavedFormGuardState extends State<UnsavedFormGuard> {
       onPopInvokedWithResult: (didPop, result) async {
         if (didPop || _asking || widget.busy) return;
         _asking = true;
-        final es = isSpanish(context);
         final discard = await showDialog<bool>(
           context: context,
           builder: (ctx) => AlertDialog(
-            title: Text(es ? '¿Descartar cambios?' : 'Discard changes?'),
+            title: Text(
+              localizedText(
+                context,
+                'Discard changes?',
+                '¿Descartar cambios?',
+                'Abandonner les modifications ?',
+              ),
+            ),
             content: Text(
-              es
-                  ? 'Todavía no se han enviado. Puedes seguir editando.'
-                  : 'Your changes have not been sent. You can keep editing.',
+              localizedText(
+                context,
+                'Your changes have not been sent. You can keep editing.',
+                'Todavía no se han enviado. Puedes seguir editando.',
+                'Vos modifications n’ont pas été envoyées. Vous pouvez continuer à les modifier.',
+              ),
             ),
             actions: [
               TextButton(
                 onPressed: () => Navigator.pop(ctx, false),
-                child: Text(es ? 'Seguir editando' : 'Keep editing'),
+                child: Text(
+                  localizedText(
+                    context,
+                    'Keep editing',
+                    'Seguir editando',
+                    'Continuer à modifier',
+                  ),
+                ),
               ),
               FilledButton(
                 onPressed: () => Navigator.pop(ctx, true),
-                child: Text(es ? 'Descartar' : 'Discard'),
+                child: Text(
+                  localizedText(context, 'Discard', 'Descartar', 'Abandonner'),
+                ),
               ),
             ],
           ),

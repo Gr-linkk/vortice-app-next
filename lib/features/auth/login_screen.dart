@@ -6,6 +6,7 @@ import 'package:vortice_app/l10n/app_localizations.dart';
 import 'package:vortice_app/core/theme.dart';
 import 'package:vortice_app/features/auth/auth_provider.dart';
 import 'package:vortice_app/features/auth/dev_login_switch.dart';
+import 'package:vortice_app/core/language_picker.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
@@ -250,13 +251,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       child: Consumer(
                         builder: (context, ref, _) {
                           final locale = ref.watch(localeProvider);
-                          final isEn = locale.languageCode == 'en';
                           return TextButton.icon(
                             icon: const Icon(Icons.language, size: 16),
-                            label: Text(isEn ? 'Español' : 'English'),
-                            onPressed: () => ref
-                                .read(localeProvider.notifier)
-                                .setLocale(Locale(isEn ? 'es' : 'en')),
+                            label: Text(languageName(locale)),
+                            onPressed: () => showLanguagePicker(context, ref),
                           );
                         },
                       ),

@@ -403,25 +403,35 @@ class OperationsChecklistValidationException implements Exception {
 
   final String reason;
 
-  String message(bool es) => switch (reason) {
+  String message(bool es, {bool french = false}) => switch (reason) {
     'issue_message' =>
-      es
+      french
+          ? 'Décrivez le problème pour chaque lecture signalée.'
+          : es
           ? 'Describe el problema de cada lectura marcada.'
           : 'Describe the issue for each flagged reading.',
     'photos' =>
-      es
+      french
+          ? 'Ajoutez les photos requises avant l’enregistrement. Votre brouillon est conservé.'
+          : es
           ? 'Añade las fotos requeridas antes de guardar. El borrador se conserva.'
           : 'Add the required photos before saving. Your draft is retained.',
     'notes' =>
-      es
+      french
+          ? 'Ajoutez une note à chaque élément à surveiller ou à corriger.'
+          : es
           ? 'Agrega una nota a los elementos de seguimiento o acción.'
           : 'Add a note to each Monitor or Action item.',
     'hours' =>
-      es
+      french
+          ? 'Saisissez un nombre d’heures valide égal ou supérieur à zéro.'
+          : es
           ? 'Ingresa horas válidas, iguales o mayores que cero.'
           : 'Enter valid hours of zero or more.',
     _ =>
-      es
+      french
+          ? 'Répondez à chaque élément avant de terminer l’inspection.'
+          : es
           ? 'Responde todos los elementos antes de completar la lista.'
           : 'Answer every item before completing the checklist.',
   };

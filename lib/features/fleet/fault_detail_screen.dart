@@ -19,10 +19,17 @@ class FaultDetailScreen extends ConsumerWidget {
     final result = ref.watch(fleetFaultProvider(faultId));
     return Scaffold(
       appBar: AppBar(
-        title: Text(es ? 'Seguimiento de falla' : 'Fault tracking'),
+        title: Text(
+          fleetText(
+            context,
+            'Fault tracking',
+            'Seguimiento de falla',
+            'Suivi des défaillances',
+          ),
+        ),
         actions: [
           IconButton(
-            tooltip: es ? 'Actualizar' : 'Refresh',
+            tooltip: fleetText(context, 'Refresh', 'Actualizar', 'Actualiser'),
             onPressed: () => refreshFleet(ref, faultId: faultId),
             icon: const Icon(Icons.refresh),
           ),
@@ -37,7 +44,12 @@ class FaultDetailScreen extends ConsumerWidget {
         data: (fault) {
           if (fault == null) {
             return FleetEmpty(
-              title: es ? 'Falla no disponible' : 'Fault unavailable',
+              title: fleetText(
+                context,
+                'Fault unavailable',
+                'Falla no disponible',
+                'Défaillance indisponible',
+              ),
               message: es
                   ? 'No existe o no pertenece a tu flota.'
                   : 'It does not exist or is outside your fleet.',
@@ -93,7 +105,12 @@ class FaultDetailScreen extends ConsumerWidget {
                     FaultStatusBadge(status: fault.status),
                     if (fault.urgent)
                       FleetBadge(
-                        label: es ? 'Urgente' : 'Urgent',
+                        label: fleetText(
+                          context,
+                          'Urgent',
+                          'Urgente',
+                          'Urgent',
+                        ),
                         color: context.appColors.error,
                         icon: Icons.priority_high,
                       ),
@@ -101,22 +118,48 @@ class FaultDetailScreen extends ConsumerWidget {
                 ),
                 const SizedBox(height: 20),
                 _Info(
-                  label: es ? 'Responsable' : 'Assigned to',
+                  label: fleetText(
+                    context,
+                    'Assigned to',
+                    'Responsable',
+                    'Attribuée à',
+                  ),
                   value:
-                      fault.assigneeName ?? (es ? 'Sin asignar' : 'Unassigned'),
+                      fault.assigneeName ??
+                      fleetText(
+                        context,
+                        'Unassigned',
+                        'Sin asignar',
+                        'Non attribuée',
+                      ),
                 ),
                 _Info(
-                  label: es ? 'Reportado por' : 'Reported by',
+                  label: fleetText(
+                    context,
+                    'Reported by',
+                    'Reportado por',
+                    'Signalée par',
+                  ),
                   value: fault.reporterName ?? '—',
                 ),
                 _Info(
-                  label: es ? 'Fecha del reporte' : 'Reported',
+                  label: fleetText(
+                    context,
+                    'Reported',
+                    'Fecha del reporte',
+                    'Date du signalement',
+                  ),
                   value: fleetDate(context, fault.createdAt),
                 ),
                 if (fault.resolutionNote != null) ...[
                   const SizedBox(height: 20),
                   Text(
-                    es ? 'Resultado de revisión' : 'Review outcome',
+                    fleetText(
+                      context,
+                      'Review outcome',
+                      'Resultado de revisión',
+                      'Résultat de la révision',
+                    ),
                     style: Theme.of(context).textTheme.titleMedium,
                   ),
                   const SizedBox(height: 8),
@@ -124,7 +167,12 @@ class FaultDetailScreen extends ConsumerWidget {
                   const SizedBox(height: 12),
                 ],
                 const SizedBox(height: 24),
-                FaultNextStep(fault: fault, profile: profile, es: es),
+                FaultNextStep(
+                  fault: fault,
+                  profile: profile,
+                  es: es,
+                  french: fleetFrench(context),
+                ),
                 CoordinationEntry(
                   compact: true,
                   assetId: fault.assetId,
@@ -133,7 +181,7 @@ class FaultDetailScreen extends ConsumerWidget {
                 ),
                 const SizedBox(height: 24),
                 Text(
-                  es ? 'Historial' : 'Activity',
+                  fleetText(context, 'Activity', 'Historial', 'Activité'),
                   style: Theme.of(context).textTheme.titleMedium,
                 ),
                 const SizedBox(height: 8),

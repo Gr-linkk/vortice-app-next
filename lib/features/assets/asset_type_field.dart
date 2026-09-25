@@ -4,6 +4,7 @@ import 'package:vortice_app/core/equipment_art_catalog.dart';
 import 'package:vortice_app/core/equipment_illustration.dart';
 import 'package:vortice_app/features/assets/asset_type_provider.dart';
 import 'package:vortice_app/l10n/app_localizations.dart';
+import 'package:vortice_app/core/localized_text.dart';
 
 /// Search the same catalog in Add and Edit; selection always returns its ID.
 class AssetTypeField extends StatelessWidget {
@@ -21,6 +22,7 @@ class AssetTypeField extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final spanish = Localizations.localeOf(context).languageCode == 'es';
+    final french = isFrench(context);
     return FormField<String>(
       key: ValueKey(selectedId),
       initialValue: selectedId,
@@ -31,13 +33,19 @@ class AssetTypeField extends StatelessWidget {
             .firstOrNull;
         final label = selected == null
             ? field.value == null
-                  ? (spanish
-                        ? 'Elegir tipo de equipo'
-                        : 'Choose equipment type')
-                  : (spanish
-                        ? 'Tipo de equipo actual'
-                        : 'Current equipment type')
-            : assetTypeLabel(selected, spanish);
+                  ? localizedText(
+                      context,
+                      'Choose equipment type',
+                      'Elegir tipo de equipo',
+                      'Choisir le type d’équipement',
+                    )
+                  : localizedText(
+                      context,
+                      'Current equipment type',
+                      'Tipo de equipo actual',
+                      'Type d’équipement actuel',
+                    )
+            : assetTypeLabel(selected, spanish, french: french);
         return Semantics(
           button: true,
           label: '${l10n.assetType}: $label',
@@ -89,26 +97,86 @@ class AssetTypeField extends StatelessWidget {
   }
 }
 
-String assetTypeLabel(AssetType type, bool spanish) {
+String assetTypeLabel(AssetType type, bool spanish, {bool french = false}) {
   final art = equipmentArtFor(assetTypeId: type.id, typeName: type.name);
+  if (french && art != EquipmentArt.other) return frenchEquipmentLabels[art]!;
   return spanish && art != EquipmentArt.other ? art.spanishLabel : type.name;
 }
 
-String _categoryLabel(String category, bool spanish) => !spanish
-    ? category
-    : switch (category) {
-        'Marine Vessels' => 'Embarcaciones',
-        'Commercial Fishing' => 'Pesca comercial',
-        'Dredging Equipment' => 'Equipos de dragado',
-        'Heavy Equipment' => 'Maquinaria pesada',
-        'Power Generation' => 'Generación eléctrica',
-        'Industrial Equipment' => 'Equipos industriales',
-        'Lifting Equipment' => 'Equipos de elevación',
-        'Road Vehicles' => 'Vehículos de carretera',
-        'Agriculture & Grounds' => 'Agricultura y áreas verdes',
-        'Other' => 'Otros',
-        _ => category,
-      };
+const frenchEquipmentLabels = <EquipmentArt, String>{
+  EquipmentArt.motorYacht: 'Yacht à moteur',
+  EquipmentArt.sailingYacht: 'Voilier',
+  EquipmentArt.catamaran: 'Catamaran',
+  EquipmentArt.sportFisher: 'Bateau de pêche sportive',
+  EquipmentArt.workBoat: 'Bateau de travail',
+  EquipmentArt.centerConsole: 'Bateau à console centrale',
+  EquipmentArt.hydraulicDredge: 'Drague hydraulique',
+  EquipmentArt.cutterDredge: 'Drague aspiratrice à tête désagrégatrice',
+  EquipmentArt.excavator: 'Excavatrice',
+  EquipmentArt.wheelLoader: 'Chargeuse sur roues',
+  EquipmentArt.bulldozer: 'Bulldozer',
+  EquipmentArt.generator: 'Génératrice diesel',
+  EquipmentArt.pump: 'Pompe',
+  EquipmentArt.crane: 'Grue',
+  EquipmentArt.engine: 'Moteur',
+  EquipmentArt.rib: 'Bateau pneumatique ou semi-rigide',
+  EquipmentArt.aluminumSkiff: 'Chaloupe en aluminium',
+  EquipmentArt.cabinCruiser: 'Bateau de plaisance à cabine',
+  EquipmentArt.trawler: 'Chalutier commercial',
+  EquipmentArt.purseSeiner: 'Senneur',
+  EquipmentArt.tugboat: 'Remorqueur',
+  EquipmentArt.backhoeLoader: 'Rétrocaveuse',
+  EquipmentArt.skidSteer: 'Chargeuse compacte',
+  EquipmentArt.dumpTruck: 'Camion à benne basculante',
+  EquipmentArt.motorGrader: 'Niveleuse',
+  EquipmentArt.forklift: 'Chariot élévateur',
+  EquipmentArt.telehandler: 'Chariot télescopique',
+  EquipmentArt.roadRoller: 'Rouleau compresseur',
+  EquipmentArt.mobileCrane: 'Grue mobile',
+  EquipmentArt.towerCrane: 'Grue à tour',
+  EquipmentArt.davit: 'Bossoir',
+  EquipmentArt.lightVehicle: 'Véhicule léger',
+  EquipmentArt.highwayTruck: 'Camion routier',
+  EquipmentArt.miniExcavator: 'Mini-excavatrice',
+  EquipmentArt.compactTrackLoader: 'Chargeuse compacte sur chenilles',
+  EquipmentArt.agriculturalTractor: 'Tracteur agricole',
+  EquipmentArt.zeroTurnMower: 'Tondeuse à rayon de braquage zéro',
+  EquipmentArt.boomLift: 'Nacelle à bras',
+  EquipmentArt.scissorLift: 'Nacelle à ciseaux',
+};
+
+String _categoryLabel(String category, bool spanish, {bool french = false}) {
+  if (french) {
+    return switch (category) {
+      'Marine Vessels' => 'Navires et bateaux',
+      'Commercial Fishing' => 'Pêche commerciale',
+      'Dredging Equipment' => 'Équipement de dragage',
+      'Heavy Equipment' => 'Machinerie lourde',
+      'Power Generation' => 'Production d’énergie',
+      'Industrial Equipment' => 'Équipement industriel',
+      'Lifting Equipment' => 'Équipement de levage',
+      'Road Vehicles' => 'Véhicules routiers',
+      'Agriculture & Grounds' => 'Agriculture et espaces verts',
+      'Other' => 'Autre',
+      _ => category,
+    };
+  }
+  return !spanish
+      ? category
+      : switch (category) {
+          'Marine Vessels' => 'Embarcaciones',
+          'Commercial Fishing' => 'Pesca comercial',
+          'Dredging Equipment' => 'Equipos de dragado',
+          'Heavy Equipment' => 'Maquinaria pesada',
+          'Power Generation' => 'Generación eléctrica',
+          'Industrial Equipment' => 'Equipos industriales',
+          'Lifting Equipment' => 'Equipos de elevación',
+          'Road Vehicles' => 'Vehículos de carretera',
+          'Agriculture & Grounds' => 'Agricultura y áreas verdes',
+          'Other' => 'Otros',
+          _ => category,
+        };
+}
 
 class _AssetTypePicker extends StatefulWidget {
   const _AssetTypePicker({required this.types, required this.selectedId});
@@ -123,12 +191,13 @@ class _AssetTypePickerState extends State<_AssetTypePicker> {
   @override
   Widget build(BuildContext context) {
     final spanish = Localizations.localeOf(context).languageCode == 'es';
+    final french = isFrench(context);
     final matches = widget.types.where((type) {
       final category = type.category.trim().isEmpty
           ? 'Other'
           : type.category.trim();
       final text =
-          '${type.name} ${assetTypeLabel(type, true)} $category ${_categoryLabel(category, true)}'
+          '${type.name} ${assetTypeLabel(type, true)} ${assetTypeLabel(type, false, french: true)} $category ${_categoryLabel(category, true)} ${_categoryLabel(category, false, french: true)}'
               .toLowerCase();
       return _query
           .trim()
@@ -150,16 +219,20 @@ class _AssetTypePickerState extends State<_AssetTypePicker> {
         return _categoryLabel(
           a,
           spanish,
-        ).toLowerCase().compareTo(_categoryLabel(b, spanish).toLowerCase());
+          french: french,
+        ).toLowerCase().compareTo(
+          _categoryLabel(b, spanish, french: french).toLowerCase(),
+        );
       });
     final entries = <Object>[];
     for (final category in categories) {
       final types = groups[category]!
         ..sort(
-          (a, b) => assetTypeLabel(
-            a,
-            spanish,
-          ).toLowerCase().compareTo(assetTypeLabel(b, spanish).toLowerCase()),
+          (a, b) => assetTypeLabel(a, spanish, french: french)
+              .toLowerCase()
+              .compareTo(
+                assetTypeLabel(b, spanish, french: french).toLowerCase(),
+              ),
         );
       entries.add(category);
       entries.addAll(types);
@@ -179,7 +252,12 @@ class _AssetTypePickerState extends State<_AssetTypePicker> {
                 key: const ValueKey('asset-type-search'),
                 textInputAction: TextInputAction.search,
                 decoration: InputDecoration(
-                  labelText: spanish ? 'Buscar tipos' : 'Search types',
+                  labelText: localizedText(
+                    context,
+                    'Search types',
+                    'Buscar tipos',
+                    'Rechercher un type',
+                  ),
                   prefixIcon: const Icon(Icons.search),
                 ),
                 onChanged: (value) => setState(() => _query = value),
@@ -191,9 +269,12 @@ class _AssetTypePickerState extends State<_AssetTypePicker> {
                       child: Padding(
                         padding: const EdgeInsets.all(24),
                         child: Text(
-                          spanish
-                              ? 'No hay tipos coincidentes. Prueba otro nombre o categoría.'
-                              : 'No matching types. Try another name or category.',
+                          localizedText(
+                            context,
+                            'No matching types. Try another name or category.',
+                            'No hay tipos coincidentes. Prueba otro nombre o categoría.',
+                            'Aucun type trouvé. Essayez un autre nom ou une autre catégorie.',
+                          ),
                           textAlign: TextAlign.center,
                         ),
                       ),
@@ -208,7 +289,11 @@ class _AssetTypePickerState extends State<_AssetTypePicker> {
                         if (entry is String) {
                           return ListGroupHeading(
                             key: ValueKey('asset-category-$entry'),
-                            label: _categoryLabel(entry, spanish),
+                            label: _categoryLabel(
+                              entry,
+                              spanish,
+                              french: french,
+                            ),
                             count: groups[entry]!.length,
                           );
                         }
@@ -227,7 +312,9 @@ class _AssetTypePickerState extends State<_AssetTypePicker> {
                               size: 48,
                             ),
                           ),
-                          title: Text(assetTypeLabel(type, spanish)),
+                          title: Text(
+                            assetTypeLabel(type, spanish, french: french),
+                          ),
                           trailing: widget.selectedId == type.id
                               ? const Icon(Icons.check)
                               : null,

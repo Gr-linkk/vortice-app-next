@@ -3,9 +3,36 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:vortice_app/core/account_storage.dart';
 import 'package:vortice_app/sync/offline_readiness.dart';
+import 'package:vortice_app/sync/field_sync_status.dart';
 
 void main() {
   setUp(() => SharedPreferences.setMockInitialValues({}));
+  test('offline readiness banner labels cover French, Spanish and English', () {
+    expect(
+      offlineReadinessLabel(
+        const OfflineReadiness(refreshing: true),
+        false,
+        french: true,
+      ),
+      'Mise à jour des données hors ligne',
+    );
+    expect(
+      offlineReadinessLabel(const OfflineReadiness(refreshing: true), true),
+      'Actualizando datos sin conexión',
+    );
+    expect(
+      offlineReadinessLabel(const OfflineReadiness(refreshing: true), false),
+      'Updating offline data',
+    );
+    expect(
+      offlineReadinessLabel(
+        const OfflineReadiness(needsAttention: true),
+        false,
+        french: true,
+      ),
+      'Les données hors ligne nécessitent une attention.',
+    );
+  });
   test(
     'fresh refresh rejects fallback without changing the existing cache',
     () async {

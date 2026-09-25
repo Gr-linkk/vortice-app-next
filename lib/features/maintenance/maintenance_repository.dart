@@ -290,31 +290,41 @@ bool maintenanceWriteWasRejected(Object error) =>
       '22P02',
       '22003',
     ].contains(error.code);
-String maintenanceError(Object error, bool es) {
+String maintenanceError(Object error, bool es, {bool french = false}) {
   if (error is PostgrestException) {
     if (error.code == '40001') {
-      return es
+      return french
+          ? 'Cet enregistrement a changé. Actualisez-le avant de le modifier.'
+          : es
           ? 'El registro cambió. Actualiza antes de editar.'
           : 'This record changed. Refresh before editing.';
     }
     if (error.code == '23505') {
-      return es
+      return french
+          ? 'Une session de travail est déjà en cours. Mettez-la en pause d’abord.'
+          : es
           ? 'Ya hay una sesión de trabajo activa. Pausa esa sesión primero.'
           : 'A labour session is already running. Pause it first.';
     }
-    if (error.code == 'P0001' && !es) return error.message;
+    if (error.code == 'P0001' && !es && !french) return error.message;
     if (maintenanceWriteWasRejected(error)) {
-      return es
+      return french
+          ? 'Enregistrement impossible. Vérifiez les champs, les autorisations et l’état du bon de travail.'
+          : es
           ? 'No se guardó. Revisa los campos, permisos y estado del trabajo.'
           : 'Not saved. Check the fields, permissions and job status.';
     }
     if (error.code == 'PGRST202') {
-      return es
+      return french
+          ? 'Cette fonction nécessite la mise à jour du service d’entretien.'
+          : es
           ? 'Esta función necesita la actualización del servicio.'
           : 'This feature needs the maintenance backend update.';
     }
   }
-  return es
+  return french
+      ? 'Impossible de confirmer l’enregistrement. Vos données sont conservées; réessayez le même enregistrement.'
+      : es
       ? 'No se pudo confirmar. Conservamos tus datos; vuelve a intentar el mismo guardado.'
       : 'Could not confirm the save. Your input is kept; retry the same save.';
 }

@@ -11,8 +11,11 @@ final assetWorkspaceProvider = FutureProvider.autoDispose<Map<String, dynamic>>(
     if (actor == null) {
       return {'items': <Map<String, dynamic>>[], 'counts': <String, dynamic>{}};
     }
-    final items = await AccountJsonCache(actor.id, () => supabase.auth.currentUser?.id)
-        .readThrough('asset_workspace:items', () async {
+    final items =
+        await AccountJsonCache(
+          actor.id,
+          () => supabase.auth.currentUser?.id,
+        ).readThrough('asset_workspace:items', () async {
           final result = await supabase
               .rpc('asset_workspace', params: {'p_today': localCalendarDate()})
               .timeout(const Duration(seconds: 6));
@@ -25,24 +28,46 @@ final assetWorkspaceProvider = FutureProvider.autoDispose<Map<String, dynamic>>(
   },
 );
 
-const assetWorkspaceFilters = <String, (String, String)>{
-  'all': ('All assets', 'Todos los equipos'),
-  'attention': ('Needs attention', 'Necesita atención'),
-  'unavailable': ('Unavailable', 'No disponible'),
-  'unassessed': ('Availability unknown', 'Disponibilidad desconocida'),
-  'overdue_service': ('Service due', 'Servicio pendiente'),
-  'approaching_service': ('Service approaching', 'Servicio próximo'),
-  'inspection_expired': ('Expired inspections', 'Inspecciones vencidas'),
+const assetWorkspaceFilters = <String, (String, String, String)>{
+  'all': ('All assets', 'Todos los equipos', 'Tous les équipements'),
+  'attention': ('Needs attention', 'Necesita atención', 'À vérifier'),
+  'unavailable': ('Unavailable', 'No disponible', 'Indisponible'),
+  'unassessed': (
+    'Availability unknown',
+    'Disponibilidad desconocida',
+    'Disponibilité inconnue',
+  ),
+  'overdue_service': ('Service due', 'Servicio pendiente', 'Entretien à faire'),
+  'approaching_service': (
+    'Service approaching',
+    'Servicio próximo',
+    'Entretien à venir',
+  ),
+  'inspection_expired': (
+    'Expired inspections',
+    'Inspecciones vencidas',
+    'Inspections expirées',
+  ),
   'inspection_upcoming': (
     'Inspections due in 30 days',
     'Inspecciones en 30 días',
+    'Inspections à faire dans les 30 jours',
   ),
-  'inspection_pending': ('Inspection review', 'Revisión de inspección'),
+  'inspection_pending': (
+    'Inspection review',
+    'Revisión de inspección',
+    'Inspections à réviser',
+  ),
   'inspection_unverified': (
     'Unverified inspections',
     'Inspecciones sin verificar',
+    'Inspections non vérifiées',
   ),
-  'plan_setup': ('Maintenance setup', 'Configurar mantenimiento'),
+  'plan_setup': (
+    'Maintenance setup',
+    'Configurar mantenimiento',
+    'Configuration de l’entretien',
+  ),
 };
 
 bool assetMatchesWorkspaceFilter(Map<String, dynamic> row, String filter) {

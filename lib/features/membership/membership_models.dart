@@ -2,37 +2,69 @@ import 'package:vortice_app/models/profile.dart';
 import 'company_purpose.dart';
 
 enum OrganizationRole {
-  companyOwner('company_owner', 'Company Owner', 'Propietario de empresa'),
-  supervisor('supervisor', 'Supervisor / Manager', 'Supervisor / Gerente'),
-  mechanic('mechanic', 'Mechanic / Technician', 'Mecánico / Técnico'),
-  operator('operator', 'Operator', 'Operador');
+  companyOwner(
+    'company_owner',
+    'Company Owner',
+    'Propietario de empresa',
+    'Propriétaire de l’entreprise',
+  ),
+  supervisor(
+    'supervisor',
+    'Supervisor / Manager',
+    'Supervisor / Gerente',
+    'Superviseur / Gestionnaire',
+  ),
+  mechanic(
+    'mechanic',
+    'Mechanic / Technician',
+    'Mecánico / Técnico',
+    'Mécanicien / Technicien',
+  ),
+  operator('operator', 'Operator', 'Operador', 'Opérateur');
 
-  const OrganizationRole(this.key, this.en, this.es);
+  const OrganizationRole(this.key, this.en, this.es, this.fr);
   final String key;
   final String en;
   final String es;
-  String label(bool spanish) => spanish ? es : en;
+  final String fr;
+  String label(bool spanish, {bool french = false}) => french
+      ? fr
+      : spanish
+      ? es
+      : en;
 }
 
 enum OrganizationPermission {
-  teamAdmin('team_admin', 'Manage team', 'Administrar equipo'),
-  billing('billing', 'Billing', 'Facturación'),
+  teamAdmin(
+    'team_admin',
+    'Manage team',
+    'Administrar equipo',
+    'Gérer l’équipe',
+  ),
+  billing('billing', 'Billing', 'Facturación', 'Facturation'),
   inspectionManage(
     'inspection_manage',
     'Manage inspections',
     'Administrar inspecciones',
+    'Gérer les inspections',
   ),
   announcementsManage(
     'announcements_manage',
     'Post announcements',
     'Publicar avisos',
+    'Publier des annonces',
   );
 
-  const OrganizationPermission(this.key, this.en, this.es);
+  const OrganizationPermission(this.key, this.en, this.es, this.fr);
   final String key;
   final String en;
   final String es;
-  String label(bool spanish) => spanish ? es : en;
+  final String fr;
+  String label(bool spanish, {bool french = false}) => french
+      ? fr
+      : spanish
+      ? es
+      : en;
 }
 
 bool membershipAllows(

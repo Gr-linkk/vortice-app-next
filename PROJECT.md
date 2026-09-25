@@ -40,6 +40,15 @@ signer; NEXT-012 records the verified in-place update. Google Play work is
 deferred at Garrett’s September 24 request while app completion and E2E proceed.
 These internal builds do not constitute a production release.
 
+Build 41 (`1.20.0+41`) adds native CAD billing/company cost currencies, Canadian
+French selection and ordinary-workflow translations, and a numeric offline meter
+projection fix. It passed 814 Flutter tests and clean analysis and is installed
+on the S24 with all 26 pre-existing private files byte-identical before first
+launch. NEXT-011, NEXT-013 and NEXT-009 retain detailed evidence and open gates.
+Garrett also requested one companion web app with an office dashboard and full
+field workflows; NEXT-014 adapts this same product after mobile completion.
+
+
 NEXT-008 adds published-checklist attachment and an editable scheduled date to
 the customer work-order creation page in internal Build 39 (`1.18.1+39`). The
 calendar day is visible before saving and can be changed or cleared. Creation,

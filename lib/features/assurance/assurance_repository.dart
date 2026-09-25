@@ -148,16 +148,67 @@ String inspectionState(Map<String, dynamic> item, DateTime now) {
   return 'current';
 }
 
-String assuranceLabel(String key, bool es) => switch (key) {
-  'active' => es ? 'Activo' : 'Active',
-  'stored' => es ? 'Almacenado' : 'Stored',
-  'retired' => es ? 'Retirado' : 'Retired',
-  'pending' => es ? 'Pendiente de revisión' : 'Awaiting review',
-  'approved' => es ? 'Aprobado' : 'Approved',
-  'returned' => es ? 'Devuelto para cambios' : 'Returned for changes',
-  'unverified' => es ? 'Sin aprobación' : 'Unverified',
-  'expired' => es ? 'Vencido' : 'Expired',
-  'upcoming' => es ? 'Vence en 30 días' : 'Due within 30 days',
-  'current' => es ? 'Vigente' : 'Current',
-  _ => key,
-};
+String assuranceLabel(String key, bool es, {bool french = false}) =>
+    switch (key) {
+      'active' =>
+        french
+            ? 'Actif'
+            : es
+            ? 'Activo'
+            : 'Active',
+      'stored' =>
+        french
+            ? 'Entreposé'
+            : es
+            ? 'Almacenado'
+            : 'Stored',
+      'retired' =>
+        french
+            ? 'Retiré'
+            : es
+            ? 'Retirado'
+            : 'Retired',
+      'pending' =>
+        french
+            ? 'À réviser'
+            : es
+            ? 'Pendiente de revisión'
+            : 'Awaiting review',
+      'approved' =>
+        french
+            ? 'Approuvé'
+            : es
+            ? 'Aprobado'
+            : 'Approved',
+      'returned' =>
+        french
+            ? 'Retourné pour modifications'
+            : es
+            ? 'Devuelto para cambios'
+            : 'Returned for changes',
+      'unverified' =>
+        french
+            ? 'Non vérifié'
+            : es
+            ? 'Sin aprobación'
+            : 'Unverified',
+      'expired' =>
+        french
+            ? 'Expiré'
+            : es
+            ? 'Vencido'
+            : 'Expired',
+      'upcoming' =>
+        french
+            ? 'Échéance dans les 30 jours'
+            : es
+            ? 'Vence en 30 días'
+            : 'Due within 30 days',
+      'current' =>
+        french
+            ? 'En vigueur'
+            : es
+            ? 'Vigente'
+            : 'Current',
+      _ => key,
+    };

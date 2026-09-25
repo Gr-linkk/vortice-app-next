@@ -64,7 +64,9 @@ void main() {
           });
           final context = await manager.assetContext(asset);
           final mechanic = (context['assignees'] as List).firstWhere(
-            (p) => p['role'] == 'client_mechanic',
+            (p) =>
+                p['role'] == 'client_mechanic' &&
+                (h.executorId == null || p['id'] == h.executorId),
           );
           job = await manager.create(const Uuid().v4(), {
             'asset_id': asset,
@@ -194,13 +196,21 @@ void main() {
             'report Back navigation preserves the local draft',
             () async {
               await h.go('/maintenance/jobs/$job');
-              await h.tap(find.text('Continue service report'));
+              await h.tap(
+                find.textContaining(
+                  RegExp(r'^(Create|Continue) service report$'),
+                ),
+              );
               await h.fill(
                 h.field('Findings'),
                 '$marker Unsaved local diagnosis',
               );
               await h.tap(find.byType(BackButton));
-              await h.tap(find.text('Continue service report'));
+              await h.tap(
+                find.textContaining(
+                  RegExp(r'^(Create|Continue) service report$'),
+                ),
+              );
               expect(
                 tester.widget<TextField>(h.field('Findings')).controller!.text,
                 '$marker Unsaved local diagnosis',

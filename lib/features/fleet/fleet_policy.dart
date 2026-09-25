@@ -13,17 +13,61 @@ enum FaultAction {
   createWorkOrder;
 
   String get value => this == createWorkOrder ? 'create_work_order' : name;
-  String label(bool es) => switch (this) {
-    acknowledge => es ? 'Aceptar reporte' : 'Acknowledge',
-    start => es ? 'Iniciar reparación' : 'Start repair',
-    submit => es ? 'Enviar a revisión' : 'Submit for review',
-    resolve => es ? 'Verificar y resolver' : 'Verify & resolve',
-    dismiss => es ? 'Descartar con motivo' : 'Dismiss with reason',
-    reopen => es ? 'Reabrir falla' : 'Reopen fault',
-    assign => es ? 'Asignar responsable' : 'Assign repair',
-    note => es ? 'Añadir nota' : 'Add progress note',
+  String label(bool es, {bool french = false}) => switch (this) {
+    acknowledge =>
+      french
+          ? 'Prendre en charge le signalement'
+          : es
+          ? 'Aceptar reporte'
+          : 'Acknowledge',
+    start =>
+      french
+          ? 'Commencer la réparation'
+          : es
+          ? 'Iniciar reparación'
+          : 'Start repair',
+    submit =>
+      french
+          ? 'Envoyer pour révision'
+          : es
+          ? 'Enviar a revisión'
+          : 'Submit for review',
+    resolve =>
+      french
+          ? 'Vérifier et résoudre'
+          : es
+          ? 'Verificar y resolver'
+          : 'Verify & resolve',
+    dismiss =>
+      french
+          ? 'Écarter avec motif'
+          : es
+          ? 'Descartar con motivo'
+          : 'Dismiss with reason',
+    reopen =>
+      french
+          ? 'Rouvrir le signalement'
+          : es
+          ? 'Reabrir falla'
+          : 'Reopen fault',
+    assign =>
+      french
+          ? 'Attribuer la réparation'
+          : es
+          ? 'Asignar responsable'
+          : 'Assign repair',
+    note =>
+      french
+          ? 'Ajouter une note de suivi'
+          : es
+          ? 'Añadir nota'
+          : 'Add progress note',
     createWorkOrder =>
-      es ? 'Crear orden de reparación' : 'Create repair work order',
+      french
+          ? 'Créer un bon de travail'
+          : es
+          ? 'Crear orden de reparación'
+          : 'Create repair work order',
   };
 }
 

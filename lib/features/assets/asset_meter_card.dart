@@ -6,6 +6,7 @@ import 'package:vortice_app/core/app_dropdown_field.dart';
 import 'package:vortice_app/core/meter_units.dart';
 import 'package:vortice_app/core/retryable_rpc.dart';
 import 'package:vortice_app/core/user_feedback.dart';
+import 'package:vortice_app/core/localized_text.dart';
 import 'package:vortice_app/features/assets/asset_provider.dart';
 import 'package:vortice_app/features/auth/auth_provider.dart';
 import 'package:vortice_app/features/engines/engine_provider.dart';
@@ -68,6 +69,7 @@ class _AssetMeterCardState extends ConsumerState<AssetMeterCard> {
     final profile = ref.watch(profileProvider).valueOrNull;
     _loadPreference(profile?.id, profile?.orgId);
     final es = isSpanish(context);
+    final fr = isFrench(context);
     final asset = widget.asset;
     final meter = asset.primaryMeterEngineId == null
         ? null
@@ -87,23 +89,34 @@ class _AssetMeterCardState extends ConsumerState<AssetMeterCard> {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Text(
-              es ? 'Medidor del equipo' : 'Asset meter',
+              localizedText(
+                context,
+                'Asset meter',
+                'Medidor del equipo',
+                'Compteur de l’équipement',
+              ),
               style: Theme.of(context).textTheme.titleMedium,
             ),
             const SizedBox(height: 8),
             if (asset.primaryMeterEngineId == null)
               Text(
-                es
-                    ? 'Sin lectura principal registrada'
-                    : 'No primary meter reading recorded',
+                localizedText(
+                  context,
+                  'No primary meter reading recorded',
+                  'Sin lectura principal registrada',
+                  'Aucune lecture principale enregistrée',
+                ),
               )
             else if (meter!.isLoading)
               const LinearProgressIndicator()
             else if (meter.hasError || reading == null)
               Text(
-                es
-                    ? 'No se pudo cargar la lectura'
-                    : 'Meter reading unavailable',
+                localizedText(
+                  context,
+                  'Meter reading unavailable',
+                  'No se pudo cargar la lectura',
+                  'Lecture du compteur indisponible',
+                ),
               )
             else ...[
               Text(
@@ -113,23 +126,35 @@ class _AssetMeterCardState extends ConsumerState<AssetMeterCard> {
               if (reading.meterUnit != 'hours') ...[
                 if (_display != 'original' && _display != reading.meterUnit)
                   Text(
-                    '${es ? 'Equivalente' : 'Equivalent'}: ${formatMeter(convertDistance(reading.currentHours, reading.meterUnit, _display), _display)}',
+                    '${localizedText(context, 'Equivalent', 'Equivalente', 'Équivalent')}: ${formatMeter(convertDistance(reading.currentHours, reading.meterUnit, _display), _display)}',
                   ),
                 AppDropdownField<String>(
                   initialValue: _display,
                   key: ValueKey('$_key:$_display'),
                   decoration: InputDecoration(
-                    labelText: es ? 'Mostrar distancias' : 'Distance display',
+                    labelText: localizedText(
+                      context,
+                      'Distance display',
+                      'Mostrar distancias',
+                      'Affichage des distances',
+                    ),
                   ),
                   items: [
                     DropdownMenuItem(
                       value: 'original',
-                      child: Text(es ? 'Unidad original' : 'Original unit'),
+                      child: Text(
+                        localizedText(
+                          context,
+                          'Original unit',
+                          'Unidad original',
+                          'Unité d’origine',
+                        ),
+                      ),
                     ),
                     ...['km', 'mi'].map(
                       (unit) => DropdownMenuItem(
                         value: unit,
-                        child: Text(meterName(unit, es)),
+                        child: Text(meterName(unit, es, french: fr)),
                       ),
                     ),
                   ],
@@ -158,7 +183,12 @@ class _AssetMeterCardState extends ConsumerState<AssetMeterCard> {
                 ),
                 icon: const Icon(Icons.speed),
                 label: Text(
-                  es ? 'Lecturas e historial' : 'Readings and history',
+                  localizedText(
+                    context,
+                    'Readings and history',
+                    'Lecturas e historial',
+                    'Lectures et historique',
+                  ),
                 ),
               ),
             if (asset.primaryMeterEngineId == null && manager)
@@ -176,7 +206,14 @@ class _AssetMeterCardState extends ConsumerState<AssetMeterCard> {
                   }
                 },
                 icon: const Icon(Icons.add),
-                label: Text(es ? 'Configurar medidor' : 'Set up meter'),
+                label: Text(
+                  localizedText(
+                    context,
+                    'Set up meter',
+                    'Configurar medidor',
+                    'Configurer le compteur',
+                  ),
+                ),
               ),
           ],
         ),
@@ -232,8 +269,18 @@ class _AssetMeterSetupScreenState extends ConsumerState<AssetMeterSetupScreen> {
   @override
   Widget build(BuildContext context) {
     final es = isSpanish(context);
+    final fr = isFrench(context);
     return Scaffold(
-      appBar: AppBar(title: Text(es ? 'Configurar medidor' : 'Set up meter')),
+      appBar: AppBar(
+        title: Text(
+          localizedText(
+            context,
+            'Set up meter',
+            'Configurar medidor',
+            'Configurer le compteur',
+          ),
+        ),
+      ),
       body: Form(
         key: _form,
         child: ListView(
@@ -245,19 +292,24 @@ class _AssetMeterSetupScreenState extends ConsumerState<AssetMeterSetupScreen> {
             ),
             const SizedBox(height: 16),
             Text(
-              es
-                  ? 'Elige la unidad física del medidor. Las lecturas conservarán esta unidad en el historial.'
-                  : 'Choose the physical meter unit. Recorded readings will retain this unit in history.',
+              localizedText(
+                context,
+                'Choose the physical meter unit. Recorded readings will retain this unit in history.',
+                'Elige la unidad física del medidor. Las lecturas conservarán esta unidad en el historial.',
+                'Choisissez l’unité physique du compteur. Les lectures enregistrées conserveront cette unité dans l’historique.',
+              ),
             ),
             const SizedBox(height: 16),
             AppDropdownField<String>(
               initialValue: _unit,
-              decoration: InputDecoration(labelText: es ? 'Unidad' : 'Unit'),
+              decoration: InputDecoration(
+                labelText: localizedText(context, 'Unit', 'Unidad', 'Unité'),
+              ),
               items: meterUnits
                   .map(
                     (unit) => DropdownMenuItem(
                       value: unit,
-                      child: Text(meterName(unit, es)),
+                      child: Text(meterName(unit, es, french: fr)),
                     ),
                   )
                   .toList(),
@@ -273,7 +325,7 @@ class _AssetMeterSetupScreenState extends ConsumerState<AssetMeterSetupScreen> {
               enabled: !_busy,
               decoration: InputDecoration(
                 labelText:
-                    '${es ? 'Lectura actual' : 'Current reading'} (${meterSymbol(_unit)})',
+                    '${localizedText(context, 'Current reading', 'Lectura actual', 'Lecture actuelle')} (${meterSymbol(_unit)})',
               ),
               keyboardType: const TextInputType.numberWithOptions(
                 decimal: true,
@@ -300,8 +352,18 @@ class _AssetMeterSetupScreenState extends ConsumerState<AssetMeterSetupScreen> {
               onPressed: _busy ? null : _save,
               child: Text(
                 _busy
-                    ? (es ? 'Guardando…' : 'Saving…')
-                    : (es ? 'Guardar lectura' : 'Save reading'),
+                    ? localizedText(
+                        context,
+                        'Saving…',
+                        'Guardando…',
+                        'Enregistrement…',
+                      )
+                    : localizedText(
+                        context,
+                        'Save reading',
+                        'Guardar lectura',
+                        'Enregistrer la lecture',
+                      ),
               ),
             ),
           ],

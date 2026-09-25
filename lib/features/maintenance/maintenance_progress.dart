@@ -21,7 +21,7 @@ class WorkReportProgress {
   final num startingMeter;
   bool get diagnosisMissing => diagnosis.trim().length < 3;
   bool get repairMissing => repair.trim().length < 3;
-  String? meterError(bool es) {
+  String? meterError(bool es, {bool french = false}) {
     if (!meterRequired && meter.trim().isEmpty) return null;
     final reading = double.tryParse(meter.trim());
     if (reading == null ||
@@ -29,7 +29,9 @@ class WorkReportProgress {
         reading < startingMeter ||
         reading < 0 ||
         reading >= 1000000000) {
-      return es
+      return french
+          ? 'Saisissez un relevé valide, égal ou supérieur au relevé initial.'
+          : es
           ? 'Introduce una lectura válida, igual o mayor que la inicial.'
           : 'Enter a valid reading at least as high as the starting meter.';
     }
@@ -52,12 +54,15 @@ String? maintenanceItemRequirement(
   Map<String, dynamic> item,
   Map<String, dynamic> answers,
   List<String> evidence,
-  bool es,
-) {
+  bool es, {
+  bool french = false,
+}) {
   final answer = answers[item['id']] as Map? ?? {};
   final result = answer['result'] as String?;
   if (result == 'fail') {
-    return es
+    return french
+        ? 'Corrigez et vérifiez cette étape avant de terminer.'
+        : es
         ? 'Corrige y verifica este paso antes de completar.'
         : 'Correct and verify this step before completing.';
   }
@@ -66,13 +71,17 @@ String? maintenanceItemRequirement(
     result,
     answer['note'] as String? ?? '',
   )) {
-    return es
+    return french
+        ? 'Saisissez le résultat ou le relevé requis.'
+        : es
         ? 'Completa el resultado o la lectura requerida.'
         : 'Enter the required result or reading.';
   }
   if (item['requires_photo'] == true &&
       !evidence.contains(answer['photo_path'])) {
-    return es
+    return french
+        ? 'Ajoutez la photo requise pour cette étape.'
+        : es
         ? 'Adjunta la foto requerida para este paso.'
         : 'Attach the required photo for this step.';
   }

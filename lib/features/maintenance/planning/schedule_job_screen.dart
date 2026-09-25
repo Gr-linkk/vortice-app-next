@@ -5,6 +5,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:vortice_app/core/app_dropdown_field.dart';
 import 'package:vortice_app/core/unsaved_form_guard.dart';
 import 'package:vortice_app/core/user_feedback.dart';
+import 'package:vortice_app/core/localized_text.dart';
 import 'package:vortice_app/sync/field_work_provider.dart';
 import '../maintenance_models.dart';
 import '../maintenance_repository.dart';
@@ -187,7 +188,9 @@ class _ScheduleJobScreenState extends ConsumerState<ScheduleJobScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final es = isSpanish(context), frozen = _busy || _pending != null;
+    final es = isSpanish(context),
+        fr = isFrench(context),
+        frozen = _busy || _pending != null;
     final catalog = ref.watch(maintenanceAssetProvider(widget.job.assetId));
     final conflicts = bookingConflicts(
       widget.jobs,
@@ -203,7 +206,16 @@ class _ScheduleJobScreenState extends ConsumerState<ScheduleJobScreen> {
       fallbackRoute: '/maintenance/planning',
       busy: _busy,
       child: Scaffold(
-        appBar: AppBar(title: Text(es ? 'Programar trabajo' : 'Schedule work')),
+        appBar: AppBar(
+          title: Text(
+            localizedText(
+              context,
+              'Schedule work',
+              'Programar trabajo',
+              'Planifier le travail',
+            ),
+          ),
+        ),
         body: catalog.when(
           loading: () => const Center(child: CircularProgressIndicator()),
           error: (e, _) => Center(
@@ -215,7 +227,9 @@ class _ScheduleJobScreenState extends ConsumerState<ScheduleJobScreen> {
                   onPressed: () => ref.invalidate(
                     maintenanceAssetProvider(widget.job.assetId),
                   ),
-                  child: Text(es ? 'Reintentar' : 'Retry'),
+                  child: Text(
+                    localizedText(context, 'Retry', 'Reintentar', 'Réessayer'),
+                  ),
                 ),
               ],
             ),
@@ -239,7 +253,9 @@ class _ScheduleJobScreenState extends ConsumerState<ScheduleJobScreen> {
                   const OnlineOnlyNotice(),
                   const SizedBox(height: 16),
                   Text(
-                    es
+                    fr
+                        ? 'Planifiez le travail à l’avance. L’enregistrement ne commence pas le travail et ne termine pas l’entretien.'
+                        : es
                         ? 'Planifica el trabajo futuro. Guardar no inicia el trabajo ni completa el servicio.'
                         : 'Plan the work ahead. Saving does not start work or complete a service.',
                   ),
@@ -248,12 +264,24 @@ class _ScheduleJobScreenState extends ConsumerState<ScheduleJobScreen> {
                     key: ValueKey('assignee-${_job.revision}'),
                     initialValue: _assignee ?? '',
                     decoration: InputDecoration(
-                      labelText: es ? 'Responsable' : 'Assignee',
+                      labelText: localizedText(
+                        context,
+                        'Assigned to',
+                        'Responsable',
+                        'Attribué à',
+                      ),
                     ),
                     items: [
                       DropdownMenuItem(
                         value: '',
-                        child: Text(es ? 'Sin asignar' : 'Unassigned'),
+                        child: Text(
+                          localizedText(
+                            context,
+                            'Unassigned',
+                            'Sin asignar',
+                            'Non attribué',
+                          ),
+                        ),
                       ),
                       for (final person in people)
                         DropdownMenuItem(
@@ -271,12 +299,28 @@ class _ScheduleJobScreenState extends ConsumerState<ScheduleJobScreen> {
                   const SizedBox(height: 16),
                   ListTile(
                     contentPadding: EdgeInsets.zero,
-                    title: Text(es ? 'Inicio programado' : 'Booked start'),
+                    title: Text(
+                      localizedText(
+                        context,
+                        'Booked start',
+                        'Inicio programado',
+                        'Début planifié',
+                      ),
+                    ),
                     subtitle: Text(
                       _start == null
-                          ? (es ? 'Sin programar' : 'Unscheduled')
+                          ? localizedText(
+                              context,
+                              'Unscheduled',
+                              'Sin programar',
+                              'Non planifié',
+                            )
                           : DateFormat.yMMMd(
-                              es ? 'es' : 'en',
+                              fr
+                                  ? 'fr_CA'
+                                  : es
+                                  ? 'es'
+                                  : 'en',
                             ).add_Hm().format(_start!),
                     ),
                     trailing: const Icon(Icons.edit_calendar_outlined),
@@ -331,11 +375,29 @@ class _ScheduleJobScreenState extends ConsumerState<ScheduleJobScreen> {
                   const SizedBox(height: 16),
                   ListTile(
                     contentPadding: EdgeInsets.zero,
-                    title: Text(es ? 'Fecha límite' : 'Deadline'),
+                    title: Text(
+                      localizedText(
+                        context,
+                        'Deadline',
+                        'Fecha límite',
+                        'Date limite',
+                      ),
+                    ),
                     subtitle: Text(
                       _due == null
-                          ? (es ? 'Sin fecha límite' : 'No deadline')
-                          : DateFormat.yMMMd(es ? 'es' : 'en').format(_due!),
+                          ? localizedText(
+                              context,
+                              'No deadline',
+                              'Sin fecha límite',
+                              'Aucune date limite',
+                            )
+                          : DateFormat.yMMMd(
+                              fr
+                                  ? 'fr_CA'
+                                  : es
+                                  ? 'es'
+                                  : 'en',
+                            ).format(_due!),
                     ),
                     trailing: const Icon(Icons.calendar_today_outlined),
                     onTap: frozen ? null : () => _pick(false),
@@ -371,13 +433,18 @@ class _ScheduleJobScreenState extends ConsumerState<ScheduleJobScreen> {
                     key: ValueKey('priority-${_job.revision}'),
                     initialValue: _priority,
                     decoration: InputDecoration(
-                      labelText: es ? 'Prioridad' : 'Priority',
+                      labelText: localizedText(
+                        context,
+                        'Priority',
+                        'Prioridad',
+                        'Priorité',
+                      ),
                     ),
                     items: [
                       for (final p in ['low', 'normal', 'high', 'urgent'])
                         DropdownMenuItem(
                           value: p,
-                          child: Text(maintenancePriority(p, es)),
+                          child: Text(maintenancePriority(p, es, french: fr)),
                         ),
                     ],
                     onChanged: frozen
@@ -436,7 +503,12 @@ class _ScheduleJobScreenState extends ConsumerState<ScheduleJobScreen> {
                           : 'Scheduling reason',
                     ),
                     validator: (value) => (value?.trim().length ?? 0) < 3
-                        ? (es ? 'Explica el cambio' : 'Explain the change')
+                        ? localizedText(
+                            context,
+                            'Explain the change',
+                            'Explica el cambio',
+                            'Expliquez le changement',
+                          )
                         : null,
                   ),
                   if (_error != null)
@@ -460,12 +532,22 @@ class _ScheduleJobScreenState extends ConsumerState<ScheduleJobScreen> {
                       onPressed: _busy ? null : _save,
                       child: Text(
                         _busy
-                            ? (es ? 'Guardando…' : 'Saving…')
+                            ? localizedText(
+                                context,
+                                'Saving…',
+                                'Guardando…',
+                                'Enregistrement…',
+                              )
                             : _pending != null
                             ? (es
                                   ? 'Reintentar el mismo guardado'
                                   : 'Retry same save')
-                            : (es ? 'Guardar planificación' : 'Save schedule'),
+                            : localizedText(
+                                context,
+                                'Save schedule',
+                                'Guardar planificación',
+                                'Enregistrer la planification',
+                              ),
                       ),
                     ),
                   ),

@@ -91,10 +91,11 @@ void main() {
           });
           final context = await maintenance.assetContext(asset);
           final executorId =
+              h.executorId ??
               (await supabase
                       .from('profiles')
                       .select('id')
-                      .eq('email', executor))
+                      .eq('email', h.loginEmail(executor)))
                   .single['id'];
           final mechanic =
               (context['assignees'] as List).firstWhere(

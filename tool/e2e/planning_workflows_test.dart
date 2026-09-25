@@ -70,7 +70,9 @@ void main() {
           final catalog = await repository().assetContext(asset);
           final mechanic =
               (catalog['assignees'] as List).firstWhere(
-                    (p) => p['role'] == 'client_mechanic',
+                    (p) =>
+                        p['role'] == 'client_mechanic' &&
+                        (h.executorId == null || p['id'] == h.executorId),
                   )
                   as Map;
           Future<void> pickStart() async {
@@ -103,6 +105,7 @@ void main() {
               manifest['maintenance_job'] = job;
               save();
               expect(jobs.single.data['service_interval_id'], plan);
+              await h.waitFor(find.text('Schedule work'));
               expect(find.text('Schedule work'), findsOneWidget);
               await h.screenshot('planning013-booking');
             },
@@ -111,7 +114,7 @@ void main() {
             'manager books time duration assignee and deadline through native controls',
             () async {
               if (job == null) throw StateError('No created job');
-              await h.select('Assignee', mechanic['name'] as String);
+              await h.select('Assigned to', mechanic['name'] as String);
               await pickStart();
               await h.fill(h.field('Estimated duration (minutes)'), '120');
               await h.tap(find.text('Deadline'));
@@ -121,6 +124,9 @@ void main() {
                 '$marker Planned shutdown',
               );
               await h.tap(find.widgetWithText(FilledButton, 'Save schedule'));
+              await h.waitFor(
+                find.byKey(const ValueKey('planning-collection')),
+              );
               final saved = (await planning()).jobs.single;
               expect(saved.start, isNotNull);
               expect(saved.minutes, 120);
@@ -129,8 +135,7 @@ void main() {
               expect(saved.status, 'assigned');
               await h.go('/maintenance/planning?assetId=$asset');
               await h.tap(find.byKey(const ValueKey('planning-collection')));
-              await h.tap(find.text('Schedule'));
-              await h.tap(find.widgetWithText(ChoiceChip, 'Month'));
+              await h.tap(find.text('Month'));
               await h.reveal(find.text('$marker Generator service'));
               await h.screenshot('planning013-month');
             },
@@ -146,7 +151,7 @@ void main() {
                 'title': '$marker Pump inspection',
               });
               await h.go('/maintenance/planning?assetId=$asset&jobId=$second');
-              await h.select('Assignee', mechanic['name'] as String);
+              await h.select('Assigned to', mechanic['name'] as String);
               await pickStart();
               await h.fill(
                 h.field('Scheduling reason'),
@@ -174,7 +179,7 @@ void main() {
               await h.go('/maintenance/planning?assetId=$asset');
               await h.go('/maintenance/planning?assetId=$asset&jobId=$second');
               await h.tap(find.text('Return to unscheduled'));
-              await h.select('Assignee', 'Unassigned');
+              await h.select('Assigned to', 'Unassigned');
               await h.fill(
                 h.field('Scheduling reason'),
                 '$marker Wait for an independent inspection slot',
@@ -206,10 +211,21 @@ void main() {
               await h.login('client_mechanic@vortice.dev');
               await h.go('/maintenance/planning?assetId=$asset');
               expect(find.text('Plan work'), findsNothing);
-              await h.tap(find.text('Continue work'));
+              await h.reveal(find.text('$marker Generator service'));
+              await h.tap(find.text('$marker Generator service'));
               await h.tap(find.widgetWithText(FilledButton, 'Start work'));
+              await h.tap(
+                find.descendant(
+                  of: find.byType(AlertDialog),
+                  matching: find.widgetWithText(FilledButton, 'Start work'),
+                ),
+              );
               await h.tap(find.widgetWithText(TextButton, 'Pause'));
-              await h.tap(find.text('Continue service report'));
+              await h.tap(
+                find.textContaining(
+                  RegExp(r'^(Create|Continue) service report$'),
+                ),
+              );
               await h.fill(
                 h.field('Findings'),
                 '$marker Planned generator service',
@@ -218,7 +234,7 @@ void main() {
                 h.field('Work performed and results'),
                 '$marker Filter replaced and load test passed',
               );
-              await h.fill(h.field('Component meter at completion'), '250');
+              await h.fill(h.field('Completion meter (h)'), '250');
               await h.tap(
                 find.widgetWithText(FilledButton, 'Submit for review'),
               );

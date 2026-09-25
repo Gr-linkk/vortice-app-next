@@ -151,35 +151,47 @@ class SupabaseFleetRepository implements FleetRepository {
   }
 }
 
-String fleetErrorMessage(Object error, bool es) {
+String fleetErrorMessage(Object error, bool es, {bool french = false}) {
   if (error is PostgrestException) {
     if (error.code == '40001' || error.message.contains('already used')) {
-      return es
+      return french
+          ? 'Cet enregistrement a changé. Fermez le formulaire et actualisez avant d’enregistrer.'
+          : es
           ? 'Este registro cambió. Cierra el formulario y actualiza antes de guardar.'
           : 'This record changed. Close this form and refresh before saving again.';
     }
     if (error.code == '42501') {
-      return es
+      return french
+          ? 'Votre compte n’est pas autorisé à effectuer cette action.'
+          : es
           ? 'Tu cuenta no tiene permiso para esta acción.'
           : 'Your account does not have permission for this action.';
     }
     if (error.message.contains('urgent')) {
-      return es
+      return french
+          ? 'Résolvez ou écartez les défaillances urgentes avant de marquer cet équipement comme disponible.'
+          : es
           ? 'Resuelve o descarta las fallas urgentes antes de marcar Disponible.'
           : 'Resolve or dismiss urgent faults before marking this asset Available.';
     }
     if (error.code == 'PGRST202' || error.code == '42P01') {
-      return es
+      return french
+          ? 'Cette fonction nécessite une mise à jour du service Vortice Next.'
+          : es
           ? 'Esta función requiere la actualización de Vortice Next.'
           : 'This feature requires the Vortice Next backend update.';
     }
     if (error.code == 'P0001') {
-      return es
+      return french
+          ? 'Impossible d’appliquer la modification. Vérifiez l’état actuel et les champs.'
+          : es
           ? 'No se pudo aplicar el cambio. Revisa el estado actual y los campos.'
           : error.message;
     }
   }
-  return es
+  return french
+      ? 'Impossible de confirmer l’enregistrement ou la connexion. Vos données sont conservées ici; reconnectez-vous et réessayez.'
+      : es
       ? 'No se pudo confirmar el guardado o la conexión. Tus datos siguen aquí; reconecta e intenta de nuevo.'
       : 'Could not confirm the connection or save. Your input is kept here; reconnect and retry.';
 }

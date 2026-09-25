@@ -1,3 +1,4 @@
+import 'canadian_invoice.dart';
 import 'package:vortice_app/core/user_feedback.dart';
 import 'package:flutter/material.dart';
 import 'package:vortice_app/sync/online_action_gate.dart';
@@ -229,7 +230,9 @@ class _InvoiceDetailScreenState extends ConsumerState<InvoiceDetailScreen> {
       appBar: AppBar(
         title: Text(l10n.invoiceDetail),
         actions: [
-          if (isOwner && !_isEditing)
+          if (isOwner &&
+              !_isEditing &&
+              invoiceAsync.valueOrNull?.isNativeCad != true)
             Builder(
               builder: (_) {
                 final invoice = invoiceAsync.valueOrNull;
@@ -250,6 +253,7 @@ class _InvoiceDetailScreenState extends ConsumerState<InvoiceDetailScreen> {
               },
             ),
           if (isOwner &&
+              invoiceAsync.valueOrNull?.isNativeCad != true &&
               invoiceAsync.valueOrNull?.status == InvoiceStatus.draft &&
               !isLoading)
             PopupMenuButton<String>(
@@ -308,34 +312,41 @@ class _InvoiceDetailScreenState extends ConsumerState<InvoiceDetailScreen> {
               children: [
                 InvoiceDetailHeader(invoice: invoice),
                 const SizedBox(height: 16),
-                InvoiceDetailCurrencyToggle(
-                  currency: _currency,
-                  onChanged: (v) => setState(() => _currency = v),
-                ),
-                if (_currency.rate(invoice) == null)
-                  Padding(
-                    padding: const EdgeInsets.only(top: 8),
-                    child: Text(
-                      isSpanish(context)
-                          ? 'Esta factura no tiene un tipo de cambio ${_currency.code} guardado.'
-                          : 'This invoice has no saved ${_currency.code} exchange rate.',
-                    ),
+                if (invoice.isNativeCad)
+                  CanadianInvoiceSummary(invoice: invoice)
+                else ...[
+                  InvoiceDetailCurrencyToggle(
+                    currency: _currency,
+                    onChanged: (v) => setState(() => _currency = v),
                   ),
-                const SizedBox(height: 16),
-                _isEditing
-                    ? InvoiceDetailEditableLineItems(
-                        labourHoursCtrl: _labourHoursCtrl,
-                        billableRateCtrl: _billableRateCtrl,
-                        partsTotalCtrl: _partsTotalCtrl,
-                        consumablesCtrl: _consumablesCtrl,
-                        notesCtrl: _notesCtrl,
-                      )
-                    : InvoiceDetailLineItemsCard(
-                        invoice: invoice,
-                        currency: _currency,
+                  if (_currency.rate(invoice) == null)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 8),
+                      child: Text(
+                        isSpanish(context)
+                            ? 'Esta factura no tiene un tipo de cambio ${_currency.code} guardado.'
+                            : 'This invoice has no saved ${_currency.code} exchange rate.',
                       ),
-                const SizedBox(height: 16),
-                InvoiceDetailSummaryCard(invoice: invoice, currency: _currency),
+                    ),
+                  const SizedBox(height: 16),
+                  _isEditing
+                      ? InvoiceDetailEditableLineItems(
+                          labourHoursCtrl: _labourHoursCtrl,
+                          billableRateCtrl: _billableRateCtrl,
+                          partsTotalCtrl: _partsTotalCtrl,
+                          consumablesCtrl: _consumablesCtrl,
+                          notesCtrl: _notesCtrl,
+                        )
+                      : InvoiceDetailLineItemsCard(
+                          invoice: invoice,
+                          currency: _currency,
+                        ),
+                  const SizedBox(height: 16),
+                  InvoiceDetailSummaryCard(
+                    invoice: invoice,
+                    currency: _currency,
+                  ),
+                ],
                 const SizedBox(height: 24),
                 if (_isEditing) ...[
                   Row(
@@ -364,7 +375,9 @@ class _InvoiceDetailScreenState extends ConsumerState<InvoiceDetailScreen> {
                     ],
                   ),
                 ] else ...[
-                  if (isOwner && invoice.status == InvoiceStatus.draft)
+                  if (isOwner &&
+                      !invoice.isNativeCad &&
+                      invoice.status == InvoiceStatus.draft)
                     FilledButton.icon(
                       onPressed: isLoading
                           ? null
@@ -391,6 +404,11 @@ class _InvoiceDetailScreenState extends ConsumerState<InvoiceDetailScreen> {
                                   await InvoicePdfService.generateAndShare(
                                     invoice,
                                     spanish: isSpanish(context),
+                                    french:
+                                        Localizations.localeOf(
+                                          context,
+                                        ).languageCode ==
+                                        'fr',
                                   );
                                   return null;
                                 }),
@@ -407,6 +425,11 @@ class _InvoiceDetailScreenState extends ConsumerState<InvoiceDetailScreen> {
                                   await InvoiceExcelService.generateAndShare(
                                     invoice,
                                     spanish: isSpanish(context),
+                                    french:
+                                        Localizations.localeOf(
+                                          context,
+                                        ).languageCode ==
+                                        'fr',
                                   );
                                   return null;
                                 }),
@@ -428,6 +451,11 @@ class _InvoiceDetailScreenState extends ConsumerState<InvoiceDetailScreen> {
                                       await InvoicePdfService.downloadAndOpen(
                                         invoice,
                                         spanish: isSpanish(context),
+                                        french:
+                                            Localizations.localeOf(
+                                              context,
+                                            ).languageCode ==
+                                            'fr',
                                       );
                                   return 'Downloaded PDF: ${file.path}';
                                 }),
@@ -445,6 +473,11 @@ class _InvoiceDetailScreenState extends ConsumerState<InvoiceDetailScreen> {
                                       await InvoiceExcelService.downloadAndOpen(
                                         invoice,
                                         spanish: isSpanish(context),
+                                        french:
+                                            Localizations.localeOf(
+                                              context,
+                                            ).languageCode ==
+                                            'fr',
                                       );
                                   if (file == null) {
                                     throw StateError(

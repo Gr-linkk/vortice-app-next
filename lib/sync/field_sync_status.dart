@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:go_router/go_router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:vortice_app/core/account_storage.dart';
+import 'package:vortice_app/core/localized_text.dart';
 import 'package:vortice_app/features/operator/operator_checklist_support.dart';
 import 'offline_readiness.dart';
 import 'recurring_work_refresh.dart';
@@ -120,8 +121,10 @@ class _FieldSyncStatusState extends ConsumerState<FieldSyncStatus>
       await queue?.flush();
       await queue?.cleanCompleted();
       if (mounted && _active) {
-        final connected = await ref.read(onlineActionGateProvider.notifier).check(force:true);
-        if(!mounted || !_active || !connected) return;
+        final connected = await ref
+            .read(onlineActionGateProvider.notifier)
+            .check(force: true);
+        if (!mounted || !_active || !connected) return;
         await refreshRecurringWork(ref);
         if (!mounted || !_active) return;
         await ref.read(offlineReadinessProvider.notifier).refresh();
@@ -145,9 +148,11 @@ class _FieldSyncStatusState extends ConsumerState<FieldSyncStatus>
   @override
   Widget build(BuildContext context) {
     final es = isSpanish(context);
+    final fr = isFrench(context);
     final rows = ref.watch(fieldOperationsProvider).valueOrNull ?? [];
     final readiness = ref.watch(offlineReadinessProvider);
-    final offline = ref.watch(onlineActionGateProvider) == ServerConnection.offline;
+    final offline =
+        ref.watch(onlineActionGateProvider) == ServerConnection.offline;
     final waiting = rows
         .where((r) => !r.synced && r.status != 'cancelled')
         .length;
@@ -165,19 +170,35 @@ class _FieldSyncStatusState extends ConsumerState<FieldSyncStatus>
                 ? Icons.error_outline
                 : waiting > 0
                 ? Icons.cloud_upload_outlined
-                : offline ? Icons.wifi_off_outlined : Icons.cloud_done_outlined,
+                : offline
+                ? Icons.wifi_off_outlined
+                : Icons.cloud_done_outlined,
           ),
           title: Text(
             failed
-                ? (es ? 'Necesita atención' : 'Needs attention')
+                ? (fr
+                      ? 'À vérifier'
+                      : es
+                      ? 'Necesita atención'
+                      : 'Needs attention')
                 : waiting > 0
-                ? (es
+                ? (fr
+                      ? 'Enregistré sur cet appareil · $waiting en attente d’envoi'
+                      : es
                       ? 'Guardado en este dispositivo · $waiting pendientes'
                       : 'Saved on this device · $waiting pending upload')
-                : offlineReadinessLabel(readiness, es),
+                : offlineReadinessLabel(readiness, es, french: fr),
           ),
           trailing: const Icon(Icons.chevron_right),
-          subtitle: offline ? Text(es ? 'Sin conexión · aprobaciones y cambios de acceso requieren conexión' : 'Offline · approvals and access changes require a connection') : null,
+          subtitle: offline
+              ? Text(
+                  fr
+                      ? 'Hors connexion · les approbations et les changements d’accès nécessitent une connexion.'
+                      : es
+                      ? 'Sin conexión · aprobaciones y cambios de acceso requieren conexión'
+                      : 'Offline · approvals and access changes require a connection',
+                )
+              : null,
           onTap: () => Navigator.of(context).push(
             MaterialPageRoute<void>(builder: (_) => const FieldQueueScreen()),
           ),
@@ -453,12 +474,13 @@ class OfflinePreparationButton extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final state = ref.watch(offlineReadinessProvider);
     final es = isSpanish(context);
+    final fr = isFrench(context);
     return Padding(
       padding: const EdgeInsets.only(bottom: 16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(offlineReadinessLabel(state, es)),
+          Text(offlineReadinessLabel(state, es, french: fr)),
           TextButton.icon(
             onPressed: state.refreshing
                 ? null
@@ -467,7 +489,11 @@ class OfflinePreparationButton extends ConsumerWidget {
                       .refresh(force: true),
             icon: const Icon(Icons.sync),
             label: Text(
-              es ? 'Actualizar datos sin conexión' : 'Refresh offline data',
+              fr
+                  ? 'Actualiser les données hors ligne'
+                  : es
+                  ? 'Actualizar datos sin conexión'
+                  : 'Refresh offline data',
             ),
           ),
           if (state.refreshing) const LinearProgressIndicator(),
@@ -477,22 +503,36 @@ class OfflinePreparationButton extends ConsumerWidget {
   }
 }
 
-String offlineReadinessLabel(OfflineReadiness state, bool es) {
+String offlineReadinessLabel(
+  OfflineReadiness state,
+  bool es, {
+  bool french = false,
+}) {
   if (state.needsAttention) {
-    return es
+    return french
+        ? 'Les données hors ligne nécessitent une attention.'
+        : es
         ? 'Datos sin conexión: necesitan atención'
         : 'Offline data needs attention';
   }
   if (state.readyAt(DateTime.now())) {
     final minutes = DateTime.now().difference(state.updatedAt!).inMinutes;
-    return es
+    return french
+        ? 'Disponible hors ligne · mise à jour il y a $minutes min'
+        : es
         ? 'Disponible sin conexión · actualizado hace $minutes min'
         : 'Ready offline · updated $minutes min ago';
   }
   if (state.refreshing) {
-    return es ? 'Actualizando datos sin conexión' : 'Updating offline data';
+    return french
+        ? 'Mise à jour des données hors ligne'
+        : es
+        ? 'Actualizando datos sin conexión'
+        : 'Updating offline data';
   }
-  return es
+  return french
+      ? 'Connectez-vous pour actualiser les données hors ligne.'
+      : es
       ? 'Conéctate para actualizar los datos sin conexión'
       : 'Connect to refresh offline data';
 }

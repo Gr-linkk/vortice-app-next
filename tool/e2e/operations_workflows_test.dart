@@ -54,7 +54,9 @@ void main() {
               .assetContext(asset);
           final mechanic =
               (context['assignees'] as List).firstWhere(
-                    (p) => p['role'] == 'client_mechanic',
+                    (p) =>
+                        p['role'] == 'client_mechanic' &&
+                        (h.executorId == null || p['id'] == h.executorId),
                   )
                   as Map;
           await h.step('manager creates assigned maintenance job', () async {
@@ -121,7 +123,7 @@ void main() {
             String? target,
           }) async {
             await h.go('/maintenance/jobs/${target ?? job}');
-            await h.tap(find.text('Continue service report'));
+            await h.tap(find.textContaining(RegExp(r'^(Create|Continue) service report$')));
             await h.fill(h.field('Findings'), '$marker Worn seal $suffix');
             await h.fill(
               h.field('Work performed and results'),
@@ -140,7 +142,7 @@ void main() {
               if (job == null) throw StateError('No created job');
               await report('draft', 'Save draft');
               await h.go('/maintenance/jobs/$job');
-              await h.tap(find.text('Continue service report'));
+              await h.tap(find.textContaining(RegExp(r'^(Create|Continue) service report$')));
               expect(
                 tester.widget<TextField>(h.field('Findings')).controller!.text,
                 '$marker Worn seal draft',
@@ -342,7 +344,9 @@ void main() {
               await h.go('/discussion/job/$job');
               await h.tap(find.text('Acknowledge handover'));
               final acknowledged = coordinationRows(
-                (await coordination.thread(query))['posts'],
+                (await SupabaseCoordinationRepository(
+                  supabase,
+                ).thread(query))['posts'],
               ).single;
               expect((acknowledged['acknowledgements'] as List).length, 1);
             },

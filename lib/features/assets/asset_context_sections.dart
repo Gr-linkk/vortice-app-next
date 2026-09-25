@@ -5,6 +5,7 @@ import 'package:vortice_app/features/assurance/assurance_repository.dart';
 import 'package:vortice_app/features/assurance/assurance_form.dart';
 import 'package:vortice_app/features/maintenance/planning/planning_repository.dart';
 import 'package:vortice_app/core/user_feedback.dart';
+import 'package:vortice_app/core/localized_text.dart';
 
 class AssetCurrentWorkSection extends ConsumerWidget {
   const AssetCurrentWorkSection({super.key, required this.assetId});
@@ -18,7 +19,12 @@ class AssetCurrentWorkSection extends ConsumerWidget {
         loading: () => const LinearProgressIndicator(),
         error: (error, _) => ListTile(
           title: Text(
-            es ? 'Trabajo actual no disponible' : 'Current work unavailable',
+            localizedText(
+              context,
+              'Current work unavailable',
+              'Trabajo actual no disponible',
+              'Travail en cours indisponible',
+            ),
           ),
           trailing: IconButton(
             icon: const Icon(Icons.refresh),
@@ -31,11 +37,21 @@ class AssetCurrentWorkSection extends ConsumerWidget {
           return Column(
             children: [
               ListTile(
-                title: Text(es ? 'Trabajo actual' : 'Current work'),
+                title: Text(
+                  localizedText(
+                    context,
+                    'Current work',
+                    'Trabajo actual',
+                    'Travail en cours',
+                  ),
+                ),
                 subtitle: Text(
-                  es
-                      ? '${open.length} órdenes abiertas'
-                      : '${open.length} open work orders',
+                  localizedText(
+                    context,
+                    '${open.length} open work orders',
+                    '${open.length} órdenes abiertas',
+                    '${open.length} bons de travail ouverts',
+                  ),
                 ),
                 trailing: const Icon(Icons.chevron_right),
                 onTap: () =>
@@ -45,7 +61,9 @@ class AssetCurrentWorkSection extends ConsumerWidget {
                 ListTile(
                   dense: true,
                   title: Text(job.title),
-                  subtitle: Text(job.lifecycleLabel(es)),
+                  subtitle: Text(
+                    job.lifecycleLabel(es, french: isFrench(context)),
+                  ),
                   trailing: const Icon(Icons.chevron_right),
                   onTap: () => context.push(job.route),
                 ),
@@ -69,7 +87,12 @@ class AssetCustodySection extends ConsumerWidget {
           loading: () => const LinearProgressIndicator(),
           error: (error, _) => ListTile(
             title: Text(
-              es ? 'Ubicación no disponible' : 'Location unavailable',
+              localizedText(
+                context,
+                'Location unavailable',
+                'Ubicación no disponible',
+                'Emplacement indisponible',
+              ),
             ),
             trailing: IconButton(
               icon: const Icon(Icons.refresh),
@@ -86,12 +109,15 @@ class AssetCustodySection extends ConsumerWidget {
                 title: Text(
                   custody['site'] as String? ??
                       asset['location'] as String? ??
-                      (es
-                          ? 'Sin ubicación registrada'
-                          : 'No location recorded'),
+                      localizedText(
+                        context,
+                        'No location recorded',
+                        'Sin ubicación registrada',
+                        'Aucun emplacement enregistré',
+                      ),
                 ),
                 subtitle: Text(
-                  '${custody['responsible_name'] ?? (es ? 'Sin responsable' : 'No responsible person')} · ${assuranceLabel(custody['lifecycle'] as String? ?? 'active', es)}',
+                  '${custody['responsible_name'] ?? localizedText(context, 'No responsible person', 'Sin responsable', 'Aucune personne responsable')} · ${assuranceLabel(custody['lifecycle'] as String? ?? 'active', es, french: isFrench(context))}',
                 ),
                 trailing: data['can_manage'] == true
                     ? const Icon(Icons.edit_outlined)
@@ -132,7 +158,12 @@ class AssetInspectionsSection extends ConsumerWidget {
           ListTile(
             leading: const Icon(Icons.verified_outlined),
             title: Text(
-              es ? 'Inspecciones y certificados' : 'Inspections & certificates',
+              localizedText(
+                context,
+                'Inspections & certificates',
+                'Inspecciones y certificados',
+                'Inspections et certificats',
+              ),
             ),
             trailing: const Icon(Icons.chevron_right),
             onTap: () => context.push('/assurance/assets/$assetId'),
@@ -145,7 +176,12 @@ class AssetInspectionsSection extends ConsumerWidget {
                   onPressed: () =>
                       ref.invalidate(inspectionRegisterProvider(assetId)),
                   child: Text(
-                    es ? 'Reintentar inspecciones' : 'Retry inspections',
+                    localizedText(
+                      context,
+                      'Retry inspections',
+                      'Reintentar inspecciones',
+                      'Réessayer de charger les inspections',
+                    ),
                   ),
                 ),
                 data: (items) => Column(
@@ -154,9 +190,12 @@ class AssetInspectionsSection extends ConsumerWidget {
                       Padding(
                         padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
                         child: Text(
-                          es
-                              ? 'No hay inspecciones configuradas.'
-                              : 'No inspections configured.',
+                          localizedText(
+                            context,
+                            'No inspections configured.',
+                            'No hay inspecciones configuradas.',
+                            'Aucune inspection n’est configurée.',
+                          ),
                         ),
                       ),
                     for (final item in items)
@@ -167,6 +206,7 @@ class AssetInspectionsSection extends ConsumerWidget {
                           assuranceLabel(
                             inspectionState(item, DateTime.now()),
                             es,
+                            french: isFrench(context),
                           ),
                         ),
                         trailing: const Icon(Icons.chevron_right),

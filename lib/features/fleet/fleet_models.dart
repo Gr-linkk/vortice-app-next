@@ -12,12 +12,37 @@ enum OperatingState {
   static OperatingState parse(String? value) =>
       values.firstWhere((state) => state.value == value, orElse: () => unknown);
 
-  String label(bool es) => switch (this) {
-    unknown => es ? 'Sin evaluar' : 'Not assessed',
-    available => es ? 'Disponible' : 'Available',
-    restricted => es ? 'Uso restringido' : 'Restricted use',
-    outOfService => es ? 'Fuera de servicio' : 'Out of service',
-    underMaintenance => es ? 'En mantenimiento' : 'Under maintenance',
+  String label(bool es, {bool french = false}) => switch (this) {
+    unknown =>
+      french
+          ? 'Non évalué'
+          : es
+          ? 'Sin evaluar'
+          : 'Not assessed',
+    available =>
+      french
+          ? 'Disponible'
+          : es
+          ? 'Disponible'
+          : 'Available',
+    restricted =>
+      french
+          ? 'Utilisation restreinte'
+          : es
+          ? 'Uso restringido'
+          : 'Restricted use',
+    outOfService =>
+      french
+          ? 'Hors service'
+          : es
+          ? 'Fuera de servicio'
+          : 'Out of service',
+    underMaintenance =>
+      french
+          ? 'En entretien'
+          : es
+          ? 'En mantenimiento'
+          : 'Under maintenance',
   };
 }
 
@@ -36,14 +61,49 @@ enum FaultStatus {
   static FaultStatus parse(String? value) => value == 'converted'
       ? acknowledged
       : values.firstWhere((s) => s.value == value, orElse: () => unknown);
-  String label(bool es) => switch (this) {
-    open => es ? 'Reportada' : 'Reported',
-    acknowledged => es ? 'Aceptada' : 'Acknowledged',
-    inProgress => es ? 'En reparación' : 'In repair',
-    pendingReview => es ? 'Pendiente de revisión' : 'Awaiting review',
-    resolved => es ? 'Resuelta' : 'Resolved',
-    dismissed => es ? 'Descartada' : 'Dismissed',
-    unknown => es ? 'Estado desconocido' : 'Unknown status',
+  String label(bool es, {bool french = false}) => switch (this) {
+    open =>
+      french
+          ? 'Signalée'
+          : es
+          ? 'Reportada'
+          : 'Reported',
+    acknowledged =>
+      french
+          ? 'Prise en charge'
+          : es
+          ? 'Aceptada'
+          : 'Acknowledged',
+    inProgress =>
+      french
+          ? 'En réparation'
+          : es
+          ? 'En reparación'
+          : 'In repair',
+    pendingReview =>
+      french
+          ? 'À réviser'
+          : es
+          ? 'Pendiente de revisión'
+          : 'Awaiting review',
+    resolved =>
+      french
+          ? 'Résolue'
+          : es
+          ? 'Resuelta'
+          : 'Resolved',
+    dismissed =>
+      french
+          ? 'Écartée'
+          : es
+          ? 'Descartada'
+          : 'Dismissed',
+    unknown =>
+      french
+          ? 'État inconnu'
+          : es
+          ? 'Estado desconocido'
+          : 'Unknown status',
   };
 }
 

@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:vortice_app/core/app_navigation.dart';
 import 'package:vortice_app/core/user_feedback.dart';
+import 'package:vortice_app/core/localized_text.dart';
 import 'package:vortice_app/core/theme.dart';
 import 'package:vortice_app/features/auth/auth_provider.dart';
 import 'package:vortice_app/features/clients/client_capability_gate.dart';
@@ -59,6 +60,7 @@ class AppShell extends ConsumerWidget {
     }
 
     final es = isSpanish(context);
+    final fr = isFrench(context);
     final profile = authStatus.profile!;
     final role = profile.role;
     final operationalChecklistsEnabled =
@@ -121,7 +123,7 @@ class AppShell extends ConsumerWidget {
                         (item) => BottomNavigationBarItem(
                           icon: Icon(item.icon),
                           activeIcon: Icon(item.icon),
-                          label: item.label(es),
+                          label: item.label(es, french: fr),
                         ),
                       )
                       .toList(),

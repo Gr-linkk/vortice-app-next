@@ -55,7 +55,9 @@ void main() {
         final originalError = FlutterError.onError;
         FlutterError.onError = (details) {
           h.issues.add(details.exceptionAsString());
-          stdout.writeln('FRAMEWORK ${details.exceptionAsString()}');
+          stdout.writeln(
+            'FRAMEWORK ${details.exceptionAsString()}\n${details.stack}',
+          );
         };
         try {
           await h.login('operator@vortice.dev');
@@ -75,7 +77,9 @@ void main() {
           final context = await maintenance.assetContext(asset);
           mechanic =
               (context['assignees'] as List).firstWhere(
-                    (p) => p['role'] == 'client_mechanic',
+                    (p) =>
+                        p['role'] == 'client_mechanic' &&
+                        (h.executorId == null || p['id'] == h.executorId),
                   )
                   as Map;
           await h.step(
@@ -297,7 +301,11 @@ void main() {
               await h.go('/maintenance/jobs/$repair');
               await h.tap(find.widgetWithText(FilledButton, 'Start work'));
               await h.tap(find.widgetWithText(TextButton, 'Pause'));
-              await h.tap(find.text('Continue service report'));
+              await h.tap(
+                find.textContaining(
+                  RegExp(r'^(Create|Continue) service report$'),
+                ),
+              );
               await h.fill(
                 h.field('Findings'),
                 '$marker Loose fastener confirmed',
@@ -396,6 +404,12 @@ void main() {
               await h.login('client_mechanic@vortice.dev');
               await h.go('/maintenance/jobs/$pmJob');
               await h.tap(find.widgetWithText(FilledButton, 'Start work'));
+              await h.tap(
+                find.descendant(
+                  of: find.byType(AlertDialog),
+                  matching: find.widgetWithText(FilledButton, 'Start work'),
+                ),
+              );
               await h.tap(find.widgetWithText(TextButton, 'Pause'));
               final working = (await maintenance.jobs(jobId: pmJob)).single;
               pmPhoto =
@@ -422,7 +436,11 @@ void main() {
               );
               h.container.invalidate(maintenanceJobProvider(pmJob!));
               await h.go('/maintenance/jobs/$pmJob');
-              await h.tap(find.text('Continue service report'));
+              await h.tap(
+                find.textContaining(
+                  RegExp(r'^(Create|Continue) service report$'),
+                ),
+              );
               await h.fill(h.field('Reading'), '80');
               expect(
                 find.text('Outside range · review required'),

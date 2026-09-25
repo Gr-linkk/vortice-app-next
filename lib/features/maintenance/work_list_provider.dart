@@ -32,8 +32,13 @@ class WorkListEntry {
   final bool? hasBooking;
   final bool returned;
   final bool ownEquipment;
-  String lifecycleLabel(bool es) =>
-      maintenanceStatus(status, es, booked: hasBooking, returned: returned);
+  String lifecycleLabel(bool es, {bool french = false}) => maintenanceStatus(
+    status,
+    es,
+    french: french,
+    booked: hasBooking,
+    returned: returned,
+  );
   bool get completed => status == 'closed' || status == 'invoiced';
 
   bool matches(String filter, String query) =>

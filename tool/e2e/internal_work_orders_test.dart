@@ -55,7 +55,9 @@ void main() {
           final context = await repository().assetContext(asset);
           final mechanic =
               (context['assignees'] as List).firstWhere(
-                    (person) => person['role'] == 'client_mechanic',
+                    (person) =>
+                        person['role'] == 'client_mechanic' &&
+                        (h.executorId == null || person['id'] == h.executorId),
                   )
                   as Map;
           await h.step(
@@ -118,8 +120,7 @@ void main() {
               expect(saved.revision, 1);
               expect(saved.expectedMaterials, contains('Torque wrench'));
               await h.go('/maintenance/planning?assetId=$asset');
-              await h.tap(find.byKey(const ValueKey('planning-collection')));
-              await h.tap(find.text('Unscheduled'));
+              await h.tap(find.textContaining(RegExp(r'^Unscheduled · ')));
               await h.reveal(find.text('$marker Mounting inspection'));
               expect(find.text('Inspection'), findsOneWidget);
               await h.screenshot('internal014-planning');
@@ -158,8 +159,24 @@ void main() {
               await h.tap(find.text('$marker Mounting inspection'));
               expect(find.text('Edit work order'), findsNothing);
               await h.tap(find.widgetWithText(FilledButton, 'Start work'));
+              await h.tap(
+                find.descendant(
+                  of: find.byType(AlertDialog),
+                  matching: find.widgetWithText(FilledButton, 'Start work'),
+                ),
+              );
+              final started = (await repository().jobs(jobId: order)).single;
+              expect(
+                started.status,
+                'in_progress',
+                reason: 'Start must be persisted before pausing labour',
+              );
               await h.tap(find.widgetWithText(TextButton, 'Pause'));
-              await h.tap(find.text('Continue service report'));
+              await h.tap(
+                find.textContaining(
+                  RegExp(r'^(Create|Continue) service report$'),
+                ),
+              );
               await h.fill(
                 h.field('Findings'),
                 '$marker No defects observed in mounting points',
@@ -168,6 +185,7 @@ void main() {
                 h.field('Work performed and results'),
                 '$marker Verified torque and documented each mounting',
               );
+              await h.fill(h.field('Completion meter (h)'), '240');
               await h.screenshot('internal014-report');
               await h.tap(
                 find.widgetWithText(FilledButton, 'Submit for review'),

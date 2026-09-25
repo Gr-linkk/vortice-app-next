@@ -38,18 +38,44 @@ class _FleetScreenState extends ConsumerState<FleetScreen> {
       initialIndex: widget.initialTab,
       child: Scaffold(
         appBar: AppBar(
-          title: Text(es ? 'Estado de la flota' : 'Fleet readiness'),
+          title: Text(
+            fleetText(
+              context,
+              'Fleet readiness',
+              'Estado de la flota',
+              'État du parc',
+            ),
+          ),
           actions: [
             IconButton(
-              tooltip: es ? 'Actualizar' : 'Refresh',
+              tooltip: fleetText(
+                context,
+                'Refresh',
+                'Actualizar',
+                'Actualiser',
+              ),
               onPressed: () => refreshFleet(ref),
               icon: const Icon(Icons.refresh),
             ),
           ],
           bottom: TabBar(
             tabs: [
-              Tab(text: es ? 'Fallas y reparaciones' : 'Faults & repairs'),
-              Tab(text: es ? 'Disponibilidad' : 'Availability'),
+              Tab(
+                text: fleetText(
+                  context,
+                  'Faults & repairs',
+                  'Fallas y reparaciones',
+                  'Défaillances et réparations',
+                ),
+              ),
+              Tab(
+                text: fleetText(
+                  context,
+                  'Availability',
+                  'Disponibilidad',
+                  'Disponibilité',
+                ),
+              ),
             ],
           ),
         ),
@@ -62,9 +88,12 @@ class _FleetScreenState extends ConsumerState<FleetScreen> {
                     setState(() => _query = value.trim().toLowerCase()),
                 decoration: InputDecoration(
                   prefixIcon: const Icon(Icons.search),
-                  hintText: es
-                      ? 'Buscar equipo o falla'
-                      : 'Search equipment or faults',
+                  hintText: fleetText(
+                    context,
+                    'Search equipment or faults',
+                    'Buscar equipo o falla',
+                    'Rechercher un équipement ou une défaillance',
+                  ),
                 ),
               ),
             ),
@@ -75,7 +104,12 @@ class _FleetScreenState extends ConsumerState<FleetScreen> {
                   children: [
                     Expanded(
                       child: Text(
-                        es ? 'Filtrado por equipo' : 'Filtered to one asset',
+                        fleetText(
+                          context,
+                          'Filtered to one asset',
+                          'Filtrado por equipo',
+                          'Filtré pour un équipement',
+                        ),
                         style: TextStyle(
                           color: context.appColors.textSecondary,
                         ),
@@ -83,7 +117,14 @@ class _FleetScreenState extends ConsumerState<FleetScreen> {
                     ),
                     TextButton(
                       onPressed: () => context.go('/fleet'),
-                      child: Text(es ? 'Ver toda la flota' : 'Show all'),
+                      child: Text(
+                        fleetText(
+                          context,
+                          'Show all',
+                          'Ver toda la flota',
+                          'Afficher tout le parc',
+                        ),
+                      ),
                     ),
                   ],
                 ),
@@ -106,7 +147,14 @@ class _FleetScreenState extends ConsumerState<FleetScreen> {
             if (mounted) refreshFleet(ref);
           },
           icon: const Icon(Icons.add),
-          label: Text(es ? 'Reportar falla' : 'Report fault'),
+          label: Text(
+            fleetText(
+              context,
+              'Report fault',
+              'Reportar falla',
+              'Signaler une défaillance',
+            ),
+          ),
         ),
       ),
     );
@@ -125,17 +173,28 @@ class _FleetScreenState extends ConsumerState<FleetScreen> {
               spacing: 8,
               children: [
                 AppFilterChip(
-                  label: Text(es ? 'Urgentes' : 'Urgent'),
+                  label: Text(
+                    fleetText(context, 'Urgent', 'Urgentes', 'Urgentes'),
+                  ),
                   selected: _urgent,
                   onSelected: (value) => setState(() => _urgent = value),
                 ),
                 AppFilterChip(
-                  label: Text(es ? 'Cerradas' : 'Closed'),
+                  label: Text(
+                    fleetText(context, 'Closed', 'Cerradas', 'Fermées'),
+                  ),
                   selected: _closed,
                   onSelected: (value) => setState(() => _closed = value),
                 ),
                 AppFilterChip(
-                  label: Text(es ? 'Asignadas a mí' : 'Assigned to me'),
+                  label: Text(
+                    fleetText(
+                      context,
+                      'Assigned to me',
+                      'Asignadas a mí',
+                      'Qui me sont attribuées',
+                    ),
+                  ),
                   selected: _mine,
                   onSelected: (value) => setState(() => _mine = value),
                 ),
@@ -236,17 +295,31 @@ class _FleetScreenState extends ConsumerState<FleetScreen> {
                 initialValue: _state,
                 isExpanded: true,
                 decoration: InputDecoration(
-                  labelText: es ? 'Filtrar estado' : 'Filter availability',
+                  labelText: fleetText(
+                    context,
+                    'Filter availability',
+                    'Filtrar estado',
+                    'Filtrer la disponibilité',
+                  ),
                 ),
                 items: [
                   DropdownMenuItem(
                     value: null,
-                    child: Text(es ? 'Todos los estados' : 'All states'),
+                    child: Text(
+                      fleetText(
+                        context,
+                        'All states',
+                        'Todos los estados',
+                        'Tous les états',
+                      ),
+                    ),
                   ),
                   ...OperatingState.values.map(
                     (state) => DropdownMenuItem(
                       value: state,
-                      child: Text(state.label(es)),
+                      child: Text(
+                        state.label(es, french: fleetFrench(context)),
+                      ),
                     ),
                   ),
                 ],
@@ -284,7 +357,6 @@ class FleetSummary extends StatelessWidget {
   final List<FleetAsset> assets;
   @override
   Widget build(BuildContext context) {
-    final es = fleetSpanish(context);
     final unavailable = assets.where((a) => a.state.isDowntime).length;
     final faults = assets.fold<int>(0, (n, a) => n + a.openFaults);
     return Row(
@@ -292,7 +364,12 @@ class FleetSummary extends StatelessWidget {
         Expanded(
           child: _Metric(
             value: '$unavailable',
-            label: es ? 'No disponibles' : 'Unavailable',
+            label: fleetText(
+              context,
+              'Unavailable',
+              'No disponibles',
+              'Indisponibles',
+            ),
             color: context.appColors.warning,
           ),
         ),
@@ -300,7 +377,12 @@ class FleetSummary extends StatelessWidget {
         Expanded(
           child: _Metric(
             value: '$faults',
-            label: es ? 'Fallas activas' : 'Active faults',
+            label: fleetText(
+              context,
+              'Active faults',
+              'Fallas activas',
+              'Défaillances actives',
+            ),
             color: context.appColors.primaryLight,
           ),
         ),
@@ -347,7 +429,6 @@ class FaultListCard extends StatelessWidget {
   final VoidCallback onTap;
   @override
   Widget build(BuildContext context) {
-    final es = fleetSpanish(context);
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
       child: InkWell(
@@ -390,7 +471,7 @@ class FaultListCard extends StatelessWidget {
                   FaultStatusBadge(status: fault.status),
                   if (fault.urgent)
                     FleetBadge(
-                      label: es ? 'Urgente' : 'Urgent',
+                      label: fleetText(context, 'Urgent', 'Urgente', 'Urgente'),
                       color: context.appColors.error,
                       icon: Icons.priority_high,
                     ),
@@ -399,7 +480,12 @@ class FaultListCard extends StatelessWidget {
               const SizedBox(height: 12),
               Text(
                 fault.assigneeName ??
-                    (es ? 'Sin responsable asignado' : 'No mechanic assigned'),
+                    fleetText(
+                      context,
+                      'No mechanic assigned',
+                      'Sin responsable asignado',
+                      'Aucun mécanicien n’est attribué',
+                    ),
                 style: TextStyle(
                   color: context.appColors.textSecondary,
                   fontSize: 13,

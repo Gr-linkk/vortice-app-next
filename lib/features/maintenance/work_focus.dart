@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:vortice_app/core/account_storage.dart';
 import 'package:vortice_app/core/user_feedback.dart';
+import 'package:vortice_app/core/localized_text.dart';
 import 'package:vortice_app/features/auth/auth_provider.dart';
 import 'package:vortice_app/features/membership/company_purpose.dart';
 import 'package:vortice_app/features/membership/membership_provider.dart';
@@ -12,10 +13,25 @@ enum WorkFocus {
   customer,
   all;
 
-  String label(bool es) => switch (this) {
-    own => es ? 'Nuestros equipos' : 'Our equipment',
-    customer => es ? 'Trabajo para clientes' : 'Customer work',
-    all => es ? 'Todo el trabajo' : 'All work',
+  String label(bool es, {bool french = false}) => switch (this) {
+    own =>
+      french
+          ? 'Notre équipement'
+          : es
+          ? 'Nuestros equipos'
+          : 'Our equipment',
+    customer =>
+      french
+          ? 'Travail pour les clients'
+          : es
+          ? 'Trabajo para clientes'
+          : 'Customer work',
+    all =>
+      french
+          ? 'Tout le travail'
+          : es
+          ? 'Todo el trabajo'
+          : 'All work',
   };
   bool includes(bool ownEquipment) =>
       this == all || (this == own) == ownEquipment;
@@ -77,7 +93,7 @@ class WorkFocusSelector extends ConsumerWidget {
         for (final focus in WorkFocus.values)
           ChoiceChip(
             key: ValueKey('work-focus-${focus.name}'),
-            label: Text(focus.label(es)),
+            label: Text(focus.label(es, french: isFrench(context))),
             selected: selected == focus,
             onSelected: state.isLoading
                 ? null

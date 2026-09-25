@@ -1,3 +1,5 @@
+import 'canadian_invoice.dart';
+import 'canadian_invoice_exports.dart';
 import 'package:vortice_app/features/invoices/invoice_download.dart';
 import 'package:vortice_app/features/invoices/invoice_detail_support.dart';
 import 'dart:io';
@@ -16,10 +18,16 @@ class InvoiceExcelService {
   static Future<void> generateAndShare(
     Invoice invoice, {
     bool spanish = false,
+    bool french = false,
   }) async {
     final context = await InvoiceExportContextService.load(invoice);
     invoice = context.currentInvoice ?? invoice;
-    final bytes = generateBytes(invoice, context: context, spanish: spanish);
+    final bytes = generateBytes(
+      invoice,
+      context: context,
+      spanish: spanish,
+      french: french,
+    );
     if (bytes == null) return;
 
     final dir = await getTemporaryDirectory();
@@ -44,10 +52,16 @@ class InvoiceExcelService {
   static Future<File?> downloadAndOpen(
     Invoice invoice, {
     bool spanish = false,
+    bool french = false,
   }) async {
     final context = await InvoiceExportContextService.load(invoice);
     invoice = context.currentInvoice ?? invoice;
-    final bytes = generateBytes(invoice, context: context, spanish: spanish);
+    final bytes = generateBytes(
+      invoice,
+      context: context,
+      spanish: spanish,
+      french: french,
+    );
     if (bytes == null) return null;
 
     final file = await writeInvoiceDownload(
@@ -63,7 +77,18 @@ class InvoiceExcelService {
     Invoice invoice, {
     InvoiceExportContext? context,
     bool spanish = false,
+    bool french = false,
   }) {
+    if (invoice.isNativeCad) {
+      return canadianInvoiceExcel(
+        invoice,
+        language: french
+            ? 'fr'
+            : spanish
+            ? 'es'
+            : 'en',
+      );
+    }
     final excel = Excel.createExcel();
 
     // Create Invoice before deleting Sheet1. The excel package will not delete

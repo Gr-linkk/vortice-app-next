@@ -39,6 +39,23 @@ for later connection; no domain purchase or unselected public identity is implie
 
 ## Now
 
+### NEXT-014 — One companion web app for office and field work
+
+September 24–25: Garrett requested a companion web app after mobile completion,
+then clarified one app containing both an office dashboard and full field
+workflows. Use the existing Flutter product, accounts, permissions and company
+data. Adapt wide-screen navigation/dashboard and browser persistence, evidence
+and exports; preserve phone workflows. Domain and Google Play remain deferred.
+Scope and browser acceptance: `docs/specs/NEXT-014-companion-web.md`.
+
+### NEXT-013 — Canadian French and translation polish
+
+September 24: Garrett requested French, delegated to Luna, with independent
+review, thorough testing and polish. Translate generated resources and ordinary
+workflow labels; preserve English/Spanish and saved language selection. Check
+French at normal and large text. Record remaining content/email translation
+boundaries honestly. Scope: `docs/specs/NEXT-013-canadian-french.md`.
+
 ### NEXT-012 — Prepare the independent Android app for Google Play
 
 Garrett selected an Android Google Play launch on September 24, 2026. iOS is a

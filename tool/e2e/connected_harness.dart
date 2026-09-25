@@ -1,3 +1,4 @@
+import 'package:vortice_app/core/constants.dart';
 import 'dart:convert';
 import 'dart:ffi' show DynamicLibrary;
 import 'dart:io';
@@ -17,6 +18,22 @@ import 'package:vortice_app/core/router.dart';
 import 'package:vortice_app/core/supabase_client.dart';
 import 'package:vortice_app/db/database.dart';
 import 'package:vortice_app/features/auth/auth_provider.dart';
+
+class _AuditProviderObserver extends ProviderObserver {
+  @override
+  void didUpdateProvider(
+    ProviderBase<Object?> provider,
+    Object? previousValue,
+    Object? newValue,
+    ProviderContainer container,
+  ) {
+    if (newValue is AsyncError) {
+      stdout.writeln(
+        'PROVIDER ERROR ${provider.name ?? provider.runtimeType}: ${newValue.error}',
+      );
+    }
+  }
+}
 
 Future<void> loadAuditFonts() async {
   final root = Platform.environment['VORTICE_FLUTTER_FONTS'];
@@ -73,6 +90,10 @@ class ConnectedHarness {
   final WidgetTester tester;
   final String report;
   late Map passwords;
+  Map<String, dynamic>? _executor;
+  String? get executorId => _executor?['id'] as String?;
+  String loginEmail(String email) =>
+      email == _executor?['source'] ? _executor!['email'] as String : email;
   final _databases = <String, AppDatabase>{};
   AppDatabase get db => container.read(databaseProvider);
   late ProviderContainer container;
@@ -82,8 +103,12 @@ class ConnectedHarness {
   Future<void> start() async {
     HttpOverrides.global = null;
     // Connected test host; stored preferences are deliberately disposable.
+    final locale = Platform.environment['VORTICE_AUDIT_LOCALE'] ?? 'en';
+    if (!['en', 'es', 'fr'].contains(locale)) {
+      throw StateError('Audit locale must be en, es, or fr');
+    }
     // ignore: invalid_use_of_visible_for_testing_member
-    SharedPreferences.setMockInitialValues({});
+    SharedPreferences.setMockInitialValues({AppConstants.prefLocale: locale});
     if (Platform.isLinux) {
       open.overrideFor(
         OperatingSystem.linux,
@@ -102,6 +127,19 @@ class ConnectedHarness {
       throw StateError('Wrong target');
     }
     passwords = jsonDecode(config['DEV_LOGIN_PASSWORDS'] as String) as Map;
+    final executorPath = Platform.environment['VORTICE_E2E_EXECUTOR_CONFIG'];
+    if (executorPath != null) {
+      _executor = Map<String, dynamic>.from(
+        jsonDecode(File(executorPath).readAsStringSync()) as Map,
+      );
+      if (_executor!['project_ref'] != 'hkjpojobdbbtjkhaudki' ||
+          _executor!['source'] != 'client_mechanic@vortice.dev' ||
+          !(_executor!['email'] as String).startsWith('e2e_mechanic_')) {
+        throw StateError('Wrong isolated E2E executor');
+      }
+      passwords[_executor!['email']] = _executor!['password'];
+      stdout.writeln('Using isolated E2E mechanic ${_executor!['id']}');
+    }
     await Supabase.initialize(
       url: config['SUPABASE_URL'] as String,
       anonKey: config['SUPABASE_ANON_KEY'] as String,
@@ -111,6 +149,7 @@ class ConnectedHarness {
       ),
     );
     container = ProviderContainer(
+      observers: [_AuditProviderObserver()],
       overrides: [
         databaseProvider.overrideWith((ref) {
           final account = ref.watch(sessionProvider)?.user.id ?? 'signed_out';
@@ -136,7 +175,7 @@ class ConnectedHarness {
   }
 
   Future<void> settle([int minimum = 7]) async {
-    for (var n = 0; n < 70; n++) {
+    for (var n = 0; n < 350; n++) {
       await tester.pump(const Duration(milliseconds: 80));
       await Future<void>.delayed(const Duration(milliseconds: 60));
       if (n >= minimum &&
@@ -148,6 +187,7 @@ class ConnectedHarness {
   }
 
   Future<void> login(String email) async {
+    email = loginEmail(email);
     await supabase.auth.signInWithPassword(
       email: email,
       password: passwords[email] as String,
@@ -155,11 +195,25 @@ class ConnectedHarness {
     await settle();
     final profile = await container.read(profileProvider.future);
     expect(profile?.email, email);
+    await settle();
   }
 
   Future<void> go(String route) async {
     container.read(routerProvider).go(route);
     await settle();
+  }
+
+  Future<void> waitFor(Finder target) async {
+    final deadline = DateTime.now().add(const Duration(seconds: 20));
+    while (DateTime.now().isBefore(deadline)) {
+      await settle(1);
+      if (target.evaluate().isNotEmpty) return;
+    }
+    expect(
+      target,
+      findsWidgets,
+      reason: 'Waited for the connected screen to load',
+    );
   }
 
   Future<void> reveal(Finder target) async {

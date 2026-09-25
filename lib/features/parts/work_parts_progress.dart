@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:vortice_app/core/localized_text.dart';
 import 'parts_readiness_models.dart';
 import 'parts_readiness_repository.dart';
 import 'parts_readiness_screen.dart';
@@ -13,6 +14,7 @@ class WorkPartsProgress extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final es = Localizations.localeOf(context).languageCode == 'es';
+    final fr = isFrench(context);
     final result = ref.watch(partsWorkspaceProvider(jobId));
     final workspace = result.valueOrNull;
     Future<void> open() async {
@@ -37,7 +39,12 @@ class WorkPartsProgress extends ConsumerWidget {
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
-                    es ? 'Repuestos de esta orden' : 'Parts for this work',
+                    localizedText(
+                      context,
+                      'Parts for this work',
+                      'Repuestos de esta orden',
+                      'Pièces pour ce travail',
+                    ),
                     style: Theme.of(context).textTheme.titleMedium,
                   ),
                 ),
@@ -46,14 +53,23 @@ class WorkPartsProgress extends ConsumerWidget {
             if (workspace == null)
               Text(
                 result.isLoading
-                    ? (es ? 'Comprobando repuestos…' : 'Checking parts…')
-                    : (es
+                    ? localizedText(
+                        context,
+                        'Checking parts…',
+                        'Comprobando repuestos…',
+                        'Vérification des pièces…',
+                      )
+                    : (fr
+                          ? 'État des pièces indisponible. Connectez-vous pour actualiser.'
+                          : es
                           ? 'Estado de repuestos no disponible. Conecta para actualizar.'
                           : 'Parts status unavailable. Connect to refresh.'),
               ),
             if (workspace != null && workspace.requirements.isEmpty)
               Text(
-                es
+                fr
+                    ? 'Aucun besoin de pièces enregistré.'
+                    : es
                     ? 'Sin requisitos de repuestos registrados.'
                     : 'No parts requirements recorded.',
               ),
@@ -96,13 +112,13 @@ class WorkPartsProgress extends ConsumerWidget {
                             style: Theme.of(context).textTheme.titleSmall,
                           ),
                           Text(
-                            '${es ? 'Necesarios' : 'Needed'} ${quantity(requirement.required)} · ${es ? 'Disponibles' : 'Available'} ${quantity(stock?.available ?? 0)} · ${es ? 'Reservados' : 'Reserved'} ${quantity(requirement.reserved)}',
+                            '${localizedText(context, 'Needed', 'Necesarios', 'Requis')} ${quantity(requirement.required)} · ${localizedText(context, 'Available', 'Disponibles', 'Disponibles')} ${quantity(stock?.available ?? 0)} · ${localizedText(context, 'Reserved', 'Reservados', 'Réservés')} ${quantity(requirement.reserved)}',
                           ),
                           Text(
-                            '${es ? 'Faltantes' : 'Missing'} ${quantity(requirement.shortage(stock))} · ${es ? 'Pedidos pendientes' : 'On order'} ${quantity(workspace.outstanding(requirement.id))} · ${es ? 'Recibidos' : 'Received'} ${quantity(received)}',
+                            '${localizedText(context, 'Missing', 'Faltantes', 'Manquantes')} ${quantity(requirement.shortage(stock))} · ${localizedText(context, 'On order', 'Pedidos pendientes', 'En commande')} ${quantity(workspace.outstanding(requirement.id))} · ${localizedText(context, 'Received', 'Recibidos', 'Reçues')} ${quantity(received)}',
                           ),
                           Text(
-                            '${es ? 'Usados' : 'Used'} ${quantity(requirement.used)} · ${es ? 'Devueltos' : 'Returned'} ${quantity(returned)}',
+                            '${localizedText(context, 'Used', 'Usados', 'Utilisées')} ${quantity(requirement.used)} · ${localizedText(context, 'Returned', 'Devueltos', 'Retournées')} ${quantity(returned)}',
                           ),
                         ],
                       ),
@@ -112,7 +128,14 @@ class WorkPartsProgress extends ConsumerWidget {
             TextButton.icon(
               onPressed: open,
               icon: const Icon(Icons.chevron_right),
-              label: Text(es ? 'Revisar repuestos' : 'Review parts'),
+              label: Text(
+                localizedText(
+                  context,
+                  'Review parts',
+                  'Revisar repuestos',
+                  'Vérifier les pièces',
+                ),
+              ),
             ),
           ],
         ),

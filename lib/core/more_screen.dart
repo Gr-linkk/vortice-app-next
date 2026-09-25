@@ -9,6 +9,9 @@ import 'package:go_router/go_router.dart';
 import 'package:vortice_app/core/app_navigation.dart';
 import 'package:vortice_app/core/constants.dart';
 import 'package:vortice_app/core/user_feedback.dart';
+import 'package:vortice_app/core/language_picker.dart';
+import 'package:vortice_app/core/localized_text.dart';
+import 'package:vortice_app/l10n/app_localizations.dart';
 import 'package:vortice_app/features/auth/auth_provider.dart';
 import 'package:vortice_app/features/agent_access/agent_workspace_screen.dart';
 import 'package:vortice_app/models/profile.dart';
@@ -31,7 +34,9 @@ class _MoreScreenState extends ConsumerState<MoreScreen> {
   Widget build(BuildContext context) {
     final profile = ref.watch(authStatusProvider).profile;
     if (profile == null) return const SizedBox.shrink();
+    final locale = ref.watch(localeProvider);
     final es = isSpanish(context);
+    final fr = isFrench(context);
     final roomyText = MediaQuery.textScalerOf(context).scale(14) > 18;
     final query = _search.text.trim().toLowerCase();
     final tools = toolDestinations(profile.role)
@@ -45,30 +50,47 @@ class _MoreScreenState extends ConsumerState<MoreScreen> {
         )
         .where(
           (item) =>
-              '${item.en} ${item.es} ${item.description} ${item.descriptionEs}'
+              '${item.en} ${item.es} ${item.fr} ${item.description} ${item.descriptionEs} ${item.descriptionFr}'
                   .toLowerCase()
                   .contains(query),
         )
         .toList();
     return Scaffold(
-      appBar: AppBar(title: Text(es ? 'Más' : 'More')),
+      appBar: AppBar(
+        title: Text(localizedText(context, 'More', 'Más', 'Plus')),
+      ),
       body: ListView(
         padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
         children: [
           ListTile(
             leading: const Icon(Icons.business_outlined),
-            title: Text(es ? 'Tu empresa' : 'Your company'),
+            title: Text(
+              localizedText(
+                context,
+                'Your company',
+                'Tu empresa',
+                'Votre entreprise',
+              ),
+            ),
             subtitle: Text(
-              es
-                  ? 'Miembros, roles y empresas'
-                  : 'Membership, roles and companies',
+              localizedText(
+                context,
+                'Membership, roles and companies',
+                'Miembros, roles y empresas',
+                'Membres, rôles et entreprises',
+              ),
             ),
             onTap: () => context.push('/company'),
           ),
           ListTile(
             leading: const Icon(Icons.cloud_upload_outlined),
             title: Text(
-              es ? 'Guardado y sincronización' : 'Saved work and sync',
+              localizedText(
+                context,
+                'Saved work and sync',
+                'Guardado y sincronización',
+                'Travail enregistré et synchronisation',
+              ),
             ),
             onTap: () => Navigator.of(context).push(
               MaterialPageRoute<void>(builder: (_) => const FieldQueueScreen()),
@@ -78,12 +100,22 @@ class _MoreScreenState extends ConsumerState<MoreScreen> {
             controller: _search,
             onChanged: (_) => setState(() {}),
             decoration: InputDecoration(
-              labelText: es ? 'Buscar' : 'Find a tool',
+              labelText: localizedText(
+                context,
+                'Find a tool',
+                'Buscar',
+                'Rechercher un outil',
+              ),
               prefixIcon: const Icon(Icons.search),
               suffixIcon: query.isEmpty
                   ? null
                   : IconButton(
-                      tooltip: es ? 'Borrar búsqueda' : 'Clear search',
+                      tooltip: localizedText(
+                        context,
+                        'Clear search',
+                        'Borrar búsqueda',
+                        'Effacer la recherche',
+                      ),
                       icon: const Icon(Icons.close),
                       onPressed: () => setState(_search.clear),
                     ),
@@ -94,9 +126,12 @@ class _MoreScreenState extends ConsumerState<MoreScreen> {
             Padding(
               padding: const EdgeInsets.all(20),
               child: Text(
-                es
-                    ? 'No hay resultados. Prueba otra palabra.'
-                    : 'No matching tools. Try another word.',
+                localizedText(
+                  context,
+                  'No matching tools. Try another word.',
+                  'No hay resultados. Prueba otra palabra.',
+                  'Aucun outil trouvé. Essayez un autre mot.',
+                ),
               ),
             ),
           for (final group in [0, 1])
@@ -105,10 +140,18 @@ class _MoreScreenState extends ConsumerState<MoreScreen> {
                 padding: const EdgeInsets.symmetric(vertical: 8),
                 child: Text(
                   group == 0
-                      ? (es
-                            ? 'Servicio y mantenimiento'
-                            : 'Service & maintenance')
-                      : (es ? 'Administración' : 'Administration'),
+                      ? localizedText(
+                          context,
+                          'Service & maintenance',
+                          'Servicio y mantenimiento',
+                          'Service et entretien',
+                        )
+                      : localizedText(
+                          context,
+                          'Administration',
+                          'Administración',
+                          'Administration',
+                        ),
                   style: Theme.of(context).textTheme.titleMedium,
                 ),
               ),
@@ -125,9 +168,9 @@ class _MoreScreenState extends ConsumerState<MoreScreen> {
                           vertical: 4,
                         ),
                         leading: roomyText ? null : Icon(item.icon),
-                        title: Text(item.label(es)),
+                        title: Text(item.label(es, french: fr)),
                         subtitle: Text(
-                          item.detail(es),
+                          item.detail(es, french: fr),
                           style: Theme.of(context).textTheme.bodyMedium,
                         ),
                         trailing: roomyText
@@ -143,7 +186,7 @@ class _MoreScreenState extends ConsumerState<MoreScreen> {
             const DevAccountSwitchEntry(),
             const SizedBox(height: 20),
             Text(
-              es ? 'Configuración' : 'Settings',
+              localizedText(context, 'Settings', 'Configuración', 'Paramètres'),
               style: Theme.of(context).textTheme.titleMedium,
             ),
             Card(
@@ -151,9 +194,21 @@ class _MoreScreenState extends ConsumerState<MoreScreen> {
                 children: [
                   ListTile(
                     leading: const Icon(Icons.palette_outlined),
-                    title: Text(es ? 'Apariencia' : 'Appearance'),
+                    title: Text(
+                      localizedText(
+                        context,
+                        'Appearance',
+                        'Apariencia',
+                        'Apparence',
+                      ),
+                    ),
                     subtitle: Text(
-                      es ? 'Claro, oscuro o sistema' : 'Light, Dark or System',
+                      localizedText(
+                        context,
+                        'Light, Dark or System',
+                        'Claro, oscuro o sistema',
+                        'Clair, sombre ou système',
+                      ),
                     ),
                     trailing: const Icon(Icons.chevron_right),
                     onTap: () => Navigator.of(context).push(
@@ -164,12 +219,10 @@ class _MoreScreenState extends ConsumerState<MoreScreen> {
                   ),
                   ListTile(
                     leading: const Icon(Icons.language),
-                    title: Text(es ? 'Idioma / Language' : 'Language / Idioma'),
-                    subtitle: Text(es ? 'Español' : 'English'),
-                    trailing: Text(es ? 'English' : 'Español'),
-                    onTap: () => ref
-                        .read(localeProvider.notifier)
-                        .setLocale(Locale(es ? 'en' : 'es')),
+                    title: Text(AppLocalizations.of(context).language),
+                    subtitle: Text(languageName(locale)),
+                    trailing: const Icon(Icons.chevron_right),
+                    onTap: () => showLanguagePicker(context, ref),
                   ),
                   if ([
                     UserRole.owner,
@@ -179,12 +232,20 @@ class _MoreScreenState extends ConsumerState<MoreScreen> {
                     ListTile(
                       leading: const Icon(Icons.smart_toy_outlined),
                       title: Text(
-                        es ? 'Espacio de agentes' : 'Agent workspace',
+                        localizedText(
+                          context,
+                          'Agent workspace',
+                          'Espacio de agentes',
+                          'Espace des agents',
+                        ),
                       ),
                       subtitle: Text(
-                        es
-                            ? 'Manuales, planes y revisión'
-                            : 'Manuals, plans and review',
+                        localizedText(
+                          context,
+                          'Manuals, plans and review',
+                          'Manuales, planes y revisión',
+                          'Manuels, plans et révision',
+                        ),
                       ),
                       trailing: const Icon(Icons.chevron_right),
                       onTap: () => Navigator.of(context).push(
@@ -198,7 +259,12 @@ class _MoreScreenState extends ConsumerState<MoreScreen> {
             ),
             const SizedBox(height: 20),
             Text(
-              es ? 'Tu cuenta' : 'Your account',
+              localizedText(
+                context,
+                'Your account',
+                'Tu cuenta',
+                'Votre compte',
+              ),
               style: Theme.of(context).textTheme.titleMedium,
             ),
             Card(
@@ -211,7 +277,14 @@ class _MoreScreenState extends ConsumerState<MoreScreen> {
                   ),
                   ListTile(
                     leading: const Icon(Icons.logout),
-                    title: Text(es ? 'Cerrar sesión' : 'Sign out'),
+                    title: Text(
+                      localizedText(
+                        context,
+                        'Sign out',
+                        'Cerrar sesión',
+                        'Se déconnecter',
+                      ),
+                    ),
                     onTap: () => confirmSignOut(context, ref),
                   ),
                 ],

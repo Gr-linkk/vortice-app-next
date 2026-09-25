@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:uuid/uuid.dart';
 import 'company_purpose.dart';
 import 'package:vortice_app/core/user_feedback.dart';
+import 'package:vortice_app/core/localized_text.dart';
 import 'package:vortice_app/features/auth/auth_provider.dart';
 import 'package:vortice_app/features/membership/membership_provider.dart';
 import 'package:vortice_app/features/membership/membership_feedback.dart';
@@ -27,7 +28,8 @@ class _OrganizationOnboardingScreenState
   CompanyPurpose? _purpose;
   final _operation = const Uuid().v4();
   String? _error;
-  String _t(String en, String es) => isSpanish(context) ? es : en;
+  String _t(String en, String es, [String? fr]) =>
+      localizedText(context, en, es, fr ?? en);
   @override
   void initState() {
     super.initState();
@@ -50,6 +52,7 @@ class _OrganizationOnboardingScreenState
         () => _error = _t(
           'Choose how your company will use the app.',
           'Elige cómo usará tu empresa la aplicación.',
+          'Choisissez comment votre entreprise utilisera l’application.',
         ),
       );
       return;
@@ -83,13 +86,13 @@ class _OrganizationOnboardingScreenState
   @override
   Widget build(BuildContext context) => Scaffold(
     appBar: AppBar(
-      title: Text(_t('Your company', 'Tu empresa')),
+      title: Text(_t('Your company', 'Tu empresa', 'Votre entreprise')),
       actions: [
         TextButton(
           onPressed: _busy
               ? null
               : () => ref.read(authControllerProvider.notifier).signOut(),
-          child: Text(_t('Sign out', 'Cerrar sesión')),
+          child: Text(_t('Sign out', 'Cerrar sesión', 'Se déconnecter')),
         ),
       ],
     ),
@@ -105,7 +108,11 @@ class _OrganizationOnboardingScreenState
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   Text(
-                    _t('Where do you work?', '¿Dónde trabajas?'),
+                    _t(
+                      'Where do you work?',
+                      '¿Dónde trabajas?',
+                      'Où travaillez-vous ?',
+                    ),
                     style: Theme.of(context).textTheme.headlineSmall,
                   ),
                   const SizedBox(height: 12),
@@ -114,10 +121,12 @@ class _OrganizationOnboardingScreenState
                         ? _t(
                             'Join with the roles and permissions selected by your company.',
                             'Únete con los roles y permisos elegidos por tu empresa.',
+                            'Rejoignez l’espace avec les rôles et autorisations choisis par votre entreprise.',
                           )
                         : _t(
                             'Create your company workspace. You will be its Company Owner.',
                             'Crea el espacio de tu empresa. Serás su propietario.',
+                            'Créez l’espace de travail de votre entreprise. Vous en serez le propriétaire.',
                           ),
                   ),
                   const SizedBox(height: 24),
@@ -126,11 +135,23 @@ class _OrganizationOnboardingScreenState
                       segments: [
                         ButtonSegment(
                           value: false,
-                          label: Text(_t('Create company', 'Crear empresa')),
+                          label: Text(
+                            _t(
+                              'Create company',
+                              'Crear empresa',
+                              'Créer une entreprise',
+                            ),
+                          ),
                         ),
                         ButtonSegment(
                           value: true,
-                          label: Text(_t('Use invitation', 'Usar invitación')),
+                          label: Text(
+                            _t(
+                              'Use invitation',
+                              'Usar invitación',
+                              'Utiliser une invitation',
+                            ),
+                          ),
                         ),
                       ],
                       selected: {_join},
@@ -150,10 +171,14 @@ class _OrganizationOnboardingScreenState
                     autofillHints: const [AutofillHints.name],
                     maxLength: 120,
                     decoration: InputDecoration(
-                      labelText: _t('Your name', 'Tu nombre'),
+                      labelText: _t('Your name', 'Tu nombre', 'Votre nom'),
                     ),
                     validator: (value) => (value ?? '').trim().isEmpty
-                        ? _t('Enter your name.', 'Escribe tu nombre.')
+                        ? _t(
+                            'Enter your name.',
+                            'Escribe tu nombre.',
+                            'Saisissez votre nom.',
+                          )
                         : null,
                   ),
                   const SizedBox(height: 16),
@@ -167,12 +192,14 @@ class _OrganizationOnboardingScreenState
                         labelText: _t(
                           'Invitation code',
                           'Código de invitación',
+                          'Code d’invitation',
                         ),
                       ),
                       validator: (value) => (value ?? '').trim().isEmpty
                           ? _t(
                               'Enter your invitation code.',
                               'Escribe el código de invitación.',
+                              'Saisissez votre code d’invitation.',
                             )
                           : null,
                     )
@@ -182,12 +209,17 @@ class _OrganizationOnboardingScreenState
                       enabled: !_busy,
                       maxLength: 120,
                       decoration: InputDecoration(
-                        labelText: _t('Company name', 'Nombre de empresa'),
+                        labelText: _t(
+                          'Company name',
+                          'Nombre de empresa',
+                          'Nom de l’entreprise',
+                        ),
                       ),
                       validator: (value) => (value ?? '').trim().length < 2
                           ? _t(
                               'Enter your company name.',
                               'Escribe el nombre de tu empresa.',
+                              'Saisissez le nom de votre entreprise.',
                             )
                           : null,
                     ),
@@ -225,8 +257,16 @@ class _OrganizationOnboardingScreenState
                           )
                         : Text(
                             _join
-                                ? _t('Join company', 'Unirme a la empresa')
-                                : _t('Create company', 'Crear empresa'),
+                                ? _t(
+                                    'Join company',
+                                    'Unirme a la empresa',
+                                    'Rejoindre l’entreprise',
+                                  )
+                                : _t(
+                                    'Create company',
+                                    'Crear empresa',
+                                    'Créer une entreprise',
+                                  ),
                           ),
                   ),
                   if (_join)
@@ -236,6 +276,7 @@ class _OrganizationOnboardingScreenState
                         _t(
                           'An expired or revoked invitation needs a new code from your company administrator.',
                           'Si la invitación ha vencido o fue revocada, pide otro código al administrador de tu empresa.',
+                          'Une invitation expirée ou révoquée doit être remplacée par un nouveau code fourni par l’administrateur de votre entreprise.',
                         ),
                       ),
                     ),

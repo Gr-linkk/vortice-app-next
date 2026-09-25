@@ -11,6 +11,17 @@ const historyCategories = {
   'parts': ('Parts & internal costs', 'Piezas y costos internos'),
   'discussion': ('Discussion & handover', 'Conversación y relevo'),
 };
+const _historyCategoryFr = {
+  'asset': 'Équipement et emplacement',
+  'usage': 'Relevés du compteur',
+  'inspection': 'Inspections',
+  'fault': 'Défaillances',
+  'availability': 'Disponibilité',
+  'work': 'Travail',
+  'service': 'Rapports d’intervention',
+  'parts': 'Pièces et coûts internes',
+  'discussion': 'Discussion et passation',
+};
 const attentionCategories = {
   'unavailable': ('Unavailable assets', 'Activos no disponibles'),
   'urgent_faults': ('Urgent faults', 'Fallas urgentes'),
@@ -25,17 +36,43 @@ const attentionCategories = {
   'plan_setup': ('Plan setup needed', 'Configurar mantenimiento'),
   'unassessed': ('Availability unknown', 'Disponibilidad desconocida'),
 };
+const _attentionCategoryFr = {
+  'unavailable': 'Équipements indisponibles',
+  'urgent_faults': 'Défaillances urgentes',
+  'overdue_service': 'Entretien en retard',
+  'overdue_work': 'Travail en retard',
+  'review': 'En attente de révision',
+  'waiting_parts': 'En attente de pièces',
+  'waiting_people': 'En attente de personnel',
+  'blocked_other': 'Autres travaux bloqués',
+  'approaching_service': 'Entretien dans moins de 50 h',
+  'upcoming_work': 'Travail prévu dans 7 jours',
+  'plan_setup': 'Plan d’entretien à configurer',
+  'unassessed': 'Disponibilité inconnue',
+};
 const blockedCategories = {
   'parts': ('Parts', 'Piezas'),
   'people': ('People', 'Personal'),
   'external': ('External dependency', 'Dependencia externa'),
   'other': ('Other', 'Otro'),
 };
+const _blockedCategoryFr = {
+  'parts': 'Pièces',
+  'people': 'Personnel',
+  'external': 'Dépendance externe',
+  'other': 'Autre',
+};
 const isolationStates = {
   'unknown': ('Not confirmed', 'Sin confirmar'),
   'isolated': ('Isolated', 'Aislado'),
   'not_isolated': ('Not isolated', 'Sin aislar'),
   'not_required': ('Isolation not required', 'No requiere aislamiento'),
+};
+const _isolationStateFr = {
+  'unknown': 'Non confirmé',
+  'isolated': 'Isolé',
+  'not_isolated': 'Non isolé',
+  'not_required': 'Isolation non requise',
 };
 const historyKinds = {
   'custody_transferred': ('Custody transferred', 'Custodia transferida'),
@@ -123,15 +160,89 @@ const historyKinds = {
   'handover': ('Shift handover posted', 'Relevo de turno publicado'),
   'handover_acknowledged': ('Handover acknowledged', 'Relevo confirmado'),
 };
-String historyKindLabel(String? key, bool es) => historyKinds.containsKey(key)
+const _historyKindFr = {
+  'custody_transferred': 'Garde transférée',
+  'inspection_required': 'Inspection consignée',
+  'renewal_submit': 'Renouvellement soumis',
+  'renewal_approve': 'Renouvellement approuvé',
+  'renewal_return': 'Renouvellement retourné',
+  'asset_recorded': 'Équipement consigné',
+  'asset_changed': 'Détails de l’équipement modifiés',
+  'component_recorded': 'Composant consigné',
+  'component_changed': 'Détails du composant modifiés',
+  'meter_updated': 'Compteur mis à jour',
+  'plan_recorded': 'Plan d’entretien consigné',
+  'plan_changed': 'Plan d’entretien modifié',
+  'plan_removed': 'Plan d’entretien supprimé',
+  'hours_logged': 'Heures consignées',
+  'reading_removed': 'Relevé supprimé',
+  'reading_corrected': 'Relevé corrigé',
+  'job_recorded': 'Travail consigné',
+  'job_changed': 'Travail modifié',
+  'job_removed': 'Travail supprimé',
+  'maintenance_created': 'Bon de travail créé',
+  'maintenance_assign': 'Travail attribué',
+  'maintenance_start': 'Travail commencé ou repris',
+  'maintenance_pause': 'Temps de travail suspendu',
+  'maintenance_block': 'Travail bloqué',
+  'maintenance_add_part': 'Pièce ajoutée',
+  'maintenance_save_report': 'Brouillon du rapport enregistré',
+  'maintenance_submit': 'Rapport soumis pour révision',
+  'maintenance_return': 'Travail retourné pour correction',
+  'maintenance_reopen': 'Travail rouvert',
+  'maintenance_approve': 'Travail approuvé et fermé',
+  'part_recorded': 'Pièce consignée',
+  'part_removed': 'Pièce retirée',
+  'part_changed': 'Pièce modifiée',
+  'report_recorded': 'Rapport d’intervention consigné',
+  'report_changed': 'Rapport d’intervention modifié',
+  'report_removed': 'Rapport d’intervention supprimé',
+  'inspection_submitted': 'Inspection soumise',
+  'inspection_changed': 'Inspection modifiée',
+  'inspection_removed': 'Inspection supprimée',
+  'operator_run_recorded': 'Inspection de l’opérateur consignée',
+  'availability_changed': 'Disponibilité modifiée',
+  'fault_reported': 'Défaillance signalée',
+  'fault_acknowledge': 'Défaillance reconnue',
+  'fault_assign': 'Défaillance attribuée',
+  'fault_start': 'Travail sur la défaillance commencé',
+  'fault_submit': 'Défaillance prête pour révision',
+  'fault_resolve': 'Défaillance résolue',
+  'fault_dismiss': 'Défaillance rejetée',
+  'fault_reopen': 'Défaillance rouverte',
+  'fault_return': 'Défaillance retournée pour correction',
+  'fault_link': 'Défaillance liée au bon de travail',
+  'report_photo_added': 'Photo ajoutée au rapport',
+  'report_photo_changed': 'Photo du rapport modifiée',
+  'report_photo_removed': 'Photo du rapport supprimée',
+  'comment': 'Note publiée',
+  'handover': 'Passation de quart publiée',
+  'handover_acknowledged': 'Passation confirmée',
+};
+String historyKindLabel(String? key, bool es, {bool french = false}) => french
+    ? _historyKindFr[key] ?? 'Événement d’entretien'
+    : historyKinds.containsKey(key)
     ? coordinationLabel(historyKinds, key!, es)
     : (es ? 'Evento de mantenimiento' : 'Maintenance event');
 String coordinationLabel(
   Map<String, (String, String)> labels,
   String key,
-  bool es,
-) {
+  bool es, {
+  bool french = false,
+}) {
   final value = labels[key];
+  if (french) {
+    final table = identical(labels, historyCategories)
+        ? _historyCategoryFr
+        : identical(labels, attentionCategories)
+        ? _attentionCategoryFr
+        : identical(labels, blockedCategories)
+        ? _blockedCategoryFr
+        : identical(labels, isolationStates)
+        ? _isolationStateFr
+        : null;
+    if (table != null) return table[key] ?? key.replaceAll('_', ' ');
+  }
   return value == null
       ? key.replaceAll('_', ' ')
       : es
@@ -184,36 +295,103 @@ const _details = {
     'Próximo turno / trabajo pendiente',
   ),
 };
-String historyDetailText(Map<String, dynamic> data, bool es) {
+String historyDetailText(
+  Map<String, dynamic> data,
+  bool es, {
+  bool french = false,
+}) {
   final lines = <String>[];
+  const frenchLabels = <String, String>{
+    'original_recorded_at': 'Date d’enregistrement initiale',
+    'location': 'Emplacement',
+    'previous_location': 'Emplacement précédent',
+    'previous_name': 'Nom précédent',
+    'make': 'Marque',
+    'model': 'Modèle',
+    'serial_number': 'Numéro de série',
+    'component': 'Composant',
+    'hours': 'Heures',
+    'previous_hours': 'Heures précédentes',
+    'interval_hours': 'Intervalle d’entretien (h)',
+    'last_service_hours': 'Dernier entretien (h)',
+    'next_due_hours': 'Prochain entretien (h)',
+    'status': 'État',
+    'previous_status': 'État précédent',
+    'scheduled_date': 'Date planifiée',
+    'assignee': 'Attribué à',
+    'part_number': 'Numéro de pièce',
+    'quantity': 'Quantité',
+    'previous_quantity': 'Quantité précédente',
+    'unit_cost': 'Coût unitaire',
+    'total_cost': 'Coût interne total',
+    'parts_cost': 'Coût des pièces',
+    'hourly_cost': 'Coût horaire interne',
+    'labour_hours': 'Heures de travail',
+    'diagnosis': 'Diagnostic',
+    'repair': 'Réparation',
+    'notes': 'Notes',
+    'signed_at': 'Signé',
+    'completed_at': 'Terminé',
+    'trip_hours': 'Heures de déplacement',
+    'fuel_added': 'Carburant ajouté',
+    'photo_count': 'Photos',
+    'checklist_type': 'Type d’inspection',
+    'checklist_count': 'Éléments de la liste de contrôle',
+    'evidence_count': 'Photos justificatives',
+    'next_steps': 'Prochain quart / travail restant',
+  };
   for (final entry in _details.entries) {
     final value = data[entry.key];
     if (value != null && value.toString().isNotEmpty) {
       lines.add(
-        '${es ? entry.value.$2 : entry.value.$1}: ${_historyValue(entry.key, value, es)}',
+        '${french
+            ? frenchLabels[entry.key] ?? entry.value.$1
+            : es
+            ? entry.value.$2
+            : entry.value.$1}: ${_historyValue(entry.key, value, es, data['cost_currency'] as String? ?? 'USD')}',
       );
     }
   }
   if (data['isolation'] != null) {
     lines.add(
-      '${es ? 'Aislamiento' : 'Isolation'}: ${coordinationLabel(isolationStates, data['isolation'].toString(), es)}',
+      '${french
+          ? 'Isolement'
+          : es
+          ? 'Aislamiento'
+          : 'Isolation'}: ${coordinationLabel(isolationStates, data['isolation'].toString(), es, french: french)}',
     );
   }
   if (data['blocked_category'] != null) {
     lines.add(
-      '${es ? 'Esperando' : 'Waiting for'}: ${coordinationLabel(blockedCategories, data['blocked_category'].toString(), es)}',
+      '${french
+          ? 'En attente de'
+          : es
+          ? 'Esperando'
+          : 'Waiting for'}: ${coordinationLabel(blockedCategories, data['blocked_category'].toString(), es, french: french)}',
     );
   }
   if (data['active'] != null) {
     lines.add(
-      '${es ? 'Plan activo' : 'Active plan'}: ${data['active'] == true ? (es ? 'Sí' : 'Yes') : (es ? 'No' : 'No')}',
+      '${french
+          ? 'Plan actif'
+          : es
+          ? 'Plan activo'
+          : 'Active plan'}: ${data['active'] == true ? (french
+                ? 'Oui'
+                : es
+                ? 'Sí'
+                : 'Yes') : 'Non'}',
     );
   }
   if (data['parts'] is List) {
     for (final part in data['parts'] as List) {
       if (part is Map) {
         lines.add(
-          '${es ? 'Pieza' : 'Part'}: ${part['description'] ?? ''} · ${part['part_number'] ?? ''} · ${part['quantity'] ?? 0} × ${_historyValue('unit_cost', part['unit_cost'] ?? 0, es)}',
+          '${french
+              ? 'Pièce'
+              : es
+              ? 'Pieza'
+              : 'Part'}: ${part['description'] ?? ''} · ${part['part_number'] ?? ''} · ${part['quantity'] ?? 0} × ${_historyValue('unit_cost', part['unit_cost'] ?? 0, es, data['cost_currency'] as String? ?? 'USD')}',
         );
       }
     }
@@ -238,14 +416,14 @@ String historyDetailText(Map<String, dynamic> data, bool es) {
   return lines.join('\n');
 }
 
-String _historyValue(String key, Object value, bool es) {
+String _historyValue(String key, Object value, bool es, String currency) {
   const costs = {'unit_cost', 'total_cost', 'parts_cost', 'hourly_cost'};
   final number = value is num ? value : num.tryParse(value.toString());
   if (number != null &&
       number.isFinite &&
       (costs.contains(key) || key == 'labour_hours')) {
     final formatted = NumberFormat('0.00', es ? 'es' : 'en').format(number);
-    return costs.contains(key) ? '$formatted USD' : formatted;
+    return costs.contains(key) ? '$formatted $currency' : formatted;
   }
   return value.toString();
 }

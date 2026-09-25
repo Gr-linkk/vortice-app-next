@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:vortice_app/core/user_feedback.dart';
+import 'package:vortice_app/core/localized_text.dart';
 
 class OperatorIssueDetails extends StatelessWidget {
   const OperatorIssueDetails({
@@ -56,36 +57,74 @@ class OperatorIssueDetails extends StatelessWidget {
               maxLines: 5,
               maxLength: 4000,
               decoration: InputDecoration(
-                labelText: es ? 'Describe el problema' : 'Describe the issue',
-                helperText: es
-                    ? 'Puedes usar el dictado de tu teclado.'
-                    : 'You can use your keyboard’s dictation.',
+                labelText: localizedText(
+                  context,
+                  'Describe the issue',
+                  'Describe el problema',
+                  'Décrivez le problème',
+                ),
+                helperText: localizedText(
+                  context,
+                  'You can use your keyboard’s dictation.',
+                  'Puedes usar el dictado de tu teclado.',
+                  'Vous pouvez utiliser la dictée de votre clavier.',
+                ),
               ),
               onChanged: (text) => onChanged({...value, 'message': text}),
             ),
           ),
-        choices(es ? 'Urgencia' : 'Urgency', 'urgency', urgency, [
-          ('normal', es ? 'Normal' : 'Normal'),
-          ('urgent', es ? 'Urgente' : 'Urgent'),
-        ]),
         choices(
-          es
-              ? '¿Parece seguro operar?'
-              : 'Does the equipment appear safe to operate?',
+          localizedText(context, 'Urgency', 'Urgencia', 'Urgence'),
+          'urgency',
+          urgency,
+          [
+            ('normal', es ? 'Normal' : 'Normal'),
+            ('urgent', localizedText(context, 'Urgent', 'Urgente', 'Urgente')),
+          ],
+        ),
+        choices(
+          localizedText(
+            context,
+            'Does the equipment appear safe to operate?',
+            '¿Parece seguro operar?',
+            'L’équipement semble-t-il sécuritaire à utiliser ?',
+          ),
           'safe_to_operate',
           safe,
           [
-            ('safe', es ? 'Parece seguro' : 'Appears safe'),
-            ('unsafe', es ? 'No es seguro' : 'Unsafe'),
-            ('unknown', es ? 'No estoy seguro' : 'Unsure'),
+            (
+              'safe',
+              localizedText(
+                context,
+                'Appears safe',
+                'Parece seguro',
+                'Semble sécuritaire',
+              ),
+            ),
+            (
+              'unsafe',
+              localizedText(
+                context,
+                'Unsafe',
+                'No es seguro',
+                'Non sécuritaire',
+              ),
+            ),
+            (
+              'unknown',
+              localizedText(context, 'Unsure', 'No estoy seguro', 'Incertain'),
+            ),
           ],
         ),
         Padding(
           padding: const EdgeInsets.only(top: 8),
           child: Text(
-            es
-                ? 'El responsable revisará tu evaluación y la evidencia.'
-                : 'Your manager will review this assessment and evidence.',
+            localizedText(
+              context,
+              'Your manager will review this assessment and evidence.',
+              'El responsable revisará tu evaluación y la evidencia.',
+              'La personne responsable examinera votre évaluation et les preuves jointes.',
+            ),
           ),
         ),
       ],

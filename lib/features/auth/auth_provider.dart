@@ -8,6 +8,7 @@ import 'package:vortice_app/features/auth/auth_status_logic.dart';
 import 'package:vortice_app/core/supabase_client.dart';
 import 'package:vortice_app/models/profile.dart';
 import 'package:vortice_app/core/account_storage.dart';
+import 'package:vortice_app/l10n/app_localizations.dart';
 
 // ── Auth change stream ─────────────────────────────────────────────────────
 
@@ -202,13 +203,20 @@ class LocaleNotifier extends StateNotifier<Locale> {
   Future<void> _load() async {
     final prefs = await SharedPreferences.getInstance();
     final code = prefs.getString(AppConstants.prefLocale) ?? 'en';
-    state = Locale(code);
+    state = AppLocalizations.supportedLocales.firstWhere(
+      (locale) => locale.languageCode == code,
+      orElse: () => const Locale('en'),
+    );
   }
 
   Future<void> setLocale(Locale locale) async {
-    state = locale;
+    final supported = AppLocalizations.supportedLocales.firstWhere(
+      (candidate) => candidate.languageCode == locale.languageCode,
+      orElse: () => const Locale('en'),
+    );
+    state = supported;
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(AppConstants.prefLocale, locale.languageCode);
+    await prefs.setString(AppConstants.prefLocale, supported.languageCode);
   }
 }
 

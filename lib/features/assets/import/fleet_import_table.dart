@@ -180,31 +180,76 @@ class FleetImportTable {
   }
 }
 
-const fleetImportFields = <String, (String, String)>{
-  'name': ('Equipment name', 'Nombre del equipo'),
-  'asset_type_id': ('Equipment type', 'Tipo de equipo'),
-  'serial_number': ('Serial / VIN', 'Serie / VIN'),
-  'make': ('Make', 'Marca'),
-  'model': ('Model', 'Modelo'),
-  'year': ('Year', 'Año'),
-  'location': ('Location', 'Ubicación'),
-  'notes': ('Notes', 'Notas'),
-  'meter_unit': ('Equipment meter unit', 'Unidad del equipo'),
-  'current_hours': ('Equipment opening meter', 'Lectura inicial del equipo'),
-  'component': ('Component name', 'Nombre del componente'),
-  'component_serial': ('Component serial', 'Serie del componente'),
-  'component_make': ('Component make', 'Marca del componente'),
-  'component_model': ('Component model', 'Modelo del componente'),
-  'component_unit': ('Component meter unit', 'Unidad del componente'),
+const fleetImportFields = <String, (String, String, String)>{
+  'name': ('Equipment name', 'Nombre del equipo', 'Nom de l’équipement'),
+  'asset_type_id': ('Equipment type', 'Tipo de equipo', 'Type d’équipement'),
+  'serial_number': ('Serial / VIN', 'Serie / VIN', 'Numéro de série / NIV'),
+  'make': ('Make', 'Marca', 'Marque'),
+  'model': ('Model', 'Modelo', 'Modèle'),
+  'year': ('Year', 'Año', 'Année'),
+  'location': ('Location', 'Ubicación', 'Emplacement'),
+  'notes': ('Notes', 'Notas', 'Notes'),
+  'meter_unit': (
+    'Equipment meter unit',
+    'Unidad del equipo',
+    'Unité du compteur de l’équipement',
+  ),
+  'current_hours': (
+    'Equipment opening meter',
+    'Lectura inicial del equipo',
+    'Relevé initial de l’équipement',
+  ),
+  'component': ('Component name', 'Nombre del componente', 'Nom du composant'),
+  'component_serial': (
+    'Component serial',
+    'Serie del componente',
+    'Numéro de série du composant',
+  ),
+  'component_make': (
+    'Component make',
+    'Marca del componente',
+    'Marque du composant',
+  ),
+  'component_model': (
+    'Component model',
+    'Modelo del componente',
+    'Modèle du composant',
+  ),
+  'component_unit': (
+    'Component meter unit',
+    'Unidad del componente',
+    'Unité du compteur du composant',
+  ),
   'component_meter': (
     'Component opening meter',
     'Lectura inicial del componente',
+    'Relevé initial du composant',
   ),
-  'interval_label': ('Service plan name', 'Nombre del plan'),
-  'interval_hours': ('Service every (meter units)', 'Servicio cada (unidades)'),
-  'interval_months': ('Service every (months)', 'Servicio cada (meses)'),
-  'last_service_hours': ('Last service meter', 'Lectura del último servicio'),
-  'last_service_date': ('Last service date', 'Fecha del último servicio'),
+  'interval_label': (
+    'Service plan name',
+    'Nombre del plan',
+    'Nom du plan d’entretien',
+  ),
+  'interval_hours': (
+    'Service every (meter units)',
+    'Servicio cada (unidades)',
+    'Entretien tous les (unités du compteur)',
+  ),
+  'interval_months': (
+    'Service every (months)',
+    'Servicio cada (meses)',
+    'Entretien tous les (mois)',
+  ),
+  'last_service_hours': (
+    'Last service meter',
+    'Lectura del último servicio',
+    'Relevé au dernier entretien',
+  ),
+  'last_service_date': (
+    'Last service date',
+    'Fecha del último servicio',
+    'Date du dernier entretien',
+  ),
 };
 
 Map<String, int> suggestFleetColumns(List<String> headers) {

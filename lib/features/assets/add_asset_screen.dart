@@ -1,6 +1,7 @@
 import 'package:vortice_app/core/app_dropdown_field.dart';
 import 'package:vortice_app/features/assets/asset_type_field.dart';
 import 'package:vortice_app/core/user_feedback.dart';
+import 'package:vortice_app/core/localized_text.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -72,9 +73,12 @@ class _AddAssetScreenState extends ConsumerState<AddAssetScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            isSpanish(context)
-                ? 'Conecta para confirmar tu empresa.'
-                : 'Connect to confirm your company.',
+            localizedText(
+              context,
+              'Connect to confirm your company.',
+              'Conecta para confirmar tu empresa.',
+              'Connectez-vous pour confirmer votre entreprise.',
+            ),
           ),
         ),
       );
@@ -85,8 +89,15 @@ class _AddAssetScreenState extends ConsumerState<AddAssetScreen> {
         profile.role == UserRole.owner &&
         _selectedClientId == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Please select the client this asset belongs to.'),
+        SnackBar(
+          content: Text(
+            localizedText(
+              context,
+              'Please select the client this asset belongs to.',
+              'Selecciona al cliente al que pertenece este equipo.',
+              'Choisissez le client auquel appartient cet équipement.',
+            ),
+          ),
         ),
       );
       return;
@@ -182,9 +193,12 @@ class _AddAssetScreenState extends ConsumerState<AddAssetScreen> {
                   onPressed: () => ref.invalidate(assetTypesProvider),
                   icon: const Icon(Icons.refresh),
                   label: Text(
-                    isSpanish(context)
-                        ? 'Reintentar tipos de equipo'
-                        : 'Retry equipment types',
+                    localizedText(
+                      context,
+                      'Retry equipment types',
+                      'Reintentar tipos de equipo',
+                      'Réessayer de charger les types d’équipement',
+                    ),
                   ),
                 ),
                 data: (types) => AssetTypeField(
@@ -214,15 +228,24 @@ class _AddAssetScreenState extends ConsumerState<AddAssetScreen> {
                 key: ValueKey('usage-unit-$_meterUnit'),
                 initialValue: _meterUnit,
                 decoration: InputDecoration(
-                  labelText: isSpanish(context)
-                      ? 'Seguimiento de uso'
-                      : 'Usage tracking',
+                  labelText: localizedText(
+                    context,
+                    'Usage tracking',
+                    'Seguimiento de uso',
+                    'Suivi d’utilisation',
+                  ),
                 ),
                 items: meterUnits
                     .map(
                       (unit) => DropdownMenuItem(
                         value: unit,
-                        child: Text(meterName(unit, isSpanish(context))),
+                        child: Text(
+                          meterName(
+                            unit,
+                            isSpanish(context),
+                            french: isFrench(context),
+                          ),
+                        ),
                       ),
                     )
                     .toList(),

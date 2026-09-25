@@ -1,3 +1,4 @@
+import 'canadian_invoice.dart';
 import 'package:vortice_app/core/app_dropdown_field.dart';
 import 'package:vortice_app/core/user_feedback.dart';
 import 'package:flutter/material.dart';
@@ -259,7 +260,7 @@ class _InvoiceTile extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context);
-    final total = invoice.totalUsd ?? 0;
+    final total = invoice.nativeTotal;
     final profile = ref.watch(profileProvider).valueOrNull;
     final basePath = profile?.role == UserRole.owner ? '/owner' : '/client';
     final canMarkPaid = canMarkInvoicePaidFromList(
@@ -296,14 +297,14 @@ class _InvoiceTile extends ConsumerWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              '\$${total.toStringAsFixed(2)} USD',
+              '\$${total.toStringAsFixed(2)} ${invoice.billingCurrency}',
               style: TextStyle(
                 color: _statusColor(context),
                 fontWeight: FontWeight.bold,
                 fontSize: 14,
               ),
             ),
-            if (invoice.totalCad != null)
+            if (!invoice.isNativeCad && invoice.totalCad != null)
               Text(
                 '\$${invoice.totalCad!.toStringAsFixed(2)} CAD',
                 style: TextStyle(

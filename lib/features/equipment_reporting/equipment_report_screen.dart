@@ -37,10 +37,16 @@ class EquipmentReportScreen extends ConsumerStatefulWidget {
 class _EquipmentReportScreenState extends ConsumerState<EquipmentReportScreen> {
   late ReportPeriod _period;
   String _sort = 'total';
+  String? _currency;
   bool _exporting = false;
   Object? _exportError;
   bool get es => Localizations.localeOf(context).languageCode == 'es';
-  String text(String en, String spanish) => es ? spanish : en;
+  bool get fr => Localizations.localeOf(context).languageCode == 'fr';
+  String text(String en, String spanish, [String? french]) => fr
+      ? french ?? en
+      : es
+      ? spanish
+      : en;
   @override
   void initState() {
     super.initState();
@@ -73,7 +79,11 @@ class _EquipmentReportScreenState extends ConsumerState<EquipmentReportScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            text('Choose at most 366 days.', 'Elige un máximo de 366 días.'),
+            text(
+              'Choose at most 366 days.',
+              'Elige un máximo de 366 días.',
+              'Choisissez une période de 366 jours maximum.',
+            ),
           ),
         ),
       );
@@ -103,7 +113,12 @@ class _EquipmentReportScreenState extends ConsumerState<EquipmentReportScreen> {
       }
       final box = context.findRenderObject() as RenderBox?;
       await ref.read(shareEquipmentReportProvider)(
-        equipmentReportCsv(report, spanish: es),
+        equipmentReportCsv(
+          report.inCurrency(
+            _currency ?? report.data['preferred_currency'] as String? ?? 'USD',
+          ),
+          spanish: es,
+        ),
         box == null ? null : box.localToGlobal(Offset.zero) & box.size,
       );
     } catch (error) {
@@ -121,14 +136,22 @@ class _EquipmentReportScreenState extends ConsumerState<EquipmentReportScreen> {
         !profile.isLoading && !profile.hasError && canReadEquipmentReport(role);
     final report = allowed ? ref.watch(equipmentReportProvider(_period)) : null;
     final now = DateTime.now();
-    final formatter = DateFormat.yMMMd(es ? 'es' : 'en');
+    final formatter = DateFormat.yMMMd(
+      Localizations.localeOf(context).toString(),
+    );
     return Scaffold(
       appBar: AppBar(
-        title: Text(text('Equipment report', 'Informe de equipos')),
+        title: Text(
+          text(
+            'Equipment report',
+            'Informe de equipos',
+            'Rapport sur l’équipement',
+          ),
+        ),
         actions: [
           if (allowed)
             IconButton(
-              tooltip: text('Refresh', 'Actualizar'),
+              tooltip: text('Refresh', 'Actualizar', 'Actualiser'),
               onPressed: () => ref.invalidate(equipmentReportProvider(_period)),
               icon: const Icon(Icons.refresh),
             ),
@@ -143,6 +166,7 @@ class _EquipmentReportScreenState extends ConsumerState<EquipmentReportScreen> {
                         text(
                           'Available to fleet managers.',
                           'Disponible para administradores de flota.',
+                          'Disponible aux responsables du parc d’équipement.',
                         ),
                       ),
               )
@@ -153,6 +177,7 @@ class _EquipmentReportScreenState extends ConsumerState<EquipmentReportScreen> {
                     text(
                       'Where is maintenance costing you most?',
                       '¿Qué equipos cuestan más mantener?',
+                      'Où l’entretien coûte-t-il le plus cher?',
                     ),
                     style: Theme.of(context).textTheme.titleLarge,
                   ),
@@ -168,7 +193,9 @@ class _EquipmentReportScreenState extends ConsumerState<EquipmentReportScreen> {
                                 from: DateTime(now.year, now.month),
                                 to: DateTime(now.year, now.month, now.day + 1),
                               )),
-                        child: Text(text('This month', 'Este mes')),
+                        child: Text(
+                          text('This month', 'Este mes', 'Ce mois-ci'),
+                        ),
                       ),
                       OutlinedButton(
                         onPressed: _exporting
@@ -177,7 +204,9 @@ class _EquipmentReportScreenState extends ConsumerState<EquipmentReportScreen> {
                                 from: DateTime(now.year, now.month - 1),
                                 to: DateTime(now.year, now.month),
                               )),
-                        child: Text(text('Last month', 'Mes anterior')),
+                        child: Text(
+                          text('Last month', 'Mes anterior', 'Le mois dernier'),
+                        ),
                       ),
                       OutlinedButton(
                         onPressed: _exporting
@@ -189,12 +218,24 @@ class _EquipmentReportScreenState extends ConsumerState<EquipmentReportScreen> {
                                 ),
                                 to: DateTime(now.year, now.month, now.day + 1),
                               )),
-                        child: Text(text('This quarter', 'Este trimestre')),
+                        child: Text(
+                          text(
+                            'This quarter',
+                            'Este trimestre',
+                            'Ce trimestre',
+                          ),
+                        ),
                       ),
                       OutlinedButton.icon(
                         onPressed: _exporting ? null : pickPeriod,
                         icon: const Icon(Icons.date_range),
-                        label: Text(text('Choose dates', 'Elegir fechas')),
+                        label: Text(
+                          text(
+                            'Choose dates',
+                            'Elegir fechas',
+                            'Choisir les dates',
+                          ),
+                        ),
                       ),
                     ],
                   ),
@@ -212,7 +253,12 @@ class _EquipmentReportScreenState extends ConsumerState<EquipmentReportScreen> {
                       onRetry: () =>
                           ref.invalidate(equipmentReportProvider(_period)),
                     ),
-                    data: (data) {
+                    data: (source) {
+                      final selected =
+                          _currency ??
+                          source.data['preferred_currency'] as String? ??
+                          'USD';
+                      final data = source.inCurrency(selected);
                       final assets = data.assets
                         ..sort((a, b) {
                           final compared = _sort == 'repeats'
@@ -232,12 +278,36 @@ class _EquipmentReportScreenState extends ConsumerState<EquipmentReportScreen> {
                           text(
                             'No equipment is available in your fleet.',
                             'No hay equipos disponibles en tu flota.',
+                            'Aucun équipement n’est disponible dans votre parc.',
                           ),
                         );
                       }
                       return Column(
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
+                          Wrap(
+                            spacing: 8,
+                            children: [
+                              for (final currency in {
+                                ...data.currencies,
+                                'CAD',
+                                'USD',
+                              })
+                                ChoiceChip(
+                                  label: Text(currency),
+                                  selected: selected == currency,
+                                  onSelected: (_) =>
+                                      setState(() => _currency = currency),
+                                ),
+                            ],
+                          ),
+                          Text(
+                            text(
+                              'Currencies are shown separately. No exchange conversion is applied.',
+                              'Las monedas se muestran por separado, sin conversión de cambio.',
+                              'Les devises sont affichées séparément. Aucune conversion n’est appliquée.',
+                            ),
+                          ),
                           Card(
                             child: Padding(
                               padding: const EdgeInsets.all(16),
@@ -248,31 +318,33 @@ class _EquipmentReportScreenState extends ConsumerState<EquipmentReportScreen> {
                                     text(
                                       'Recorded maintenance cost',
                                       'Costo de mantenimiento registrado',
+                                      'Coût d’entretien enregistré',
                                     ),
                                   ),
                                   Text(
-                                    'USD ${data.total('total').toStringAsFixed(2)}',
+                                    '${data.currency} ${data.total('total').toStringAsFixed(2)}',
                                     style: Theme.of(
                                       context,
                                     ).textTheme.headlineMedium,
                                   ),
                                   const SizedBox(height: 8),
                                   Text(
-                                    '${text('Labour', 'Mano de obra')}: ${data.total('labour').toStringAsFixed(2)} · ${text('Parts', 'Repuestos')}: ${data.total('parts').toStringAsFixed(2)} · ${text('Outside service', 'Servicio externo')}: ${data.total('outside').toStringAsFixed(2)}',
+                                    '${text('Labour', 'Mano de obra', 'Main-d’œuvre')}: ${data.total('labour').toStringAsFixed(2)} · ${text('Parts', 'Repuestos', 'Pièces')}: ${data.total('parts').toStringAsFixed(2)} · ${text('Outside service', 'Servicio externo', 'Service externe')}: ${data.total('outside').toStringAsFixed(2)}',
                                   ),
                                   const SizedBox(height: 8),
                                   Text(
-                                    '${data.total('unavailable_hours').toStringAsFixed(1)} ${text('equipment-hours unavailable', 'horas de equipos no disponibles')}',
+                                    '${data.total('unavailable_hours').toStringAsFixed(1)} ${text('equipment-hours unavailable', 'horas de equipos no disponibles', 'heures-équipement d’indisponibilité')}',
                                   ),
                                   Text(
                                     text(
                                       'Approved internal costs and sent or paid provider invoices, including invoice tax.',
                                       'Costos internos aprobados y facturas enviadas o pagadas del proveedor, con impuestos.',
+                                      'Les coûts internes approuvés et les factures des fournisseurs envoyées ou payées, taxes comprises.',
                                     ),
                                   ),
                                   const SizedBox(height: 8),
                                   Text(
-                                    '${text('Updated', 'Actualizado')}: ${DateFormat.yMMMd(es ? 'es' : 'en').add_Hm().format(DateTime.parse(data.data['generated_at'] as String).toLocal())}',
+                                    '${text('Updated', 'Actualizado', 'Mis à jour')} : ${DateFormat.yMMMd(Localizations.localeOf(context).toString()).add_Hm().format(DateTime.parse(data.data['generated_at'] as String).toLocal())}',
                                   ),
                                 ],
                               ),
@@ -283,13 +355,14 @@ class _EquipmentReportScreenState extends ConsumerState<EquipmentReportScreen> {
                             Padding(
                               padding: const EdgeInsets.symmetric(vertical: 12),
                               child: Text(
-                                '${data.total('cost_gaps').toInt()} ${text('cost gaps or zero-cost entries to check', 'costos incompletos o en cero por revisar')}. ${data.total('unknown_hours').toStringAsFixed(1)} ${text('equipment-hours without availability history', 'horas de equipos sin historial de disponibilidad')}.',
+                                '${data.total('cost_gaps').toInt()} ${text('cost gaps or zero-cost entries to check', 'costos incompletos o en cero por revisar', 'écarts de coûts ou écritures à zéro à vérifier')}. ${data.total('unknown_hours').toStringAsFixed(1)} ${text('equipment-hours without availability history', 'horas de equipos sin historial de disponibilidad', 'heures-équipement sans historique de disponibilité')}.',
                               ),
                             ),
                           Text(
                             text(
                               'Totals reflect recorded data, not full ownership cost. Matching fault descriptions are possible repeats, not confirmed diagnoses.',
                               'Los totales reflejan datos registrados, no el costo total de propiedad. Descripciones coincidentes son posibles repeticiones, no diagnósticos confirmados.',
+                              'Les totaux reflètent les données enregistrées, et non le coût total de possession. Des descriptions de défaillance semblables peuvent indiquer une répétition, sans confirmer le diagnostic.',
                             ),
                           ),
                           const SizedBox(height: 12),
@@ -298,14 +371,16 @@ class _EquipmentReportScreenState extends ConsumerState<EquipmentReportScreen> {
                             runSpacing: 8,
                             children: [
                               for (final entry in {
-                                'total': text('Cost', 'Costo'),
+                                'total': text('Cost', 'Costo', 'Coût'),
                                 'unavailable_hours': text(
                                   'Downtime',
                                   'Inactividad',
+                                  'Temps d’arrêt',
                                 ),
                                 'repeats': text(
                                   'Repeat faults',
                                   'Fallas repetidas',
+                                  'Défaillances répétées',
                                 ),
                               }.entries)
                                 ChoiceChip(
@@ -323,7 +398,7 @@ class _EquipmentReportScreenState extends ConsumerState<EquipmentReportScreen> {
                                 key: ValueKey('${_period.from}-${a['id']}'),
                                 title: Text('${a['name']}'),
                                 subtitle: Text(
-                                  'USD ${reportNumber(a, 'total').toStringAsFixed(2)} · ${reportNumber(a, 'unavailable_hours').toStringAsFixed(1)} h · ${a['fault_count']} ${text('faults', 'fallas')}${possibleRepeatCount(a) > 0 ? '\n${text('Possible repeats', 'Posibles repeticiones')}: ${possibleRepeatCount(a)}' : ''}',
+                                  '${data.currency} ${reportNumber(a, 'total').toStringAsFixed(2)} · ${reportNumber(a, 'unavailable_hours').toStringAsFixed(1)} h · ${a['fault_count']} ${text('faults', 'fallas', 'défaillances')}${possibleRepeatCount(a) > 0 ? '\n${text('Possible repeats', 'Posibles repeticiones', 'Répétitions possibles')}: ${possibleRepeatCount(a)}' : ''}',
                                 ),
                                 childrenPadding: const EdgeInsets.all(12),
                                 expandedCrossAxisAlignment:
@@ -332,10 +407,10 @@ class _EquipmentReportScreenState extends ConsumerState<EquipmentReportScreen> {
                                   if (a['location'] != null)
                                     Text('${a['location']}'),
                                   Text(
-                                    '${text('Labour / parts / outside service (USD)', 'Mano de obra / repuestos / servicio externo (USD)')}: ${reportNumber(a, 'labour').toStringAsFixed(2)} / ${reportNumber(a, 'parts').toStringAsFixed(2)} / ${reportNumber(a, 'outside').toStringAsFixed(2)}',
+                                    '${text('Labour / parts / outside service (${data.currency})', 'Mano de obra / repuestos / servicio externo (${data.currency})', 'Main-d’œuvre / pièces / service externe (${data.currency})')}: ${reportNumber(a, 'labour').toStringAsFixed(2)} / ${reportNumber(a, 'parts').toStringAsFixed(2)} / ${reportNumber(a, 'outside').toStringAsFixed(2)}',
                                   ),
                                   Text(
-                                    '${a['cost_gaps']} ${text('cost gaps', 'costos incompletos')} · ${reportNumber(a, 'unknown_hours').toStringAsFixed(1)} h ${text('without availability history', 'sin historial de disponibilidad')}',
+                                    '${a['cost_gaps']} ${text('cost gaps', 'costos incompletos', 'écarts de coûts')} · ${reportNumber(a, 'unknown_hours').toStringAsFixed(1)} h ${text('without availability history', 'sin historial de disponibilidad', 'sans historique de disponibilité')}',
                                   ),
                                   for (final repeat in reportRows(a['repeats']))
                                     Padding(
@@ -343,7 +418,7 @@ class _EquipmentReportScreenState extends ConsumerState<EquipmentReportScreen> {
                                         vertical: 8,
                                       ),
                                       child: Text(
-                                        '${text('Possible repeat', 'Posible repetición')}: ${repeat['description']} (${repeat['count']})',
+                                        '${text('Possible repeat', 'Posible repetición', 'Répétition possible')}: ${repeat['description']} (${repeat['count']})',
                                       ),
                                     ),
                                   if (reportRows(a['records']).isEmpty)
@@ -358,15 +433,19 @@ class _EquipmentReportScreenState extends ConsumerState<EquipmentReportScreen> {
                                       contentPadding: EdgeInsets.zero,
                                       title: Text(
                                         '${r['title']}'.isEmpty
-                                            ? reportKind('${r['kind']}', es)
+                                            ? reportKind(
+                                                '${r['kind']}',
+                                                es,
+                                                french: fr,
+                                              )
                                             : '${r['title']}',
                                       ),
                                       subtitle: Text(
-                                        '${reportKind('${r['kind']}', es)} · ${formatter.format(DateTime.parse(r['occurred_at'] as String).toLocal())}\n${r['kind'] == 'downtime'
+                                        '${reportKind('${r['kind']}', es, french: fr)} · ${formatter.format(DateTime.parse(r['occurred_at'] as String).toLocal())}\n${r['kind'] == 'downtime'
                                             ? '${reportNumber(r, 'hours').toStringAsFixed(1)} h'
                                             : r['kind'] == 'fault'
                                             ? ''
-                                            : 'USD ${(reportNumber(r, 'labour') + reportNumber(r, 'parts') + reportNumber(r, 'outside')).toStringAsFixed(2)}'}',
+                                            : '${r['currency'] ?? data.currency} ${(reportNumber(r, 'labour') + reportNumber(r, 'parts') + reportNumber(r, 'outside')).toStringAsFixed(2)}'}',
                                       ),
                                       trailing: const Icon(Icons.chevron_right),
                                       onTap: () => context.push(
@@ -389,8 +468,13 @@ class _EquipmentReportScreenState extends ConsumerState<EquipmentReportScreen> {
                                   ? text(
                                       'Preparing export…',
                                       'Preparando exportación…',
+                                      'Préparation de l’exportation…',
                                     )
-                                  : text('Export report', 'Exportar informe'),
+                                  : text(
+                                      'Export report',
+                                      'Exportar informe',
+                                      'Exporter le rapport',
+                                    ),
                             ),
                           ),
                           if (_exportError != null)

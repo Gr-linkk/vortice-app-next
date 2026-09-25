@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:vortice_app/core/localized_text.dart';
 import 'parts_readiness_repository.dart';
 import 'parts_readiness_screen.dart';
 
@@ -9,20 +10,35 @@ class PartsReadinessEntry extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final es = Localizations.localeOf(context).languageCode == 'es';
+    final fr = isFrench(context);
     return Card(
       child: ListTile(
         leading: const Icon(Icons.inventory_2_outlined),
         title: Text(
           jobId == null
-              ? (es ? 'Existencias y compras' : 'Stock & purchasing')
-              : (es ? 'Disponibilidad de repuestos' : 'Parts readiness'),
+              ? localizedText(
+                  context,
+                  'Stock & purchasing',
+                  'Existencias y compras',
+                  'Stocks et achats',
+                )
+              : localizedText(
+                  context,
+                  'Parts readiness',
+                  'Disponibilidad de repuestos',
+                  'Disponibilité des pièces',
+                ),
         ),
         subtitle: Text(
           jobId == null
-              ? (es
+              ? (fr
+                    ? 'Emplacements, inventaires et commandes en attente'
+                    : es
                     ? 'Ubicaciones, conteos y pedidos pendientes'
                     : 'Locations, counts and outstanding orders')
-              : (es
+              : (fr
+                    ? 'Besoins du nécessaire, réservations, ruptures et utilisation'
+                    : es
                     ? 'Requisitos del kit, reservas, faltantes y uso'
                     : 'Kit requirements, reservations, shortages and use'),
         ),
@@ -44,23 +60,47 @@ class PartsPlanningStatus extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final es = Localizations.localeOf(context).languageCode == 'es';
+    final fr = isFrench(context);
     final summary = ref.watch(partsReadinessSummaryProvider);
     final row = summary.valueOrNull?[jobId] as Map?;
     final short = (row?['short'] as num?)?.toInt() ?? 0;
     final unreserved = (row?['unreserved'] as num?)?.toInt() ?? 0;
     final label = summary.hasError
-        ? (es ? 'Repuestos: estado no disponible' : 'Parts: status unavailable')
+        ? localizedText(
+            context,
+            'Parts: status unavailable',
+            'Repuestos: estado no disponible',
+            'Pièces : état indisponible',
+          )
         : summary.isLoading
-        ? (es ? 'Comprobando repuestos…' : 'Checking parts…')
+        ? localizedText(
+            context,
+            'Checking parts…',
+            'Comprobando repuestos…',
+            'Vérification des pièces…',
+          )
         : row == null
-        ? (es ? 'Repuestos: sin requisitos' : 'Parts: no requirements')
+        ? localizedText(
+            context,
+            'Parts: no requirements',
+            'Repuestos: sin requisitos',
+            'Pièces : aucun besoin',
+          )
         : short > 0
-        ? (es ? 'Repuestos: $short faltantes' : 'Parts: $short shortages')
+        ? (fr
+              ? 'Pièces : $short manquantes'
+              : es
+              ? 'Repuestos: $short faltantes'
+              : 'Parts: $short shortages')
         : unreserved > 0
-        ? (es
+        ? (fr
+              ? 'Pièces : en attente de réservation'
+              : es
               ? 'Repuestos: pendientes de reserva'
               : 'Parts: awaiting reservation')
-        : (es
+        : (fr
+              ? 'Pièces : besoins couverts'
+              : es
               ? 'Repuestos: requisitos cubiertos'
               : 'Parts: requirements covered');
     return TextButton.icon(

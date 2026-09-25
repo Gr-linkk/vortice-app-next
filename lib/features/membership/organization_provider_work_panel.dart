@@ -1,10 +1,15 @@
-import 'package:vortice_app/core/invoice_service.dart';
+import 'package:vortice_app/features/invoices/invoice_provider.dart';
+import 'package:vortice_app/features/invoices/canadian_invoice_editor.dart';
+import 'package:vortice_app/features/invoices/canadian_invoice.dart';
+import 'package:vortice_app/features/invoices/invoice_detail_screen.dart';
+import 'package:vortice_app/models/invoice.dart';
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' show PostgrestException;
 import 'package:uuid/uuid.dart';
 import 'package:vortice_app/core/account_storage.dart';
+import 'package:vortice_app/core/localized_text.dart';
 import 'package:vortice_app/features/auth/auth_provider.dart';
 import 'package:vortice_app/features/maintenance/maintenance_models.dart';
 import 'package:vortice_app/features/parts/work_parts_progress.dart';
@@ -64,7 +69,11 @@ class _OrganizationProviderWorkPanelState
     }
   }
 
-  String _t(String en, String es) => isSpanish(context) ? es : en;
+  String _t(String en, String es, [String? fr]) => isFrench(context)
+      ? fr ?? en
+      : isSpanish(context)
+      ? es
+      : en;
   Future<void> _run(Future<void> Function() action) async {
     if (_busy || !await requireOnlineAction(context, ref) || !mounted) return;
     setState(() => _busy = true);
@@ -73,6 +82,8 @@ class _OrganizationProviderWorkPanelState
       ref.invalidate(organizationWorkOrderContextProvider(widget.workOrderId));
       ref.invalidate(workOrderByIdProvider(widget.workOrderId));
       ref.invalidate(workOrdersProvider);
+      ref.invalidate(invoicesProvider);
+      ref.invalidate(invoiceByIdProvider);
     } catch (error) {
       if (mounted) {
         ScaffoldMessenger.of(
@@ -151,29 +162,41 @@ class _OrganizationProviderWorkPanelState
         order['started_at'] == null &&
         order['engine_id'] != null) {
       final unit = order['meter_unit']?.toString() ?? 'hours';
-      final values = await _fields(_t('Start work', 'Iniciar trabajo'), [
-        (
-          'meter_value',
-          _t('Starting meter ($unit)', 'Medidor inicial ($unit)'),
-          data['current_meter']?.toString() ?? '',
-          true,
-        ),
-      ], _t('Start work', 'Iniciar trabajo'));
+      final values = await _fields(
+        _t('Start work', 'Iniciar trabajo', 'Commencer le travail'),
+        [
+          (
+            'meter_value',
+            _t(
+              'Starting meter ($unit)',
+              'Medidor inicial ($unit)',
+              'Relevé initial ($unit)',
+            ),
+            data['current_meter']?.toString() ?? '',
+            true,
+          ),
+        ],
+        _t('Start work', 'Iniciar trabajo', 'Commencer le travail'),
+      );
       if (values != null && mounted) {
         await _action(data, action, values: {...values, 'meter_unit': unit});
       }
     } else if (action == 'block') {
       final values = await _fields(
-        _t('Record a blocker', 'Registrar bloqueo'),
+        _t('Record a blocker', 'Registrar bloqueo', 'Signaler un blocage'),
         [
           (
             'note',
-            _t('What is blocking the work?', '¿Qué impide continuar?'),
+            _t(
+              'What is blocking the work?',
+              '¿Qué impide continuar?',
+              'Qu’est-ce qui empêche de poursuivre?',
+            ),
             '',
             false,
           ),
         ],
-        _t('Record blocker', 'Registrar bloqueo'),
+        _t('Record blocker', 'Registrar bloqueo', 'Consigner le blocage'),
       );
       if (values != null && mounted) {
         await _action(data, action, values: values);
@@ -193,7 +216,11 @@ class _OrganizationProviderWorkPanelState
           Padding(
             padding: const EdgeInsets.all(20),
             child: Text(
-              _t('Assign teammate', 'Asignar persona'),
+              _t(
+                'Assign teammate',
+                'Asignar persona',
+                'Attribuer à un membre de l’équipe',
+              ),
               style: Theme.of(context).textTheme.titleLarge,
             ),
           ),
@@ -222,55 +249,125 @@ class _OrganizationProviderWorkPanelState
       ref.invalidate(organizationWorkOrderContextProvider(widget.workOrderId));
       ref.invalidate(workOrderByIdProvider(widget.workOrderId));
       ref.invalidate(workOrdersProvider);
+      ref.invalidate(invoicesProvider);
+      ref.invalidate(invoiceByIdProvider);
     }
   }
 
-  Future<void> _invoice() async {
-    final rates = await InvoiceService.fetchExchangeRateResult();
-    if (!mounted) return;
-    final values = await _fields(
-      _t('Customer charges', 'Cargos al cliente'),
-      [
-        (
-          'billable_rate',
-          _t('Labour rate (USD/hour)', 'Tarifa de trabajo (USD/hora)'),
-          '',
-          true,
+  Future<void> _invoice(Map<String, dynamic> data, [Invoice? invoice]) async {
+    final saved = await Navigator.push<bool>(
+      context,
+      MaterialPageRoute(
+        builder: (_) => CanadianInvoiceEditor(
+          workOrderId: widget.workOrderId,
+          customerName: data['customer_name']?.toString() ?? '',
+          description: (data['work_order'] as Map)['title']?.toString() ?? '',
+          hours:
+              ((data['work_order'] as Map)['labour_hours'] as num?)
+                  ?.toDouble() ??
+              (data['labour_hours'] as num?)?.toDouble() ??
+              0,
+          invoice: invoice,
         ),
-        (
-          'parts_total',
-          _t('Customer parts charge (USD)', 'Cargo de piezas al cliente (USD)'),
-          '0',
-          true,
-        ),
-        ('tax_percent', _t('Tax (%)', 'Impuesto (%)'), '0', true),
-        (
-          'exchange_rate',
-          _t('MXN per USD', 'MXN por USD'),
-          rates.isFallback ? '' : rates.rate.toString(),
-          true,
-        ),
-        (
-          'cad_exchange_rate',
-          _t('CAD per USD', 'CAD por USD'),
-          rates.cadRate?.toString() ?? '',
-          true,
-        ),
-      ],
-      _t('Generate invoice draft', 'Generar borrador de factura'),
+      ),
     );
-    if (values != null) {
+    if (saved == true && mounted) {
+      ref.invalidate(organizationWorkOrderContextProvider(widget.workOrderId));
+      ref.invalidate(workOrderByIdProvider(widget.workOrderId));
+      ref.invalidate(workOrdersProvider);
+      ref.invalidate(invoicesProvider);
+      ref.invalidate(invoiceByIdProvider);
+    }
+  }
+
+  Future<void> _issue() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(
+          billingText(
+            context,
+            'Issue invoice?',
+            '¿Emitir factura?',
+            'Émettre la facture?',
+          ),
+        ),
+        content: SingleChildScrollView(
+          child: Text(
+            billingText(
+              context,
+              'Review the saved charges and tax details first. Issuing makes this invoice visible to the customer and freezes its details. To correct it later, void it and create a new invoice.',
+              'Revisa cargos e impuestos. Emitir hace visible la factura al cliente y fija sus datos. Para corregirla después, anúlala y crea otra.',
+              'Vérifiez les montants et les taxes. L’émission rend la facture visible au client et fige ses renseignements. Pour la corriger ensuite, annulez-la et créez-en une nouvelle.',
+            ),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: Text(billingText(context, 'Cancel', 'Cancelar', 'Annuler')),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: Text(
+              billingText(
+                context,
+                'Issue invoice',
+                'Emitir factura',
+                'Émettre la facture',
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+    if (confirmed == true && mounted) {
       await _run(
         () => ref
             .read(organizationWorkRepositoryProvider)
-            .invoice(widget.workOrderId, 'generate', values),
+            .invoice(widget.workOrderId, 'sent', {}),
+      );
+    }
+  }
+
+  Future<void> _voidInvoice() async {
+    final values = await _fields(
+      _t('Void invoice', 'Anular factura', 'Annuler la facture'),
+      [
+        (
+          'reason',
+          _t(
+            'Reason for correction',
+            'Motivo de corrección',
+            'Motif de correction',
+          ),
+          '',
+          false,
+        ),
+      ],
+      _t('Void invoice', 'Anular factura', 'Annuler la facture'),
+    );
+    if (values != null && mounted && values['reason']!.trim().isNotEmpty) {
+      await _run(
+        () => ref
+            .read(organizationWorkRepositoryProvider)
+            .invoice(widget.workOrderId, 'void', values),
       );
     }
   }
 
   @override
   Widget build(BuildContext context) => Scaffold(
-    appBar: AppBar(title: Text(_t('Work order', 'Orden de trabajo'))),
+    appBar: AppBar(
+      title: Text(
+        localizedText(
+          context,
+          'Work order',
+          'Orden de trabajo',
+          'Bon de travail',
+        ),
+      ),
+    ),
     body: ref
         .watch(organizationWorkOrderContextProvider(widget.workOrderId))
         .when(
@@ -293,6 +390,7 @@ class _OrganizationProviderWorkPanelState
             final statusLabel = maintenanceStatus(
               status,
               isSpanish(context),
+              french: isFrench(context),
               booked:
                   DateTime.tryParse(
                     order['scheduled_date']?.toString() ?? '',
@@ -320,12 +418,14 @@ class _OrganizationProviderWorkPanelState
                     _t(
                       'Provider: ${data['provider_name']}',
                       'Proveedor: ${data['provider_name']}',
+                      'Fournisseur : ${data['provider_name']}',
                     ),
                   ),
                   Text(
                     _t(
                       'Customer: ${data['customer_name']}',
                       'Cliente: ${data['customer_name']}',
+                      'Client : ${data['customer_name']}',
                     ),
                   ),
                   if ((order['description'] as String? ?? '').isNotEmpty)
@@ -340,6 +440,7 @@ class _OrganizationProviderWorkPanelState
                         _t(
                           'Assigned to ${data['assignee_name']}',
                           'Asignado a ${data['assignee_name']}',
+                          'Attribué à ${data['assignee_name']}',
                         ),
                       ),
                     ),
@@ -353,7 +454,13 @@ class _OrganizationProviderWorkPanelState
                     OutlinedButton.icon(
                       onPressed: _locked ? null : () => _assign(data),
                       icon: const Icon(Icons.person_outline),
-                      label: Text(_t('Assign teammate', 'Asignar persona')),
+                      label: Text(
+                        _t(
+                          'Assign teammate',
+                          'Asignar persona',
+                          'Attribuer à un membre de l’équipe',
+                        ),
+                      ),
                     ),
                   if (provider) ...[
                     if (_pending != null)
@@ -367,6 +474,7 @@ class _OrganizationProviderWorkPanelState
                                 _t(
                                   'The last action is unconfirmed. Retry it before making another change.',
                                   'La última acción no se ha confirmado. Reinténtala antes de hacer otro cambio.',
+                                  'La dernière action n’est pas confirmée. Réessayez-la avant d’effectuer un autre changement.',
                                 ),
                               ),
                               FilledButton(
@@ -377,7 +485,11 @@ class _OrganizationProviderWorkPanelState
                                         _pending!['action'] as String,
                                       ),
                                 child: Text(
-                                  _t('Retry action', 'Reintentar acción'),
+                                  _t(
+                                    'Retry action',
+                                    'Reintentar acción',
+                                    'Réessayer l’action',
+                                  ),
                                 ),
                               ),
                             ],
@@ -397,7 +509,7 @@ class _OrganizationProviderWorkPanelState
                         Padding(
                           padding: const EdgeInsets.symmetric(vertical: 12),
                           child: Text(
-                            '${_t('Request', 'Solicitud')}: ${(source['snapshot'] as Map)['title']}\n${(source['snapshot'] as Map)['description'] ?? ''}',
+                            '${_t('Request', 'Solicitud', 'Demande')}: ${(source['snapshot'] as Map)['title']}\n${(source['snapshot'] as Map)['description'] ?? ''}',
                           ),
                         ),
                   ],
@@ -409,6 +521,7 @@ class _OrganizationProviderWorkPanelState
                           _t(
                             'Review: ${data['review_note']}',
                             'Revisión: ${data['review_note']}',
+                            'Révision : ${data['review_note']}',
                           ),
                         ),
                       ),
@@ -420,38 +533,57 @@ class _OrganizationProviderWorkPanelState
                           ? null
                           : () async {
                               final values = await _fields(
-                                _t('Record a part', 'Registrar una pieza'),
+                                _t(
+                                  'Record a part',
+                                  'Registrar una pieza',
+                                  'Consigner une pièce',
+                                ),
                                 [
                                   (
                                     'description',
-                                    _t('Part description', 'Descripción'),
+                                    _t(
+                                      'Part description',
+                                      'Descripción',
+                                      'Description de la pièce',
+                                    ),
                                     '',
                                     false,
                                   ),
                                   (
                                     'quantity',
-                                    _t('Quantity', 'Cantidad'),
+                                    _t('Quantity', 'Cantidad', 'Quantité'),
                                     '1',
                                     true,
                                   ),
                                   (
                                     'unit_cost',
                                     _t(
-                                      'Internal unit cost (USD)',
-                                      'Costo unitario interno (USD)',
+                                      "Internal unit cost (${order['cost_currency'] ?? 'USD'})",
+                                      "Costo unitario interno (${order['cost_currency'] ?? 'USD'})",
+                                      "Coût unitaire interne (${order['cost_currency'] ?? 'USD'})",
                                     ),
                                     '',
                                     true,
                                   ),
                                 ],
-                                _t('Record part', 'Registrar pieza'),
+                                _t(
+                                  'Record part',
+                                  'Registrar pieza',
+                                  'Consigner la pièce',
+                                ),
                               );
                               if (values != null) {
                                 await _action(data, 'add_part', values: values);
                               }
                             },
                       icon: const Icon(Icons.inventory_2_outlined),
-                      label: Text(_t('Record a part', 'Registrar una pieza')),
+                      label: Text(
+                        _t(
+                          'Record a part',
+                          'Registrar una pieza',
+                          'Consigner une pièce',
+                        ),
+                      ),
                     ),
                   ],
                   if (report != null) ...[
@@ -461,13 +593,18 @@ class _OrganizationProviderWorkPanelState
                           ? _t(
                               'Provider report draft',
                               'Borrador del proveedor',
+                              'Brouillon du rapport du fournisseur',
                             )
-                          : _t('Service report', 'Informe de servicio'),
+                          : _t(
+                              'Service report',
+                              'Informe de servicio',
+                              'Rapport d’entretien',
+                            ),
                       style: Theme.of(context).textTheme.titleLarge,
                     ),
                     const SizedBox(height: 12),
                     Text(
-                      _t('Diagnosis', 'Diagnóstico'),
+                      _t('Diagnosis', 'Diagnóstico', 'Diagnostic'),
                       style: Theme.of(context).textTheme.titleSmall,
                     ),
                     Text(report['diagnosis']?.toString() ?? ''),
@@ -476,6 +613,7 @@ class _OrganizationProviderWorkPanelState
                       _t(
                         'Repair / work performed',
                         'Reparación / trabajo realizado',
+                        'Réparation / travaux effectués',
                       ),
                       style: Theme.of(context).textTheme.titleSmall,
                     ),
@@ -520,6 +658,7 @@ class _OrganizationProviderWorkPanelState
                         _t(
                           'Approve and share report',
                           'Aprobar y compartir informe',
+                          'Approuver et partager le rapport',
                         ),
                       ),
                     ),
@@ -531,6 +670,7 @@ class _OrganizationProviderWorkPanelState
                                 _t(
                                   'Return for changes',
                                   'Devolver para corregir',
+                                  'Retourner pour corrections',
                                 ),
                                 [
                                   (
@@ -538,19 +678,28 @@ class _OrganizationProviderWorkPanelState
                                     _t(
                                       'What needs to change?',
                                       '¿Qué debe cambiar?',
+                                      'Qu’est-ce qui doit être modifié?',
                                     ),
                                     '',
                                     false,
                                   ),
                                 ],
-                                _t('Return report', 'Devolver informe'),
+                                _t(
+                                  'Return report',
+                                  'Devolver informe',
+                                  'Retourner le rapport',
+                                ),
                               );
                               if (values != null) {
                                 await _action(data, 'return', values: values);
                               }
                             },
                       child: Text(
-                        _t('Return for changes', 'Devolver para corregir'),
+                        _t(
+                          'Return for changes',
+                          'Devolver para corregir',
+                          'Retourner pour corrections',
+                        ),
                       ),
                     ),
                   ],
@@ -560,6 +709,7 @@ class _OrganizationProviderWorkPanelState
                       _t(
                         'Internal labour and parts',
                         'Trabajo y piezas internos',
+                        'Main-d’œuvre et pièces internes',
                       ),
                       style: Theme.of(context).textTheme.titleMedium,
                     ),
@@ -567,6 +717,7 @@ class _OrganizationProviderWorkPanelState
                       _t(
                         '${((data['labour_hours'] as num?) ?? 0).toStringAsFixed(2)} labour hours',
                         '${((data['labour_hours'] as num?) ?? 0).toStringAsFixed(2)} horas de trabajo',
+                        '${((data['labour_hours'] as num?) ?? 0).toStringAsFixed(2)} heures de main-d’œuvre',
                       ),
                     ),
                     for (final part in data['parts'] as List? ?? const [])
@@ -574,17 +725,25 @@ class _OrganizationProviderWorkPanelState
                         contentPadding: EdgeInsets.zero,
                         title: Text(part['description'] as String),
                         subtitle: Text(
-                          '${part['quantity']} × ${part['unit_cost']} USD',
+                          '${part['quantity']} × ${part['unit_cost']} ${order['cost_currency'] ?? 'USD'}',
                         ),
                       ),
                   ],
-                  if (bill && status == 'closed' && invoice == null)
+                  if (bill &&
+                      (status == 'closed' || status == 'invoiced') &&
+                      invoice == null)
                     Padding(
                       padding: const EdgeInsets.only(top: 24),
                       child: FilledButton.icon(
-                        onPressed: _locked ? null : _invoice,
+                        onPressed: _locked ? null : () => _invoice(data),
                         icon: const Icon(Icons.receipt_long_outlined),
-                        label: Text(_t('Generate invoice', 'Generar factura')),
+                        label: Text(
+                          _t(
+                            'Generate invoice',
+                            'Generar factura',
+                            'Créer la facture',
+                          ),
+                        ),
                       ),
                     ),
                   if (invoice != null) ...[
@@ -593,29 +752,84 @@ class _OrganizationProviderWorkPanelState
                       invoice['invoice_number'] as String,
                       style: Theme.of(context).textTheme.titleLarge,
                     ),
-                    Text(
-                      '${invoice['total_usd']} USD · ${invoice['total_mxn']} MXN · ${invoice['total_cad'] ?? '-'} CAD',
+                    if (invoice['billing_currency'] == 'CAD')
+                      CanadianInvoiceSummary(
+                        invoice: Invoice.fromJson(
+                          Map<String, dynamic>.from(invoice),
+                        ),
+                      )
+                    else
+                      Text(
+                        '${invoice['total_usd']} USD · ${invoice['total_mxn']} MXN · ${invoice['total_cad'] ?? '-'} CAD',
+                      ),
+                    OutlinedButton.icon(
+                      onPressed: () => Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => InvoiceDetailScreen(
+                            invoiceId: invoice['id'] as String,
+                          ),
+                        ),
+                      ),
+                      icon: const Icon(Icons.receipt_long_outlined),
+                      label: Text(
+                        billingText(
+                          context,
+                          'View / export invoice',
+                          'Ver / exportar factura',
+                          'Voir / exporter la facture',
+                        ),
+                      ),
                     ),
+                    if (bill &&
+                        invoice['status'] == 'draft' &&
+                        invoice['billing_currency'] == 'CAD')
+                      OutlinedButton(
+                        onPressed: _locked
+                            ? null
+                            : () => _invoice(
+                                data,
+                                Invoice.fromJson(
+                                  Map<String, dynamic>.from(invoice),
+                                ),
+                              ),
+                        child: Text(
+                          billingText(
+                            context,
+                            'Edit draft',
+                            'Editar borrador',
+                            'Modifier le brouillon',
+                          ),
+                        ),
+                      ),
                     Text(
                       invoice['status'] == 'draft'
-                          ? _t('Draft', 'Borrador')
+                          ? _t('Draft', 'Borrador', 'Brouillon')
                           : invoice['status'] == 'paid'
-                          ? _t('Paid', 'Pagada')
-                          : _t('Issued', 'Emitida'),
+                          ? _t('Paid', 'Pagada', 'Payée')
+                          : _t('Issued', 'Emitida', 'Émise'),
                     ),
                     if (bill && invoice['status'] == 'draft')
                       FilledButton(
-                        onPressed: _locked
-                            ? null
-                            : () => _run(
-                                () => ref
-                                    .read(organizationWorkRepositoryProvider)
-                                    .invoice(widget.workOrderId, 'sent', {}),
-                              ),
+                        onPressed: _locked ? null : _issue,
                         child: Text(
                           _t(
                             'Issue invoice to customer',
                             'Emitir factura al cliente',
+                            'Émettre la facture au client',
+                          ),
+                        ),
+                      ),
+                    if (bill &&
+                        invoice['status'] != 'void' &&
+                        invoice['status'] != 'paid')
+                      TextButton(
+                        onPressed: _locked ? null : _voidInvoice,
+                        child: Text(
+                          _t(
+                            'Void invoice',
+                            'Anular factura',
+                            'Annuler la facture',
                           ),
                         ),
                       ),
@@ -628,7 +842,13 @@ class _OrganizationProviderWorkPanelState
                                     .read(organizationWorkRepositoryProvider)
                                     .invoice(widget.workOrderId, 'paid', {}),
                               ),
-                        child: Text(_t('Mark paid', 'Marcar como pagada')),
+                        child: Text(
+                          _t(
+                            'Mark paid',
+                            'Marcar como pagada',
+                            'Marquer comme payée',
+                          ),
+                        ),
                       ),
                   ],
                 ],
@@ -711,9 +931,12 @@ class _ProviderWorkFieldsSheetState extends State<_ProviderWorkFieldsSheet> {
                 decoration: InputDecoration(
                   labelText: f.$2,
                   errorText: _invalidRates.contains(f.$1)
-                      ? (isSpanish(context)
-                            ? 'Ingresa un tipo de cambio positivo.'
-                            : 'Enter a positive exchange rate.')
+                      ? localizedText(
+                          context,
+                          'Enter a positive exchange rate.',
+                          'Ingresa un tipo de cambio positivo.',
+                          'Saisissez un taux de change positif.',
+                        )
                       : null,
                 ),
               ),

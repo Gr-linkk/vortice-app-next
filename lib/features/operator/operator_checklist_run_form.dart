@@ -7,6 +7,7 @@ import 'package:vortice_app/features/checklists/checklist_provider.dart';
 import 'package:vortice_app/features/operator/operator_checklist_quick_check_item.dart';
 import 'package:vortice_app/features/operator/operator_checklist_run_header.dart';
 import 'package:vortice_app/l10n/app_localizations.dart';
+import 'package:vortice_app/core/localized_text.dart';
 import 'package:vortice_app/models/checklist_template.dart';
 
 class OperatorChecklistRunForm extends ConsumerStatefulWidget {
@@ -141,9 +142,12 @@ class _OperatorChecklistRunFormState
                     onPressed: widget.submitting ? null : widget.onReset,
                     icon: const Icon(Icons.add),
                     label: Text(
-                      Localizations.localeOf(context).languageCode == 'es'
-                          ? 'Iniciar otra lista'
-                          : 'Start another checklist',
+                      localizedText(
+                        context,
+                        'Start another checklist',
+                        'Iniciar otra lista',
+                        'Commencer une autre inspection',
+                      ),
                     ),
                   ),
                 ),

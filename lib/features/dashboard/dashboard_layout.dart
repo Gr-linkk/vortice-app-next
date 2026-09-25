@@ -11,6 +11,7 @@ import 'package:intl/intl.dart';
 import 'package:vortice_app/core/app_navigation.dart';
 import 'package:vortice_app/core/theme.dart';
 import 'package:vortice_app/core/user_feedback.dart';
+import 'package:vortice_app/core/localized_text.dart';
 import 'package:vortice_app/features/auth/auth_provider.dart';
 import 'package:vortice_app/features/auth/sign_out_button.dart';
 import 'package:vortice_app/features/clients/client_capability_gate.dart';
@@ -20,8 +21,12 @@ import 'package:vortice_app/features/notifications/notification_provider.dart';
 import 'package:vortice_app/models/client_capability.dart';
 import 'package:vortice_app/models/profile.dart';
 
-String dashboardText(BuildContext context, String en, String es) =>
-    isSpanish(context) ? es : en;
+String dashboardText(
+  BuildContext context,
+  String en,
+  String es, [
+  String? fr,
+]) => localizedText(context, en, es, fr ?? en);
 
 class DashboardRefresh extends ConsumerWidget {
   const DashboardRefresh({
@@ -61,7 +66,7 @@ class DashboardAppBar extends ConsumerWidget implements PreferredSizeWidget {
     final role = ref.watch(profileProvider).valueOrNull?.role;
     return AppBar(
       automaticallyImplyLeading: false,
-      title: Text(dashboardText(context, 'Home', 'Inicio')),
+      title: Text(dashboardText(context, 'Home', 'Inicio', 'Accueil')),
       actions: [
         if (role != null)
           const _DashboardNotifications(route: '/notifications'),
@@ -78,7 +83,12 @@ class _DashboardNotifications extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final unread = ref.watch(unreadCountProvider);
     return IconButton(
-      tooltip: dashboardText(context, 'Notifications', 'Notificaciones'),
+      tooltip: dashboardText(
+        context,
+        'Notifications',
+        'Notificaciones',
+        'Notifications',
+      ),
       onPressed: () => context.push(route),
       icon: Badge(
         isLabelVisible: unread > 0,
@@ -119,6 +129,7 @@ class DashboardIntro extends ConsumerWidget {
     final role = profile?.role ?? UserRole.client;
     final name = profile?.fullName.trim().split(' ').first ?? '';
     final es = Localizations.localeOf(context).languageCode == 'es';
+    final fr = isFrench(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -129,13 +140,23 @@ class DashboardIntro extends ConsumerWidget {
             children: [
               Text(
                 name.isEmpty
-                    ? (es ? 'Bienvenido' : 'Welcome back')
-                    : (es ? 'Hola, $name' : 'Hi, $name'),
+                    ? localizedText(
+                        context,
+                        'Welcome back',
+                        'Bienvenido',
+                        'Bon retour',
+                      )
+                    : localizedText(
+                        context,
+                        'Hi, $name',
+                        'Hola, $name',
+                        'Bonjour, $name',
+                      ),
                 style: Theme.of(context).textTheme.titleLarge,
               ),
               const SizedBox(height: 6),
               Text(
-                '${dashboardRoleLabel(role, es)} · ${DateFormat.MMMEd(es ? 'es' : 'en').format(DateTime.now())}',
+                '${dashboardRoleLabel(role, es, french: fr)} · ${DateFormat.MMMEd(appLocaleCode(context)).format(DateTime.now())}',
                 style: TextStyle(color: context.appColors.textSecondary),
               ),
             ],
@@ -184,7 +205,9 @@ class DashboardShortcuts extends ConsumerWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        DashboardSection(title: es ? 'Herramientas' : 'Tools'),
+        DashboardSection(
+          title: localizedText(context, 'Tools', 'Herramientas', 'Outils'),
+        ),
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16),
           child: Card(
@@ -197,7 +220,7 @@ class DashboardShortcuts extends ConsumerWidget {
                       action.icon,
                       color: context.appColors.primary,
                     ),
-                    title: Text(action.label(es)),
+                    title: Text(action.label(es, french: isFrench(context))),
                     trailing: const Icon(Icons.chevron_right, size: 20),
                     onTap: () => context.push(action.route),
                   ),
@@ -226,12 +249,14 @@ List<AppDestination> dashboardActions(
         role == UserRole.owner || admin
             ? '/maintenance/planning'
             : '/maintenance/planning?filter=mine',
+        fr: 'Bons de travail',
       ),
     const AppDestination(
       'Report a fault',
       'Reportar una falla',
       Icons.report_problem_outlined,
       '/fleet/report',
+      fr: 'Signaler une défaillance',
     ),
     if (role == UserRole.owner || admin)
       const AppDestination(
@@ -239,6 +264,7 @@ List<AppDestination> dashboardActions(
         'Nueva orden de trabajo',
         Icons.add_task,
         '/maintenance/new',
+        fr: 'Créer un bon de travail',
       )
     else if (operationalChecklistsEnabled &&
         (role == UserRole.operator || role == UserRole.clientOperator))
@@ -247,6 +273,7 @@ List<AppDestination> dashboardActions(
         'Iniciar revisión',
         Icons.checklist,
         '/operator/checklist',
+        fr: 'Commencer une inspection',
       )
     else if (!staff && role != UserRole.clientMechanic)
       AppDestination(
@@ -254,6 +281,7 @@ List<AppDestination> dashboardActions(
         'Ver equipos',
         Icons.directions_boat_outlined,
         '$prefix/assets',
+        fr: 'Voir les équipements',
       ),
     if (staff)
       AppDestination(
@@ -261,6 +289,7 @@ List<AppDestination> dashboardActions(
         'Solicitudes de servicio',
         Icons.support_agent,
         '$prefix/service-requests',
+        fr: 'Demandes de service',
       )
     else if (admin || role == UserRole.clientMechanic)
       const AppDestination(
@@ -268,6 +297,7 @@ List<AppDestination> dashboardActions(
         'Informes de servicio',
         Icons.description_outlined,
         '/client/service-reports',
+        fr: 'Rapports d’intervention',
       )
     else if (operationalChecklistsEnabled)
       AppDestination(
@@ -275,6 +305,7 @@ List<AppDestination> dashboardActions(
         'Ver equipos',
         Icons.directions_boat_outlined,
         '$prefix/assets',
+        fr: 'Voir les équipements',
       )
     else
       const AppDestination(
@@ -282,23 +313,51 @@ List<AppDestination> dashboardActions(
         'Notificaciones',
         Icons.notifications_outlined,
         '/notifications',
+        fr: 'Notifications',
       ),
     const AppDestination(
       'All tools',
       'Todas las herramientas',
       Icons.grid_view_outlined,
       '/more',
+      fr: 'Tous les outils',
     ),
   ];
 }
 
-String dashboardRoleLabel(UserRole role, bool es) => switch (role) {
-  UserRole.owner => es ? 'Administración' : 'Administration',
-  UserRole.employee => es ? 'Equipo de servicio' : 'Service team',
-  UserRole.client || UserRole.clientAdmin => es ? 'Mi empresa' : 'My company',
-  UserRole.clientMechanic => es ? 'Mecánico' : 'Mechanic',
-  UserRole.operator || UserRole.clientOperator => es ? 'Operador' : 'Operator',
-};
+String dashboardRoleLabel(UserRole role, bool es, {bool french = false}) =>
+    switch (role) {
+      UserRole.owner =>
+        french
+            ? 'Administration'
+            : es
+            ? 'Administración'
+            : 'Administration',
+      UserRole.employee =>
+        french
+            ? 'Équipe de service'
+            : es
+            ? 'Equipo de servicio'
+            : 'Service team',
+      UserRole.client || UserRole.clientAdmin =>
+        french
+            ? 'Mon entreprise'
+            : es
+            ? 'Mi empresa'
+            : 'My company',
+      UserRole.clientMechanic =>
+        french
+            ? 'Mécanicien'
+            : es
+            ? 'Mecánico'
+            : 'Mechanic',
+      UserRole.operator || UserRole.clientOperator =>
+        french
+            ? 'Opérateur'
+            : es
+            ? 'Operador'
+            : 'Operator',
+    };
 
 class DashboardSection extends StatelessWidget {
   const DashboardSection({
@@ -328,7 +387,9 @@ class DashboardSection extends StatelessWidget {
         if (onViewAll != null)
           TextButton(
             onPressed: onViewAll,
-            child: Text(dashboardText(context, 'View all', 'Ver todo')),
+            child: Text(
+              dashboardText(context, 'View all', 'Ver todo', 'Tout afficher'),
+            ),
           ),
       ],
     ),

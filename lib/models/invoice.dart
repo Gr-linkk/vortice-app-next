@@ -27,6 +27,8 @@ abstract class Invoice with _$Invoice {
     @JsonKey(name: 'client_id') required String clientId,
     @JsonKey(name: 'invoice_number') required String invoiceNumber,
     @JsonKey(defaultValue: InvoiceStatus.draft) required InvoiceStatus status,
+    @JsonKey(name: 'billing_currency') @Default('USD') String billingCurrency,
+    @JsonKey(name: 'billing_details') Map<String, dynamic>? billingDetails,
     @JsonKey(name: 'labour_hours') double? labourHours,
     @JsonKey(name: 'billable_rate_usd') double? billableRateUsd,
     @JsonKey(name: 'labour_total_usd') double? labourTotalUsd,

@@ -40,11 +40,31 @@ enum WorkOrderJobType {
 
   String get dbValue => name;
 
-  String label(bool es) => switch (this) {
-    preventative => es ? 'Mantenimiento preventivo' : 'Preventive maintenance',
-    repair => es ? 'Reparación' : 'Repair',
-    inspection => es ? 'Inspección' : 'Inspection',
-    general => es ? 'Trabajo general' : 'General work',
+  String label(bool es, {bool fr = false}) => switch (this) {
+    preventative =>
+      fr
+          ? 'Entretien préventif'
+          : es
+          ? 'Mantenimiento preventivo'
+          : 'Preventive maintenance',
+    repair =>
+      fr
+          ? 'Réparation'
+          : es
+          ? 'Reparación'
+          : 'Repair',
+    inspection =>
+      fr
+          ? 'Inspection'
+          : es
+          ? 'Inspección'
+          : 'Inspection',
+    general =>
+      fr
+          ? 'Travaux généraux'
+          : es
+          ? 'Trabajo general'
+          : 'General work',
   };
 
   static WorkOrderJobType fromValue(String? value) =>

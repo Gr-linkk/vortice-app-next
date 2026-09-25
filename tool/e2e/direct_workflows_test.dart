@@ -66,10 +66,11 @@ void main() {
               .read(maintenanceRepositoryProvider)
               .assetContext(asset);
           final executorId =
+              h.executorId ??
               (await supabase
                       .from('profiles')
                       .select('id')
-                      .eq('email', executor))
+                      .eq('email', h.loginEmail(executor)))
                   .single['id'];
           final mechanic =
               (catalog['assignees'] as List).firstWhere(

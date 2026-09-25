@@ -15,6 +15,7 @@ import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:uuid/uuid.dart';
 import 'package:vortice_app/core/user_feedback.dart';
+import 'package:vortice_app/core/localized_text.dart';
 import 'package:vortice_app/features/auth/auth_provider.dart';
 import 'maintenance_models.dart';
 import 'maintenance_repository.dart';
@@ -260,7 +261,7 @@ class _MaintenanceReportScreenState
     startingMeter: widget.job.data['hours_at_start'] as num? ?? 0,
   );
 
-  String? _inspectionError(String key, bool es) {
+  String? _inspectionError(String key, bool es, {bool french = false}) {
     final value = _inspectionFields[key]?.text.trim() ?? '';
     if (key == 'inspected_on' || key == 'expires_on') {
       final date = MaintenanceRecurrence.parseDate(value);
@@ -275,12 +276,16 @@ class _MaintenanceReportScreenState
               date.isAfter(DateTime(today.year, today.month, today.day))) ||
           (key == 'expires_on' &&
               (inspected == null || !date.isAfter(inspected)))) {
-        return es
+        return french
+            ? 'Vérifiez la date (AAAA-MM-JJ).'
+            : es
             ? 'Revisa la fecha (YYYY-MM-DD)'
             : 'Check the date (YYYY-MM-DD)';
       }
     } else if (value.length < 3) {
-      return es
+      return french
+          ? 'Décrivez la procédure et le résultat.'
+          : es
           ? 'Describe el procedimiento y el resultado'
           : 'Describe the procedure and result';
     }
@@ -302,12 +307,16 @@ class _MaintenanceReportScreenState
               children: [
                 ListTile(
                   leading: const Icon(Icons.camera_alt),
-                  title: Text(isSpanish(context) ? 'Cámara' : 'Camera'),
+                  title: Text(
+                    localizedText(context, 'Camera', 'Cámara', 'Caméra'),
+                  ),
                   onTap: () => Navigator.pop(context, ImageSource.camera),
                 ),
                 ListTile(
                   leading: const Icon(Icons.photo_library),
-                  title: Text(isSpanish(context) ? 'Galería' : 'Gallery'),
+                  title: Text(
+                    localizedText(context, 'Gallery', 'Galería', 'Photothèque'),
+                  ),
                   onTap: () => Navigator.pop(context, ImageSource.gallery),
                 ),
               ],
@@ -354,11 +363,13 @@ class _MaintenanceReportScreenState
   @override
   Widget build(BuildContext context) {
     final es = isSpanish(context),
+        fr = isFrench(context),
         frozen = !_draftReady || _saving || _uploading || _pending != null;
     Widget textField(
       TextEditingController controller,
       String en,
       String spanish, {
+      String? french,
       bool numeric = false,
     }) => Padding(
       padding: const EdgeInsets.only(bottom: 16),
@@ -372,12 +383,18 @@ class _MaintenanceReportScreenState
             ? const TextInputType.numberWithOptions(decimal: true)
             : TextInputType.multiline,
         decoration: InputDecoration(
-          labelText: es ? spanish : en,
+          labelText: fr
+              ? french ?? en
+              : es
+              ? spanish
+              : en,
           errorText: !_showRequirements
               ? null
               : (controller == _diagnosis || controller == _repair) &&
                     controller.text.trim().length < 3
-              ? (es
+              ? (fr
+                    ? 'Décrivez les constatations et le travail effectué'
+                    : es
                     ? 'Describe los hallazgos y el trabajo realizado'
                     : 'Describe the findings and work performed')
               : controller == _hours
@@ -408,7 +425,14 @@ class _MaintenanceReportScreenState
       },
       child: Scaffold(
         appBar: AppBar(
-          title: Text(es ? 'Informe de servicio' : 'Service report'),
+          title: Text(
+            localizedText(
+              context,
+              'Service report',
+              'Informe de servicio',
+              'Rapport d’intervention',
+            ),
+          ),
         ),
         body: ListView(
           padding: const EdgeInsets.all(20),
@@ -426,7 +450,12 @@ class _MaintenanceReportScreenState
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        es ? 'Cambios solicitados' : 'Changes requested',
+                        localizedText(
+                          context,
+                          'Changes requested',
+                          'Cambios solicitados',
+                          'Modifications demandées',
+                        ),
                         style: Theme.of(context).textTheme.titleMedium,
                       ),
                       Text(widget.job.data['review_note'] as String),
@@ -436,7 +465,7 @@ class _MaintenanceReportScreenState
               ),
             if (widget.job.checklist.isNotEmpty)
               Text(
-                '${es ? 'Lista' : 'Checklist'}: ${maintenanceCompletedItems(widget.job.checklist, _answers, _evidence)} / ${widget.job.checklist.length}',
+                '${localizedText(context, 'Checklist', 'Lista', 'Liste de contrôle')} : ${maintenanceCompletedItems(widget.job.checklist, _answers, _evidence)} / ${widget.job.checklist.length}',
               ),
             WorkPartsProgress(jobId: widget.job.id),
             if (widget.job.hasRunningLabour)
@@ -444,10 +473,17 @@ class _MaintenanceReportScreenState
                 child: ListTile(
                   leading: const Icon(Icons.timer_outlined),
                   title: Text(
-                    es ? 'Tiempo de trabajo en curso' : 'Labour timer running',
+                    localizedText(
+                      context,
+                      'Labour timer running',
+                      'Tiempo de trabajo en curso',
+                      'Minuterie de travail en cours',
+                    ),
                   ),
                   subtitle: Text(
-                    es
+                    fr
+                        ? 'Mettez le temps en pause avant de soumettre le rapport pour révision.'
+                        : es
                         ? 'Pausa el tiempo antes de enviar a revisión.'
                         : 'Pause labour before submitting for review.',
                   ),
@@ -456,32 +492,54 @@ class _MaintenanceReportScreenState
               ),
             if (_dirty && _draftReady)
               Text(
-                es
+                fr
+                    ? 'Le brouillon est conservé sur cet appareil.'
+                    : es
                     ? 'El borrador se conserva en este dispositivo.'
                     : 'Your draft stays on this device.',
               ),
             const SizedBox(height: 20),
-            textField(_diagnosis, 'Findings', 'Hallazgos'),
+            textField(
+              _diagnosis,
+              'Findings',
+              'Hallazgos',
+              french: 'Constatations',
+            ),
             textField(
               _repair,
               'Work performed and results',
               'Trabajo realizado y resultados',
+              french: 'Travail effectué et résultats',
             ),
-            textField(_notes, 'Additional notes', 'Notas adicionales'),
+            textField(
+              _notes,
+              'Additional notes',
+              'Notas adicionales',
+              french: 'Notes supplémentaires',
+            ),
             if (widget.job.data['engine_id'] != null)
               textField(
                 _hours,
                 'Completion meter (${meterSymbol(widget.job.data['meter_unit'] as String?)})',
                 'Medidor al finalizar (${meterSymbol(widget.job.data['meter_unit'] as String?)})',
+                french:
+                    'Relevé à la fin (${meterSymbol(widget.job.data['meter_unit'] as String?)})',
                 numeric: true,
               ),
             if (_isInspection) ...[
               Text(
-                es ? 'Certificado de inspección' : 'Inspection certificate',
+                localizedText(
+                  context,
+                  'Inspection certificate',
+                  'Certificado de inspección',
+                  'Certificat d’inspection',
+                ),
                 style: Theme.of(context).textTheme.titleMedium,
               ),
               Text(
-                es
+                fr
+                    ? 'Le certificat actuel reste valide jusqu’à l’approbation de ce travail.'
+                    : es
                     ? 'El certificado actual sigue vigente hasta que se apruebe esta orden.'
                     : 'The current certificate stays current until this work is approved.',
               ),
@@ -495,22 +553,34 @@ class _MaintenanceReportScreenState
                     maxLines: entry.key.endsWith('_on') ? 1 : 5,
                     decoration: InputDecoration(
                       labelText: switch (entry.key) {
-                        'inspected_on' =>
-                          es ? 'Fecha de inspección' : 'Inspection date',
+                        'inspected_on' => localizedText(
+                          context,
+                          'Inspection date',
+                          'Fecha de inspección',
+                          'Date d’inspection',
+                        ),
                         'expires_on' =>
-                          es
+                          fr
+                              ? 'Prochaine date d’échéance'
+                              : es
                               ? 'Próxima fecha de vencimiento'
                               : 'Next expiry date',
-                        'procedure_notes' =>
-                          es ? 'Procedimiento aplicado' : 'Procedure performed',
+                        'procedure_notes' => localizedText(
+                          context,
+                          'Procedure performed',
+                          'Procedimiento aplicado',
+                          'Procédure effectuée',
+                        ),
                         _ =>
-                          es
+                          fr
+                              ? 'Résultat et certification'
+                              : es
                               ? 'Resultado y certificación'
                               : 'Result and certification',
                       },
                       hintText: entry.key.endsWith('_on') ? 'YYYY-MM-DD' : null,
                       errorText: _showRequirements
-                          ? _inspectionError(entry.key, es)
+                          ? _inspectionError(entry.key, es, french: fr)
                           : null,
                     ),
                     onChanged: (_) => setState(() => _dirty = true),
@@ -521,10 +591,17 @@ class _MaintenanceReportScreenState
                 initialValue: _certificate,
                 isExpanded: true,
                 decoration: InputDecoration(
-                  labelText: es ? 'Foto del certificado' : 'Certificate photo',
+                  labelText: localizedText(
+                    context,
+                    'Certificate photo',
+                    'Foto del certificado',
+                    'Photo du certificat',
+                  ),
                   errorText:
                       _showRequirements && !_evidence.contains(_certificate)
-                      ? (es
+                      ? (fr
+                            ? 'Ajoutez et sélectionnez une preuve'
+                            : es
                             ? 'Añade y selecciona la evidencia'
                             : 'Add and select the evidence')
                       : null,
@@ -533,7 +610,9 @@ class _MaintenanceReportScreenState
                   for (var i = 0; i < _evidence.length; i++)
                     DropdownMenuItem(
                       value: _evidence[i],
-                      child: Text('${es ? 'Foto' : 'Photo'} ${i + 1}'),
+                      child: Text(
+                        '${localizedText(context, 'Photo', 'Foto', 'Photo')} ${i + 1}',
+                      ),
                     ),
                 ],
                 onChanged: frozen || _inspectionApproved
@@ -547,7 +626,12 @@ class _MaintenanceReportScreenState
             ],
             if (widget.job.checklist.isNotEmpty)
               Text(
-                es ? 'Lista de revisión de la orden' : 'Work order checklist',
+                localizedText(
+                  context,
+                  'Work order checklist',
+                  'Lista de revisión de la orden',
+                  'Liste de contrôle du bon de travail',
+                ),
                 style: Theme.of(context).textTheme.titleMedium,
               ),
             for (final item in widget.job.checklist)
@@ -790,7 +874,12 @@ class _MaintenanceReportScreenState
                       },
                 icon: const Icon(Icons.timer_outlined),
                 label: Text(
-                  es ? 'Abrir tiempo de trabajo' : 'Open labour timer',
+                  localizedText(
+                    context,
+                    'Open labour timer',
+                    'Abrir tiempo de trabajo',
+                    'Ouvrir la minuterie de travail',
+                  ),
                 ),
               ),
             ],
@@ -798,7 +887,12 @@ class _MaintenanceReportScreenState
               FilledButton(
                 onPressed: _saving || _uploading ? null : () => _save(_action!),
                 child: Text(
-                  es ? 'Reintentar el mismo guardado' : 'Retry the same save',
+                  localizedText(
+                    context,
+                    'Retry the same save',
+                    'Reintentar el mismo guardado',
+                    'Réessayer le même enregistrement',
+                  ),
                 ),
               )
             else ...[
@@ -806,18 +900,34 @@ class _MaintenanceReportScreenState
                 onPressed: frozen || _photo != null
                     ? null
                     : () => _save('save_report'),
-                child: Text(es ? 'Guardar borrador' : 'Save draft'),
+                child: Text(
+                  localizedText(
+                    context,
+                    'Save draft',
+                    'Guardar borrador',
+                    'Enregistrer le brouillon',
+                  ),
+                ),
               ),
               FilledButton(
                 onPressed:
                     frozen || _photo != null || widget.job.hasRunningLabour
                     ? null
                     : () => _save('submit'),
-                child: Text(es ? 'Enviar a revisión' : 'Submit for review'),
+                child: Text(
+                  localizedText(
+                    context,
+                    'Submit for review',
+                    'Enviar a revisión',
+                    'Soumettre pour révision',
+                  ),
+                ),
               ),
             ],
             Text(
-              es
+              fr
+                  ? 'Les bons de travail ne sont terminés qu’après leur approbation.'
+                  : es
                   ? 'Las órdenes solo se completan después de la aprobación.'
                   : 'Work orders are only completed after approval.',
             ),

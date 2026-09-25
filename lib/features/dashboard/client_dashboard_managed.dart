@@ -3,6 +3,7 @@ import 'package:vortice_app/core/equipment_illustration.dart';
 import 'package:vortice_app/features/dashboard/dashboard_layout.dart';
 import 'package:flutter/material.dart';
 import 'package:vortice_app/core/user_feedback.dart';
+import 'package:vortice_app/core/localized_text.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
@@ -29,7 +30,6 @@ class ClientDashboardManaged extends ConsumerWidget {
     final canAddAsset = AssetWorkflowPolicy.canManageProfile(
       ref.watch(profileProvider).valueOrNull,
     );
-    final es = isSpanish(context);
 
     return Scaffold(
       appBar: const DashboardAppBar(),
@@ -52,14 +52,20 @@ class ClientDashboardManaged extends ConsumerWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     DashboardSection(
-                      title: 'Open faults (${flags.length})',
+                      title:
+                          '${localizedText(context, 'Open faults', 'Fallos abiertos', 'Défaillances en cours')} (${flags.length})',
                       color: context.appColors.warning,
                     ),
                     ...flags.map((flag) {
                       final assetName =
                           (flag['assets'] as Map<String, dynamic>?)?['name']
                               as String? ??
-                          'Unknown asset';
+                          localizedText(
+                            context,
+                            'Unknown asset',
+                            'Equipo desconocido',
+                            'Équipement inconnu',
+                          );
                       final isUrgent = flag['severity'] == 'urgent';
                       return Card(
                         margin: const EdgeInsets.symmetric(
@@ -109,7 +115,12 @@ class ClientDashboardManaged extends ConsumerWidget {
                                     borderRadius: BorderRadius.circular(6),
                                   ),
                                   child: Text(
-                                    'URGENT',
+                                    localizedText(
+                                      context,
+                                      'URGENT',
+                                      'URGENTE',
+                                      'URGENT',
+                                    ),
                                     style: TextStyle(
                                       color: context.appColors.error,
                                       fontSize: 10,
@@ -128,7 +139,14 @@ class ClientDashboardManaged extends ConsumerWidget {
             ),
 
             // ── Recent Service ───────────────────────────────────────────
-            const DashboardSection(title: 'Recent Service'),
+            DashboardSection(
+              title: localizedText(
+                context,
+                'Recent service',
+                'Servicio reciente',
+                'Interventions récentes',
+              ),
+            ),
             reportsAsync.when(
               loading: () => const _MLoadingTile(),
               error: (_, __) => const SizedBox.shrink(),
@@ -143,9 +161,14 @@ class ClientDashboardManaged extends ConsumerWidget {
                   return createdAt != null && createdAt.isAfter(thirtyDaysAgo);
                 }).toList();
                 if (recent.isEmpty) {
-                  return const _MEmptyStateTile(
+                  return _MEmptyStateTile(
                     icon: Icons.history_outlined,
-                    message: 'No service in the last 30 days.',
+                    message: localizedText(
+                      context,
+                      'No service in the last 30 days.',
+                      'No hubo servicios en los últimos 30 días.',
+                      'Aucune intervention au cours des 30 derniers jours.',
+                    ),
                   );
                 }
                 return Column(
@@ -174,7 +197,12 @@ class ClientDashboardManaged extends ConsumerWidget {
                       title: Text(
                         r['correction'] as String? ??
                             r['comments'] as String? ??
-                            'Service completed',
+                            localizedText(
+                              context,
+                              'Service completed',
+                              'Servicio completado',
+                              'Intervention terminée',
+                            ),
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
                       ),
@@ -182,7 +210,9 @@ class ClientDashboardManaged extends ConsumerWidget {
                         [
                           if (assetName != null) assetName,
                           if (createdAt != null)
-                            DateFormat('MMM d, yyyy').format(createdAt),
+                            DateFormat.yMMMd(
+                              appLocaleCode(context),
+                            ).format(createdAt),
                         ].join(' • '),
                         style: TextStyle(
                           color: context.appColors.textSecondary,
@@ -196,7 +226,14 @@ class ClientDashboardManaged extends ConsumerWidget {
             ),
 
             // ── My Assets ────────────────────────────────────────────────
-            const DashboardSection(title: 'My Assets'),
+            DashboardSection(
+              title: localizedText(
+                context,
+                'My assets',
+                'Mis equipos',
+                'Mes équipements',
+              ),
+            ),
             assetsAsync.when(
               loading: () => const _MLoadingTile(),
               error: (err, _) =>
@@ -209,12 +246,18 @@ class ClientDashboardManaged extends ConsumerWidget {
                       _MEmptyStateTile(
                         icon: Icons.inventory_2_outlined,
                         message: canAddAsset
-                            ? (es
-                                  ? 'Añade el primer equipo de tu empresa para planificar su mantenimiento.'
-                                  : 'Add your company’s first asset to plan its maintenance.')
-                            : (es
-                                  ? 'Todavía no hay equipos disponibles. Pide acceso al responsable de tu empresa.'
-                                  : 'No assets available yet. Ask your company owner or manager for access.'),
+                            ? localizedText(
+                                context,
+                                'Add your company’s first asset to plan its maintenance.',
+                                'Añade el primer equipo de tu empresa para planificar su mantenimiento.',
+                                'Ajoutez le premier équipement de votre entreprise pour planifier son entretien.',
+                              )
+                            : localizedText(
+                                context,
+                                'No assets available yet. Ask your company owner or manager for access.',
+                                'Todavía no hay equipos disponibles. Pide acceso al responsable de tu empresa.',
+                                'Aucun équipement n’est disponible pour le moment. Demandez l’accès à la personne responsable de votre entreprise.',
+                              ),
                       ),
                       if (canAddAsset)
                         Padding(
@@ -222,7 +265,14 @@ class ClientDashboardManaged extends ConsumerWidget {
                           child: FilledButton.icon(
                             onPressed: () => context.push('/assets/new'),
                             icon: const Icon(Icons.add),
-                            label: Text(es ? 'Añadir equipo' : 'Add asset'),
+                            label: Text(
+                              localizedText(
+                                context,
+                                'Add asset',
+                                'Añadir equipo',
+                                'Ajouter un équipement',
+                              ),
+                            ),
                           ),
                         ),
                     ],
@@ -257,15 +307,27 @@ class ClientDashboardManaged extends ConsumerWidget {
             ),
 
             // ── Service Reports ───────────────────────────────────────────
-            const DashboardSection(title: 'Service Reports'),
+            DashboardSection(
+              title: localizedText(
+                context,
+                'Service reports',
+                'Informes de servicio',
+                'Rapports d’intervention',
+              ),
+            ),
             reportsAsync.when(
               loading: () => const _MLoadingTile(),
               error: (_, __) => const SizedBox.shrink(),
               data: (reports) {
                 if (reports.isEmpty) {
-                  return const _MEmptyStateTile(
+                  return _MEmptyStateTile(
                     icon: Icons.assignment_outlined,
-                    message: 'No service reports yet.',
+                    message: localizedText(
+                      context,
+                      'No service reports yet.',
+                      'Todavía no hay informes de servicio.',
+                      'Aucun rapport d’intervention pour le moment.',
+                    ),
                   );
                 }
                 return Column(
@@ -291,7 +353,12 @@ class ClientDashboardManaged extends ConsumerWidget {
                       title: Text(
                         r['correction'] as String? ??
                             r['comments'] as String? ??
-                            'Service report',
+                            localizedText(
+                              context,
+                              'Service report',
+                              'Informe de servicio',
+                              'Rapport d’intervention',
+                            ),
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
                       ),
@@ -299,7 +366,9 @@ class ClientDashboardManaged extends ConsumerWidget {
                         [
                           if (assetName != null) assetName,
                           if (createdAt != null)
-                            DateFormat('MMM d, yyyy').format(createdAt),
+                            DateFormat.yMMMd(
+                              appLocaleCode(context),
+                            ).format(createdAt),
                         ].join(' • '),
                         style: TextStyle(
                           color: context.appColors.textSecondary,

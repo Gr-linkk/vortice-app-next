@@ -33,7 +33,7 @@ VORTICE_AUDIT_APPEARANCE=dark flutter test tool/e2e/full_app_audit_test.dart --d
 VORTICE_AUDIT_APPEARANCE=dark VORTICE_AUDIT_LOCALE=es VORTICE_AUDIT_TEXT_SCALE=2 flutter test tool/e2e/full_app_audit_test.dart --dart-define-from-file="$VORTICE_E2E_CONFIG" --reporter expanded
 ```
 
-Appearance supports light/dark/system; locale supports en/es (default en); text
+Appearance supports light/dark/system; locale supports en/es/fr (default en); text
 scale must be positive (default1). Preferences are disposable. Results record
 and assert the actual rendered locale and text scale, fail on provider/framework
 errors including overflows, inspect English/Spanish error labels and check for
@@ -140,3 +140,34 @@ claim: it checks a manager executing assigned work, not mechanic-role execution.
 The default mechanic-specific parts permission assertion remains active in the
 normal mode; the alternate mode checks its manager control instead. Preserve
 pre-existing timers and verify recipient device scope before connected writes.
+
+## Isolated mechanic and Canadian invoice acceptance (NEXT-011)
+
+Existing demo timers belong to their saved work; do not pause or delete them to
+make a test pass. `python3 tool/e2e/fixtures/prepare_isolated_executor.py` creates
+one separate internal mechanic in the existing test company, refuses replacement
+of its local config, and sends no email. Its password is stored only in ignored
+private files. It is not added to the app's demo picker. Set
+`VORTICE_E2E_EXECUTOR_CONFIG` to the absolute path of
+`config/e2e-executor.local.json` to substitute that mechanic in connected tests.
+The test reports identify the isolated actor; the role remains mechanic.
+
+Run connected mutation tests **serially**, including fixture cleanup. Cleanup
+checks unrelated record counts and should fail if another test changes them.
+The current Supabase CLI may wrap query rows in an object; cleanup accepts both
+that format and the prior row-array response, and rejects unknown shapes.
+
+`native_cad_workflow_test.dart` creates uniquely marked work in the prepared
+modern demo service company, executes and approves it, completes an explicit
+synthetic issuer/tax profile, saves/revises/issues a CAD invoice, checks customer
+and mechanic visibility, and exports the saved customer snapshot in French. It
+refuses to overwrite an existing issuer profile. No real customer charge or tax
+determination is made. After each attempt, run:
+
+```sh
+python3 tool/e2e/cleanup_native_cad.py "$VORTICE_E2E_OUTPUT/NEXT-011-native-cad.json"
+```
+
+The dedicated cleanup verifies the exact job title/company and synthetic issuer,
+removes only that job/invoice/profile, preserves its existing equipment, restores
+the invoice guard within its transaction, and records a verification receipt.

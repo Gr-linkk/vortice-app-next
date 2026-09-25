@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:vortice_app/core/user_feedback.dart';
+import 'package:vortice_app/core/localized_text.dart';
 import 'package:vortice_app/features/agent_access/maintenance_documents_screen.dart';
 import 'package:vortice_app/models/profile.dart';
 import 'asset_context_sections.dart';
@@ -144,9 +144,12 @@ class AssetDetailBody extends ConsumerWidget {
             child: ListTile(
               leading: const Icon(Icons.menu_book_outlined),
               title: Text(
-                isSpanish(context)
-                    ? 'Manuales y procedimientos de la empresa'
-                    : 'Company manuals & procedures',
+                localizedText(
+                  context,
+                  'Company manuals & procedures',
+                  'Manuales y procedimientos de la empresa',
+                  'Manuels et procédures de l’entreprise',
+                ),
               ),
               trailing: const Icon(Icons.chevron_right),
               onTap: () => Navigator.push(
@@ -166,9 +169,12 @@ class AssetDetailBody extends ConsumerWidget {
               ListTile(
                 leading: const Icon(Icons.forum_outlined),
                 title: Text(
-                  isSpanish(context)
-                      ? 'Conversación del equipo'
-                      : 'Asset discussion',
+                  localizedText(
+                    context,
+                    'Asset discussion',
+                    'Conversación del equipo',
+                    'Discussion sur l’équipement',
+                  ),
                 ),
                 trailing: const Icon(Icons.chevron_right),
                 onTap: () => context.push('/discussion/asset/${asset.id}'),
@@ -176,9 +182,12 @@ class AssetDetailBody extends ConsumerWidget {
               ListTile(
                 leading: const Icon(Icons.history),
                 title: Text(
-                  isSpanish(context)
-                      ? 'Historial completo'
-                      : 'Full asset history',
+                  localizedText(
+                    context,
+                    'Full asset history',
+                    'Historial completo',
+                    'Historique complet de l’équipement',
+                  ),
                 ),
                 trailing: const Icon(Icons.chevron_right),
                 onTap: () => context.push('/history/assets/${asset.id}'),

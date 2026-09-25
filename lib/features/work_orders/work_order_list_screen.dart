@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:vortice_app/l10n/app_localizations.dart';
 import 'package:vortice_app/core/theme.dart';
+import 'package:vortice_app/core/localized_text.dart';
 import 'package:vortice_app/features/auth/auth_provider.dart';
 import 'package:vortice_app/features/work_orders/work_order_provider.dart';
 import 'package:vortice_app/models/profile.dart';
@@ -52,8 +53,12 @@ class _WorkOrderListScreenState extends ConsumerState<WorkOrderListScreen>
       _ => '/owner',
     };
 
-    final es = Localizations.localeOf(context).languageCode == 'es';
-    final title = es ? 'Órdenes de trabajo' : 'Work orders';
+    final title = localizedText(
+      context,
+      'Work orders',
+      'Órdenes de trabajo',
+      'Bons de travail',
+    );
 
     return Scaffold(
       appBar: AppBar(

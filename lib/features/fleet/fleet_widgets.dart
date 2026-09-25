@@ -6,8 +6,14 @@ import 'package:vortice_app/features/fleet/fleet_repository.dart';
 
 bool fleetSpanish(BuildContext context) =>
     Localizations.localeOf(context).languageCode == 'es';
-String fleetText(BuildContext context, String en, String es) =>
-    fleetSpanish(context) ? es : en;
+bool fleetFrench(BuildContext context) =>
+    Localizations.localeOf(context).languageCode == 'fr';
+String fleetText(BuildContext context, String en, String es, [String? fr]) =>
+    Localizations.localeOf(context).languageCode == 'fr'
+    ? fr ?? en
+    : fleetSpanish(context)
+    ? es
+    : en;
 
 Color operatingStateColor(AppPalette colors, OperatingState state) =>
     switch (state) {
@@ -29,16 +35,16 @@ String fleetDate(BuildContext context, DateTime? value) => value == null
     ? '—'
     : DateFormat(
         'MMM d, HH:mm',
-        fleetSpanish(context) ? 'es' : 'en',
+        Localizations.localeOf(context).languageCode,
       ).format(value.toLocal());
 
-String downtimeLabel(Duration duration) {
-  if (duration.inMinutes < 1) return '<1 min';
+String downtimeLabel(Duration duration, {bool french = false}) {
+  if (duration.inMinutes < 1) return french ? '<1 min' : '<1 min';
   if (duration.inHours < 1) return '${duration.inMinutes} min';
   if (duration.inDays < 1) {
     return '${duration.inHours} h ${duration.inMinutes % 60} min';
   }
-  return '${duration.inDays} d ${duration.inHours % 24} h';
+  return '${duration.inDays} ${french ? 'j' : 'd'} ${duration.inHours % 24} h';
 }
 
 class FleetBadge extends StatelessWidget {
@@ -86,7 +92,7 @@ class OperatingStateBadge extends StatelessWidget {
   final OperatingState state;
   @override
   Widget build(BuildContext context) => FleetBadge(
-    label: state.label(fleetSpanish(context)),
+    label: state.label(fleetSpanish(context), french: fleetFrench(context)),
     color: operatingStateColor(context.appColors, state),
     icon: operatingStateIcon(state),
   );
@@ -97,7 +103,7 @@ class FaultStatusBadge extends StatelessWidget {
   final FaultStatus status;
   @override
   Widget build(BuildContext context) => FleetBadge(
-    label: status.label(fleetSpanish(context)),
+    label: status.label(fleetSpanish(context), french: fleetFrench(context)),
     color: status == FaultStatus.resolved
         ? context.appColors.success
         : status == FaultStatus.pendingReview
@@ -121,7 +127,11 @@ class FleetError extends StatelessWidget {
         Icon(Icons.cloud_off_outlined, color: context.appColors.warning),
         const SizedBox(height: 12),
         Text(
-          fleetErrorMessage(error, fleetSpanish(context)),
+          fleetErrorMessage(
+            error,
+            fleetSpanish(context),
+            french: fleetFrench(context),
+          ),
           textAlign: TextAlign.center,
         ),
         const SizedBox(height: 12),
@@ -181,16 +191,43 @@ class FleetEventTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final es = fleetSpanish(context);
     final state = availability
-        ? OperatingState.parse(event.toState).label(es)
-        : FaultStatus.parse(event.toState).label(es);
+        ? OperatingState.parse(
+            event.toState,
+          ).label(es, french: fleetFrench(context))
+        : FaultStatus.parse(
+            event.toState,
+          ).label(es, french: fleetFrench(context));
     final action = switch (event.kind) {
-      'work_order_progress' =>
-        es ? 'Avance de la orden' : 'Work order progress',
-      'reported' => es ? 'Falla reportada' : 'Fault reported',
-      'assign' => es ? 'Responsable asignado' : 'Repair assigned',
-      'note' => es ? 'Nota de progreso' : 'Progress note',
-      'create_work_order' =>
-        es ? 'Orden de trabajo vinculada' : 'Work order linked',
+      'work_order_progress' => fleetText(
+        context,
+        'Work order progress',
+        'Avance de la orden',
+        'Progression du bon de travail',
+      ),
+      'reported' => fleetText(
+        context,
+        'Fault reported',
+        'Falla reportada',
+        'Défaillance signalée',
+      ),
+      'assign' => fleetText(
+        context,
+        'Repair assigned',
+        'Responsable asignado',
+        'Réparation attribuée',
+      ),
+      'note' => fleetText(
+        context,
+        'Progress note',
+        'Nota de progreso',
+        'Note de suivi',
+      ),
+      'create_work_order' => fleetText(
+        context,
+        'Work order linked',
+        'Orden de trabajo vinculada',
+        'Bon de travail associé',
+      ),
       _ => state,
     };
     return Padding(

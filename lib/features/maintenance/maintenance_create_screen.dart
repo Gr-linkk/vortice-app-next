@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:vortice_app/core/unsaved_form_guard.dart';
 import 'package:vortice_app/core/user_feedback.dart';
+import 'package:vortice_app/core/localized_text.dart';
 import 'package:vortice_app/features/auth/auth_provider.dart';
 import 'package:vortice_app/features/fleet/fleet_providers.dart';
 import 'package:vortice_app/models/work_order.dart';
@@ -127,6 +128,11 @@ class _MaintenanceCreateScreenState
               'engine_id': _component,
               'parent_job_id': widget.parentJobId,
               'hourly_cost': double.tryParse(_cost.text) ?? 0,
+              'cost_currency':
+                  ref
+                      .read(maintenanceAssetProvider(_asset!))
+                      .valueOrNull?['cost_currency'] ??
+                  'USD',
               'due_date': _due?.toIso8601String().split('T').first,
             },
     );
@@ -172,6 +178,7 @@ class _MaintenanceCreateScreenState
   @override
   Widget build(BuildContext context) {
     final es = isSpanish(context);
+    final fr = isFrench(context);
     if (!isMaintenanceManager(ref.watch(profileProvider).valueOrNull?.role)) {
       return Scaffold(
         appBar: AppBar(),
@@ -179,6 +186,8 @@ class _MaintenanceCreateScreenState
           child: Text(
             es
                 ? 'Acceso de responsable requerido.'
+                : fr
+                ? 'L’accès de gestionnaire est requis.'
                 : 'Manager access required.',
           ),
         ),
@@ -191,7 +200,16 @@ class _MaintenanceCreateScreenState
     if (widget.faultId != null) {
       if (source!.isLoading || fault == null || source.hasError) {
         return Scaffold(
-          appBar: AppBar(title: Text(es ? 'Orden de trabajo' : 'Work order')),
+          appBar: AppBar(
+            title: Text(
+              localizedText(
+                context,
+                'Work order',
+                'Orden de trabajo',
+                'Bon de travail',
+              ),
+            ),
+          ),
           body: source.isLoading
               ? const Center(child: CircularProgressIndicator())
               : Center(
@@ -203,7 +221,11 @@ class _MaintenanceCreateScreenState
                           ),
                         )
                       : Text(
-                          es ? 'Falla no disponible.' : 'Fault unavailable.',
+                          fr
+                              ? 'Défaillance indisponible.'
+                              : es
+                              ? 'Falla no disponible.'
+                              : 'Fault unavailable.',
                         ),
                 ),
         );
@@ -212,7 +234,16 @@ class _MaintenanceCreateScreenState
           !fault.status.isActive ||
           !fault.canPlanRepair) {
         return Scaffold(
-          appBar: AppBar(title: Text(es ? 'Orden de trabajo' : 'Work order')),
+          appBar: AppBar(
+            title: Text(
+              localizedText(
+                context,
+                'Work order',
+                'Orden de trabajo',
+                'Bon de travail',
+              ),
+            ),
+          ),
           body: Center(
             child: Padding(
               padding: const EdgeInsets.all(20),
@@ -222,6 +253,8 @@ class _MaintenanceCreateScreenState
                   Text(
                     es
                         ? 'Revisa el estado actual de la falla para continuar.'
+                        : fr
+                        ? 'Vérifiez l’état actuel de la défaillance pour continuer.'
                         : 'Review the current fault status to continue.',
                   ),
                   TextButton(
@@ -273,8 +306,18 @@ class _MaintenanceCreateScreenState
           leading: const FormBackButton(fallbackRoute: '/maintenance'),
           title: Text(
             widget.faultId != null
-                ? (es ? 'Crear orden de trabajo' : 'Create work order')
-                : (es ? 'Nueva orden' : 'New work order'),
+                ? localizedText(
+                    context,
+                    'Create work order',
+                    'Crear orden de trabajo',
+                    'Créer un bon de travail',
+                  )
+                : localizedText(
+                    context,
+                    'New work order',
+                    'Nueva orden',
+                    'Nouveau bon de travail',
+                  ),
           ),
         ),
         body: Form(
@@ -289,7 +332,9 @@ class _MaintenanceCreateScreenState
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  es
+                  fr
+                      ? 'Le bon de travail regroupera l’affectation, le rapport, le temps de travail et les pièces de cette réparation.'
+                      : es
                       ? 'La orden llevará la asignación, el informe, las horas y los repuestos de esta reparación.'
                       : 'The work order will hold the assignment, report, labour and parts for this repair.',
                 ),
@@ -297,19 +342,31 @@ class _MaintenanceCreateScreenState
                 AppDropdownField<bool>(
                   initialValue: _linkExisting,
                   decoration: InputDecoration(
-                    labelText: es ? 'Cómo continuar' : 'How to continue',
+                    labelText: localizedText(
+                      context,
+                      'How to continue',
+                      'Cómo continuar',
+                      'Comment poursuivre',
+                    ),
                   ),
                   items: [
                     DropdownMenuItem(
                       value: false,
                       child: Text(
-                        es ? 'Crear orden de trabajo' : 'Create work order',
+                        localizedText(
+                          context,
+                          'Create work order',
+                          'Crear orden de trabajo',
+                          'Créer un bon de travail',
+                        ),
                       ),
                     ),
                     DropdownMenuItem(
                       value: true,
                       child: Text(
-                        es
+                        fr
+                            ? 'Associer un bon de travail existant'
+                            : es
                             ? 'Vincular orden existente'
                             : 'Link existing work order',
                       ),
@@ -362,16 +419,19 @@ class _MaintenanceCreateScreenState
                                   : null,
                               isExpanded: true,
                               decoration: InputDecoration(
-                                labelText: es
-                                    ? 'Orden abierta'
-                                    : 'Open work order',
+                                labelText: localizedText(
+                                  context,
+                                  'Open work order',
+                                  'Orden abierta',
+                                  'Bon de travail ouvert',
+                                ),
                               ),
                               items: eligible
                                   .map(
                                     (job) => DropdownMenuItem(
                                       value: job.id,
                                       child: Text(
-                                        '${job.title} · ${job.lifecycleLabel(es)}',
+                                        '${job.title} · ${job.lifecycleLabel(es, french: fr)}',
                                       ),
                                     ),
                                   )
@@ -421,7 +481,12 @@ class _MaintenanceCreateScreenState
                     initialValue: _asset,
                     isExpanded: true,
                     decoration: InputDecoration(
-                      labelText: es ? 'Equipo' : 'Asset',
+                      labelText: localizedText(
+                        context,
+                        'Equipment',
+                        'Equipo',
+                        'Équipement',
+                      ),
                     ),
                     items: maintenanceRows(w['assets'])
                         .map(
@@ -444,7 +509,12 @@ class _MaintenanceCreateScreenState
                             _checklist = null;
                           }),
                     validator: (v) => v == null
-                        ? (es ? 'Selecciona un equipo' : 'Select an asset')
+                        ? localizedText(
+                            context,
+                            'Select equipment',
+                            'Selecciona un equipo',
+                            'Sélectionnez un équipement',
+                          )
                         : null,
                   ),
                 ),
@@ -460,7 +530,9 @@ class _MaintenanceCreateScreenState
                     Padding(
                       padding: const EdgeInsets.symmetric(vertical: 12),
                       child: Text(
-                        es
+                        fr
+                            ? 'L’entretien interne n’est pas activé pour cette entreprise.'
+                            : es
                             ? 'El mantenimiento interno no está habilitado para esta empresa.'
                             : 'Internal maintenance is not enabled for this company.',
                       ),
@@ -470,10 +542,20 @@ class _MaintenanceCreateScreenState
                     enabled: !frozen,
                     maxLength: 200,
                     decoration: InputDecoration(
-                      labelText: es ? 'Título de la orden' : 'Work order title',
+                      labelText: localizedText(
+                        context,
+                        'Work order title',
+                        'Título de la orden',
+                        'Titre du bon de travail',
+                      ),
                     ),
                     validator: (v) => (v?.trim().length ?? 0) < 3
-                        ? (es ? 'Describe el trabajo' : 'Describe the job')
+                        ? localizedText(
+                            context,
+                            'Describe the work',
+                            'Describe el trabajo',
+                            'Décrivez le travail',
+                          )
                         : null,
                   ),
                   const SizedBox(height: 16),
@@ -484,13 +566,18 @@ class _MaintenanceCreateScreenState
                         : WorkOrderJobType.preventative,
                     isExpanded: true,
                     decoration: InputDecoration(
-                      labelText: es ? 'Tipo de trabajo' : 'Work type',
+                      labelText: localizedText(
+                        context,
+                        'Work type',
+                        'Tipo de trabajo',
+                        'Type de travail',
+                      ),
                     ),
                     items: [
                       for (final type in WorkOrderJobType.values)
                         DropdownMenuItem(
                           value: type,
-                          child: Text(type.label(es)),
+                          child: Text(type.label(es, fr: fr)),
                         ),
                     ],
                     onChanged: frozen || _plan != null || widget.faultId != null
@@ -511,7 +598,12 @@ class _MaintenanceCreateScreenState
                     maxLines: 6,
                     maxLength: 8000,
                     decoration: InputDecoration(
-                      labelText: es ? 'Instrucciones' : 'Instructions',
+                      labelText: localizedText(
+                        context,
+                        'Instructions',
+                        'Instrucciones',
+                        'Instructions',
+                      ),
                       counterText: '',
                     ),
                   ),
@@ -525,11 +617,16 @@ class _MaintenanceCreateScreenState
                     maintainState: true,
                     tilePadding: EdgeInsets.zero,
                     title: Text(
-                      es ? 'Detalles opcionales' : 'Optional details',
+                      localizedText(
+                        context,
+                        'Optional details',
+                        'Detalles opcionales',
+                        'Détails facultatifs',
+                      ),
                     ),
                     subtitle: Text(
                       es
-                          ? 'Plan de servicio, lista y componente'
+                          ? 'Plan de service, liste de contrôle et composant'
                           : 'Service plan, checklist and component',
                     ),
                     children: [
@@ -662,12 +759,24 @@ class _MaintenanceCreateScreenState
                     initialValue: _assignee ?? '',
                     isExpanded: true,
                     decoration: InputDecoration(
-                      labelText: es ? 'Responsable' : 'Assigned to',
+                      labelText: localizedText(
+                        context,
+                        'Assigned to',
+                        'Responsable',
+                        'Attribué à',
+                      ),
                     ),
                     items: [
                       DropdownMenuItem(
                         value: '',
-                        child: Text(es ? 'Sin asignar' : 'Unassigned'),
+                        child: Text(
+                          localizedText(
+                            context,
+                            'Unassigned',
+                            'Sin asignar',
+                            'Non attribué',
+                          ),
+                        ),
                       ),
                       ...maintenanceRows(data['assignees']).map(
                         (p) => DropdownMenuItem(
@@ -690,7 +799,7 @@ class _MaintenanceCreateScreenState
                       for (final p in ['low', 'normal', 'high', 'urgent'])
                         DropdownMenuItem(
                           value: p,
-                          child: Text(maintenancePriority(p, es)),
+                          child: Text(maintenancePriority(p, es, french: fr)),
                         ),
                     ],
                     onChanged: frozen
@@ -700,10 +809,22 @@ class _MaintenanceCreateScreenState
                   const SizedBox(height: 16),
                   ListTile(
                     contentPadding: EdgeInsets.zero,
-                    title: Text(es ? 'Fecha límite' : 'Due date'),
+                    title: Text(
+                      localizedText(
+                        context,
+                        'Due date',
+                        'Fecha límite',
+                        'Date d’échéance',
+                      ),
+                    ),
                     subtitle: Text(
                       _due?.toIso8601String().split('T').first ??
-                          (es ? 'Sin fecha' : 'Not set'),
+                          localizedText(
+                            context,
+                            'Not set',
+                            'Sin fecha',
+                            'Non définie',
+                          ),
                     ),
                     trailing: const Icon(Icons.calendar_today),
                     onTap: frozen
@@ -730,8 +851,8 @@ class _MaintenanceCreateScreenState
                     ),
                     decoration: InputDecoration(
                       labelText: es
-                          ? 'Costo/hora (USD)'
-                          : 'Internal hourly cost (USD)',
+                          ? 'Costo/hora (${data['cost_currency'] ?? 'USD'})'
+                          : 'Internal hourly cost (${data['cost_currency'] ?? 'USD'})',
                     ),
                     validator: (v) =>
                         double.tryParse(v ?? '')?.isFinite != true ||
@@ -757,7 +878,9 @@ class _MaintenanceCreateScreenState
                   ),
                   const SizedBox(height: 12),
                   Text(
-                    es
+                    fr
+                        ? 'Ce travail ne génère pas de facture.'
+                        : es
                         ? 'Este trabajo no genera una factura.'
                         : 'This job does not generate an invoice.',
                   ),
@@ -777,14 +900,28 @@ class _MaintenanceCreateScreenState
                         : _save,
                     child: Text(
                       _saving
-                          ? (es ? 'Guardando…' : 'Saving…')
+                          ? localizedText(
+                              context,
+                              'Saving…',
+                              'Guardando…',
+                              'Enregistrement…',
+                            )
                           : _pending != null
-                          ? (es ? 'Reintentar guardado' : 'Retry save')
+                          ? localizedText(
+                              context,
+                              'Retry save',
+                              'Reintentar guardado',
+                              'Réessayer l’enregistrement',
+                            )
                           : widget.faultId != null
-                          ? (es
+                          ? (fr
+                                ? 'Créer et ouvrir le bon de travail'
+                                : es
                                 ? 'Crear y abrir orden'
                                 : 'Create & open work order')
-                          : (es
+                          : (fr
+                                ? 'Créer un bon de travail'
+                                : es
                                 ? 'Crear orden de trabajo'
                                 : 'Create work order'),
                     ),

@@ -6,11 +6,15 @@ class FieldEvidencePendingException extends StateError {
   FieldEvidencePendingException({required this.rejected})
     : super('Photo upload is not confirmed');
   final bool rejected;
-  String label(bool es) => rejected
-      ? (es
+  String label(bool es, {bool french = false}) => rejected
+      ? (french
+            ? 'Une photo a été refusée. Le rapport et les photos restent sur cet appareil. Vérifiez vos accès avant de réessayer.'
+            : es
             ? 'Una foto fue rechazada. El informe y las fotos permanecen en este dispositivo. Revisa tu acceso antes de reintentar.'
             : 'A photo was rejected. Your report and photos remain on this device. Check your access before retrying.')
-      : (es
+      : (french
+            ? 'Les photos sont toujours en attente de téléversement. Reconnectez-vous et réessayez; le rapport n’a pas été soumis.'
+            : es
             ? 'Las fotos siguen pendientes de subir. Reconecta y reintenta; el informe todavía no se ha enviado.'
             : 'Photos are still waiting to upload. Reconnect and retry; the report has not been submitted.');
 }

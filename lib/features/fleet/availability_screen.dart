@@ -23,10 +23,17 @@ class AvailabilityScreen extends ConsumerWidget {
     );
     return Scaffold(
       appBar: AppBar(
-        title: Text(es ? 'Disponibilidad del equipo' : 'Asset availability'),
+        title: Text(
+          fleetText(
+            context,
+            'Asset availability',
+            'Disponibilidad del equipo',
+            'Disponibilité de l’équipement',
+          ),
+        ),
         actions: [
           IconButton(
-            tooltip: es ? 'Actualizar' : 'Refresh',
+            tooltip: fleetText(context, 'Refresh', 'Actualizar', 'Actualiser'),
             onPressed: () => refreshFleet(ref, assetId: assetId),
             icon: const Icon(Icons.refresh),
           ),
@@ -44,7 +51,12 @@ class AvailabilityScreen extends ConsumerWidget {
               final asset = rows.where((a) => a.id == assetId).firstOrNull;
               if (asset == null) {
                 return FleetEmpty(
-                  title: es ? 'Equipo no disponible' : 'Asset unavailable',
+                  title: fleetText(
+                    context,
+                    'Asset unavailable',
+                    'Equipo no disponible',
+                    'Équipement indisponible',
+                  ),
                   message: es
                       ? 'No existe o no pertenece a tu flota.'
                       : 'It does not exist or is outside your fleet.',
@@ -104,9 +116,12 @@ class AvailabilityScreen extends ConsumerWidget {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              es
-                                  ? 'Tiempo no disponible registrado'
-                                  : 'Recorded downtime',
+                              fleetText(
+                                context,
+                                'Recorded downtime',
+                                'Tiempo no disponible registrado',
+                                'Temps d’indisponibilité enregistré',
+                              ),
                               style: TextStyle(
                                 color: context.appColors.textSecondary,
                               ),
@@ -118,18 +133,25 @@ class AvailabilityScreen extends ConsumerWidget {
                                   ? '0 h'
                                   : downtimeLabel(
                                       asset.totalDowntime(DateTime.now()),
+                                      french: fleetFrench(context),
                                     ),
                               style: Theme.of(context).textTheme.headlineMedium,
                             ),
                             const SizedBox(height: 6),
                             Text(
                               asset.unavailableSince == null
-                                  ? (es
-                                        ? 'Total desde el inicio del registro.'
-                                        : 'Total since tracking began.')
-                                  : (es
-                                        ? 'Incluye la parada actual desde ${fleetDate(context, asset.unavailableSince)}.'
-                                        : 'Includes the current outage since ${fleetDate(context, asset.unavailableSince)}.'),
+                                  ? fleetText(
+                                      context,
+                                      'Total since tracking began.',
+                                      'Total desde el inicio del registro.',
+                                      'Total depuis le début du suivi.',
+                                    )
+                                  : fleetText(
+                                      context,
+                                      'Includes the current outage since ${fleetDate(context, asset.unavailableSince)}.',
+                                      'Incluye la parada actual desde ${fleetDate(context, asset.unavailableSince)}.',
+                                      'Comprend l’arrêt en cours depuis le ${fleetDate(context, asset.unavailableSince)}.',
+                                    ),
                               style: TextStyle(
                                 fontSize: 12,
                                 color: context.appColors.textSecondary,
@@ -310,7 +332,12 @@ class _AvailabilityEditSheetState extends ConsumerState<AvailabilityEditSheet> {
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   Text(
-                    es ? 'Actualizar disponibilidad' : 'Update availability',
+                    fleetText(
+                      context,
+                      'Update availability',
+                      'Actualizar disponibilidad',
+                      'Mettre à jour la disponibilité',
+                    ),
                     style: Theme.of(context).textTheme.titleLarge,
                   ),
                   const SizedBox(height: 8),
@@ -320,14 +347,16 @@ class _AvailabilityEditSheetState extends ConsumerState<AvailabilityEditSheet> {
                     initialValue: _state,
                     isExpanded: true,
                     decoration: InputDecoration(
-                      labelText: es ? 'Estado' : 'State',
+                      labelText: fleetText(context, 'State', 'Estado', 'État'),
                     ),
                     items: OperatingState.values
                         .where((s) => s != OperatingState.unknown)
                         .map(
                           (s) => DropdownMenuItem(
                             value: s,
-                            child: Text(s.label(es)),
+                            child: Text(
+                              s.label(es, french: fleetFrench(context)),
+                            ),
                           ),
                         )
                         .toList(),
@@ -335,7 +364,12 @@ class _AvailabilityEditSheetState extends ConsumerState<AvailabilityEditSheet> {
                         ? null
                         : (state) => setState(() => _state = state),
                     validator: (value) => value == null
-                        ? (es ? 'Selecciona un estado' : 'Choose a state')
+                        ? fleetText(
+                            context,
+                            'Choose a state',
+                            'Selecciona un estado',
+                            'Choisissez un état',
+                          )
                         : null,
                   ),
                   if (blocked)
@@ -356,20 +390,32 @@ class _AvailabilityEditSheetState extends ConsumerState<AvailabilityEditSheet> {
                     maxLength: 2000,
                     textCapitalization: TextCapitalization.sentences,
                     decoration: InputDecoration(
-                      labelText: es
-                          ? 'Motivo / verificación'
-                          : 'Reason / verification',
+                      labelText: fleetText(
+                        context,
+                        'Reason / verification',
+                        'Motivo / verificación',
+                        'Motif ou vérification',
+                      ),
                       alignLabelWithHint: true,
                     ),
                     validator: (value) => (value?.trim().length ?? 0) < 3
-                        ? (es ? 'Explica el cambio' : 'Explain this change')
+                        ? fleetText(
+                            context,
+                            'Explain this change',
+                            'Explica el cambio',
+                            'Expliquez cette modification',
+                          )
                         : null,
                   ),
                   if (_error != null)
                     Padding(
                       padding: const EdgeInsets.only(bottom: 12),
                       child: Text(
-                        fleetErrorMessage(_error!, es),
+                        fleetErrorMessage(
+                          _error!,
+                          es,
+                          french: fleetFrench(context),
+                        ),
                         style: TextStyle(color: context.appColors.warning),
                       ),
                     ),
@@ -377,15 +423,27 @@ class _AvailabilityEditSheetState extends ConsumerState<AvailabilityEditSheet> {
                     onPressed: _saving || blocked ? null : _save,
                     child: Text(
                       _saving
-                          ? (es ? 'Guardando…' : 'Saving…')
-                          : (es ? 'Guardar estado' : 'Save state'),
+                          ? fleetText(
+                              context,
+                              'Saving…',
+                              'Guardando…',
+                              'Enregistrement…',
+                            )
+                          : fleetText(
+                              context,
+                              'Save state',
+                              'Guardar estado',
+                              'Enregistrer l’état',
+                            ),
                     ),
                   ),
                   TextButton(
                     onPressed: _saving
                         ? null
                         : () => Navigator.pop(context, false),
-                    child: Text(es ? 'Cancelar' : 'Cancel'),
+                    child: Text(
+                      fleetText(context, 'Cancel', 'Cancelar', 'Annuler'),
+                    ),
                   ),
                 ],
               ),

@@ -100,9 +100,25 @@ and unsaved-edit protection. A fresh Next backup verified all 84 recorded files
 (6 database/access files and 78 Storage objects); this is local plaintext staging,
 not hosted recovery/off-device acceptance.
 
-These migrations are not yet deployed. Connected native invoice creation/export,
-final full regression and qualified review of a real issuer/tax case remain open. Synthetic test registration IDs
-and tax cases must never be used as customer billing setup.
+The guarded deployment applied all three pending migrations to Next
+`hkjpojobdbbtjkhaudki`, after exact project-ref verification. Hosted rollback
+contracts pass for native CAD invoices, cost currencies, parts scope, legacy CAD
+and company purpose. The operational snapshot confirms migration parity, public
+table RLS and private Storage (`deploy.log`, `hosted-contracts.log`,
+`postdeploy-operations.log`).
+
+The connected native workflow passed: a new marked customer job → execution →
+report → customer approval → issuer setup → reviewed CAD draft → revision →
+issue → customer reading and PDF/XLSX export. Customer draft access and mechanic
+invoice access are denied. Evidence: `outputs/e2e/native-cad-VZmyxmD1/`; its exact
+fixture, synthetic issuer and invoice were removed with unrelated counts
+preserved. Local export fixtures include a visually checked three-page French
+PDF with long fields. No real customer invoice was issued.
+
+Final regression/build delivery and qualified review of a real issuer/tax case
+remain open. Synthetic test registration IDs and tax cases must never be used as
+customer billing setup. Earlier September 24 non-deployment findings above are
+historical and superseded by this receipt.
 
 ## Completion evidence required
 
@@ -126,3 +142,22 @@ and tax cases must never be used as customer billing setup.
 
 These references inform the implementation; they do not select a company's tax
 registration, a transaction's place of supply, or provincial tax treatment.
+
+## Build 41 delivery — September 25
+
+Internal Android `1.20.0+41` passed guarded verification (814 tests, clean
+analysis) and was installed in place on S24 `R3CX906TS9X` with the recovered Next
+debug signer. All 26 existing private files were byte-identical immediately
+after installation; the original install time was preserved. The app launches
+and the APK is also in S24 Downloads as `Vortice-Next-Build-41.apk`.
+Local artifact: `outputs/builds/vortice-next-android-debug-20260924-223621.apk`.
+SHA-256: `9c145906e04cd6699f8f602f25166c4c8fff99d5880d54625949d5dc76484773`.
+Receipts: `outputs/build41/upgrade.json`,
+`outputs/next011/native-cad/verify-build41-final.log` and `build41.log`.
+
+The connected PM journey exposed a real offline projection defect: completion
+meter text was copied into a numeric display field before server acknowledgement.
+The projection now parses it as a number without altering the durable request;
+pending and acknowledged replay are regression-tested. Final connected reruns
+and the remaining production/physical acceptance gates are tracked below; this
+internal debug build is not a production release.

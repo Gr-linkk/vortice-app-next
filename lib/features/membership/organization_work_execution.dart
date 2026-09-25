@@ -5,12 +5,20 @@ import 'package:vortice_app/core/app_dropdown_field.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:vortice_app/core/meter_units.dart';
 import 'package:vortice_app/core/user_feedback.dart';
+import 'package:vortice_app/core/localized_text.dart';
 import 'package:vortice_app/features/auth/auth_provider.dart';
 import 'package:vortice_app/features/checklists/checklist_answer_fields.dart';
 import 'package:vortice_app/features/checklists/checklist_procedure_source.dart';
 import 'package:vortice_app/features/maintenance/maintenance_models.dart';
 import 'package:vortice_app/features/maintenance/maintenance_progress.dart';
 import 'organization_work_provider.dart';
+
+String _workExecutionText(
+  BuildContext context,
+  String english,
+  String spanish,
+  String french,
+) => localizedText(context, english, spanish, french);
 
 class OrganizationWorkExecution extends ConsumerStatefulWidget {
   const OrganizationWorkExecution({
@@ -34,7 +42,7 @@ class _OrganizationWorkExecutionState
     extends ConsumerState<OrganizationWorkExecution> {
   @override
   Widget build(BuildContext context) {
-    final es = isSpanish(context), data = widget.data;
+    final es = isSpanish(context), fr = isFrench(context), data = widget.data;
     final order = Map<String, dynamic>.from(data['work_order'] as Map);
     final status = order['status'];
     final active = const ['in_progress', 'on_hold'].contains(status);
@@ -59,13 +67,18 @@ class _OrganizationWorkExecutionState
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Text(
-              es ? 'Trabajo y progreso' : 'Work and progress',
+              localizedText(
+                context,
+                'Work and progress',
+                'Trabajo y progreso',
+                'Travail et progression',
+              ),
               style: Theme.of(context).textTheme.titleLarge,
             ),
             const SizedBox(height: 12),
             if (items.isNotEmpty) ...[
               Text(
-                '${data['checklist_name'] ?? (es ? 'Lista adjunta' : 'Attached checklist')} · $completed / ${items.length}',
+                '${data['checklist_name'] ?? localizedText(context, 'Attached checklist', 'Lista adjunta', 'Liste de contrôle jointe')} · $completed / ${items.length}',
               ),
               const SizedBox(height: 8),
               LinearProgressIndicator(value: completed / items.length),
@@ -79,21 +92,21 @@ class _OrganizationWorkExecutionState
               Padding(
                 padding: const EdgeInsets.only(top: 12),
                 child: Text(
-                  '${es ? 'Visita programada' : 'Service booking'}: ${maintenanceDate(order['scheduled_date'].toString(), es)}',
+                  '${localizedText(context, 'Scheduled visit', 'Visita programada', 'Visite planifiée')} : ${maintenanceDate(order['scheduled_date'].toString(), es, french: fr)}',
                 ),
               ),
             if (order['hours_at_start'] != null)
               Padding(
                 padding: const EdgeInsets.only(top: 8),
                 child: Text(
-                  '${es ? 'Medidor al iniciar' : 'Starting meter'}: ${formatMeter(order['hours_at_start'] as num?, order['meter_unit'] as String?)}',
+                  '${localizedText(context, 'Starting meter', 'Medidor al iniciar', 'Relevé initial')} : ${formatMeter(order['hours_at_start'] as num?, order['meter_unit'] as String?)}',
                 ),
               ),
             if ((order['on_hold_reason']?.toString() ?? '').isNotEmpty)
               Padding(
                 padding: const EdgeInsets.only(top: 12),
                 child: Text(
-                  '${es ? 'Bloqueado' : 'Blocked'}: ${order['on_hold_reason']}',
+                  '${localizedText(context, 'Blocked', 'Bloqueado', 'Bloqué')} : ${order['on_hold_reason']}',
                 ),
               ),
             if (canPrepare)
@@ -103,9 +116,12 @@ class _OrganizationWorkExecutionState
                   onPressed: widget.busy ? null : widget.onPrepare,
                   icon: const Icon(Icons.fact_check_outlined),
                   label: Text(
-                    es
-                        ? 'Preparar trabajo y procedimiento'
-                        : 'Prepare work and procedure',
+                    _workExecutionText(
+                      context,
+                      'Prepare work and procedure',
+                      'Preparar trabajo y procedimiento',
+                      'Préparer le travail et la procédure',
+                    ),
                   ),
                 ),
               ),
@@ -117,7 +133,14 @@ class _OrganizationWorkExecutionState
                       ? null
                       : () => widget.onAction('start'),
                   icon: const Icon(Icons.play_arrow),
-                  label: Text(es ? 'Iniciar trabajo' : 'Start work'),
+                  label: Text(
+                    _workExecutionText(
+                      context,
+                      'Start work',
+                      'Iniciar trabajo',
+                      'Commencer le travail',
+                    ),
+                  ),
                 ),
               if (active) ...[
                 OutlinedButton.icon(
@@ -127,8 +150,18 @@ class _OrganizationWorkExecutionState
                   icon: Icon(ownRunning ? Icons.pause : Icons.play_arrow),
                   label: Text(
                     ownRunning
-                        ? (es ? 'Pausar mi tiempo' : 'Pause my labour')
-                        : (es ? 'Iniciar mi tiempo' : 'Start my labour'),
+                        ? _workExecutionText(
+                            context,
+                            'Pause my labour',
+                            'Pausar mi tiempo',
+                            'Mettre mon temps en pause',
+                          )
+                        : _workExecutionText(
+                            context,
+                            'Start my labour',
+                            'Iniciar mi tiempo',
+                            'Démarrer mon temps de travail',
+                          ),
                   ),
                 ),
                 const SizedBox(height: 8),
@@ -136,9 +169,12 @@ class _OrganizationWorkExecutionState
                   onPressed: widget.busy ? null : widget.onReport,
                   icon: const Icon(Icons.edit_note),
                   label: Text(
-                    es
-                        ? 'Continuar informe de servicio'
-                        : 'Continue service report',
+                    _workExecutionText(
+                      context,
+                      'Continue service report',
+                      'Continuar informe de servicio',
+                      'Continuer le rapport d’entretien',
+                    ),
                   ),
                 ),
                 TextButton.icon(
@@ -146,7 +182,14 @@ class _OrganizationWorkExecutionState
                       ? null
                       : () => widget.onAction('block'),
                   icon: const Icon(Icons.pause_circle_outline),
-                  label: Text(es ? 'Registrar bloqueo' : 'Record a blocker'),
+                  label: Text(
+                    _workExecutionText(
+                      context,
+                      'Record a blocker',
+                      'Registrar bloqueo',
+                      'Signaler un blocage',
+                    ),
+                  ),
                 ),
               ],
             ],
@@ -166,7 +209,7 @@ class _OrganizationWorkExecutionState
                             '',
                       ),
                       Text(
-                        '${(answers[item['id']] as Map?)?['result'] ?? (es ? 'Pendiente' : 'Pending')} ${checklistRecordedValue(Map<String, dynamic>.from(item['definition'] as Map? ?? {}), (answers[item['id']] as Map?)?['note']?.toString())}',
+                        '${(answers[item['id']] as Map?)?['result'] ?? _workExecutionText(context, 'Pending', 'Pendiente', 'En attente')} ${checklistRecordedValue(Map<String, dynamic>.from(item['definition'] as Map? ?? {}), (answers[item['id']] as Map?)?['note']?.toString())}',
                       ),
                       ChecklistProcedureLink(item: item),
                     ],
@@ -222,18 +265,17 @@ class _OrganizationWorkLabourState extends State<OrganizationWorkLabour> {
 
   @override
   Widget build(BuildContext context) {
-    final es = isSpanish(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          '${es ? 'Tiempo registrado' : 'Recorded labour'}: ${(widget.data['labour_hours'] as num? ?? 0).toStringAsFixed(2)} h',
+          '${_workExecutionText(context, 'Recorded labour', 'Tiempo registrado', 'Temps de travail enregistré')}: ${(widget.data['labour_hours'] as num? ?? 0).toStringAsFixed(2)} h',
         ),
         for (final row in maintenanceRows(widget.data['labour']))
           Padding(
             padding: const EdgeInsets.only(top: 6),
             child: Text(
-              _sessionLabel(row, es),
+              _sessionLabel(row, context),
               key: ValueKey('labour-${row['id']}'),
             ),
           ),
@@ -241,7 +283,7 @@ class _OrganizationWorkLabourState extends State<OrganizationWorkLabour> {
     );
   }
 
-  String _sessionLabel(Map<String, dynamic> row, bool es) {
+  String _sessionLabel(Map<String, dynamic> row, BuildContext context) {
     final start = DateTime.tryParse(row['started_at']?.toString() ?? '');
     final stopped = DateTime.tryParse(row['stopped_at']?.toString() ?? '');
     final seconds = start == null
@@ -252,7 +294,7 @@ class _OrganizationWorkLabourState extends State<OrganizationWorkLabour> {
               .clamp(0, 99999999);
     final duration =
         '${seconds ~/ 3600}:${((seconds % 3600) ~/ 60).toString().padLeft(2, '0')}:${(seconds % 60).toString().padLeft(2, '0')}';
-    return '${row['actor_name'] ?? (es ? 'Persona' : 'Teammate')} · $duration · ${stopped == null ? (es ? 'En curso' : 'Running') : (es ? 'Registrado' : 'Recorded')}';
+    return '${row['actor_name'] ?? _workExecutionText(context, 'Teammate', 'Persona', 'Membre de l’équipe')} · $duration · ${stopped == null ? _workExecutionText(context, 'Running', 'En curso', 'En cours') : _workExecutionText(context, 'Recorded', 'Registrado', 'Enregistré')}';
   }
 }
 
@@ -274,7 +316,9 @@ class OrganizationWorkEvidence extends ConsumerWidget {
             ),
           ),
           icon: const Icon(Icons.photo_outlined),
-          label: Text('${isSpanish(context) ? 'Foto' : 'Photo'} ${i + 1}'),
+          label: Text(
+            '${_workExecutionText(context, 'Photo', 'Foto', 'Photo')} ${i + 1}',
+          ),
         ),
     ],
   );
@@ -318,7 +362,9 @@ class _EvidenceDialogState extends State<_EvidenceDialog> {
           ),
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: Text(isSpanish(context) ? 'Cerrar' : 'Close'),
+            child: Text(
+              _workExecutionText(context, 'Close', 'Cerrar', 'Fermer'),
+            ),
           ),
         ],
       ),
@@ -355,7 +401,6 @@ class _OrganizationWorkSetupSheetState
 
   @override
   Widget build(BuildContext context) {
-    final es = isSpanish(context);
     final order = widget.data['work_order'] as Map;
     final frozen = order['parts_kit_captured'] == true;
     final templates = maintenanceRows(widget.data['templates']);
@@ -364,7 +409,12 @@ class _OrganizationWorkSetupSheetState
         'id': _template,
         'name':
             widget.data['checklist_name'] ??
-            (es ? 'Procedimiento guardado' : 'Saved procedure'),
+            _workExecutionText(
+              context,
+              'Saved procedure',
+              'Procedimiento guardado',
+              'Procédure enregistrée',
+            ),
         'version': order['checklist_template_version'] ?? '',
       });
     }
@@ -381,7 +431,12 @@ class _OrganizationWorkSetupSheetState
           mainAxisSize: MainAxisSize.min,
           children: [
             Text(
-              es ? 'Preparar trabajo' : 'Prepare work',
+              _workExecutionText(
+                context,
+                'Prepare work',
+                'Preparar trabajo',
+                'Préparer le travail',
+              ),
               style: Theme.of(context).textTheme.titleLarge,
             ),
             const SizedBox(height: 16),
@@ -389,13 +444,23 @@ class _OrganizationWorkSetupSheetState
               isExpanded: true,
               initialValue: _template ?? '',
               decoration: InputDecoration(
-                labelText: es ? 'Procedimiento adjunto' : 'Attached procedure',
+                labelText: _workExecutionText(
+                  context,
+                  'Attached procedure',
+                  'Procedimiento adjunto',
+                  'Procédure jointe',
+                ),
               ),
               items: [
                 DropdownMenuItem(
                   value: '',
                   child: Text(
-                    es ? 'Sin lista adjunta' : 'No attached checklist',
+                    _workExecutionText(
+                      context,
+                      'No attached checklist',
+                      'Sin lista adjunta',
+                      'Aucune liste de contrôle jointe',
+                    ),
                   ),
                 ),
                 for (final row in templates)
@@ -413,9 +478,12 @@ class _OrganizationWorkSetupSheetState
               Padding(
                 padding: const EdgeInsets.only(top: 8),
                 child: Text(
-                  es
-                      ? 'Esta orden ya guardó su kit de piezas. Crea otro trabajo para usar otra lista. La fecha y las instrucciones adicionales se pueden actualizar.'
-                      : 'This work already captured its parts kit. Create separate work to use another checklist. The booking and additional instructions can still be updated.',
+                  _workExecutionText(
+                    context,
+                    'This work already captured its parts kit. Create separate work to use another checklist. The booking and additional instructions can still be updated.',
+                    'Esta orden ya guardó su kit de piezas. Crea otro trabajo para usar otra lista. La fecha y las instrucciones adicionales se pueden actualizar.',
+                    'Ce travail a déjà enregistré son ensemble de pièces. Créez un travail distinct pour utiliser une autre liste de contrôle. La réservation et les instructions supplémentaires peuvent encore être modifiées.',
+                  ),
                 ),
               ),
             const SizedBox(height: 16),
@@ -423,9 +491,12 @@ class _OrganizationWorkSetupSheetState
               controller: _notes,
               maxLines: 4,
               decoration: InputDecoration(
-                labelText: es
-                    ? 'Instrucciones para este trabajo'
-                    : 'Instructions for this work',
+                labelText: _workExecutionText(
+                  context,
+                  'Instructions for this work',
+                  'Instrucciones para este trabajo',
+                  'Instructions pour ce travail',
+                ),
               ),
             ),
             const SizedBox(height: 16),
@@ -433,13 +504,21 @@ class _OrganizationWorkSetupSheetState
               controller: _date,
               readOnly: true,
               decoration: InputDecoration(
-                labelText: es
-                    ? 'Fecha de visita (opcional)'
-                    : 'Service booking (optional)',
+                labelText: _workExecutionText(
+                  context,
+                  'Service booking (optional)',
+                  'Fecha de visita (opcional)',
+                  'Rendez-vous d’entretien (facultatif)',
+                ),
                 suffixIcon: IconButton(
                   onPressed: () => setState(() => _date.clear()),
                   icon: const Icon(Icons.clear),
-                  tooltip: es ? 'Quitar fecha' : 'Clear booking',
+                  tooltip: _workExecutionText(
+                    context,
+                    'Clear booking',
+                    'Quitar fecha',
+                    'Effacer le rendez-vous',
+                  ),
                 ),
               ),
               onTap: () async {
@@ -459,9 +538,12 @@ class _OrganizationWorkSetupSheetState
             ),
             const SizedBox(height: 12),
             Text(
-              es
-                  ? 'La lista se guarda con esta orden. El procedimiento queda fijo al iniciar el trabajo.'
-                  : 'The checklist is saved with this order. Its procedure is fixed when work starts.',
+              _workExecutionText(
+                context,
+                'The checklist is saved with this order. Its procedure is fixed when work starts.',
+                'La lista se guarda con esta orden. El procedimiento queda fijo al iniciar el trabajo.',
+                'La liste de contrôle est enregistrée avec ce bon de travail. La procédure est fixée au début du travail.',
+              ),
             ),
             if (_error != null)
               Text(
@@ -473,9 +555,12 @@ class _OrganizationWorkSetupSheetState
               onPressed: () {
                 if (_notes.text.length > 8000) {
                   setState(
-                    () => _error = es
-                        ? 'Acorta las instrucciones.'
-                        : 'Shorten the instructions.',
+                    () => _error = _workExecutionText(
+                      context,
+                      'Shorten the instructions.',
+                      'Acorta las instrucciones.',
+                      'Raccourcissez les instructions.',
+                    ),
                   );
                   return;
                 }
@@ -485,7 +570,14 @@ class _OrganizationWorkSetupSheetState
                   'service_date': _date.text,
                 });
               },
-              child: Text(es ? 'Guardar preparación' : 'Save preparation'),
+              child: Text(
+                _workExecutionText(
+                  context,
+                  'Save preparation',
+                  'Guardar preparación',
+                  'Enregistrer la préparation',
+                ),
+              ),
             ),
           ],
         ),

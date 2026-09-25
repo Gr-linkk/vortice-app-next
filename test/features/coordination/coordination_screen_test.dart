@@ -12,6 +12,7 @@ import 'package:vortice_app/core/theme.dart';
 import 'package:vortice_app/features/auth/auth_provider.dart';
 import 'package:vortice_app/features/assets/asset_workspace.dart';
 import 'package:vortice_app/features/fleet/fleet_providers.dart';
+import 'package:vortice_app/features/fleet/fleet_entry_card.dart';
 import 'package:vortice_app/features/maintenance/planning/planning_models.dart';
 import 'package:vortice_app/features/maintenance/planning/planning_repository.dart';
 import 'package:vortice_app/features/coordination/asset_history_screen.dart';
@@ -240,6 +241,7 @@ Future<void> pumpCoordination(
   double width = 390,
   double scale = 1,
   bool es = false,
+  bool fr = false,
   bool composer = false,
   List<Override> extraOverrides = const [],
 }) async {
@@ -331,8 +333,14 @@ Future<void> pumpCoordination(
             ),
           ),
           debugShowCheckedModeBanner: false,
-          locale: Locale(es ? 'es' : 'en'),
-          supportedLocales: const [Locale('en'), Locale('es')],
+          locale: Locale(
+            fr
+                ? 'fr'
+                : es
+                ? 'es'
+                : 'en',
+          ),
+          supportedLocales: const [Locale('en'), Locale('es'), Locale('fr')],
           localizationsDelegates: const [
             AppLocalizations.delegate,
             GlobalMaterialLocalizations.delegate,
@@ -700,13 +708,33 @@ void main() {
       Scaffold(body: ListView(children: const [FleetPriorityCard()])),
       FixtureCoordination(),
       extraOverrides: [
-        assetWorkspaceProvider.overrideWith((_) async => {'items': [
-          {'id':'one','categories':['unavailable','inspection_expired']},
-          {'id':'two','categories':['unavailable']},
-        ]}),
-        maintenancePlanningProvider(null).overrideWith((_) async => PlanningData(jobs: [
-          PlanningJob({'id':'job','asset_id':'one','status':'on_hold','blocked_category':'parts'}),
-        ],plans:[])),
+        assetWorkspaceProvider.overrideWith(
+          (_) async => {
+            'items': [
+              {
+                'id': 'one',
+                'categories': ['unavailable', 'inspection_expired'],
+              },
+              {
+                'id': 'two',
+                'categories': ['unavailable'],
+              },
+            ],
+          },
+        ),
+        maintenancePlanningProvider(null).overrideWith(
+          (_) async => PlanningData(
+            jobs: [
+              PlanningJob({
+                'id': 'job',
+                'asset_id': 'one',
+                'status': 'on_hold',
+                'blocked_category': 'parts',
+              }),
+            ],
+            plans: [],
+          ),
+        ),
         fleetFaultsProvider(null).overrideWith((_) async => []),
       ],
     );
@@ -723,7 +751,54 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.text('Waiting for parts'));
     await tester.pumpAndSettle();
-    expect(find.text('Opened /maintenance/planning?filter=parts'), findsOneWidget);
+    expect(
+      find.text('Opened /maintenance/planning?filter=parts'),
+      findsOneWidget,
+    );
+    expect(tester.takeException(), isNull);
+  });
+  testWidgets('home priorities use French labels without changing routes', (
+    tester,
+  ) async {
+    await pumpCoordination(
+      tester,
+      Scaffold(
+        body: ListView(children: const [FleetEntryCard(), FleetPriorityCard()]),
+      ),
+      FixtureCoordination(),
+      fr: true,
+      extraOverrides: [
+        fleetAssetsProvider.overrideWith((_) async => []),
+        assetWorkspaceProvider.overrideWith((_) async => {'items': []}),
+        maintenancePlanningProvider(null).overrideWith(
+          (_) async => PlanningData(
+            jobs: [
+              PlanningJob({
+                'id': 'job',
+                'asset_id': 'asset',
+                'status': 'in_progress',
+                'due_date': '2000-01-01',
+              }),
+            ],
+            plans: [],
+          ),
+        ),
+        fleetFaultsProvider(null).overrideWith((_) async => []),
+      ],
+    );
+    expect(find.text('À vérifier'), findsOneWidget);
+    expect(
+      find.text('0 défaillances actives · 0 indisponibles'),
+      findsOneWidget,
+    );
+    expect(find.text('Bons de travail en retard'), findsOneWidget);
+    expect(find.text('Overdue work'), findsNothing);
+    await tester.tap(find.text('Bons de travail en retard'));
+    await tester.pumpAndSettle();
+    expect(
+      find.text('Opened /maintenance/planning?filter=overdue'),
+      findsOneWidget,
+    );
     expect(tester.takeException(), isNull);
   });
 }

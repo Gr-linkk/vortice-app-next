@@ -114,7 +114,7 @@ class OwnerDashboard extends ConsumerWidget {
         child: DashboardList(
           children: [
             DashboardSection(
-              title: dashboardText(context, 'Alerts', 'Alertas'),
+              title: dashboardText(context, 'Alerts', 'Alertas', 'Alertes'),
             ),
             const _OwnerAlertsSection(),
 
@@ -332,6 +332,7 @@ class _ClientSummaryCard extends StatelessWidget {
             context,
             '${client['vessel_count']} assets · ${client['open_wo_count']} open work orders\n$actStr',
             '${client['vessel_count']} equipos · ${client['open_wo_count']} órdenes abiertas\n$actStr',
+            '${client['vessel_count']} équipements · ${client['open_wo_count']} bons de travail ouverts\n$actStr',
           ),
         ),
         trailing: const Icon(Icons.chevron_right),

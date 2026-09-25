@@ -4,6 +4,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:vortice_app/core/app_dropdown_field.dart';
 import 'package:vortice_app/core/unsaved_form_guard.dart';
 import 'package:vortice_app/core/user_feedback.dart';
+import 'package:vortice_app/core/localized_text.dart';
 import 'package:vortice_app/models/work_order.dart';
 import 'maintenance_models.dart';
 import 'maintenance_repository.dart';
@@ -91,15 +92,26 @@ class _InternalWorkOrderEditScreenState
 
   @override
   Widget build(BuildContext context) {
-    final es = isSpanish(context);
+    final es = isSpanish(context), fr = isFrench(context);
     final frozen = _busy || _pending != null || _stale;
     if (!widget.job.canPrepare) {
       return Scaffold(
-        appBar: AppBar(title: Text(es ? 'Orden de trabajo' : 'Work order')),
+        appBar: AppBar(
+          title: Text(
+            localizedText(
+              context,
+              'Work order',
+              'Orden de trabajo',
+              'Bon de travail',
+            ),
+          ),
+        ),
         body: Center(
           child: Text(
             es
                 ? 'Esta orden no se puede editar.'
+                : fr
+                ? 'Ce bon de travail ne peut pas être modifié.'
                 : 'This work order cannot be edited.',
           ),
         ),
@@ -112,7 +124,14 @@ class _InternalWorkOrderEditScreenState
       busy: _busy,
       child: Scaffold(
         appBar: AppBar(
-          title: Text(es ? 'Editar orden de trabajo' : 'Edit work order'),
+          title: Text(
+            localizedText(
+              context,
+              'Edit work order',
+              'Editar orden de trabajo',
+              'Modifier le bon de travail',
+            ),
+          ),
         ),
         body: Form(
           key: _form,
@@ -126,7 +145,9 @@ class _InternalWorkOrderEditScreenState
               ),
               const SizedBox(height: 8),
               Text(
-                es
+                fr
+                    ? 'Préparez la portée avant de commencer le travail. Gérez les affectations et les dates dans le bon de travail et sa planification.'
+                    : es
                     ? 'Prepara el alcance antes de iniciar el trabajo. La asignación y las fechas se gestionan en la orden y su planificación.'
                     : 'Prepare the scope before work starts. Manage assignment and dates from the work order and its schedule.',
               ),
@@ -136,10 +157,20 @@ class _InternalWorkOrderEditScreenState
                 enabled: !frozen,
                 maxLength: 200,
                 decoration: InputDecoration(
-                  labelText: es ? 'Título de la orden' : 'Work order title',
+                  labelText: localizedText(
+                    context,
+                    'Work order title',
+                    'Título de la orden',
+                    'Titre du bon de travail',
+                  ),
                 ),
                 validator: (value) => (value?.trim().length ?? 0) < 3
-                    ? (es ? 'Describe el trabajo' : 'Describe the work')
+                    ? localizedText(
+                        context,
+                        'Describe the work',
+                        'Describe el trabajo',
+                        'Décrivez le travail',
+                      )
                     : null,
               ),
               const SizedBox(height: 16),
@@ -147,11 +178,19 @@ class _InternalWorkOrderEditScreenState
                 initialValue: _type,
                 isExpanded: true,
                 decoration: InputDecoration(
-                  labelText: es ? 'Tipo de trabajo' : 'Work type',
+                  labelText: localizedText(
+                    context,
+                    'Work type',
+                    'Tipo de trabajo',
+                    'Type de travail',
+                  ),
                 ),
                 items: [
                   for (final type in WorkOrderJobType.values)
-                    DropdownMenuItem(value: type, child: Text(type.label(es))),
+                    DropdownMenuItem(
+                      value: type,
+                      child: Text(type.label(es, fr: fr)),
+                    ),
                 ],
                 onChanged: frozen || widget.job.isService
                     ? null
@@ -165,7 +204,12 @@ class _InternalWorkOrderEditScreenState
                 maxLines: 6,
                 maxLength: 8000,
                 decoration: InputDecoration(
-                  labelText: es ? 'Instrucciones' : 'Instructions',
+                  labelText: localizedText(
+                    context,
+                    'Instructions',
+                    'Instrucciones',
+                    'Instructions',
+                  ),
                 ),
               ),
               const SizedBox(height: 16),
@@ -176,7 +220,9 @@ class _InternalWorkOrderEditScreenState
                 maxLines: 4,
                 maxLength: 4000,
                 decoration: InputDecoration(
-                  labelText: es
+                  labelText: fr
+                      ? 'Pièces et matériaux prévus'
+                      : es
                       ? 'Repuestos y materiales previstos'
                       : 'Expected parts / materials',
                 ),
@@ -185,13 +231,18 @@ class _InternalWorkOrderEditScreenState
               AppDropdownField<String>(
                 initialValue: _priority,
                 decoration: InputDecoration(
-                  labelText: es ? 'Prioridad' : 'Priority',
+                  labelText: localizedText(
+                    context,
+                    'Priority',
+                    'Prioridad',
+                    'Priorité',
+                  ),
                 ),
                 items: [
                   for (final value in ['low', 'normal', 'high', 'urgent'])
                     DropdownMenuItem(
                       value: value,
-                      child: Text(maintenancePriority(value, es)),
+                      child: Text(maintenancePriority(value, es, french: fr)),
                     ),
                 ],
                 onChanged: frozen
@@ -206,10 +257,20 @@ class _InternalWorkOrderEditScreenState
                 maxLines: 4,
                 maxLength: 1000,
                 decoration: InputDecoration(
-                  labelText: es ? 'Motivo del cambio' : 'Reason for change',
+                  labelText: localizedText(
+                    context,
+                    'Reason for change',
+                    'Motivo del cambio',
+                    'Motif du changement',
+                  ),
                 ),
                 validator: (value) => (value?.trim().length ?? 0) < 3
-                    ? (es ? 'Explica el cambio' : 'Explain the change')
+                    ? localizedText(
+                        context,
+                        'Explain the change',
+                        'Explica el cambio',
+                        'Expliquez le changement',
+                      )
                     : null,
               ),
               if (_error != null) Text(maintenanceError(_error!, es)),
@@ -220,7 +281,9 @@ class _InternalWorkOrderEditScreenState
                     Navigator.pop(context);
                   },
                   child: Text(
-                    es
+                    fr
+                        ? 'Abandonner les modifications et recharger'
+                        : es
                         ? 'Descartar cambios y volver a cargar'
                         : 'Discard edits and reload',
                   ),
@@ -232,12 +295,24 @@ class _InternalWorkOrderEditScreenState
                   onPressed: _busy || _stale ? null : _save,
                   child: Text(
                     _busy
-                        ? (es ? 'Guardando…' : 'Saving…')
+                        ? localizedText(
+                            context,
+                            'Saving…',
+                            'Guardando…',
+                            'Enregistrement…',
+                          )
                         : _pending != null
-                        ? (es
+                        ? (fr
+                              ? 'Réessayer le même enregistrement'
+                              : es
                               ? 'Reintentar el mismo guardado'
                               : 'Retry same save')
-                        : (es ? 'Guardar orden de trabajo' : 'Save work order'),
+                        : localizedText(
+                            context,
+                            'Save work order',
+                            'Guardar orden de trabajo',
+                            'Enregistrer le bon de travail',
+                          ),
                   ),
                 ),
               ),

@@ -56,7 +56,7 @@ class VorticeApp extends ConsumerWidget {
         GlobalWidgetsLocalizations.delegate,
         GlobalCupertinoLocalizations.delegate,
       ],
-      supportedLocales: const [Locale('en'), Locale('es')],
+      supportedLocales: AppLocalizations.supportedLocales,
     );
   }
 }

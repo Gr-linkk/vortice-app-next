@@ -5,6 +5,8 @@ import 'package:vortice_app/core/list_label_order.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:vortice_app/features/checklists/asset_checklist_template_filter.dart';
 import 'package:vortice_app/l10n/app_localizations.dart';
+import 'package:vortice_app/core/localized_text.dart';
+import 'package:vortice_app/features/assets/asset_type_field.dart';
 import 'package:vortice_app/models/checklist_template.dart';
 
 List<ChecklistTemplate> operatorTemplatesForAsset(
@@ -52,6 +54,7 @@ class _SelectionState extends State<OperatorChecklistSelectionStep> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final es = Localizations.localeOf(context).languageCode == 'es';
+    final fr = isFrench(context);
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
@@ -76,7 +79,11 @@ class _SelectionState extends State<OperatorChecklistSelectionStep> {
               final art = equipmentArtFor(
                 assetTypeId: asset['asset_type_id'] as String?,
               );
-              return es ? art.spanishLabel : art.label;
+              return fr
+                  ? (frenchEquipmentLabels[art] ?? art.label)
+                  : es
+                  ? art.spanishLabel
+                  : art.label;
             }
 
             final visible = assets
@@ -105,7 +112,12 @@ class _SelectionState extends State<OperatorChecklistSelectionStep> {
                 if (assets.length > 6) ...[
                   TextField(
                     decoration: InputDecoration(
-                      labelText: es ? 'Buscar equipos' : 'Search equipment',
+                      labelText: localizedText(
+                        context,
+                        'Search equipment',
+                        'Buscar equipos',
+                        'Rechercher des équipements',
+                      ),
                       prefixIcon: const Icon(Icons.search),
                     ),
                     onChanged: (value) => setState(() => _search = value),
@@ -185,8 +197,18 @@ class _SelectionState extends State<OperatorChecklistSelectionStep> {
                     ))
                       ListGroupHeading(
                         label: specific
-                            ? (es ? 'Para este equipo' : 'For this equipment')
-                            : (es ? 'Revisiones generales' : 'General checks'),
+                            ? localizedText(
+                                context,
+                                'For this equipment',
+                                'Para este equipo',
+                                'Pour cet équipement',
+                              )
+                            : localizedText(
+                                context,
+                                'General checks',
+                                'Revisiones generales',
+                                'Inspections générales',
+                              ),
                         count: matching
                             .where((t) => (t.scopeAssetId != null) == specific)
                             .length,

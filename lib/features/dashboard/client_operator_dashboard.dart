@@ -1,6 +1,7 @@
 import 'package:vortice_app/features/assets/asset_type_provider.dart';
 import 'package:vortice_app/core/equipment_illustration.dart';
 import 'package:vortice_app/core/user_feedback.dart';
+import 'package:vortice_app/core/localized_text.dart';
 import 'package:vortice_app/features/dashboard/dashboard_layout.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -39,7 +40,6 @@ class ClientOperatorDashboard extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final es = isSpanish(context);
     final assetsAsync = ref.watch(currentClientFleetAssetsProvider);
     final runsAsync = ref.watch(clientOperatorRecentRunsProvider);
     final operationalChecklistsAllowedAsync = ref.watch(
@@ -100,6 +100,7 @@ class ClientOperatorDashboard extends ConsumerWidget {
                           context,
                           'No checklists assigned to you.',
                           'No tienes revisiones asignadas.',
+                          'Aucune inspection ne vous est attribuée.',
                         ),
                       ),
                     );
@@ -229,7 +230,14 @@ class ClientOperatorDashboard extends ConsumerWidget {
 
             // ── 1. Pre-Departure Checklists ───────────────────────────
             if (showOperationalChecklists) ...[
-              DashboardSection(title: es ? 'Revisiones antes de operar' : 'Pre-operation checks'),
+              DashboardSection(
+                title: localizedText(
+                  context,
+                  'Pre-operation checks',
+                  'Revisiones antes de operar',
+                  'Inspections avant utilisation',
+                ),
+              ),
               assetsAsync.when(
                 loading: () => const DashboardLoadingTile(),
                 error: (err, _) =>
@@ -238,7 +246,12 @@ class ClientOperatorDashboard extends ConsumerWidget {
                   if (assets.isEmpty) {
                     return DashboardEmptyState(
                       icon: Icons.directions_boat_outlined,
-                      message: es ? 'No hay equipos asignados.' : 'No assets assigned.',
+                      message: localizedText(
+                        context,
+                        'No assets assigned.',
+                        'No hay equipos asignados.',
+                        'Aucun équipement ne vous est attribué.',
+                      ),
                     );
                   }
                   return Column(
@@ -252,7 +265,14 @@ class ClientOperatorDashboard extends ConsumerWidget {
 
             if (showOperationalChecklists) ...[
               // ── 3. Recent Checks ──────────────────────────────────────
-              DashboardSection(title: es ? 'Revisiones recientes' : 'Recent Checks'),
+              DashboardSection(
+                title: localizedText(
+                  context,
+                  'Recent checks',
+                  'Revisiones recientes',
+                  'Inspections récentes',
+                ),
+              ),
               runsAsync.when(
                 loading: () => const DashboardLoadingTile(),
                 error: (err, _) =>
@@ -261,7 +281,12 @@ class ClientOperatorDashboard extends ConsumerWidget {
                   if (runs.isEmpty) {
                     return DashboardEmptyState(
                       icon: Icons.history_outlined,
-                      message: es ? 'Todavía no hay revisiones completadas.' : 'No completed checks yet.',
+                      message: localizedText(
+                        context,
+                        'No completed checks yet.',
+                        'Todavía no hay revisiones completadas.',
+                        'Aucune inspection terminée pour le moment.',
+                      ),
                     );
                   }
                   return Column(
@@ -304,7 +329,12 @@ class _AssetChecklistCard extends ConsumerWidget {
         ),
         title: Text(asset.name),
         subtitle: Text(
-          dashboardText(context, 'Start checklist', 'Iniciar revisión'),
+          dashboardText(
+            context,
+            'Start checklist',
+            'Iniciar revisión',
+            'Commencer une inspection',
+          ),
         ),
         trailing: const Icon(Icons.chevron_right),
         onTap: () => context.push('/operator/checklist?assetId=${asset.id}'),

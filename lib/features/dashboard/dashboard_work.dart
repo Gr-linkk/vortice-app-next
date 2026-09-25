@@ -3,7 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:vortice_app/core/theme.dart';
 import 'package:vortice_app/core/user_feedback.dart';
-import 'package:vortice_app/features/maintenance/maintenance_models.dart';
+import 'package:vortice_app/core/localized_text.dart';
+import 'package:intl/intl.dart';
 import 'package:vortice_app/features/maintenance/maintenance_repository.dart';
 import 'package:vortice_app/features/maintenance/work_list_provider.dart';
 import 'dashboard_layout.dart';
@@ -38,7 +39,7 @@ class DashboardCurrentWork extends ConsumerWidget {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         DashboardSection(
-          title: es ? 'Mi trabajo' : 'My work',
+          title: localizedText(context, 'My work', 'Mi trabajo', 'Mon travail'),
           onViewAll: () => context.push('/maintenance/planning?filter=mine'),
         ),
         ref
@@ -61,9 +62,12 @@ class DashboardCurrentWork extends ConsumerWidget {
                       vertical: 8,
                     ),
                     child: Text(
-                      es
-                          ? 'No tienes \u00f3rdenes abiertas asignadas.'
-                          : 'No open work orders assigned to you.',
+                      localizedText(
+                        context,
+                        'No open work orders assigned to you.',
+                        'No tienes \u00f3rdenes abiertas asignadas.',
+                        'Aucun bon de travail ouvert ne vous est attribué.',
+                      ),
                       style: TextStyle(color: context.appColors.textSecondary),
                     ),
                   );
@@ -89,9 +93,12 @@ class DashboardCurrentWork extends ConsumerWidget {
                           subtitle: Text(
                             [
                               entry.assetName,
-                              entry.lifecycleLabel(es),
+                              entry.lifecycleLabel(
+                                es,
+                                french: isFrench(context),
+                              ),
                               if (entry.dueDate != null)
-                                '${es ? 'Vence' : 'Due'} ${maintenanceDate(entry.dueDate, es)}',
+                                '${localizedText(context, 'Due', 'Vence', 'À faire le')} ${DateFormat.yMMMd(appLocaleCode(context)).format(DateTime.parse(entry.dueDate!).toLocal())}',
                             ].where((value) => value.isNotEmpty).join(' \u00b7 '),
                           ),
                           trailing: const Icon(Icons.chevron_right),

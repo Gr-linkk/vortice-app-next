@@ -2,6 +2,7 @@ import 'package:vortice_app/core/app_dropdown_field.dart';
 import 'package:vortice_app/features/assets/asset_type_field.dart';
 import 'package:vortice_app/features/assurance/assurance_repository.dart';
 import 'package:vortice_app/core/user_feedback.dart';
+import 'package:vortice_app/core/localized_text.dart';
 import 'package:flutter/material.dart';
 import 'package:vortice_app/features/auth/auth_provider.dart';
 import 'asset_workflow_policy.dart';
@@ -63,7 +64,12 @@ class _EditAssetScreenState extends ConsumerState<EditAssetScreen> {
   }
 
   Future<void> _submit() async {
-    if (!_formKey.currentState!.validate() || !AssetWorkflowPolicy.canManageProfile(ref.read(profileProvider).valueOrNull)) return;
+    if (!_formKey.currentState!.validate() ||
+        !AssetWorkflowPolicy.canManageProfile(
+          ref.read(profileProvider).valueOrNull,
+        )) {
+      return;
+    }
 
     if (_selectedClientId == null) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -128,34 +134,37 @@ class _EditAssetScreenState extends ConsumerState<EditAssetScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              if (ref.watch(profileProvider).valueOrNull?.membershipManaged != true) clientsAsync.when(
-                loading: () => const LinearProgressIndicator(),
-                error: (err, _) => Text(
-                  err.toString(),
-                  style: TextStyle(color: context.appColors.error),
-                ),
-                data: (clients) => AppDropdownField<String>(
-                  initialValue: _selectedClientId,
-                  decoration: const InputDecoration(
-                    labelText: 'Assigned Client',
-                    prefixIcon: Icon(Icons.business_outlined),
+              if (ref.watch(profileProvider).valueOrNull?.membershipManaged !=
+                  true)
+                clientsAsync.when(
+                  loading: () => const LinearProgressIndicator(),
+                  error: (err, _) => Text(
+                    err.toString(),
+                    style: TextStyle(color: context.appColors.error),
                   ),
-                  dropdownColor: context.appColors.surfaceVariant,
-                  items: clients
-                      .map(
-                        (c) => DropdownMenuItem(
-                          value: c.id,
-                          child: Text(
-                            c.fullName.isNotEmpty ? c.fullName : c.email,
-                            overflow: TextOverflow.ellipsis,
+                  data: (clients) => AppDropdownField<String>(
+                    initialValue: _selectedClientId,
+                    decoration: const InputDecoration(
+                      labelText: 'Assigned Client',
+                      prefixIcon: Icon(Icons.business_outlined),
+                    ),
+                    dropdownColor: context.appColors.surfaceVariant,
+                    items: clients
+                        .map(
+                          (c) => DropdownMenuItem(
+                            value: c.id,
+                            child: Text(
+                              c.fullName.isNotEmpty ? c.fullName : c.email,
+                              overflow: TextOverflow.ellipsis,
+                            ),
                           ),
-                        ),
-                      )
-                      .toList(),
-                  onChanged: (v) => setState(() => _selectedClientId = v),
-                  validator: (v) => v == null ? 'Please select a client' : null,
+                        )
+                        .toList(),
+                    onChanged: (v) => setState(() => _selectedClientId = v),
+                    validator: (v) =>
+                        v == null ? 'Please select a client' : null,
+                  ),
                 ),
-              ),
               const SizedBox(height: 16),
               // ── Asset Type dropdown ──────────────────────────────
               assetTypesAsync.when(
@@ -249,9 +258,12 @@ class _EditAssetScreenState extends ConsumerState<EditAssetScreen> {
               ),
               if (custody.valueOrNull?['custody'] != null)
                 Text(
-                  isSpanish(context)
-                      ? 'Usa Actualizar ubicación y responsable en Custodia e inspecciones para cambiar la ubicación.'
-                      : 'Use Update location & responsibility in Custody & inspections to change the location.',
+                  localizedText(
+                    context,
+                    'Use Update location & responsibility in Custody & inspections to change the location.',
+                    'Usa Actualizar ubicación y responsable en Custodia e inspecciones para cambiar la ubicación.',
+                    'Utilisez « Mettre à jour l’emplacement et la responsabilité » dans « Garde et inspections » pour modifier l’emplacement.',
+                  ),
                 ),
               const SizedBox(height: 24),
               OutlinedButton.icon(
@@ -264,7 +276,14 @@ class _EditAssetScreenState extends ConsumerState<EditAssetScreen> {
                   );
                 },
                 icon: const Icon(Icons.engineering),
-                label: const Text('Manage engines / positions'),
+                label: Text(
+                  localizedText(
+                    context,
+                    'Manage engines / positions',
+                    'Gestionar motores / posiciones',
+                    'Gérer les moteurs et les positions',
+                  ),
+                ),
               ),
               const SizedBox(height: 32),
               ElevatedButton(

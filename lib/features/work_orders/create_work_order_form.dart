@@ -1,4 +1,5 @@
 import 'package:vortice_app/core/app_dropdown_field.dart';
+import 'package:vortice_app/core/localized_text.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:vortice_app/core/theme.dart';
@@ -80,7 +81,12 @@ class CreateWorkOrderForm extends ConsumerWidget {
           // ── JOB DETAILS ───────────────────────────────────────
           createWorkOrderSectionHeader(
             context,
-            es ? 'DETALLES DEL TRABAJO' : 'JOB DETAILS',
+            localizedText(
+              context,
+              'JOB DETAILS',
+              'DETALLES DEL TRABAJO',
+              'DÉTAILS DU TRAVAIL',
+            ),
           ),
           const SizedBox(height: 8),
           TextFormField(
@@ -105,6 +111,7 @@ class CreateWorkOrderForm extends ConsumerWidget {
                     child: Text(
                       t.label(
                         Localizations.localeOf(context).languageCode == 'es',
+                        fr: isFrench(context),
                       ),
                     ),
                   ),
@@ -171,7 +178,12 @@ class CreateWorkOrderForm extends ConsumerWidget {
                             DropdownMenuItem(
                               value: null,
                               child: Text(
-                                es ? 'Ninguno' : 'None',
+                                localizedText(
+                                  context,
+                                  'None',
+                                  'Ninguno',
+                                  'Aucun',
+                                ),
                                 style: TextStyle(
                                   color: context.appColors.textSecondary,
                                 ),
@@ -200,7 +212,12 @@ class CreateWorkOrderForm extends ConsumerWidget {
           // ── CHECKLIST TEMPLATE ──────────────────────────────────
           const SizedBox(height: 8),
           Text(
-            es ? 'Plantilla de lista de verificación' : 'Checklist Template',
+            localizedText(
+              context,
+              'Checklist Template',
+              'Plantilla de lista de verificación',
+              'Modèle de liste de contrôle',
+            ),
             style: Theme.of(context).textTheme.titleSmall,
           ),
           const SizedBox(height: 8),
@@ -270,7 +287,7 @@ class CreateWorkOrderForm extends ConsumerWidget {
                       DropdownMenuItem<String?>(
                         value: null,
                         child: Text(
-                          es ? 'Ninguna' : 'None',
+                          localizedText(context, 'None', 'Ninguna', 'Aucune'),
                           style: TextStyle(
                             color: context.appColors.textSecondary,
                           ),
@@ -304,7 +321,7 @@ class CreateWorkOrderForm extends ConsumerWidget {
           const SizedBox(height: 24),
           createWorkOrderSectionHeader(
             context,
-            es ? 'ASIGNACIÓN' : 'ASSIGNMENT',
+            localizedText(context, 'ASSIGNMENT', 'ASIGNACIÓN', 'AFFECTATION'),
           ),
           const SizedBox(height: 8),
           assignableProfilesAsync.when(
@@ -321,7 +338,12 @@ class CreateWorkOrderForm extends ConsumerWidget {
                         (employee['full_name'] as String?)?.trim().isNotEmpty ==
                             true
                         ? employee['full_name'] as String
-                        : (es ? 'Técnico sin nombre' : 'Unnamed tech'),
+                        : localizedText(
+                            context,
+                            'Unnamed tech',
+                            'Técnico sin nombre',
+                            'Technicien sans nom',
+                          ),
                   )
                   .toList();
 
@@ -333,7 +355,12 @@ class CreateWorkOrderForm extends ConsumerWidget {
                     icon: const Icon(Icons.people_outline),
                     label: Text(
                       selectedNames.isEmpty
-                          ? (es ? 'Asignar técnicos' : 'Assign technicians')
+                          ? localizedText(
+                              context,
+                              'Assign technicians',
+                              'Asignar técnicos',
+                              'Affecter des techniciens',
+                            )
                           : (es
                                 ? 'Asignados (${selectedNames.length})'
                                 : 'Assigned (${selectedNames.length})'),
@@ -369,7 +396,12 @@ class CreateWorkOrderForm extends ConsumerWidget {
           const SizedBox(height: 24),
           createWorkOrderSectionHeader(
             context,
-            es ? 'PROGRAMACIÓN' : 'SCHEDULING',
+            localizedText(
+              context,
+              'SCHEDULING',
+              'PROGRAMACIÓN',
+              'PLANIFICATION',
+            ),
           ),
           const SizedBox(height: 8),
           InkWell(
@@ -407,14 +439,22 @@ class CreateWorkOrderForm extends ConsumerWidget {
               labelText: es
                   ? 'Horas actuales del motor'
                   : 'Current Engine Hours',
-              hintText: es ? 'p. ej., 1250.5' : 'e.g. 1250.5',
+              hintText: localizedText(
+                context,
+                'e.g. 1250.5',
+                'p. ej., 1250.5',
+                'p. ex. 1 250,5',
+              ),
               prefixIcon: const Icon(Icons.timer_outlined),
             ),
           ),
 
           // ── NOTES ─────────────────────────────────────────────
           const SizedBox(height: 24),
-          createWorkOrderSectionHeader(context, es ? 'NOTAS' : 'NOTES'),
+          createWorkOrderSectionHeader(
+            context,
+            localizedText(context, 'NOTES', 'NOTAS', 'NOTES'),
+          ),
           const SizedBox(height: 8),
           TextFormField(
             controller: descCtrl,

@@ -54,7 +54,10 @@ ids=','.join("'"+a+"'::uuid" for a in sorted(assets))
 stock_ids=','.join("'"+a+"'::uuid" for a in sorted(stocks)) or 'select null::uuid where false'
 def query(sql):
     query_file.write_text(sql,encoding='utf-8')
-    return json.loads(cli('supabase','db','query','--linked','--file',str(query_file),'--output','json',cwd=connection_root))
+    response=json.loads(cli('supabase','db','query','--linked','--file',str(query_file),'--output','json',cwd=connection_root))
+    rows=response if isinstance(response,list) else response.get('rows',response.get('result'))
+    if not isinstance(rows,list): raise RuntimeError('Unexpected CLI SQL response; cleanup stopped')
+    return rows
 marker_values=','.join(repr(m) for m in sorted(builder_markers)) or "''"
 procedures=query(f"select p.id,p.draft->>'name' as name,u.email from public.checklist_procedures p join public.profiles u on u.id=p.created_by where split_part(p.draft->>'name',' ',1) in ({marker_values})")
 for item in procedures:
@@ -82,6 +85,9 @@ sql=f"""select jsonb_build_object(
  'unrelated_templates',(select count(*) from public.checklist_templates where procedure_id is null or procedure_id not in ({procedure_ids})),
  'unrelated_procedures',(select count(*) from public.checklist_procedures where id not in ({procedure_ids})),
  'unrelated_assignments',(select count(*) from public.checklist_assignments where asset_id is null or asset_id not in ({ids})),
+ 'unrelated_issue_context',(select count(*) from public.checklist_issue_context where run_id not in (select id from public.operator_checklist_runs where asset_id in ({ids}))),
+ 'unrelated_cycles',(select count(*) from public.recurring_work_cycles where asset_id not in ({ids})),
+ 'unrelated_inspection_versions',(select count(*) from public.inspection_submissions where inspection_id not in(select id from public.asset_inspections where asset_id in ({ids}))),
  'unrelated_inspections',(select count(*) from public.asset_inspections where asset_id not in ({ids})),
  'unrelated_posts',(select count(*) from public.coordination_posts where asset_id not in ({ids})),
  'unrelated_invoices',(select count(*) from public.invoices where work_order_id not in(select id from public.work_orders where asset_id in ({ids})))) as manifest;"""
@@ -113,7 +119,8 @@ end $$;""")
 receipt.parent.mkdir(parents=True,exist_ok=True)
 with receipt.open('x',encoding='utf-8') as output:
     json.dump({'status':'started','manifest_dir':str(manifest_dir),'assets':assets,'procedures':procedures,'objects':objects,'before':before},output,indent=2)
-keys=json.loads(cli('supabase','projects','api-keys','--project-ref','hkjpojobdbbtjkhaudki','--output','json'))
+key_response=json.loads(cli('supabase','projects','api-keys','--project-ref','hkjpojobdbbtjkhaudki','--output','json'))
+keys=key_response if isinstance(key_response,list) else key_response.get('api_keys',[])
 key=next(k['api_key'] for k in keys if k['name']=='service_role')
 for item in objects:
     assert item['bucket_id'] in ['inspection-evidence','service-request-photos','operator-evidence','maintenance-evidence','service-report-photos']
@@ -146,6 +153,7 @@ do $$ begin
  then raise exception 'Fixture checklist is referenced outside the test'; end if;
 end $$;
 delete from public.notifications where asset_id in ({ids});
+delete from public.checklist_issue_context where run_id in(select id from public.operator_checklist_runs where asset_id in ({ids}));
 delete from public.checklist_findings where run_id in(select id from public.operator_checklist_runs where asset_id in ({ids}));
 delete from public.maintenance_operations where object_id in(select id from public.checklist_assignments where asset_id in ({ids}));
 update public.operator_checklist_runs set assignment_id=null where asset_id in ({ids});
@@ -189,6 +197,8 @@ delete from public.maintenance_operations where object_id in ({ids}) or object_i
 delete from public.maintenance_job_records where id in ({jobs});
 delete from public.checklist_responses where work_order_id in ({jobs});
 delete from public.work_order_sources where work_order_id in ({jobs});
+delete from public.recurring_work_cycles where asset_id in ({ids});
+delete from public.inspection_submissions where inspection_id in(select id from public.asset_inspections where asset_id in ({ids}));
 delete from public.work_orders where asset_id in ({ids});
 delete from public.saved_checklists where asset_id in ({ids});
 delete from public.asset_service_intervals where asset_id in ({ids});

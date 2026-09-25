@@ -7,6 +7,7 @@ import 'package:share_plus/share_plus.dart';
 import 'package:vortice_app/features/auth/auth_provider.dart';
 import 'package:vortice_app/models/profile.dart';
 import 'package:vortice_app/core/app_dropdown_field.dart';
+import 'package:vortice_app/core/localized_text.dart';
 import 'package:vortice_app/features/fleet/fleet_widgets.dart';
 import 'coordination_repository.dart';
 import 'coordination_labels.dart';
@@ -132,7 +133,14 @@ class _AssetHistoryScreenState extends ConsumerState<AssetHistoryScreen> {
                 for (final key in historyCategories.keys)
                   DropdownMenuItem(
                     value: key,
-                    child: Text(coordinationLabel(historyCategories, key, es)),
+                    child: Text(
+                      coordinationLabel(
+                        historyCategories,
+                        key,
+                        es,
+                        french: isFrench(context),
+                      ),
+                    ),
                   ),
               ],
               onChanged: _exporting
@@ -313,9 +321,15 @@ class _HistoryEvent extends ConsumerWidget {
       margin: const EdgeInsets.only(top: 12),
       child: ExpansionTile(
         tilePadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        title: Text(historyKindLabel(row['kind'] as String?, es)),
+        title: Text(
+          historyKindLabel(
+            row['kind'] as String?,
+            es,
+            french: isFrench(context),
+          ),
+        ),
         subtitle: Text(
-          '${coordinationLabel(historyCategories, row['category'] as String? ?? '', es)} · ${fleetDate(context, DateTime.tryParse(row['occurred_at'] as String? ?? ''))}',
+          '${coordinationLabel(historyCategories, row['category'] as String? ?? '', es, french: isFrench(context))} · ${fleetDate(context, DateTime.tryParse(row['occurred_at'] as String? ?? ''))}',
         ),
         childrenPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
         expandedCrossAxisAlignment: CrossAxisAlignment.start,
@@ -335,8 +349,14 @@ class _HistoryEvent extends ConsumerWidget {
               padding: const EdgeInsets.symmetric(vertical: 8),
               child: Text(row['actor_name'] as String),
             ),
-          if (historyDetailText(detail, es).isNotEmpty)
-            SelectableText(historyDetailText(detail, es)),
+          if (historyDetailText(
+            detail,
+            es,
+            french: isFrench(context),
+          ).isNotEmpty)
+            SelectableText(
+              historyDetailText(detail, es, french: isFrench(context)),
+            ),
           if (destination != null)
             Padding(
               padding: const EdgeInsets.only(top: 12),

@@ -7,11 +7,27 @@ String meterSymbol(String? unit) => switch (unit) {
   _ => 'h',
 };
 
-String meterName(String? unit, bool es) => switch (unit) {
-  'km' => es ? 'Kilómetros' : 'Kilometres',
-  'mi' => es ? 'Millas' : 'Miles',
-  _ => es ? 'Horas' : 'Hours',
-};
+String meterName(String? unit, bool es, {bool french = false}) =>
+    switch (unit) {
+      'km' =>
+        french
+            ? 'Kilomètres'
+            : es
+            ? 'Kilómetros'
+            : 'Kilometres',
+      'mi' =>
+        french
+            ? 'Milles'
+            : es
+            ? 'Millas'
+            : 'Miles',
+      _ =>
+        french
+            ? 'Heures'
+            : es
+            ? 'Horas'
+            : 'Hours',
+    };
 
 String formatMeter(num? value, String? unit) => value == null
     ? '— ${meterSymbol(unit)}'

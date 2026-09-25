@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:vortice_app/core/theme.dart';
+import 'package:vortice_app/core/localized_text.dart';
 import 'package:vortice_app/features/auth/auth_provider.dart';
 import 'package:vortice_app/features/maintenance/maintenance_repository.dart';
 import 'package:vortice_app/features/service_reports/service_report_index.dart';
@@ -193,9 +194,11 @@ class _MaintenanceReportCard extends StatelessWidget {
           child: Text(
             [
               job.assetName,
-              '${es ? 'Informe de servicio' : 'Service report'} · ${job.lifecycleLabel(es)}',
+              '${localizedText(context, 'Service report', 'Informe de servicio', 'Rapport d’entretien')} · ${job.lifecycleLabel(es, french: Localizations.localeOf(context).languageCode == 'fr')}',
               if (date != null)
-                DateFormat.yMMMd(es ? 'es' : 'en').format(date.toLocal()),
+                DateFormat.yMMMd(
+                  Localizations.localeOf(context).languageCode,
+                ).format(date.toLocal()),
             ].join('\n'),
           ),
         ),

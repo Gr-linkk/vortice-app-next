@@ -1,39 +1,49 @@
-import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:vortice_app/features/invoices/billing_profile.dart';
+import 'package:vortice_app/features/invoices/billing_fields.dart';
+import 'package:vortice_app/features/invoices/canadian_invoice_editor.dart';
 import 'organization_work_execution_test.dart'
     show ExecutionFixture, app, reveal;
 
 void main() {
-  testWidgets('invalid CAD rate keeps entered customer charges on screen', (
-    tester,
-  ) async {
-    SharedPreferences.setMockInitialValues({});
-    final fixture = ExecutionFixture();
-    (fixture.data['work_order'] as Map)['status'] = 'closed';
-    fixture.data['can_bill'] = true;
-    await tester.pumpWidget(app(fixture));
-    await tester.pumpAndSettle();
-    await reveal(tester, find.text('Generate invoice'));
-    await tester.tap(find.text('Generate invoice'));
-    await tester.pumpAndSettle();
-    await tester.pump(const Duration(seconds: 9));
-    await tester.pumpAndSettle();
-    final labour = find.widgetWithText(TextField, 'Labour rate (USD/hour)');
-    final cad = find.widgetWithText(TextField, 'CAD per USD');
-    expect(cad, findsOneWidget);
-    await tester.enterText(labour, '100');
-    await tester.enterText(
-      find.widgetWithText(TextField, 'MXN per USD'),
-      '17.5',
-    );
-    await tester.enterText(cad, '0');
-    await tester.ensureVisible(find.text('Generate invoice draft'));
-    await tester.tap(find.text('Generate invoice draft'));
-    await tester.pumpAndSettle();
-    expect(find.text('Enter a positive exchange rate.'), findsOneWidget);
-    expect(tester.widget<TextField>(labour).controller!.text, '100');
-    expect(tester.widget<TextField>(cad).controller!.text, '0');
-    expect(tester.takeException(), isNull);
-  });
+  testWidgets(
+    'approved customer work opens CAD setup before accepting charges',
+    (tester) async {
+      SharedPreferences.setMockInitialValues({});
+      final fixture = ExecutionFixture();
+      (fixture.data['work_order'] as Map)['status'] = 'closed';
+      fixture.data['can_bill'] = true;
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            billingProfileProvider.overrideWith(
+              (_) async => {
+                'organization_id': 'company',
+                'details': null,
+                'can_manage': true,
+              },
+            ),
+          ],
+          child: app(fixture),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await reveal(tester, find.text('Generate invoice'));
+      await tester.tap(find.text('Generate invoice'));
+      await tester.pumpAndSettle();
+      expect(find.byType(CanadianInvoiceEditor), findsOneWidget);
+      expect(find.text('Set up company details'), findsOneWidget);
+      expect(find.text('MXN per USD'), findsNothing);
+      await tester.tap(find.text('Set up company details'));
+      await tester.pumpAndSettle();
+      expect(find.byType(BillingProfileScreen), findsOneWidget);
+      expect(
+        find.widgetWithText(BillingTextField, 'Legal or trading name'),
+        findsOneWidget,
+      );
+      expect(tester.takeException(), isNull);
+    },
+  );
 }

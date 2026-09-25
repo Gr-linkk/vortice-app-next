@@ -52,8 +52,12 @@ class PlanningJob extends MaintenanceJob {
           status == 'on_hold' && !['parts', 'people'].contains(blockedCategory),
         _ => !completed,
       };
-  bool matchesSearch(String query, bool es) =>
-      '$title $assetName $componentName $assigneeName $status ${lifecycleLabel(es)} ${status == 'invoiced' ? (es ? 'Facturado' : 'Invoiced') : ''} ${workType.dbValue} ${workType.label(es)}'
+  bool matchesSearch(String query, bool es, {bool french = false}) =>
+      '$title $assetName $componentName $assigneeName $status ${lifecycleLabel(es, french: french)} ${status == 'invoiced' ? (french
+                    ? 'Facturé'
+                    : es
+                    ? 'Facturado'
+                    : 'Invoiced') : ''} ${workType.dbValue} ${workType.label(es, fr: french)}'
           .toLowerCase()
           .contains(query.trim().toLowerCase());
   bool inPeriod(DateTime from, DateTime until) => (providerService

@@ -83,6 +83,7 @@ class EmployeeDashboard extends ConsumerWidget {
                                 context,
                                 'Other work orders',
                                 'Otras órdenes de trabajo',
+                                'Autres bons de travail',
                               ),
                             ),
                           ),

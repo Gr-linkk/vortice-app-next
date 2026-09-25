@@ -1,3 +1,6 @@
+import 'package:vortice_app/features/invoices/billing_profile.dart';
+import 'package:vortice_app/features/maintenance/maintenance_repository.dart';
+import 'package:vortice_app/features/parts/parts_readiness_repository.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -7,6 +10,7 @@ import 'company_purpose.dart';
 import 'membership_provider.dart';
 import 'package:vortice_app/core/app_dropdown_field.dart';
 import 'package:vortice_app/core/user_feedback.dart';
+import 'package:vortice_app/core/localized_text.dart';
 import 'package:vortice_app/features/membership/organization_work_provider.dart';
 import 'package:vortice_app/features/work_orders/work_order_provider.dart';
 
@@ -20,7 +24,8 @@ class OrganizationServicesScreen extends ConsumerStatefulWidget {
 class _OrganizationServicesScreenState
     extends ConsumerState<OrganizationServicesScreen> {
   bool _busy = false;
-  String _t(String en, String es) => isSpanish(context) ? es : en;
+  String _t(String en, String es, [String? fr]) =>
+      localizedText(context, en, es, fr ?? en);
   Future<void> _run(Future<void> Function() action) async {
     setState(() => _busy = true);
     try {
@@ -28,6 +33,8 @@ class _OrganizationServicesScreenState
       ref.invalidate(organizationServiceConfigurationProvider);
       ref.invalidate(organizationServiceRequestContextProvider);
       ref.invalidate(organizationContextProvider);
+      ref.invalidate(maintenanceAssetProvider);
+      ref.invalidate(partsWorkspaceProvider);
     } catch (error) {
       if (mounted) {
         ScaffoldMessenger.of(
@@ -44,7 +51,13 @@ class _OrganizationServicesScreenState
     final code = await showDialog<String>(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text(_t('Connect a customer', 'Conectar un cliente')),
+        title: Text(
+          _t(
+            'Connect a customer',
+            'Conectar un cliente',
+            'Connecter un client',
+          ),
+        ),
         content: TextField(
           controller: controller,
           textCapitalization: TextCapitalization.characters,
@@ -52,17 +65,24 @@ class _OrganizationServicesScreenState
             labelText: _t(
               'Customer company code',
               'Código de la empresa cliente',
+              'Code de l’entreprise cliente',
             ),
           ),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: Text(_t('Cancel', 'Cancelar')),
+            child: Text(_t('Cancel', 'Cancelar', 'Annuler')),
           ),
           FilledButton(
             onPressed: () => Navigator.pop(context, controller.text),
-            child: Text(_t('Request connection', 'Solicitar conexión')),
+            child: Text(
+              _t(
+                'Request connection',
+                'Solicitar conexión',
+                'Demander une connexion',
+              ),
+            ),
           ),
         ],
       ),
@@ -78,7 +98,13 @@ class _OrganizationServicesScreenState
   @override
   Widget build(BuildContext context) => Scaffold(
     appBar: AppBar(
-      title: Text(_t('Company services', 'Servicios de la empresa')),
+      title: Text(
+        _t(
+          'Company services',
+          'Servicios de la empresa',
+          'Services de l’entreprise',
+        ),
+      ),
     ),
     body: ref
         .watch(organizationServiceConfigurationProvider)
@@ -96,6 +122,9 @@ class _OrganizationServicesScreenState
             final org = data['organization_id'];
             final provider = settings['provider_enabled'] == true;
             final billing = settings['billing_enabled'] == true;
+            final costCurrency = settings['cost_currency'] == 'CAD'
+                ? 'CAD'
+                : 'USD';
             final purpose = CompanyPurpose.parse(
               settings['company_purpose'] as String?,
             );
@@ -107,10 +136,12 @@ class _OrganizationServicesScreenState
                       ? _t(
                           'Maintain your own equipment. Connect with a service provider when you need outside work.',
                           'Mantén tus propios equipos. Conecta con un proveedor cuando necesites trabajo externo.',
+                          'Entretenez vos propres équipements. Faites appel à un fournisseur de services lorsque vous avez besoin de travaux externes.',
                         )
                       : _t(
                           'Maintain your own equipment and work with customer companies.',
                           'Mantén tus propios equipos y trabaja con empresas clientes.',
+                          'Entretenez vos propres équipements et travaillez avec des entreprises clientes.',
                         ),
                   style: Theme.of(context).textTheme.titleMedium,
                 ),
@@ -118,6 +149,7 @@ class _OrganizationServicesScreenState
                 CompanyPurposePicker(
                   value: purpose,
                   spanish: isSpanish(context),
+                  french: isFrench(context),
                   onChanged: !owner || _busy
                       ? null
                       : (value) => _run(
@@ -126,6 +158,51 @@ class _OrganizationServicesScreenState
                               .setPurpose(value),
                         ),
                 ),
+                if (purpose != CompanyPurpose.fleet && owner) ...[
+                  const SizedBox(height: 12),
+                  Text(
+                    _t(
+                      'Cost currency for new work',
+                      'Moneda de los nuevos trabajos',
+                      'Devise des nouveaux travaux',
+                    ),
+                    style: Theme.of(context).textTheme.titleMedium,
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    _t(
+                      'Choose CAD or USD for new internal jobs and new stock. Existing records keep their original currency.',
+                      'Elige CAD o USD para los nuevos trabajos internos y las nuevas existencias. Los registros existentes conservan su moneda original.',
+                      'Choisissez CAD ou USD pour les nouveaux travaux internes et les nouveaux articles en stock. Les dossiers existants conservent leur devise d’origine.',
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  AppDropdownField<String>(
+                    key: ValueKey('cost-currency-$costCurrency'),
+                    initialValue: costCurrency,
+                    decoration: InputDecoration(
+                      labelText: _t(
+                        'Cost currency',
+                        'Moneda de costos',
+                        'Devise des coûts',
+                      ),
+                    ),
+                    items: const [
+                      DropdownMenuItem(value: 'CAD', child: Text('CAD')),
+                      DropdownMenuItem(value: 'USD', child: Text('USD')),
+                    ],
+                    onChanged: _busy || !owner
+                        ? null
+                        : (value) {
+                            if (value == null || value == costCurrency) return;
+                            _run(
+                              () => ref
+                                  .read(organizationWorkRepositoryProvider)
+                                  .configureCostCurrency(value),
+                            );
+                          },
+                  ),
+                ],
                 const SizedBox(height: 16),
                 if (purpose != CompanyPurpose.fleet || billing)
                   SwitchListTile(
@@ -135,6 +212,7 @@ class _OrganizationServicesScreenState
                       _t(
                         'Enable company billing',
                         'Activar facturación de empresa',
+                        'Activer la facturation de l’entreprise',
                       ),
                     ),
                     subtitle: Text(
@@ -142,10 +220,12 @@ class _OrganizationServicesScreenState
                           ? _t(
                               'Customer invoices are for service providers. Turn this off to match your company choice.',
                               'Las facturas a clientes son para proveedores de servicios. Desactiva esta opción para que coincida con tu empresa.',
+                              'La facturation des clients est réservée aux fournisseurs de services. Désactivez-la pour respecter le choix de votre entreprise.',
                             )
                           : _t(
                               'For customer work only. People also need Billing permission to manage invoices.',
                               'Solo para trabajos de clientes. También se necesita permiso de facturación para gestionar facturas.',
+                              'Pour les travaux effectués pour les clients seulement. Les personnes doivent aussi avoir l’autorisation Facturation pour gérer les factures.',
                             ),
                     ),
                     onChanged:
@@ -159,9 +239,44 @@ class _OrganizationServicesScreenState
                                 .configure(provider, value),
                           ),
                   ),
+                if (owner && provider && billing)
+                  OutlinedButton.icon(
+                    onPressed: _busy
+                        ? null
+                        : () => _run(() async {
+                            final profile = await ref
+                                .read(billingProfileRepositoryProvider)
+                                .load();
+                            if (!context.mounted) return;
+                            await Navigator.push<bool>(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => BillingProfileScreen(
+                                  organizationId:
+                                      profile['organization_id'] as String,
+                                  details: Map<String, dynamic>.from(
+                                    profile['details'] as Map? ?? {},
+                                  ),
+                                ),
+                              ),
+                            );
+                          }),
+                    icon: const Icon(Icons.business_outlined),
+                    label: Text(
+                      _t(
+                        'Company invoice details',
+                        'Datos de facturación',
+                        'Coordonnées de facturation',
+                      ),
+                    ),
+                  ),
                 const Divider(height: 32),
                 Text(
-                  _t('Your company code', 'Código de tu empresa'),
+                  _t(
+                    'Your company code',
+                    'Código de tu empresa',
+                    'Code de votre entreprise',
+                  ),
                   style: Theme.of(context).textTheme.titleMedium,
                 ),
                 ListTile(
@@ -171,11 +286,16 @@ class _OrganizationServicesScreenState
                     _t(
                       'Share with a service provider. You approve the connection before work can be requested.',
                       'Compártelo con un proveedor. Debes aprobar la conexión antes de solicitar trabajo.',
+                      'Partagez-le avec un fournisseur de services. Vous devez approuver la connexion avant qu’une demande de travaux puisse être envoyée.',
                     ),
                   ),
                   trailing: IconButton(
                     icon: const Icon(Icons.copy_outlined),
-                    tooltip: _t('Copy company code', 'Copiar código'),
+                    tooltip: _t(
+                      'Copy company code',
+                      'Copiar código',
+                      'Copier le code de l’entreprise',
+                    ),
                     onPressed: () async {
                       await Clipboard.setData(
                         ClipboardData(
@@ -186,7 +306,11 @@ class _OrganizationServicesScreenState
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(
                             content: Text(
-                              _t('Company code copied', 'Código copiado'),
+                              _t(
+                                'Company code copied',
+                                'Código copiado',
+                                'Code de l’entreprise copié',
+                              ),
                             ),
                           ),
                         );
@@ -199,12 +323,16 @@ class _OrganizationServicesScreenState
                     onPressed: _busy ? null : _connect,
                     icon: const Icon(Icons.link),
                     label: Text(
-                      _t('Connect a customer', 'Conectar un cliente'),
+                      _t(
+                        'Connect a customer',
+                        'Conectar un cliente',
+                        'Connecter un client',
+                      ),
                     ),
                   ),
                 const SizedBox(height: 24),
                 Text(
-                  _t('Connections', 'Conexiones'),
+                  _t('Connections', 'Conexiones', 'Connexions'),
                   style: Theme.of(context).textTheme.titleLarge,
                 ),
                 for (final raw in data['relationships'] as List)
@@ -224,13 +352,18 @@ class _OrganizationServicesScreenState
                         ),
                         subtitle: Text(
                           status == 'active'
-                              ? _t('Connected', 'Conectado')
+                              ? _t('Connected', 'Conectado', 'Connecté')
                               : status == 'proposed'
                               ? _t(
                                   'Awaiting approval',
                                   'Pendiente de aprobación',
+                                  'En attente d’approbation',
                                 )
-                              : _t('Connection ended', 'Conexión finalizada'),
+                              : _t(
+                                  'Connection ended',
+                                  'Conexión finalizada',
+                                  'Connexion terminée',
+                                ),
                         ),
                         trailing: status == 'proposed' && incoming && admin
                             ? TextButton(
@@ -249,13 +382,16 @@ class _OrganizationServicesScreenState
                                               'accept',
                                             ),
                                       ),
-                                child: Text(_t('Accept', 'Aceptar')),
+                                child: Text(
+                                  _t('Accept', 'Aceptar', 'Accepter'),
+                                ),
                               )
                             : status == 'active' && admin
                             ? IconButton(
                                 tooltip: _t(
                                   'End connection',
                                   'Finalizar conexión',
+                                  'Mettre fin à la connexion',
                                 ),
                                 icon: const Icon(Icons.link_off),
                                 onPressed: _busy
@@ -284,13 +420,20 @@ class _OrganizationServicesScreenState
                       ? null
                       : () => showOrganizationServiceRequest(context),
                   icon: const Icon(Icons.add_task),
-                  label: Text(_t('Request service', 'Solicitar servicio')),
+                  label: Text(
+                    _t(
+                      'Request service',
+                      'Solicitar servicio',
+                      'Demander un service',
+                    ),
+                  ),
                 ),
                 const SizedBox(height: 8),
                 Text(
                   _t(
                     'Service requests open in Work Orders with your other work.',
                     'Las solicitudes de servicio se abren en Órdenes de trabajo junto con tus otros trabajos.',
+                    'Les demandes de service apparaissent dans les bons de travail avec vos autres travaux.',
                   ),
                 ),
               ],
@@ -324,7 +467,8 @@ class _OrganizationServiceRequestSheetState
   String? _asset;
   String? _error;
   bool _busy = false;
-  String _t(String en, String es) => isSpanish(context) ? es : en;
+  String _t(String en, String es, [String? fr]) =>
+      localizedText(context, en, es, fr ?? en);
   @override
   void dispose() {
     _title.dispose();
@@ -383,7 +527,11 @@ class _OrganizationServiceRequestSheetState
               mainAxisSize: MainAxisSize.min,
               children: [
                 Text(
-                  _t('Request service', 'Solicitar servicio'),
+                  _t(
+                    'Request service',
+                    'Solicitar servicio',
+                    'Demander un service',
+                  ),
                   style: Theme.of(context).textTheme.titleLarge,
                 ),
                 const SizedBox(height: 20),
@@ -392,6 +540,7 @@ class _OrganizationServiceRequestSheetState
                     _t(
                       'Connect and approve a service provider in Company services first.',
                       'Conecta y aprueba un proveedor en Servicios de la empresa primero.',
+                      'Connectez-vous à un fournisseur de services et approuvez-le d’abord dans Services de l’entreprise.',
                     ),
                   )
                 else ...[
@@ -399,7 +548,7 @@ class _OrganizationServiceRequestSheetState
                     isExpanded: true,
                     initialValue: _provider,
                     decoration: InputDecoration(
-                      labelText: _t('Provider', 'Proveedor'),
+                      labelText: _t('Provider', 'Proveedor', 'Fournisseur'),
                     ),
                     items: (data['providers'] as List)
                         .map(
@@ -418,7 +567,7 @@ class _OrganizationServiceRequestSheetState
                     isExpanded: true,
                     initialValue: _asset,
                     decoration: InputDecoration(
-                      labelText: _t('Equipment', 'Equipo'),
+                      labelText: _t('Equipment', 'Equipo', 'Équipement'),
                     ),
                     items: (data['assets'] as List)
                         .map(
@@ -438,7 +587,11 @@ class _OrganizationServiceRequestSheetState
                     enabled: !_busy,
                     maxLength: 160,
                     decoration: InputDecoration(
-                      labelText: _t('Work needed', 'Trabajo necesario'),
+                      labelText: _t(
+                        'Work needed',
+                        'Trabajo necesario',
+                        'Travaux requis',
+                      ),
                     ),
                     onChanged: (_) => setState(() {}),
                   ),
@@ -452,6 +605,7 @@ class _OrganizationServiceRequestSheetState
                       labelText: _t(
                         'Request details',
                         'Detalles de la solicitud',
+                        'Détails de la demande',
                       ),
                     ),
                   ),
@@ -473,8 +627,12 @@ class _OrganizationServiceRequestSheetState
                         : _submit,
                     child: Text(
                       _busy
-                          ? _t('Creating…', 'Creando…')
-                          : _t('Create work order', 'Crear orden de trabajo'),
+                          ? _t('Creating…', 'Creando…', 'Création…')
+                          : _t(
+                              'Create work order',
+                              'Crear orden de trabajo',
+                              'Créer un bon de travail',
+                            ),
                     ),
                   ),
                 ],

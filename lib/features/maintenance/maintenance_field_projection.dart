@@ -58,7 +58,12 @@ MaintenanceJob projectMaintenanceFieldWork(
         };
         row['checklist_answers'] = data['answers'];
         row['evidence_paths'] = data['evidence_paths'];
-        row['hours_at_end'] = data['completion_hours'];
+        // Report forms persist decimal input as text in the durable outbox.
+        // Screens consume the same numeric meter shape as hosted JSON.
+        final completion = data['completion_hours'];
+        row['hours_at_end'] = completion is num
+            ? completion
+            : num.tryParse(completion?.toString() ?? '');
         if (payload['p_action'] == 'submit') row['status'] = 'pending_review';
       case 'add_part':
         row['parts'] = [

@@ -100,6 +100,7 @@ Future<void> pumpReport(
   ReportLoader loader, {
   String language = 'en',
   double scale = 1,
+  double width = 390,
   bool dark = false,
   UserRole role = UserRole.clientAdmin,
   Future<void> Function(String, Rect?)? share,
@@ -107,7 +108,7 @@ Future<void> pumpReport(
   bool settle = true,
 }) async {
   tester.view.resetPhysicalSize();
-  tester.view.physicalSize = const Size(390, 844);
+  tester.view.physicalSize = Size(width, 844);
   tester.view.devicePixelRatio = 1;
   addTearDown(tester.view.resetPhysicalSize);
   addTearDown(tester.view.resetDevicePixelRatio);
@@ -151,7 +152,7 @@ Future<void> pumpReport(
           routerConfig: router,
           theme: dark ? AppTheme.darkNavyTheme : AppTheme.lightTheme,
           locale: Locale(language),
-          supportedLocales: const [Locale('en'), Locale('es')],
+          supportedLocales: AppLocalizations.supportedLocales,
           localizationsDelegates: const [
             AppLocalizations.delegate,
             GlobalMaterialLocalizations.delegate,
@@ -179,6 +180,41 @@ Future<void> reveal(WidgetTester tester, Finder finder) async {
 }
 
 void main() {
+  test('currency selection never relabels legacy USD as CAD', () {
+    final old = fixture();
+    final cad = old.inCurrency('CAD');
+    expect(cad.total('total'), 0);
+    expect(cad.assets.first['records'][0]['currency'], 'USD');
+    expect(cad.inCurrency('USD').total('total'), old.total('total'));
+  });
+  test('report totals and CSV keep CAD and USD separate', () {
+    final mixed = EquipmentReport({
+      ...fixture().data,
+      'currencies': ['CAD', 'USD'],
+      'assets': [
+        {
+          ...fixture().assets.first,
+          'amounts_by_currency': {
+            'CAD': {
+              'labour': 120,
+              'parts': 50,
+              'outside': 282.51,
+              'total': 452.51,
+            },
+            'USD': {'labour': 100, 'parts': 40, 'outside': 116, 'total': 256},
+          },
+        },
+      ],
+    });
+    final cad = mixed.inCurrency('CAD');
+    expect(cad.total('total'), 452.51);
+    expect(cad.inCurrency('USD').total('total'), 256);
+    final csv = equipmentReportCsv(cad);
+    expect(csv, contains('Recorded total CAD'));
+    expect(csv, contains('Currency'));
+    expect(csv, contains('USD'));
+  });
+
   setUpAll(() async {
     await loadFleetScreenshotFonts();
     await (FontLoader(
@@ -379,7 +415,59 @@ void main() {
       findsOneWidget,
     );
   });
-  for (final language in ['en', 'es']) {
+  for (final language in ['en', 'fr']) {
+    testWidgets('mixed CAD/USD selection and export $language at large text', (
+      tester,
+    ) async {
+      final mixed = EquipmentReport({
+        ...fixture().data,
+        'preferred_currency': 'CAD',
+        'currencies': ['CAD', 'USD'],
+        'assets': [
+          {
+            ...fixture().assets.first,
+            'amounts_by_currency': {
+              'CAD': {
+                'labour': 120,
+                'parts': 50,
+                'outside': 282.51,
+                'total': 452.51,
+              },
+              'USD': {'labour': 100, 'parts': 40, 'outside': 116, 'total': 256},
+            },
+          },
+        ],
+      });
+      String? exported;
+      await pumpReport(
+        tester,
+        (_) async => mixed,
+        language: language,
+        scale: 2,
+        width: 320,
+        share: (value, _) async => exported = value,
+      );
+      await reveal(tester, find.widgetWithText(ChoiceChip, 'CAD'));
+      expect(find.text('CAD 452.51'), findsOneWidget);
+      await captureFleet(tester, 'report-mixed-cad-$language');
+      await tester.tap(find.widgetWithText(ChoiceChip, 'USD'));
+      await tester.pumpAndSettle();
+      expect(find.text('USD 256.00'), findsOneWidget);
+      expect(find.text('CAD 452.51'), findsNothing);
+      await captureFleet(tester, 'report-mixed-usd-$language');
+      final export = find.text(
+        language == 'fr' ? 'Exporter le rapport' : 'Export report',
+      );
+      await reveal(tester, export);
+      await tester.tap(export);
+      await tester.pumpAndSettle();
+      expect(exported, contains('USD'));
+      expect(exported, contains('256.00'));
+      expect(exported, isNot(contains('452.51')));
+      expect(tester.takeException(), isNull);
+    });
+  }
+  for (final language in ['en', 'es', 'fr']) {
     for (final scale in [1.0, 2.0]) {
       testWidgets('render $language ${scale}x', (tester) async {
         await pumpReport(
@@ -387,6 +475,7 @@ void main() {
           (_) async => fixture(),
           language: language,
           scale: scale,
+          width: scale == 2 ? 320 : 390,
           dark: language == 'es',
         );
         expect(tester.takeException(), isNull);

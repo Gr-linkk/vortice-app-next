@@ -24,12 +24,26 @@ void main() {
       addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
       await h.settle();
       final pages = <Map<String, dynamic>>[];
+      final french = Platform.environment['VORTICE_AUDIT_LOCALE'] == 'fr';
+      String t(String en, String fr) => french ? fr : en;
       final originalError = FlutterError.onError;
       FlutterError.onError = (e) => h.issues.add(e.exceptionAsString());
       Future<void> capture(String name) async {
+        expect(
+          Localizations.localeOf(
+            tester.element(find.byType(Scaffold).first),
+          ).languageCode,
+          french ? 'fr' : 'en',
+        );
         await h.screenshot(name);
         pages.add({
           'screen': name,
+          'locale': Localizations.localeOf(
+            tester.element(find.byType(Scaffold).first),
+          ).languageCode,
+          'text_scale': MediaQuery.textScalerOf(
+            tester.element(find.byType(Scaffold).first),
+          ).scale(1),
           'topRoute': h.container
               .read(routerProvider)
               .routerDelegate
@@ -74,9 +88,11 @@ void main() {
             if (role == 'service_owner') {
               // The prepared service company has no own equipment. Its owner
               // must be able to start setup directly from the empty Home card.
-              await h.reveal(find.text('Add asset'));
+              await h.reveal(
+                find.text(t('Add asset', 'Ajouter un équipement')),
+              );
               await capture('$role-home-add-asset');
-              await h.tap(find.text('Add asset'));
+              await h.tap(find.text(t('Add asset', 'Ajouter un équipement')));
               expect(
                 h.container
                     .read(routerProvider)
@@ -88,12 +104,17 @@ void main() {
               );
               expect(find.byType(AddAssetScreen), findsOneWidget);
               await capture('$role-home-add-asset-form');
-              await h.reveal(h.field('Location'));
+              await h.reveal(h.field(t('Location', 'Emplacement')));
               await capture('$role-home-add-asset-details');
               await h.go('/client/dashboard');
             }
             // Use the actual navigation controls to establish discoverability.
-            for (final label in ['Assets', 'Work orders', 'Faults', 'More']) {
+            for (final label in [
+              t('Assets', 'Équipements'),
+              t('Work orders', 'Bons de travail'),
+              t('Faults', 'Défaillances'),
+              t('More', 'Plus'),
+            ]) {
               final target = find.text(label).hitTestable();
               if (target.evaluate().isNotEmpty) {
                 await h.tap(target.first);
@@ -135,7 +156,14 @@ void main() {
               await h.go('/work-orders/5b529c9b-b916-4248-9fed-ac2041446497');
               await capture('$role-completed-work');
               if (role == 'service_owner') {
-                await h.reveal(find.text('Internal labour and parts'));
+                await h.reveal(
+                  find.text(
+                    t(
+                      'Internal labour and parts',
+                      'Main-d’œuvre et pièces internes',
+                    ),
+                  ),
+                );
                 await capture('$role-completed-work-footer');
               }
             }

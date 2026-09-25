@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:vortice_app/core/user_feedback.dart';
+import 'package:vortice_app/core/localized_text.dart';
 import 'package:vortice_app/features/auth/auth_provider.dart';
 import 'maintenance_models.dart';
 import 'maintenance_repository.dart';
@@ -22,15 +23,26 @@ class _MaintenanceListScreenState extends ConsumerState<MaintenanceListScreen> {
   String _filter = 'open', _search = '';
   @override
   Widget build(BuildContext context) {
-    final es = isSpanish(context);
+    final es = isSpanish(context), fr = isFrench(context);
     final profile = ref.watch(profileProvider).valueOrNull;
     if (!canUseMaintenance(profile?.role)) {
       return Scaffold(
-        appBar: AppBar(title: Text(es ? 'Órdenes de trabajo' : 'Work orders')),
+        appBar: AppBar(
+          title: Text(
+            localizedText(
+              context,
+              'Work orders',
+              'Órdenes de trabajo',
+              'Bons de travail',
+            ),
+          ),
+        ),
         body: Center(
           child: Text(
             es
                 ? 'Tu perfil no tiene acceso a este trabajo.'
+                : fr
+                ? 'Votre rôle ne vous donne pas accès à ces travaux.'
                 : 'Your role does not have access to this work.',
           ),
         ),
@@ -48,15 +60,32 @@ class _MaintenanceListScreenState extends ConsumerState<MaintenanceListScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(es ? 'Órdenes de trabajo' : 'Work orders'),
+        title: Text(
+          localizedText(
+            context,
+            'Work orders',
+            'Órdenes de trabajo',
+            'Bons de travail',
+          ),
+        ),
         actions: [
           IconButton(
-            tooltip: es ? 'Equipos y planes' : 'Assets & plans',
+            tooltip: localizedText(
+              context,
+              'Equipment & plans',
+              'Equipos y planes',
+              'Équipements et plans',
+            ),
             onPressed: () => context.push('/maintenance/assets'),
             icon: const Icon(Icons.precision_manufacturing_outlined),
           ),
           IconButton(
-            tooltip: es ? 'Actualizar' : 'Refresh',
+            tooltip: localizedText(
+              context,
+              'Refresh',
+              'Actualizar',
+              'Actualiser',
+            ),
             onPressed: refresh,
             icon: const Icon(Icons.refresh),
           ),
@@ -68,7 +97,14 @@ class _MaintenanceListScreenState extends ConsumerState<MaintenanceListScreen> {
               onPressed: () =>
                   openNewWorkOrder(context, ref, assetId: widget.assetId),
               icon: const Icon(Icons.add),
-              label: Text(es ? 'Nueva orden' : 'New work order'),
+              label: Text(
+                localizedText(
+                  context,
+                  'New work order',
+                  'Nueva orden',
+                  'Nouveau bon de travail',
+                ),
+              ),
             ),
       body: Column(
         children: [
@@ -81,7 +117,9 @@ class _MaintenanceListScreenState extends ConsumerState<MaintenanceListScreen> {
             padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
             child: TextField(
               decoration: InputDecoration(
-                labelText: es
+                labelText: fr
+                    ? 'Rechercher un bon de travail ou un équipement'
+                    : es
                     ? 'Buscar orden o equipo'
                     : 'Search work order or asset',
                 prefixIcon: const Icon(Icons.search),
@@ -96,10 +134,37 @@ class _MaintenanceListScreenState extends ConsumerState<MaintenanceListScreen> {
               spacing: 8,
               children: [
                 for (final option in [
-                  ('open', es ? 'Abiertos' : 'Open'),
-                  ('mine', es ? 'Asignados a mí' : 'Assigned to me'),
-                  ('pending_review', es ? 'Por revisar' : 'Needs review'),
-                  ('closed', es ? 'Historial' : 'History'),
+                  (
+                    'open',
+                    localizedText(context, 'Open', 'Abiertos', 'Ouverts'),
+                  ),
+                  (
+                    'mine',
+                    localizedText(
+                      context,
+                      'Assigned to me',
+                      'Asignados a mí',
+                      'Attribués à moi',
+                    ),
+                  ),
+                  (
+                    'pending_review',
+                    localizedText(
+                      context,
+                      'Needs review',
+                      'Por revisar',
+                      'À réviser',
+                    ),
+                  ),
+                  (
+                    'closed',
+                    localizedText(
+                      context,
+                      'History',
+                      'Historial',
+                      'Historique',
+                    ),
+                  ),
                 ])
                   ChoiceChip(
                     label: Text(option.$2),
@@ -148,7 +213,9 @@ class _MaintenanceListScreenState extends ConsumerState<MaintenanceListScreen> {
                         Padding(
                           padding: const EdgeInsets.all(24),
                           child: Text(
-                            es
+                            fr
+                                ? 'Aucun bon de travail ne correspond à cette vue.'
+                                : es
                                 ? 'No hay órdenes con este filtro.'
                                 : 'No work orders match this view.',
                           ),
@@ -158,7 +225,11 @@ class _MaintenanceListScreenState extends ConsumerState<MaintenanceListScreen> {
                           child: ListTile(
                             title: Text(job.title),
                             subtitle: Text(
-                              '${job.assetName}\n${(job.ownEquipment ? WorkFocus.own : WorkFocus.customer).label(es)}${job.workType == null ? '' : ' · ${job.workType!.label(es)}'} · ${job.lifecycleLabel(es)}${job.status == 'invoiced' ? (es ? ' · Facturado' : ' · Invoiced') : ''}${job.priority == null ? '' : ' · ${maintenancePriority(job.priority!, es)}'}${job.dueDate == null ? '' : ' · ${maintenanceDate(job.dueDate, es)}'}',
+                              '${job.assetName}\n${(job.ownEquipment ? WorkFocus.own : WorkFocus.customer).label(es, french: fr)}${job.workType == null ? '' : ' · ${job.workType!.label(es, fr: fr)}'} · ${job.lifecycleLabel(es, french: fr)}${job.status == 'invoiced' ? (fr
+                                        ? ' · Facturé'
+                                        : es
+                                        ? ' · Facturado'
+                                        : ' · Invoiced') : ''}${job.priority == null ? '' : ' · ${maintenancePriority(job.priority!, es, french: isFrench(context))}'}${job.dueDate == null ? '' : ' · ${maintenanceDate(job.dueDate, es, french: isFrench(context))}'}',
                             ),
                             isThreeLine: true,
                             trailing: const Icon(Icons.chevron_right),

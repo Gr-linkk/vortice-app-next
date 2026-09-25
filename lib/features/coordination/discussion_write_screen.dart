@@ -5,6 +5,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:uuid/uuid.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:vortice_app/core/app_dropdown_field.dart';
+import 'package:vortice_app/core/localized_text.dart';
 import 'package:vortice_app/core/unsaved_form_guard.dart';
 import 'package:vortice_app/features/auth/auth_provider.dart';
 import 'package:vortice_app/features/fleet/fleet_widgets.dart';
@@ -292,7 +293,12 @@ class _DiscussionWriteScreenState extends ConsumerState<DiscussionWriteScreen> {
                         DropdownMenuItem(
                           value: key,
                           child: Text(
-                            coordinationLabel(isolationStates, key, es),
+                            coordinationLabel(
+                              isolationStates,
+                              key,
+                              es,
+                              french: isFrench(context),
+                            ),
                           ),
                         ),
                     ],

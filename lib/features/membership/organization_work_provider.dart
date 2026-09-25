@@ -77,6 +77,13 @@ class OrganizationWorkRepository {
     );
   }
 
+  Future<void> configureCostCurrency(String currency) async {
+    await client.rpc(
+      'configure_organization_cost_currency',
+      params: {'p_currency': currency},
+    );
+  }
+
   Future<void> propose(String code) async {
     await client.rpc(
       'propose_organization_customer',

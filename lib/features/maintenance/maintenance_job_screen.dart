@@ -10,6 +10,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:vortice_app/core/user_feedback.dart';
+import 'package:vortice_app/core/localized_text.dart';
 import 'package:vortice_app/features/auth/auth_provider.dart';
 import 'package:vortice_app/features/checklists/checklist_answer_fields.dart';
 import 'package:vortice_app/features/fleet/work_order_fault_card.dart';
@@ -19,6 +20,13 @@ import 'maintenance_repository.dart';
 import 'maintenance_refresh.dart';
 import 'internal_work_order_edit_screen.dart';
 import 'package:vortice_app/sync/online_action_gate.dart';
+
+String _maintenanceJobText(
+  BuildContext context,
+  String english,
+  String spanish,
+  String french,
+) => localizedText(context, english, spanish, french);
 
 class MaintenanceJobScreen extends ConsumerStatefulWidget {
   const MaintenanceJobScreen({super.key, required this.jobId});
@@ -93,11 +101,17 @@ class _MaintenanceJobScreenState extends ConsumerState<MaintenanceJobScreen> {
         '';
     final form = GlobalKey<FormState>();
     final unit = job.data['meter_unit'] as String? ?? 'hours';
-    final es = isSpanish(context);
     final reading = await showDialog<double>(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text(es ? 'Medidor al iniciar' : 'Starting meter'),
+        title: Text(
+          _maintenanceJobText(
+            context,
+            'Starting meter',
+            'Medidor al iniciar',
+            'Relevé initial',
+          ),
+        ),
         content: Form(
           key: form,
           child: TextFormField(
@@ -107,14 +121,17 @@ class _MaintenanceJobScreenState extends ConsumerState<MaintenanceJobScreen> {
             keyboardType: const TextInputType.numberWithOptions(decimal: true),
             decoration: InputDecoration(
               labelText:
-                  '${es ? 'Lectura actual' : 'Current reading'} (${meterSymbol(unit)})',
+                  '${_maintenanceJobText(context, 'Current reading', 'Lectura actual', 'Relevé actuel')} (${meterSymbol(unit)})',
             ),
             validator: (value) {
               final n = double.tryParse(value ?? '');
               return n == null || !n.isFinite || n < 0
-                  ? (es
-                        ? 'Ingresa una lectura válida'
-                        : 'Enter a valid reading')
+                  ? _maintenanceJobText(
+                      context,
+                      'Enter a valid reading',
+                      'Ingresa una lectura válida',
+                      'Saisissez un relevé valide',
+                    )
                   : null;
             },
           ),
@@ -122,7 +139,9 @@ class _MaintenanceJobScreenState extends ConsumerState<MaintenanceJobScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: Text(es ? 'Cancelar' : 'Cancel'),
+            child: Text(
+              _maintenanceJobText(context, 'Cancel', 'Cancelar', 'Annuler'),
+            ),
           ),
           FilledButton(
             onPressed: () {
@@ -130,7 +149,14 @@ class _MaintenanceJobScreenState extends ConsumerState<MaintenanceJobScreen> {
                 Navigator.pop(context, double.parse(meter));
               }
             },
-            child: Text(es ? 'Iniciar trabajo' : 'Start work'),
+            child: Text(
+              _maintenanceJobText(
+                context,
+                'Start work',
+                'Iniciar trabajo',
+                'Commencer le travail',
+              ),
+            ),
           ),
         ],
       ),
@@ -160,10 +186,12 @@ class _MaintenanceJobScreenState extends ConsumerState<MaintenanceJobScreen> {
       builder: (_) => _JobActionDialog(
         action: action,
         title: title,
+        costCurrency: job.costCurrency,
         assignees: maintenanceRows(catalog?['assignees']),
         approvalDescription: maintenanceApprovalDescription(
           job,
           isSpanish(context),
+          french: isFrench(context),
         ),
       ),
     );
@@ -176,10 +204,22 @@ class _MaintenanceJobScreenState extends ConsumerState<MaintenanceJobScreen> {
     final result = ref.watch(maintenanceJobProvider(widget.jobId));
     return Scaffold(
       appBar: AppBar(
-        title: Text(es ? 'Orden de trabajo' : 'Work order'),
+        title: Text(
+          localizedText(
+            context,
+            'Work order',
+            'Orden de trabajo',
+            'Bon de travail',
+          ),
+        ),
         actions: [
           IconButton(
-            tooltip: es ? 'Actualizar' : 'Refresh',
+            tooltip: _maintenanceJobText(
+              context,
+              'Refresh',
+              'Actualizar',
+              'Actualiser',
+            ),
             onPressed: _busy ? null : _refresh,
             icon: const Icon(Icons.refresh),
           ),
@@ -193,10 +233,17 @@ class _MaintenanceJobScreenState extends ConsumerState<MaintenanceJobScreen> {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Text(maintenanceError(e, es)),
+                Text(maintenanceError(e, es, french: isFrench(context))),
                 TextButton(
                   onPressed: _refresh,
-                  child: Text(es ? 'Reintentar' : 'Try again'),
+                  child: Text(
+                    _maintenanceJobText(
+                      context,
+                      'Try again',
+                      'Reintentar',
+                      'Réessayer',
+                    ),
+                  ),
                 ),
               ],
             ),
@@ -206,9 +253,12 @@ class _MaintenanceJobScreenState extends ConsumerState<MaintenanceJobScreen> {
           if (job == null) {
             return Center(
               child: Text(
-                es
-                    ? 'Orden no disponible para tu cuenta.'
-                    : 'This work order is unavailable to your account.',
+                _maintenanceJobText(
+                  context,
+                  'This work order is unavailable to your account.',
+                  'Orden no disponible para tu cuenta.',
+                  'Ce bon de travail n’est pas accessible avec votre compte.',
+                ),
               ),
             );
           }
@@ -225,49 +275,100 @@ class _MaintenanceJobScreenState extends ConsumerState<MaintenanceJobScreen> {
           final report = <Widget>[
             Text(
               job.status == 'pending_review'
-                  ? (es
-                        ? 'Revisar informe de servicio'
-                        : 'Review service report')
-                  : (es ? 'Informe guardado' : 'Saved report'),
+                  ? (_maintenanceJobText(
+                      context,
+                      'Review service report',
+                      'Revisar informe de servicio',
+                      'Examiner le rapport d’entretien',
+                    ))
+                  : (_maintenanceJobText(
+                      context,
+                      'Saved report',
+                      'Informe guardado',
+                      'Rapport enregistré',
+                    )),
               style: Theme.of(context).textTheme.titleLarge,
             ),
             info(
-              es ? 'Hallazgos' : 'Findings',
+              _maintenanceJobText(
+                context,
+                'Findings',
+                'Hallazgos',
+                'Constatations',
+              ),
               job.report['diagnosis'] as String?,
             ),
             info(
-              es ? 'Trabajo realizado' : 'Work performed',
+              _maintenanceJobText(
+                context,
+                'Work performed',
+                'Trabajo realizado',
+                'Travaux effectués',
+              ),
               job.report['repair'] as String?,
             ),
-            info(es ? 'Notas' : 'Notes', job.report['notes'] as String?),
+            info(
+              _maintenanceJobText(context, 'Notes', 'Notas', 'Notes'),
+              job.report['notes'] as String?,
+            ),
             if (job.data['inspection_id'] != null) ...[
               Text(
-                es ? 'Certificado de inspección' : 'Inspection certificate',
+                _maintenanceJobText(
+                  context,
+                  'Inspection certificate',
+                  'Certificado de inspección',
+                  'Certificat d’inspection',
+                ),
                 style: Theme.of(context).textTheme.titleMedium,
               ),
               info(
-                es ? 'Fecha de inspección' : 'Inspection date',
+                _maintenanceJobText(
+                  context,
+                  'Inspection date',
+                  'Fecha de inspección',
+                  'Date d’inspection',
+                ),
                 (job.data['inspection_result'] as Map?)?['inspected_on']
                     as String?,
               ),
               info(
-                es ? 'Próximo vencimiento' : 'Next expiry',
+                _maintenanceJobText(
+                  context,
+                  'Next expiry',
+                  'Próximo vencimiento',
+                  'Prochaine échéance',
+                ),
                 (job.data['inspection_result'] as Map?)?['expires_on']
                     as String?,
               ),
               info(
-                es ? 'Procedimiento aplicado' : 'Procedure performed',
+                _maintenanceJobText(
+                  context,
+                  'Procedure performed',
+                  'Procedimiento aplicado',
+                  'Procédure appliquée',
+                ),
                 (job.data['inspection_result'] as Map?)?['procedure_notes']
                     as String?,
               ),
               info(
-                es ? 'Resultado de inspección' : 'Inspection result',
+                _maintenanceJobText(
+                  context,
+                  'Inspection result',
+                  'Resultado de inspección',
+                  'Résultat de l’inspection',
+                ),
                 (job.data['inspection_result'] as Map?)?['result_notes']
                     as String?,
               ),
             ],
             info(
-              es ? 'Horas al finalizar' : 'Completion meter',
+              _maintenanceJobText(
+                context,
+                'Completion meter',
+                'Horas al finalizar',
+                'Relevé final',
+              ),
               job.data['hours_at_end'] == null
                   ? null
                   : formatMeter(
@@ -277,7 +378,12 @@ class _MaintenanceJobScreenState extends ConsumerState<MaintenanceJobScreen> {
             ),
             if (job.data['checklist_template_version'] != null)
               info(
-                es ? 'Lista de revisión' : 'Checklist',
+                _maintenanceJobText(
+                  context,
+                  'Checklist',
+                  'Lista de revisión',
+                  'Liste de contrôle',
+                ),
                 '${job.data['checklist_template_name']} · v${job.data['checklist_template_version']}',
               ),
             for (final item in job.checklist)
@@ -292,10 +398,30 @@ class _MaintenanceJobScreenState extends ConsumerState<MaintenanceJobScreen> {
                 subtitle: Text(
                   [
                     switch ((job.answers[item['id']] as Map?)?['result']) {
-                      'pass' => es ? 'Correcto' : 'Pass',
-                      'fail' => es ? 'Falla' : 'Fail',
-                      'na' => es ? 'No aplica' : 'Not applicable',
-                      _ => es ? 'Sin responder' : 'Unanswered',
+                      'pass' => _maintenanceJobText(
+                        context,
+                        'Pass',
+                        'Correcto',
+                        'Conforme',
+                      ),
+                      'fail' => _maintenanceJobText(
+                        context,
+                        'Fail',
+                        'Falla',
+                        'Échec',
+                      ),
+                      'na' => _maintenanceJobText(
+                        context,
+                        'Not applicable',
+                        'No aplica',
+                        'Sans objet',
+                      ),
+                      _ => _maintenanceJobText(
+                        context,
+                        'Unanswered',
+                        'Sin responder',
+                        'Sans réponse',
+                      ),
                     },
                     checklistRecordedValue(
                       Map<String, dynamic>.from(
@@ -318,9 +444,21 @@ class _MaintenanceJobScreenState extends ConsumerState<MaintenanceJobScreen> {
                     : () => _formAction(
                         job,
                         'approve',
-                        es ? 'Aprobar y completar' : 'Approve & complete',
+                        _maintenanceJobText(
+                          context,
+                          'Approve & complete',
+                          'Aprobar y completar',
+                          'Approuver et terminer',
+                        ),
                       ),
-                child: Text(es ? 'Aprobar y completar' : 'Approve & complete'),
+                child: Text(
+                  _maintenanceJobText(
+                    context,
+                    'Approve & complete',
+                    'Aprobar y completar',
+                    'Approuver et terminer',
+                  ),
+                ),
               ),
               TextButton(
                 onPressed: disabled
@@ -328,10 +466,20 @@ class _MaintenanceJobScreenState extends ConsumerState<MaintenanceJobScreen> {
                     : () => _formAction(
                         job,
                         'return',
-                        es ? 'Devolver para cambios' : 'Return for changes',
+                        _maintenanceJobText(
+                          context,
+                          'Return for changes',
+                          'Devolver para cambios',
+                          'Retourner pour corrections',
+                        ),
                       ),
                 child: Text(
-                  es ? 'Devolver para cambios' : 'Return for changes',
+                  _maintenanceJobText(
+                    context,
+                    'Return for changes',
+                    'Devolver para cambios',
+                    'Retourner pour corrections',
+                  ),
                 ),
               ),
             ],
@@ -343,13 +491,23 @@ class _MaintenanceJobScreenState extends ConsumerState<MaintenanceJobScreen> {
                 Padding(
                   padding: const EdgeInsets.only(bottom: 12),
                   child: Text(
-                    es
-                        ? 'Guardado en este dispositivo. Revisa el estado de sincronización arriba.'
-                        : 'Saved on this device. Check upload status above.',
+                    _maintenanceJobText(
+                      context,
+                      'Saved on this device. Check upload status above.',
+                      'Guardado en este dispositivo. Revisa el estado de sincronización arriba.',
+                      'Enregistré sur cet appareil. Vérifiez l’état de synchronisation ci-dessus.',
+                    ),
                   ),
                 ),
               Text(job.title, style: Theme.of(context).textTheme.headlineSmall),
-              Text(es ? 'Orden de trabajo' : 'Work order'),
+              Text(
+                localizedText(
+                  context,
+                  'Work order',
+                  'Orden de trabajo',
+                  'Bon de travail',
+                ),
+              ),
               TextButton.icon(
                 onPressed: () =>
                     context.push('/maintenance/assets/${job.assetId}'),
@@ -360,13 +518,21 @@ class _MaintenanceJobScreenState extends ConsumerState<MaintenanceJobScreen> {
               WorkPartsProgress(jobId: job.id),
               if (job.data['generation_kind'] == 'recurring')
                 Text(
-                  es
-                      ? 'Creada automáticamente por el programa de mantenimiento.'
-                      : 'Created automatically by the maintenance schedule.',
+                  _maintenanceJobText(
+                    context,
+                    'Created automatically by the maintenance schedule.',
+                    'Creada automáticamente por el programa de mantenimiento.',
+                    'Créé automatiquement par le programme d’entretien.',
+                  ),
                 ),
               if ((job.data['cycle'] as Map?)?['due_meter'] != null)
                 info(
-                  es ? 'Objetivo del medidor' : 'Due meter',
+                  _maintenanceJobText(
+                    context,
+                    'Due meter',
+                    'Objetivo del medidor',
+                    'Relevé prévu',
+                  ),
                   formatMeter(
                     (job.data['cycle'] as Map)['due_meter'] as num?,
                     job.data['meter_unit'] as String?,
@@ -379,7 +545,12 @@ class _MaintenanceJobScreenState extends ConsumerState<MaintenanceJobScreen> {
                         context.push('/fleet/faults/${source['source_id']}'),
                     icon: const Icon(Icons.link),
                     label: Text(
-                      es ? 'Abrir falla de origen' : 'Open source fault',
+                      _maintenanceJobText(
+                        context,
+                        'Open source fault',
+                        'Abrir falla de origen',
+                        'Ouvrir la défaillance source',
+                      ),
                     ),
                   ),
               for (final fault in maintenanceRows(job.data['checklist_faults']))
@@ -388,21 +559,29 @@ class _MaintenanceJobScreenState extends ConsumerState<MaintenanceJobScreen> {
                       context.push('/fleet/faults/${fault['fault_id']}'),
                   icon: const Icon(Icons.flag_outlined),
                   label: Text(
-                    es
-                        ? 'Abrir falla del paso de la lista'
-                        : 'Open checklist-step fault',
+                    _maintenanceJobText(
+                      context,
+                      'Open checklist-step fault',
+                      'Abrir falla del paso de la lista',
+                      'Ouvrir la défaillance liée à l’étape.',
+                    ),
                   ),
                 ),
               if (job.checklist.isNotEmpty)
                 Padding(
                   padding: const EdgeInsets.symmetric(vertical: 8),
                   child: Text(
-                    '${es ? 'Lista' : 'Checklist'}: ${maintenanceCompletedItems(job.checklist, job.answers, job.evidence)} / ${job.checklist.length} ${es ? 'pasos completos' : 'steps complete'}',
+                    '${_maintenanceJobText(context, 'Checklist', 'Lista', 'Liste de contrôle')}: ${maintenanceCompletedItems(job.checklist, job.answers, job.evidence)} / ${job.checklist.length} ${_maintenanceJobText(context, 'steps complete', 'pasos completos', 'étapes terminées')}',
                   ),
                 ),
               if (job.data['hours_at_start'] != null)
                 info(
-                  es ? 'Medidor al iniciar' : 'Starting meter',
+                  _maintenanceJobText(
+                    context,
+                    'Starting meter',
+                    'Medidor al iniciar',
+                    'Relevé initial',
+                  ),
                   formatMeter(
                     job.data['hours_at_start'] as num?,
                     job.data['meter_unit'] as String?,
@@ -412,30 +591,73 @@ class _MaintenanceJobScreenState extends ConsumerState<MaintenanceJobScreen> {
                 spacing: 8,
                 runSpacing: 8,
                 children: [
-                  Chip(label: Text(job.lifecycleLabel(es))),
-                  Chip(label: Text(maintenancePriority(job.priority, es))),
-                  Chip(label: Text(job.workType.label(es))),
+                  Chip(
+                    label: Text(
+                      job.lifecycleLabel(es, french: isFrench(context)),
+                    ),
+                  ),
+                  Chip(
+                    label: Text(
+                      maintenancePriority(
+                        job.priority,
+                        es,
+                        french: isFrench(context),
+                      ),
+                    ),
+                  ),
+                  Chip(
+                    label: Text(job.workType.label(es, fr: isFrench(context))),
+                  ),
                   if (job.isService)
                     Chip(
                       label: Text(
-                        es ? 'Servicio programado' : 'Scheduled service',
+                        _maintenanceJobText(
+                          context,
+                          'Scheduled service',
+                          'Servicio programado',
+                          'Entretien planifié',
+                        ),
                       ),
                     ),
                 ],
               ),
               info(
-                es ? 'Responsable' : 'Assigned to',
+                _maintenanceJobText(
+                  context,
+                  'Assigned to',
+                  'Responsable',
+                  'Assigné à',
+                ),
                 job.data['assignee_name'] as String? ??
-                    (es ? 'Sin asignar' : 'Unassigned'),
+                    (_maintenanceJobText(
+                      context,
+                      'Unassigned',
+                      'Sin asignar',
+                      'Non assigné',
+                    )),
               ),
               if (job.data['planned_start'] != null)
                 info(
-                  es ? 'Inicio programado' : 'Booked start',
-                  maintenanceDate(job.data['planned_start'] as String, es),
+                  _maintenanceJobText(
+                    context,
+                    'Booked start',
+                    'Inicio programado',
+                    'Début planifié',
+                  ),
+                  maintenanceDate(
+                    job.data['planned_start'] as String,
+                    es,
+                    french: isFrench(context),
+                  ),
                 ),
               if (job.data['estimated_minutes'] != null)
                 info(
-                  es ? 'Duración estimada' : 'Estimated duration',
+                  _maintenanceJobText(
+                    context,
+                    'Estimated duration',
+                    'Duración estimada',
+                    'Durée estimée',
+                  ),
                   '${job.data['estimated_minutes']} min',
                 ),
               if (job.data['can_schedule'] == true &&
@@ -450,27 +672,50 @@ class _MaintenanceJobScreenState extends ConsumerState<MaintenanceJobScreen> {
                           ),
                     icon: const Icon(Icons.edit_calendar_outlined),
                     label: Text(
-                      es ? 'Revisar planificación' : 'Review schedule',
+                      _maintenanceJobText(
+                        context,
+                        'Review schedule',
+                        'Revisar planificación',
+                        'Vérifier la planification',
+                      ),
                     ),
                   ),
                 ),
               if (job.dueDate != null)
                 info(
-                  es ? 'Fecha límite' : 'Due date',
-                  maintenanceDate(job.dueDate, es),
+                  _maintenanceJobText(
+                    context,
+                    'Due date',
+                    'Fecha límite',
+                    'Date d’échéance',
+                  ),
+                  maintenanceDate(job.dueDate, es, french: isFrench(context)),
                 ),
               info(
-                es ? 'Componente' : 'Component',
+                _maintenanceJobText(
+                  context,
+                  'Component',
+                  'Componente',
+                  'Composant',
+                ),
                 job.data['component_name'] as String?,
               ),
               info(
-                es ? 'Instrucciones' : 'Instructions',
+                _maintenanceJobText(
+                  context,
+                  'Instructions',
+                  'Instrucciones',
+                  'Instructions',
+                ),
                 job.data['description'] as String?,
               ),
               info(
-                es
-                    ? 'Repuestos y materiales previstos'
-                    : 'Expected parts / materials',
+                _maintenanceJobText(
+                  context,
+                  'Expected parts / materials',
+                  'Repuestos y materiales previstos',
+                  'Pièces et matériaux prévus',
+                ),
                 job.expectedMaterials,
               ),
               if (job.canPrepare)
@@ -491,16 +736,31 @@ class _MaintenanceJobScreenState extends ConsumerState<MaintenanceJobScreen> {
                           },
                     icon: const Icon(Icons.edit_outlined),
                     label: Text(
-                      es ? 'Editar orden de trabajo' : 'Edit work order',
+                      localizedText(
+                        context,
+                        'Edit work order',
+                        'Editar orden de trabajo',
+                        'Modifier le bon de travail',
+                      ),
                     ),
                   ),
                 ),
               info(
-                es ? 'Motivo del bloqueo' : 'Blocked reason',
+                _maintenanceJobText(
+                  context,
+                  'Blocked reason',
+                  'Motivo del bloqueo',
+                  'Motif du blocage',
+                ),
                 job.data['on_hold_reason'] as String?,
               ),
               info(
-                es ? 'Revisión' : 'Review note',
+                _maintenanceJobText(
+                  context,
+                  'Review note',
+                  'Revisión',
+                  'Note de révision',
+                ),
                 job.data['review_note'] as String?,
               ),
               if (job.data['parent_job_id'] != null)
@@ -509,25 +769,40 @@ class _MaintenanceJobScreenState extends ConsumerState<MaintenanceJobScreen> {
                     '/maintenance/jobs/${job.data['parent_job_id']}',
                   ),
                   child: Text(
-                    es ? 'Ver trabajo anterior' : 'View preceding job',
+                    _maintenanceJobText(
+                      context,
+                      'View preceding job',
+                      'Ver trabajo anterior',
+                      'Voir le bon de travail précédent',
+                    ),
                   ),
                 ),
               if (!job.canWork)
                 Text(
-                  es
-                      ? 'Historial disponible; la ejecución está deshabilitada.'
-                      : 'History is available; execution is disabled.',
+                  _maintenanceJobText(
+                    context,
+                    'History is available; execution is disabled.',
+                    'Historial disponible; la ejecución está deshabilitada.',
+                    'L’historique est disponible; l’exécution est désactivée.',
+                  ),
                 ),
               if (_error != null)
                 Padding(
                   padding: const EdgeInsets.symmetric(vertical: 12),
-                  child: Text(maintenanceError(_error!, es)),
+                  child: Text(
+                    maintenanceError(_error!, es, french: isFrench(context)),
+                  ),
                 ),
               if (_pending != null)
                 FilledButton(
                   onPressed: _busy ? null : () => _act(job, _action!),
                   child: Text(
-                    es ? 'Reintentar la misma acción' : 'Retry the same action',
+                    _maintenanceJobText(
+                      context,
+                      'Retry the same action',
+                      'Reintentar la misma acción',
+                      'Réessayer la même action',
+                    ),
                   ),
                 ),
               if (_busy) const LinearProgressIndicator(),
@@ -538,24 +813,44 @@ class _MaintenanceJobScreenState extends ConsumerState<MaintenanceJobScreen> {
                       : () => _formAction(
                           job,
                           'assign',
-                          es ? 'Asignar orden de trabajo' : 'Assign work order',
+                          localizedText(
+                            context,
+                            'Assign work order',
+                            'Asignar orden de trabajo',
+                            'Attribuer le bon de travail',
+                          ),
                         ),
                   icon: const Icon(Icons.person_add_alt),
                   label: Text(
-                    es ? 'Asignar orden de trabajo' : 'Assign work order',
+                    localizedText(
+                      context,
+                      'Assign work order',
+                      'Asignar orden de trabajo',
+                      'Attribuer le bon de travail',
+                    ),
                   ),
                 ),
               if (job.canWork && job.status == 'assigned') ...[
                 Text(
-                  es
-                      ? 'Inicia el tiempo de trabajo; después completa el informe de servicio.'
-                      : 'Start your labour timer, then complete the service report.',
+                  _maintenanceJobText(
+                    context,
+                    'Start your labour timer, then complete the service report.',
+                    'Inicia el tiempo de trabajo; después completa el informe de servicio.',
+                    'Démarrez votre temps de travail, puis remplissez le rapport d’entretien.',
+                  ),
                 ),
                 const SizedBox(height: 8),
                 FilledButton.icon(
                   onPressed: disabled ? null : () => _start(job),
                   icon: const Icon(Icons.play_arrow),
-                  label: Text(es ? 'Iniciar trabajo' : 'Start work'),
+                  label: Text(
+                    _maintenanceJobText(
+                      context,
+                      'Start work',
+                      'Iniciar trabajo',
+                      'Commencer le travail',
+                    ),
+                  ),
                 ),
               ],
               if (job.canEdit)
@@ -573,13 +868,19 @@ class _MaintenanceJobScreenState extends ConsumerState<MaintenanceJobScreen> {
                         },
                   icon: const Icon(Icons.edit_note),
                   label: Text(
-                    es
-                        ? (job.report.isEmpty
-                              ? 'Crear informe de servicio'
-                              : 'Continuar informe de servicio')
-                        : (job.report.isEmpty
-                              ? 'Create service report'
-                              : 'Continue service report'),
+                    job.report.isEmpty
+                        ? _maintenanceJobText(
+                            context,
+                            'Create service report',
+                            'Crear informe de servicio',
+                            'Créer un rapport d’entretien',
+                          )
+                        : _maintenanceJobText(
+                            context,
+                            'Continue service report',
+                            'Continuar informe de servicio',
+                            'Continuer le rapport d’entretien',
+                          ),
                   ),
                 ),
               if (job.status == 'pending_review') ...report,
@@ -590,7 +891,12 @@ class _MaintenanceJobScreenState extends ConsumerState<MaintenanceJobScreen> {
                   alignment: Alignment.centerLeft,
                   child: PopupMenuButton<String>(
                     enabled: !disabled,
-                    tooltip: es ? 'Más acciones' : 'More actions',
+                    tooltip: _maintenanceJobText(
+                      context,
+                      'More actions',
+                      'Más acciones',
+                      'Plus d’actions',
+                    ),
                     onSelected: (action) {
                       if (action == 'follow_up') {
                         context.push(
@@ -598,9 +904,24 @@ class _MaintenanceJobScreenState extends ConsumerState<MaintenanceJobScreen> {
                         );
                       } else {
                         _formAction(job, action, switch (action) {
-                          'assign' => es ? 'Asignar trabajo' : 'Assign job',
-                          'block' => es ? 'Bloquear trabajo' : 'Block work',
-                          _ => es ? 'Reabrir trabajo' : 'Reopen job',
+                          'assign' => _maintenanceJobText(
+                            context,
+                            'Assign job',
+                            'Asignar trabajo',
+                            'Attribuer le travail',
+                          ),
+                          'block' => _maintenanceJobText(
+                            context,
+                            'Block work',
+                            'Bloquear trabajo',
+                            'Bloquer le travail',
+                          ),
+                          _ => _maintenanceJobText(
+                            context,
+                            'Reopen job',
+                            'Reabrir trabajo',
+                            'Rouvrir le travail',
+                          ),
                         });
                       }
                     },
@@ -613,23 +934,49 @@ class _MaintenanceJobScreenState extends ConsumerState<MaintenanceJobScreen> {
                           ].contains(job.status))
                         PopupMenuItem(
                           value: 'assign',
-                          child: Text(es ? 'Asignar trabajo' : 'Assign job'),
+                          child: Text(
+                            _maintenanceJobText(
+                              context,
+                              'Assign job',
+                              'Asignar trabajo',
+                              'Attribuer le travail',
+                            ),
+                          ),
                         ),
                       if (['assigned', 'in_progress'].contains(job.status))
                         PopupMenuItem(
                           value: 'block',
-                          child: Text(es ? 'Bloquear trabajo' : 'Block work'),
+                          child: Text(
+                            _maintenanceJobText(
+                              context,
+                              'Block work',
+                              'Bloquear trabajo',
+                              'Bloquer le travail',
+                            ),
+                          ),
                         ),
                       if (job.canManage && job.status == 'closed')
                         PopupMenuItem(
                           value: 'reopen',
-                          child: Text(es ? 'Reabrir trabajo' : 'Reopen job'),
+                          child: Text(
+                            _maintenanceJobText(
+                              context,
+                              'Reopen job',
+                              'Reabrir trabajo',
+                              'Rouvrir le travail',
+                            ),
+                          ),
                         ),
                       if (job.canManage)
                         PopupMenuItem(
                           value: 'follow_up',
                           child: Text(
-                            es ? 'Crear seguimiento' : 'Create follow-up job',
+                            _maintenanceJobText(
+                              context,
+                              'Create follow-up job',
+                              'Crear seguimiento',
+                              'Créer un bon de travail de suivi',
+                            ),
                           ),
                         ),
                     ],
@@ -641,7 +988,14 @@ class _MaintenanceJobScreenState extends ConsumerState<MaintenanceJobScreen> {
                           const Icon(Icons.more_horiz),
                           const SizedBox(width: 8),
                           Flexible(
-                            child: Text(es ? 'Más acciones' : 'More actions'),
+                            child: Text(
+                              _maintenanceJobText(
+                                context,
+                                'More actions',
+                                'Más acciones',
+                                'Plus d’actions',
+                              ),
+                            ),
                           ),
                         ],
                       ),
@@ -656,7 +1010,12 @@ class _MaintenanceJobScreenState extends ConsumerState<MaintenanceJobScreen> {
                 subjectId: job.id,
               ),
               Text(
-                es ? 'Mano de obra' : 'Labour',
+                _maintenanceJobText(
+                  context,
+                  'Labour',
+                  'Mano de obra',
+                  'Main-d’œuvre',
+                ),
                 style: Theme.of(context).textTheme.titleLarge,
               ),
               if (job.canWork &&
@@ -667,18 +1026,38 @@ class _MaintenanceJobScreenState extends ConsumerState<MaintenanceJobScreen> {
                 OutlinedButton.icon(
                   onPressed: disabled ? null : () => _start(job),
                   icon: const Icon(Icons.play_arrow),
-                  label: Text(es ? 'Iniciar tiempo' : 'Start labour'),
+                  label: Text(
+                    _maintenanceJobText(
+                      context,
+                      'Start labour',
+                      'Iniciar tiempo',
+                      'Démarrer le temps de travail',
+                    ),
+                  ),
                 ),
               for (final session in job.labour)
                 ListTile(
                   contentPadding: EdgeInsets.zero,
                   title: Text(
-                    maintenanceDate(session['started_at'] as String?, es),
+                    maintenanceDate(
+                      session['started_at'] as String?,
+                      es,
+                      french: isFrench(context),
+                    ),
                   ),
                   subtitle: Text(
                     session['stopped_at'] == null
-                        ? (es ? 'En curso' : 'Running')
-                        : maintenanceDate(session['stopped_at'] as String?, es),
+                        ? (_maintenanceJobText(
+                            context,
+                            'Running',
+                            'En curso',
+                            'En cours',
+                          ))
+                        : maintenanceDate(
+                            session['stopped_at'] as String?,
+                            es,
+                            french: isFrench(context),
+                          ),
                   ),
                   trailing:
                       session['stopped_at'] == null &&
@@ -690,16 +1069,28 @@ class _MaintenanceJobScreenState extends ConsumerState<MaintenanceJobScreen> {
                               : () => _act(job, 'pause', {
                                   'session_id': session['id'],
                                 }),
-                          child: Text(es ? 'Pausar' : 'Pause'),
+                          child: Text(
+                            _maintenanceJobText(
+                              context,
+                              'Pause',
+                              'Pausar',
+                              'Mettre en pause',
+                            ),
+                          ),
                         )
                       : null,
                 ),
               Text(
-                '${job.completedLabourHours.toStringAsFixed(2)} ${es ? 'horas registradas' : 'recorded hours'}',
+                '${job.completedLabourHours.toStringAsFixed(2)} ${_maintenanceJobText(context, 'recorded hours', 'horas registradas', 'heures enregistrées')}',
               ),
               const SizedBox(height: 20),
               Text(
-                es ? 'Repuestos utilizados' : 'Parts used',
+                _maintenanceJobText(
+                  context,
+                  'Parts used',
+                  'Repuestos utilizados',
+                  'Pièces utilisées',
+                ),
                 style: Theme.of(context).textTheme.titleLarge,
               ),
               if (job.canEdit)
@@ -709,20 +1100,37 @@ class _MaintenanceJobScreenState extends ConsumerState<MaintenanceJobScreen> {
                       : () => _formAction(
                           job,
                           'add_part',
-                          es ? 'Añadir repuesto' : 'Add part',
+                          _maintenanceJobText(
+                            context,
+                            'Add part',
+                            'Añadir repuesto',
+                            'Ajouter une pièce',
+                          ),
                         ),
-                  child: Text(es ? 'Añadir repuesto' : 'Add part'),
+                  child: Text(
+                    _maintenanceJobText(
+                      context,
+                      'Add part',
+                      'Añadir repuesto',
+                      'Ajouter une pièce',
+                    ),
+                  ),
                 ),
               for (final part in job.parts)
                 ListTile(
                   contentPadding: EdgeInsets.zero,
                   title: Text(part['description'] as String),
                   subtitle: Text(
-                    '${part['quantity']} × ${part['unit_cost']} USD',
+                    '${part['quantity']} × ${part['unit_cost']} ${job.costCurrency}',
                   ),
                   trailing: job.canEdit && part['stock_requirement_id'] == null
                       ? IconButton(
-                          tooltip: es ? 'Quitar repuesto' : 'Remove part',
+                          tooltip: _maintenanceJobText(
+                            context,
+                            'Remove part',
+                            'Quitar repuesto',
+                            'Retirer la pièce',
+                          ),
                           onPressed: disabled
                               ? null
                               : () => _act(job, 'remove_part', {
@@ -734,12 +1142,15 @@ class _MaintenanceJobScreenState extends ConsumerState<MaintenanceJobScreen> {
                 ),
               const SizedBox(height: 12),
               Text(
-                '${es ? 'Costo interno' : 'Internal cost'}: ${(job.labourCost + job.partsCost).toStringAsFixed(2)} USD',
+                '${_maintenanceJobText(context, 'Internal cost', 'Costo interno', 'Coût interne')}: ${(job.labourCost + job.partsCost).toStringAsFixed(2)} ${job.costCurrency}',
               ),
               Text(
-                es
-                    ? 'Mano de obra y repuestos; sin facturación al cliente.'
-                    : 'Labour and parts; no customer billing.',
+                _maintenanceJobText(
+                  context,
+                  'Labour and parts; no customer billing.',
+                  'Mano de obra y repuestos; sin facturación al cliente.',
+                  'Main-d’œuvre et pièces; aucune facturation au client.',
+                ),
               ),
               const SizedBox(height: 24),
               if (job.status != 'pending_review') ...report,
@@ -747,31 +1158,42 @@ class _MaintenanceJobScreenState extends ConsumerState<MaintenanceJobScreen> {
                 Padding(
                   padding: const EdgeInsets.symmetric(vertical: 12),
                   child: Text(
-                    es
-                        ? 'El próximo servicio ya se actualizó. Reabrir este trabajo no lo avanza de nuevo.'
-                        : 'The next service was updated. Reopening this job will not advance it again.',
+                    _maintenanceJobText(
+                      context,
+                      'The next service was updated. Reopening this job will not advance it again.',
+                      'El próximo servicio ya se actualizó. Reabrir este trabajo no lo avanza de nuevo.',
+                      'Le prochain entretien a déjà été mis à jour. La réouverture de ce bon de travail ne le fera pas avancer une deuxième fois.',
+                    ),
                   ),
                 ),
               const SizedBox(height: 24),
               Text(
-                es ? 'Historial' : 'History',
+                _maintenanceJobText(
+                  context,
+                  'History',
+                  'Historial',
+                  'Historique',
+                ),
                 style: Theme.of(context).textTheme.titleLarge,
               ),
               for (final event in maintenanceRows(job.data['events']))
                 ListTile(
                   contentPadding: EdgeInsets.zero,
                   title: Text(
-                    '${maintenanceEvent(event['kind'] as String, es)} · ${event['actor_name'] ?? ''}',
+                    '${maintenanceEvent(event['kind'] as String, es, french: isFrench(context))} · ${event['actor_name'] ?? ''}',
                   ),
                   subtitle: Text(
-                    '${maintenanceDate(event['created_at'] as String?, es)}${event['note'] == null ? '' : '\n${event['note']}'}',
+                    '${maintenanceDate(event['created_at'] as String?, es, french: isFrench(context))}${event['note'] == null ? '' : '\n${event['note']}'}',
                   ),
                 ),
               const SizedBox(height: 24),
               Text(
-                es
-                    ? 'La disponibilidad del equipo y el cierre de fallas se revisan por separado.'
-                    : 'Asset availability and fault resolution are reviewed separately.',
+                _maintenanceJobText(
+                  context,
+                  'Asset availability and fault resolution are reviewed separately.',
+                  'La disponibilidad del equipo y el cierre de fallas se revisan por separado.',
+                  'La disponibilité de l’équipement et la résolution des défaillances sont vérifiées séparément.',
+                ),
               ),
             ],
           );
@@ -813,7 +1235,12 @@ class _MaintenanceEvidenceState extends ConsumerState<MaintenanceEvidence> {
         height: 220,
         fit: BoxFit.contain,
         errorBuilder: (_, __, ___) => Text(
-          isSpanish(context) ? 'Foto no disponible' : 'Photo unavailable',
+          _maintenanceJobText(
+            context,
+            'Photo unavailable',
+            'Foto no disponible',
+            'Photo indisponible',
+          ),
         ),
       );
     }
@@ -830,7 +1257,12 @@ class _MaintenanceEvidenceState extends ConsumerState<MaintenanceEvidence> {
                     .evidenceUrl(widget.path),
               ),
               child: Text(
-                isSpanish(context) ? 'Reintentar foto' : 'Retry photo',
+                _maintenanceJobText(
+                  context,
+                  'Retry photo',
+                  'Reintentar foto',
+                  'Réessayer la photo',
+                ),
               ),
             );
           }
@@ -840,7 +1272,12 @@ class _MaintenanceEvidenceState extends ConsumerState<MaintenanceEvidence> {
             height: 220,
             fit: BoxFit.contain,
             errorBuilder: (_, __, ___) => Text(
-              isSpanish(context) ? 'Foto no disponible' : 'Photo unavailable',
+              _maintenanceJobText(
+                context,
+                'Photo unavailable',
+                'Foto no disponible',
+                'Photo indisponible',
+              ),
             ),
           );
         },
@@ -855,9 +1292,11 @@ class _JobActionDialog extends StatefulWidget {
     required this.title,
     required this.assignees,
     required this.approvalDescription,
+    required this.costCurrency,
   });
   final String action, title;
   final String approvalDescription;
+  final String costCurrency;
   final List<Map<String, dynamic>> assignees;
   @override
   State<_JobActionDialog> createState() => _JobActionDialogState();
@@ -898,14 +1337,24 @@ class _JobActionDialogState extends State<_JobActionDialog> {
                 AppDropdownField<String>(
                   initialValue: _blockedCategory,
                   decoration: InputDecoration(
-                    labelText: es ? 'Esperando' : 'Waiting for',
+                    labelText: _maintenanceJobText(
+                      context,
+                      'Waiting for',
+                      'Esperando',
+                      'En attente de',
+                    ),
                   ),
                   items: [
                     for (final key in blockedCategories.keys)
                       DropdownMenuItem(
                         value: key,
                         child: Text(
-                          coordinationLabel(blockedCategories, key, es),
+                          coordinationLabel(
+                            blockedCategories,
+                            key,
+                            es,
+                            french: isFrench(context),
+                          ),
                         ),
                       ),
                   ],
@@ -915,7 +1364,12 @@ class _JobActionDialogState extends State<_JobActionDialog> {
                 AppDropdownField<String>(
                   isExpanded: true,
                   decoration: InputDecoration(
-                    labelText: es ? 'Responsable' : 'Assigned to',
+                    labelText: _maintenanceJobText(
+                      context,
+                      'Assigned to',
+                      'Responsable',
+                      'Assigné à',
+                    ),
                   ),
                   items: widget.assignees
                       .map(
@@ -927,26 +1381,44 @@ class _JobActionDialogState extends State<_JobActionDialog> {
                       .toList(),
                   onChanged: (v) => _assignee = v,
                   validator: (v) => v == null
-                      ? (es
-                            ? 'Selecciona un responsable'
-                            : 'Select an assignee')
+                      ? (_maintenanceJobText(
+                          context,
+                          'Select an assignee',
+                          'Selecciona un responsable',
+                          'Sélectionnez une personne responsable.',
+                        ))
                       : null,
                 )
               else if (widget.action == 'add_part') ...[
                 TextFormField(
                   controller: _description,
                   decoration: InputDecoration(
-                    labelText: es ? 'Descripción' : 'Description',
+                    labelText: _maintenanceJobText(
+                      context,
+                      'Description',
+                      'Descripción',
+                      'Description',
+                    ),
                   ),
                   validator: (v) => (v?.trim().length ?? 0) < 2
-                      ? (es ? 'Requerido' : 'Required')
+                      ? (_maintenanceJobText(
+                          context,
+                          'Required',
+                          'Requerido',
+                          'Obligatoire',
+                        ))
                       : null,
                 ),
                 TextFormField(
                   controller: _partNumber,
                   decoration: InputDecoration(
                     floatingLabelBehavior: FloatingLabelBehavior.always,
-                    labelText: es ? 'Número de repuesto' : 'Part number',
+                    labelText: _maintenanceJobText(
+                      context,
+                      'Part number',
+                      'Número de repuesto',
+                      'Numéro de pièce',
+                    ),
                   ),
                 ),
                 TextFormField(
@@ -955,14 +1427,22 @@ class _JobActionDialogState extends State<_JobActionDialog> {
                     decimal: true,
                   ),
                   decoration: InputDecoration(
-                    labelText: es ? 'Cantidad' : 'Quantity',
+                    labelText: _maintenanceJobText(
+                      context,
+                      'Quantity',
+                      'Cantidad',
+                      'Quantité',
+                    ),
                   ),
                   validator: (v) =>
                       double.tryParse(v ?? '')?.isFinite != true ||
                           double.parse(v!) <= 0
-                      ? (es
-                            ? 'Ingresa una cantidad positiva'
-                            : 'Enter a positive quantity')
+                      ? (_maintenanceJobText(
+                          context,
+                          'Enter a positive quantity',
+                          'Ingresa una cantidad positiva',
+                          'Saisissez une quantité positive.',
+                        ))
                       : null,
                 ),
                 TextFormField(
@@ -971,12 +1451,22 @@ class _JobActionDialogState extends State<_JobActionDialog> {
                     decimal: true,
                   ),
                   decoration: InputDecoration(
-                    labelText: es ? 'Costo unitario (USD)' : 'Unit cost (USD)',
+                    labelText: _maintenanceJobText(
+                      context,
+                      'Unit cost (${widget.costCurrency})',
+                      'Costo unitario (${widget.costCurrency})',
+                      'Coût unitaire (${widget.costCurrency})',
+                    ),
                   ),
                   validator: (v) =>
                       double.tryParse(v ?? '')?.isFinite != true ||
                           double.parse(v!) < 0
-                      ? (es ? 'Ingresa un costo válido' : 'Enter a valid cost')
+                      ? _maintenanceJobText(
+                          context,
+                          'Enter a valid cost',
+                          'Ingresa un costo válido',
+                          'Saisissez un coût valide',
+                        )
                       : null,
                 ),
               ] else ...[
@@ -987,11 +1477,21 @@ class _JobActionDialogState extends State<_JobActionDialog> {
                   minLines: 2,
                   maxLines: 5,
                   decoration: InputDecoration(
-                    labelText: es ? 'Motivo / nota' : 'Reason / note',
+                    labelText: _maintenanceJobText(
+                      context,
+                      'Reason / note',
+                      'Motivo / nota',
+                      'Motif / note',
+                    ),
                   ),
                   validator: (v) =>
                       widget.action != 'approve' && (v?.trim().length ?? 0) < 3
-                      ? (es ? 'Ingresa un motivo' : 'Enter a reason')
+                      ? _maintenanceJobText(
+                          context,
+                          'Enter a reason',
+                          'Ingresa un motivo',
+                          'Saisissez un motif',
+                        )
                       : null,
                 ),
               ],
@@ -1002,7 +1502,9 @@ class _JobActionDialogState extends State<_JobActionDialog> {
       actions: [
         TextButton(
           onPressed: () => Navigator.pop(context),
-          child: Text(es ? 'Cancelar' : 'Cancel'),
+          child: Text(
+            _maintenanceJobText(context, 'Cancel', 'Cancelar', 'Annuler'),
+          ),
         ),
         FilledButton(
           onPressed: () {
@@ -1020,7 +1522,9 @@ class _JobActionDialogState extends State<_JobActionDialog> {
                 'note': _note.text.trim(),
             });
           },
-          child: Text(es ? 'Confirmar' : 'Confirm'),
+          child: Text(
+            _maintenanceJobText(context, 'Confirm', 'Confirmar', 'Confirmer'),
+          ),
         ),
       ],
     );

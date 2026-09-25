@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:vortice_app/core/meter_units.dart';
 import 'package:vortice_app/core/theme.dart';
+import 'package:vortice_app/core/localized_text.dart';
 import 'package:vortice_app/features/checklists/checklist_support.dart';
 
 class OperatorChecklistRunHeader extends StatelessWidget {
@@ -38,24 +39,54 @@ class OperatorChecklistRunHeader extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Run details', style: Theme.of(context).textTheme.titleSmall),
+            Text(
+              localizedText(
+                context,
+                'Run details',
+                'Detalles de la ejecución',
+                'Détails de l’inspection',
+              ),
+              style: Theme.of(context).textTheme.titleSmall,
+            ),
             const SizedBox(height: 8),
             Text(
-              'Asset: $assetLabel',
+              localizedText(
+                context,
+                'Equipment: $assetLabel',
+                'Equipo: $assetLabel',
+                'Équipement : $assetLabel',
+              ),
               style: Theme.of(context).textTheme.bodySmall,
             ),
             Text(
-              'Checklist: $checklistLabel',
+              localizedText(
+                context,
+                'Checklist: $checklistLabel',
+                'Lista de verificación: $checklistLabel',
+                'Liste de contrôle : $checklistLabel',
+              ),
               style: Theme.of(context).textTheme.bodySmall,
             ),
             Text(
-              'Completed by: $completedByLabel',
+              localizedText(
+                context,
+                'Completed by: $completedByLabel',
+                'Completada por: $completedByLabel',
+                'Effectuée par : $completedByLabel',
+              ),
               style: Theme.of(context).textTheme.bodySmall,
             ),
             ListTile(
               dense: true,
               contentPadding: EdgeInsets.zero,
-              title: const Text('Date/time'),
+              title: Text(
+                localizedText(
+                  context,
+                  'Date and time',
+                  'Fecha y hora',
+                  'Date et heure',
+                ),
+              ),
               subtitle: Text(formatChecklistDateTime(completedAt)),
               trailing: const Icon(Icons.edit_calendar, size: 18),
               onTap: onPickCompletedAt,
@@ -67,7 +98,7 @@ class OperatorChecklistRunHeader extends StatelessWidget {
               ),
               decoration: InputDecoration(
                 labelText:
-                    '${meterName(meterUnit, Localizations.localeOf(context).languageCode == 'es')} (${Localizations.localeOf(context).languageCode == 'es' ? 'opcional' : 'optional'})',
+                    '${meterName(meterUnit, Localizations.localeOf(context).languageCode == 'es', french: Localizations.localeOf(context).languageCode == 'fr')} (${localizedText(context, 'optional', 'opcional', 'facultatif')})',
                 suffixText: meterSymbol(meterUnit),
                 isDense: true,
               ),
@@ -78,8 +109,13 @@ class OperatorChecklistRunHeader extends StatelessWidget {
             TextField(
               controller: notesController,
               maxLines: 2,
-              decoration: const InputDecoration(
-                labelText: 'General notes (optional)',
+              decoration: InputDecoration(
+                labelText: localizedText(
+                  context,
+                  'General notes (optional)',
+                  'Notas generales (opcional)',
+                  'Notes générales (facultatif)',
+                ),
                 isDense: true,
               ),
               onChanged: (value) =>

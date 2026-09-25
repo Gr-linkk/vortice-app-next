@@ -18,10 +18,12 @@ class _PartsForm extends StatefulWidget {
     required this.title,
     required this.fields,
     required this.es,
+    required this.french,
   });
   final String title;
   final List<PartInput> fields;
   final bool es;
+  final bool french;
   @override
   State<_PartsForm> createState() => _PartsFormState();
 }
@@ -65,7 +67,11 @@ class _PartsFormState extends State<_PartsForm> {
                       final text = value?.trim() ?? '';
                       if (text.isEmpty) {
                         return field.required
-                            ? (widget.es ? 'Campo obligatorio' : 'Required')
+                            ? (widget.french
+                                  ? 'Champ obligatoire'
+                                  : widget.es
+                                  ? 'Campo obligatorio'
+                                  : 'Required')
                             : null;
                       }
                       if (field.number) {
@@ -75,7 +81,9 @@ class _PartsFormState extends State<_PartsForm> {
                             number < 0 ||
                             number >= 1000000 ||
                             !RegExp(r'^\d+(\.\d{1,2})?$').hasMatch(text)) {
-                          return widget.es
+                          return widget.french
+                              ? 'Utilisez un nombre positif comportant au plus deux décimales'
+                              : widget.es
                               ? 'Usa un número positivo con hasta dos decimales'
                               : 'Use a nonnegative number with up to two decimals';
                         }
@@ -84,7 +92,9 @@ class _PartsFormState extends State<_PartsForm> {
                         final date = DateTime.tryParse(text);
                         if (date == null ||
                             date.toIso8601String().substring(0, 10) != text) {
-                          return widget.es
+                          return widget.french
+                              ? 'Utilisez le format AAAA-MM-JJ'
+                              : widget.es
                               ? 'Usa AAAA-MM-DD'
                               : 'Use YYYY-MM-DD';
                         }
@@ -101,7 +111,13 @@ class _PartsFormState extends State<_PartsForm> {
     actions: [
       TextButton(
         onPressed: () => Navigator.pop(context),
-        child: Text(widget.es ? 'Cancelar' : 'Cancel'),
+        child: Text(
+          widget.french
+              ? 'Annuler'
+              : widget.es
+              ? 'Cancelar'
+              : 'Cancel',
+        ),
       ),
       FilledButton(
         onPressed: () {
@@ -113,7 +129,13 @@ class _PartsFormState extends State<_PartsForm> {
                   : _controllers[f.keyName]!.text.trim(),
           });
         },
-        child: Text(widget.es ? 'Guardar' : 'Save'),
+        child: Text(
+          widget.french
+              ? 'Enregistrer'
+              : widget.es
+              ? 'Guardar'
+              : 'Save',
+        ),
       ),
     ],
   );

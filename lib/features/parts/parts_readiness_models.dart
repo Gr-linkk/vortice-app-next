@@ -16,6 +16,7 @@ class StockItem {
   double get reserved => partNumberValue(data['reserved']);
   double get available => math.max(0, onHand - reserved);
   double get minimum => partNumberValue(data['min_stock_level']);
+  String get currency => data['cost_currency'] as String? ?? 'USD';
   double get cost => partNumberValue(data['last_unit_cost']);
   bool get low => available < minimum;
 }
@@ -44,6 +45,7 @@ List<Map<String, dynamic>> partsRows(Object? value) => (value as List? ?? [])
 class PartsWorkspace {
   PartsWorkspace(this.data);
   final Map<String, dynamic> data;
+  String get currency => data['cost_currency'] as String? ?? 'USD';
   bool get canManage => data['can_manage'] == true;
   bool get canChange => data['can_change'] == true;
   bool get canIssue => data['can_issue'] == true;

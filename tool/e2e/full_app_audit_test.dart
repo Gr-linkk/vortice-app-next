@@ -55,12 +55,12 @@ void main() {
         final textScale = double.tryParse(
           Platform.environment['VORTICE_AUDIT_TEXT_SCALE'] ?? '1',
         );
-        if (!['en', 'es'].contains(locale) ||
+        if (!['en', 'es', 'fr'].contains(locale) ||
             textScale == null ||
             !textScale.isFinite ||
             textScale <= 0) {
           throw StateError(
-            'Audit requires locale en/es and a positive text scale',
+            'Audit requires locale en/es/fr and a positive text scale',
           );
         }
         // Connected test host; stored preferences are deliberately disposable.

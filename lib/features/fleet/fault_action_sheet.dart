@@ -79,7 +79,7 @@ class _FaultActionSheetState extends ConsumerState<FaultActionSheet> {
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   Text(
-                    widget.action.label(es),
+                    widget.action.label(es, french: fleetFrench(context)),
                     style: Theme.of(context).textTheme.titleLarge,
                   ),
                   const SizedBox(height: 8),
@@ -164,18 +164,32 @@ class _FaultActionSheetState extends ConsumerState<FaultActionSheet> {
                     maxLength: 2000,
                     textCapitalization: TextCapitalization.sentences,
                     decoration: InputDecoration(
-                      labelText: es ? 'Nota / motivo' : 'Note / reason',
+                      labelText: fleetText(
+                        context,
+                        'Note / reason',
+                        'Nota / motivo',
+                        'Note ou motif',
+                      ),
                       alignLabelWithHint: true,
                     ),
                     validator: (value) => (value?.trim().length ?? 0) < 3
-                        ? (es ? 'Explica el cambio' : 'Explain this change')
+                        ? fleetText(
+                            context,
+                            'Explain this change',
+                            'Explica el cambio',
+                            'Expliquez cette modification',
+                          )
                         : null,
                   ),
                   if (_error != null)
                     Padding(
                       padding: const EdgeInsets.only(bottom: 12),
                       child: Text(
-                        fleetErrorMessage(_error!, es),
+                        fleetErrorMessage(
+                          _error!,
+                          es,
+                          french: fleetFrench(context),
+                        ),
                         style: TextStyle(color: context.appColors.warning),
                       ),
                     ),
@@ -188,15 +202,25 @@ class _FaultActionSheetState extends ConsumerState<FaultActionSheet> {
                         : _save,
                     child: Text(
                       _saving
-                          ? (es ? 'Guardando…' : 'Saving…')
-                          : widget.action.label(es),
+                          ? fleetText(
+                              context,
+                              'Saving…',
+                              'Guardando…',
+                              'Enregistrement…',
+                            )
+                          : widget.action.label(
+                              es,
+                              french: fleetFrench(context),
+                            ),
                     ),
                   ),
                   TextButton(
                     onPressed: _saving
                         ? null
                         : () => Navigator.pop(context, false),
-                    child: Text(es ? 'Cancelar' : 'Cancel'),
+                    child: Text(
+                      fleetText(context, 'Cancel', 'Cancelar', 'Annuler'),
+                    ),
                   ),
                 ],
               ),

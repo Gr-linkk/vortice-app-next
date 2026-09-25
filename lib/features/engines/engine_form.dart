@@ -1,5 +1,6 @@
 import 'package:vortice_app/core/app_dropdown_field.dart';
 import 'package:vortice_app/core/meter_units.dart';
+import 'package:vortice_app/core/localized_text.dart';
 import 'package:vortice_app/core/user_feedback.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -177,7 +178,13 @@ class _EngineFormState extends ConsumerState<EngineForm> {
                       .map(
                         (unit) => DropdownMenuItem(
                           value: unit,
-                          child: Text(meterName(unit, isSpanish(context))),
+                          child: Text(
+                            meterName(
+                              unit,
+                              isSpanish(context),
+                              french: isFrench(context),
+                            ),
+                          ),
                         ),
                       )
                       .toList(),
@@ -187,7 +194,7 @@ class _EngineFormState extends ConsumerState<EngineForm> {
                 )
               else
                 Text(
-                  '${isSpanish(context) ? 'Unidad original' : 'Original meter unit'}: ${meterName(_meterUnit, isSpanish(context))}',
+                  '${localizedText(context, 'Original meter unit', 'Unidad original', 'Unité de compteur d’origine')}: ${meterName(_meterUnit, isSpanish(context), french: isFrench(context))}',
                 ),
               const SizedBox(height: 20),
               ElevatedButton(

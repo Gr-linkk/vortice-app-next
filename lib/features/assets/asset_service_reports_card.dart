@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:vortice_app/core/theme.dart';
+import 'package:vortice_app/core/localized_text.dart';
 import 'package:vortice_app/features/service_reports/service_report_provider.dart';
 import 'package:vortice_app/models/asset.dart';
 
@@ -21,8 +22,12 @@ class AssetServiceReportsCard extends ConsumerWidget {
     final reportsAsync = ref.watch(
       serviceReportIndexProvider((assetId: asset.id, workOrderId: null)),
     );
-    final es = Localizations.localeOf(context).languageCode == 'es';
-    final title = es ? 'Informes de servicio' : 'Service Reports';
+    final title = localizedText(
+      context,
+      'Service reports',
+      'Informes de servicio',
+      'Rapports d’intervention',
+    );
 
     return InkWell(
       borderRadius: BorderRadius.circular(12),
@@ -51,7 +56,12 @@ class AssetServiceReportsCard extends ConsumerWidget {
                   children: [
                     Text(title, style: Theme.of(context).textTheme.titleSmall),
                     Text(
-                      es ? 'Cargando informes...' : 'Loading asset records...',
+                      localizedText(
+                        context,
+                        'Loading asset records...',
+                        'Cargando informes...',
+                        'Chargement des dossiers d’équipement…',
+                      ),
                       style: TextStyle(
                         color: context.appColors.textSecondary,
                         fontSize: 12,
@@ -64,9 +74,12 @@ class AssetServiceReportsCard extends ConsumerWidget {
                   children: [
                     Text(title, style: Theme.of(context).textTheme.titleSmall),
                     Text(
-                      es
-                          ? 'Informes no disponibles.'
-                          : 'Service report records unavailable.',
+                      localizedText(
+                        context,
+                        'Service report records unavailable.',
+                        'Informes no disponibles.',
+                        'Rapports d’intervention indisponibles.',
+                      ),
                       style: TextStyle(
                         color: context.appColors.textSecondary,
                         fontSize: 12,
@@ -76,14 +89,20 @@ class AssetServiceReportsCard extends ConsumerWidget {
                 ),
                 data: (reports) {
                   final latest = reports.isEmpty ? null : reports.first.date;
-                  final countLabel = es
-                      ? '${reports.length} informe${reports.length == 1 ? '' : 's'}'
-                      : '${reports.length} report${reports.length == 1 ? '' : 's'}';
+                  final countLabel = localizedText(
+                    context,
+                    '${reports.length} report${reports.length == 1 ? '' : 's'}',
+                    '${reports.length} informe${reports.length == 1 ? '' : 's'}',
+                    '${reports.length} rapport${reports.length == 1 ? '' : 's'}',
+                  );
                   final subtitle = reports.isEmpty
-                      ? (es
-                            ? 'Aún no hay informes de servicio'
-                            : 'No service reports attached yet')
-                      : '$countLabel${latest == null ? '' : ' • ${es ? 'último' : 'latest'} ${DateFormat.yMMMd(es ? 'es' : 'en').format(latest.toLocal())}'}';
+                      ? localizedText(
+                          context,
+                          'No service reports attached yet',
+                          'Aún no hay informes de servicio',
+                          'Aucun rapport d’intervention n’est encore associé',
+                        )
+                      : '$countLabel${latest == null ? '' : ' • ${localizedText(context, 'latest', 'último', 'dernier')} ${DateFormat.yMMMd(appLocaleCode(context)).format(latest.toLocal())}'}';
                   return Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [

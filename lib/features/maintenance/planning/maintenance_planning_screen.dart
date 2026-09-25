@@ -7,6 +7,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:vortice_app/core/user_feedback.dart';
+import 'package:vortice_app/core/localized_text.dart';
 import 'package:vortice_app/features/auth/auth_provider.dart';
 import 'package:vortice_app/models/profile.dart';
 import 'package:vortice_app/features/work_orders/work_order_provider.dart';
@@ -166,7 +167,7 @@ class _MaintenancePlanningScreenState
 
   @override
   Widget build(BuildContext context) {
-    final es = isSpanish(context);
+    final es = isSpanish(context), fr = isFrench(context);
     final profile = ref.watch(profileProvider).valueOrNull;
     final manager = isMaintenanceManager(profile?.role);
     final focus = widget.assetId == null
@@ -175,7 +176,16 @@ class _MaintenancePlanningScreenState
     final view = _view ?? 'month';
     if (!canUseMaintenance(profile?.role)) {
       return Scaffold(
-        appBar: AppBar(title: Text(es ? 'Órdenes de trabajo' : 'Work orders')),
+        appBar: AppBar(
+          title: Text(
+            localizedText(
+              context,
+              'Work orders',
+              'Órdenes de trabajo',
+              'Bons de travail',
+            ),
+          ),
+        ),
         body: Center(
           child: Text(
             es
@@ -187,7 +197,14 @@ class _MaintenancePlanningScreenState
     }
     return Scaffold(
       appBar: AppBar(
-        title: Text(es ? 'Órdenes de trabajo' : 'Work orders'),
+        title: Text(
+          localizedText(
+            context,
+            'Work orders',
+            'Órdenes de trabajo',
+            'Bons de travail',
+          ),
+        ),
         actions: [
           IconButton(
             tooltip: es ? 'Buscar y filtrar' : 'Search & filters',
@@ -316,7 +333,7 @@ class _MaintenancePlanningScreenState
                                 j.componentName == _component) &&
                             (_status == null || j.lifecycle == _status) &&
                             (_type == null || j.workType.dbValue == _type) &&
-                            j.matchesSearch(_query, es),
+                            j.matchesSearch(_query, es, french: fr),
                       )
                       .toList()
                     ..sort(comparePlanningJobs);
@@ -388,7 +405,7 @@ class _MaintenancePlanningScreenState
                         Expanded(
                           child: Text(
                             widget.assetId == null
-                                ? focus.label(es)
+                                ? focus.label(es, french: fr)
                                 : (es
                                       ? 'Trabajo del equipo'
                                       : 'Equipment work'),
@@ -482,12 +499,28 @@ class _MaintenancePlanningScreenState
                             child: Text(
                               view == 'month'
                                   ? DateFormat.yMMMM(
-                                      es ? 'es' : 'en',
+                                      fr
+                                          ? 'fr_CA'
+                                          : es
+                                          ? 'es'
+                                          : 'en',
                                     ).format(_day)
                                   : view == 'week'
-                                  ? '${DateFormat.MMMd(es ? 'es' : 'en').format(week)} – ${DateFormat.MMMd(es ? 'es' : 'en').format(until.subtract(const Duration(days: 1)))}'
+                                  ? '${DateFormat.MMMd(fr
+                                        ? 'fr_CA'
+                                        : es
+                                        ? 'es'
+                                        : 'en').format(week)} – ${DateFormat.MMMd(fr
+                                        ? 'fr_CA'
+                                        : es
+                                        ? 'es'
+                                        : 'en').format(until.subtract(const Duration(days: 1)))}'
                                   : DateFormat.yMMMd(
-                                      es ? 'es' : 'en',
+                                      fr
+                                          ? 'fr_CA'
+                                          : es
+                                          ? 'es'
+                                          : 'en',
                                     ).format(_day),
                               textAlign: TextAlign.center,
                               style: Theme.of(context).textTheme.titleMedium,
@@ -520,6 +553,7 @@ class _MaintenancePlanningScreenState
                           day: _day,
                           jobs: jobs,
                           es: es,
+                          french: fr,
                           onSelect: (date) => setState(() {
                             _day = date;
                             _showUnscheduled = false;
@@ -566,7 +600,11 @@ class _MaintenancePlanningScreenState
                       Padding(
                         padding: const EdgeInsets.symmetric(vertical: 12),
                         child: Text(
-                          '${es ? 'Programar para' : 'Schedule for'} ${DateFormat.yMMMd(es ? 'es' : 'en').format(_day)}',
+                          '${localizedText(context, 'Schedule for', 'Programar para', 'Planifier pour')} ${DateFormat.yMMMd(fr
+                              ? 'fr_CA'
+                              : es
+                              ? 'es'
+                              : 'en').format(_day)}',
                           style: Theme.of(context).textTheme.titleMedium,
                         ),
                       ),
@@ -577,7 +615,7 @@ class _MaintenancePlanningScreenState
                               : 'All work has a date.',
                         ),
                       for (final job in scopedJobs.where((j) => j.unscheduled))
-                        _jobCard(job, data.jobs, es),
+                        _jobCard(job, data.jobs, es, fr),
                     ] else if (view == 'plans') ...[
                       Text(
                         es
@@ -643,6 +681,7 @@ class _MaintenancePlanningScreenState
                               : _day,
                           jobs: displayed,
                           es: es,
+                          french: fr,
                           onOpen: (job) => _open(job.route),
                           onSchedule: (job) => _schedule(job, data.jobs),
                         ),
@@ -657,7 +696,8 @@ class _MaintenancePlanningScreenState
                                     ? 'No hay trabajo con este filtro.'
                                     : 'No work in this view.'),
                         ),
-                      for (final job in displayed) _jobCard(job, data.jobs, es),
+                      for (final job in displayed)
+                        _jobCard(job, data.jobs, es, fr),
                     ],
                     if (view == 'week' && manager && displayed.isNotEmpty)
                       Card(
@@ -713,7 +753,12 @@ class _MaintenancePlanningScreenState
     child: Text(message),
   );
 
-  Widget _jobCard(PlanningJob job, List<PlanningJob> jobs, bool es) => Card(
+  Widget _jobCard(
+    PlanningJob job,
+    List<PlanningJob> jobs,
+    bool es,
+    bool fr,
+  ) => Card(
     child: Container(
       decoration: BoxDecoration(
         border: BorderDirectional(
@@ -731,24 +776,47 @@ class _MaintenancePlanningScreenState
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              (job.ownEquipment ? WorkFocus.own : WorkFocus.customer).label(es),
+              (job.ownEquipment ? WorkFocus.own : WorkFocus.customer).label(
+                es,
+                french: fr,
+              ),
               style: Theme.of(context).textTheme.labelLarge,
             ),
             if (job.serviceDate != null)
-              Text(DateFormat.yMMMd(es ? 'es' : 'en').format(job.serviceDate!)),
+              Text(
+                DateFormat.yMMMd(
+                  fr
+                      ? 'fr_CA'
+                      : es
+                      ? 'es'
+                      : 'en',
+                ).format(job.serviceDate!),
+              ),
             if (job.start != null)
               Text(
-                '${DateFormat.MMMEd(es ? 'es' : 'en').add_Hm().format(job.start!)} · ${(job.minutes / 60).toStringAsFixed(1)} h',
+                '${DateFormat.MMMEd(fr
+                    ? 'fr_CA'
+                    : es
+                    ? 'es'
+                    : 'en').add_Hm().format(job.start!)} · ${(job.minutes / 60).toStringAsFixed(1)} h',
                 style: Theme.of(context).textTheme.labelLarge,
               ),
             const SizedBox(height: 4),
             Text(job.title, style: Theme.of(context).textTheme.titleMedium),
-            if (!job.providerService) Text(job.workType.label(es)),
+            if (!job.providerService) Text(job.workType.label(es, fr: fr)),
             Text(
               '${job.assetName}${job.data['component_name'] == null ? '' : ' · ${job.data['component_name']}'}',
             ),
             Text(
-              '${job.assigneeName.isEmpty ? (es ? 'Sin asignar' : 'Unassigned') : job.assigneeName} · ${job.lifecycleLabel(es)}${job.status == 'invoiced' ? (es ? ' · Facturado' : ' · Invoiced') : ''} · ${maintenancePriority(job.priority, es)}',
+              '${job.assigneeName.isEmpty ? (fr
+                        ? 'Non attribué'
+                        : es
+                        ? 'Sin asignar'
+                        : 'Unassigned') : job.assigneeName} · ${job.lifecycleLabel(es, french: fr)}${job.status == 'invoiced' ? (fr
+                        ? ' · Facturé'
+                        : es
+                        ? ' · Facturado'
+                        : ' · Invoiced') : ''} · ${maintenancePriority(job.priority, es, french: fr)}',
             ),
             if (job.data['due_meter'] != null)
               Text(
@@ -759,7 +827,7 @@ class _MaintenancePlanningScreenState
               ),
             if (job.dueDate != null)
               Text(
-                '${es ? 'Fecha límite' : 'Deadline'}: ${maintenanceDate(job.dueDate, es)}',
+                '${localizedText(context, 'Deadline', 'Fecha límite', 'Date limite')} : ${maintenanceDate(job.dueDate, es, french: fr)}',
                 style: job.overdue(DateTime.now())
                     ? TextStyle(color: Theme.of(context).colorScheme.error)
                     : null,
@@ -875,12 +943,14 @@ class PlanningDayAgenda extends StatelessWidget {
     required this.day,
     required this.jobs,
     required this.es,
+    this.french = false,
     required this.onOpen,
     required this.onSchedule,
   });
   final DateTime day;
   final List<PlanningJob> jobs;
   final bool es;
+  final bool french;
   final ValueChanged<PlanningJob> onOpen, onSchedule;
 
   @override
@@ -888,7 +958,11 @@ class PlanningDayAgenda extends StatelessWidget {
     final next = DateTime(day.year, day.month, day.day + 1);
     final entries = jobs.where((job) => job.inPeriod(day, next)).toList()
       ..sort(comparePlanningJobs);
-    final locale = es ? 'es' : 'en';
+    final locale = french
+        ? 'fr_CA'
+        : es
+        ? 'es'
+        : 'en';
     final theme = Theme.of(context);
     return Padding(
       key: ValueKey('calendar-agenda-${day.toIso8601String()}'),
@@ -905,7 +979,9 @@ class PlanningDayAgenda extends StatelessWidget {
             Padding(
               padding: const EdgeInsets.only(bottom: 8),
               child: Text(
-                es
+                french
+                    ? 'Aucun bon de travail n’est planifié pour cette journée.'
+                    : es
                     ? 'No hay órdenes de trabajo para este día.'
                     : 'No work orders scheduled for this day.',
               ),
@@ -937,7 +1013,7 @@ class PlanningDayAgenda extends StatelessWidget {
                             style: theme.textTheme.labelLarge,
                           ),
                           Text(
-                            job.lifecycleLabel(es),
+                            job.lifecycleLabel(es, french: isFrench(context)),
                             style: theme.textTheme.labelLarge,
                           ),
                         ],
@@ -946,7 +1022,11 @@ class PlanningDayAgenda extends StatelessWidget {
                       Text(job.title, style: theme.textTheme.titleMedium),
                       Text(job.assetName),
                       Text(
-                        '${(job.ownEquipment ? WorkFocus.own : WorkFocus.customer).label(es)} · ${job.assigneeName.isEmpty ? (es ? 'Sin asignar' : 'Unassigned') : job.assigneeName}',
+                        '${(job.ownEquipment ? WorkFocus.own : WorkFocus.customer).label(es, french: isFrench(context))} · ${job.assigneeName.isEmpty ? (isFrench(context)
+                                  ? 'Non attribué'
+                                  : es
+                                  ? 'Sin asignar'
+                                  : 'Unassigned') : job.assigneeName}',
                         style: theme.textTheme.bodySmall,
                       ),
                       if (job.conflict)
@@ -984,11 +1064,13 @@ class PlanningMonth extends StatelessWidget {
     required this.day,
     required this.jobs,
     required this.es,
+    this.french = false,
     required this.onSelect,
   });
   final DateTime day;
   final List<PlanningJob> jobs;
   final bool es;
+  final bool french;
   final ValueChanged<DateTime> onSelect;
   @override
   Widget build(BuildContext context) {
@@ -1034,7 +1116,15 @@ class PlanningMonth extends StatelessWidget {
                           button: true,
                           selected: number == day.day,
                           label:
-                              '${DateFormat.yMMMd(es ? 'es' : 'en').format(date)}, $total ${es ? 'trabajos' : 'jobs'}',
+                              '${DateFormat.yMMMd(french
+                                  ? 'fr_CA'
+                                  : es
+                                  ? 'es'
+                                  : 'en').format(date)}, $total ${french
+                                  ? 'bons de travail'
+                                  : es
+                                  ? 'trabajos'
+                                  : 'jobs'}',
                           child: InkWell(
                             key: ValueKey(
                               'calendar-day-${date.toIso8601String()}',

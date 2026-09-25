@@ -6,13 +6,25 @@ enum CompanyPurpose {
   both;
 
   bool get providesService => this != fleet;
-  String label(bool es) => switch (this) {
-    fleet => es ? 'Mantener nuestros equipos' : 'Maintaining our own equipment',
+  String label(bool es, {bool french = false}) => switch (this) {
+    fleet =>
+      french
+          ? 'Entretenir nos propres équipements'
+          : es
+          ? 'Mantener nuestros equipos'
+          : 'Maintaining our own equipment',
     service =>
-      es
+      french
+          ? 'Travailler sur les équipements des clients'
+          : es
           ? 'Trabajar en equipos de clientes'
           : 'Working on customers’ equipment',
-    both => es ? 'Ambos' : 'Both',
+    both =>
+      french
+          ? 'Les deux'
+          : es
+          ? 'Ambos'
+          : 'Both',
   };
   static CompanyPurpose? parse(String? value) =>
       values.where((item) => item.name == value).firstOrNull;
@@ -24,17 +36,21 @@ class CompanyPurposePicker extends StatelessWidget {
     required this.value,
     required this.onChanged,
     required this.spanish,
+    this.french = false,
   });
   final CompanyPurpose? value;
   final ValueChanged<CompanyPurpose>? onChanged;
   final bool spanish;
+  final bool french;
 
   @override
   Widget build(BuildContext context) => Column(
     crossAxisAlignment: CrossAxisAlignment.stretch,
     children: [
       Text(
-        spanish
+        french
+            ? 'Pour quelle activité votre entreprise utilisera-t-elle l’application ?'
+            : spanish
             ? '¿Para qué usará tu empresa la aplicación?'
             : 'What will your company use the app for?',
         style: Theme.of(context).textTheme.titleMedium,
@@ -68,14 +84,16 @@ class CompanyPurposePicker extends StatelessWidget {
                         : Icons.radio_button_off,
                   ),
                   const SizedBox(width: 12),
-                  Expanded(child: Text(purpose.label(spanish))),
+                  Expanded(child: Text(purpose.label(spanish, french: french))),
                 ],
               ),
             ),
           ),
         ),
       Text(
-        spanish
+        french
+            ? 'Toutes les options comprennent vos propres équipements et leur entretien. Le travail pour les clients ajoute les travaux effectués pour d’autres entreprises.'
+            : spanish
             ? 'Todas las opciones incluyen tus propios equipos y mantenimiento. El trabajo para clientes añade trabajos para otras empresas.'
             : 'Every option includes your own equipment and maintenance. Customer work adds jobs for other companies.',
       ),

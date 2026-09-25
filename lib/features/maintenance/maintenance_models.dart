@@ -16,7 +16,11 @@ bool canUseMaintenance(UserRole? role) =>
     role == UserRole.employee ||
     role == UserRole.clientMechanic;
 
-String maintenanceLifecycle(String value, {bool? booked, bool returned = false}) {
+String maintenanceLifecycle(
+  String value, {
+  bool? booked,
+  bool returned = false,
+}) {
   if (value == 'closed' || value == 'invoiced') return 'completed';
   if (value == 'pending_review') return value;
   if (returned) return 'returned';
@@ -27,50 +31,145 @@ String maintenanceLifecycle(String value, {bool? booked, bool returned = false})
   return value;
 }
 
-String maintenanceStatus(String value, bool es, {bool? booked, bool returned = false}) => switch (maintenanceLifecycle(value, booked: booked, returned: returned)) {
-  'draft' => es ? 'Sin asignar' : 'Unassigned',
-  'assigned' => es ? 'Asignado' : 'Assigned',
-  'scheduled' => es ? 'Programado' : 'Scheduled',
-  'unscheduled' => es ? 'Sin programar' : 'Unscheduled',
-  'returned' => es ? 'Devuelto' : 'Returned',
-  'in_progress' => es ? 'En curso' : 'In progress',
-  'on_hold' => es ? 'Bloqueado' : 'Blocked',
-  'pending_review' => es ? 'Pendiente de revisión' : 'Awaiting review',
-  'completed' => es ? 'Completado' : 'Completed',
+String maintenanceStatus(
+  String value,
+  bool es, {
+  bool french = false,
+  bool? booked,
+  bool returned = false,
+}) => switch (maintenanceLifecycle(value, booked: booked, returned: returned)) {
+  'draft' =>
+    french
+        ? 'Non attribué'
+        : es
+        ? 'Sin asignar'
+        : 'Unassigned',
+  'assigned' =>
+    french
+        ? 'Attribué'
+        : es
+        ? 'Asignado'
+        : 'Assigned',
+  'scheduled' =>
+    french
+        ? 'Planifié'
+        : es
+        ? 'Programado'
+        : 'Scheduled',
+  'unscheduled' =>
+    french
+        ? 'Non planifié'
+        : es
+        ? 'Sin programar'
+        : 'Unscheduled',
+  'returned' =>
+    french
+        ? 'Retourné'
+        : es
+        ? 'Devuelto'
+        : 'Returned',
+  'in_progress' =>
+    french
+        ? 'En cours'
+        : es
+        ? 'En curso'
+        : 'In progress',
+  'on_hold' =>
+    french
+        ? 'Bloqué'
+        : es
+        ? 'Bloqueado'
+        : 'Blocked',
+  'pending_review' =>
+    french
+        ? 'En attente de révision'
+        : es
+        ? 'Pendiente de revisión'
+        : 'Awaiting review',
+  'completed' =>
+    french
+        ? 'Terminé'
+        : es
+        ? 'Completado'
+        : 'Completed',
   _ => value,
 };
 
-String maintenancePriority(String value, bool es) => switch (value) {
-  'low' => es ? 'Baja' : 'Low',
-  'high' => es ? 'Alta' : 'High',
-  'urgent' => es ? 'Urgente' : 'Urgent',
-  _ => 'Normal',
+String maintenancePriority(String value, bool es, {bool french = false}) =>
+    switch (value) {
+      'low' =>
+        french
+            ? 'Basse'
+            : es
+            ? 'Baja'
+            : 'Low',
+      'high' =>
+        french
+            ? 'Élevée'
+            : es
+            ? 'Alta'
+            : 'High',
+      'urgent' =>
+        french
+            ? 'Urgente'
+            : es
+            ? 'Urgente'
+            : 'Urgent',
+      _ => french ? 'Normale' : 'Normal',
+    };
+const _maintenanceEventsFr = <String, String>{
+  'created': 'Bon de travail créé',
+  'edit_details': 'Portée du travail mise à jour',
+  'scope_previous': 'Portée précédente consignée',
+  'schedule': 'Planification mise à jour',
+  'schedule_previous': 'Ancienne planification consignée',
+  'assign': 'Attribution mise à jour',
+  'start': 'Travail commencé',
+  'pause': 'Temps de travail suspendu',
+  'block': 'Travail bloqué',
+  'save_report': 'Brouillon enregistré',
+  'submit': 'Soumis pour révision',
+  'add_part': 'Pièce consignée',
+  'remove_part': 'Pièce retirée',
+  'approve': 'Travail approuvé',
+  'return': 'Retourné pour correction',
+  'reopen': 'Travail rouvert',
 };
-String maintenanceEvent(String value, bool es) => switch (value) {
-  'created' => es ? 'Orden creada' : 'Work order created',
-  'edit_details' => es ? 'Alcance actualizado' : 'Work order scope updated',
-  'scope_previous' =>
-    es ? 'Alcance anterior registrado' : 'Previous scope recorded',
-  'schedule' => es ? 'Planificación actualizada' : 'Schedule updated',
-  'schedule_previous' =>
-    es ? 'Planificación anterior registrada' : 'Previous schedule recorded',
-  'assign' => es ? 'Responsable actualizado' : 'Assignment updated',
-  'start' => es ? 'Trabajo iniciado' : 'Labour started',
-  'pause' => es ? 'Trabajo pausado' : 'Labour paused',
-  'block' => es ? 'Trabajo bloqueado' : 'Work blocked',
-  'save_report' => es ? 'Borrador guardado' : 'Draft saved',
-  'submit' => es ? 'Enviado a revisión' : 'Submitted for review',
-  'add_part' => es ? 'Repuesto registrado' : 'Part recorded',
-  'remove_part' => es ? 'Repuesto retirado' : 'Part removed',
-  'approve' => es ? 'Trabajo aprobado' : 'Work approved',
-  'return' => es ? 'Devuelto para cambios' : 'Returned for changes',
-  'reopen' => es ? 'Trabajo reabierto' : 'Job reopened',
-  _ => es ? 'Trabajo actualizado' : 'Job updated',
-};
-String maintenanceDate(String? value, bool es) {
+String maintenanceEvent(String value, bool es, {bool french = false}) {
+  if (french) return _maintenanceEventsFr[value] ?? 'Travail mis à jour';
+  return switch (value) {
+    'created' => es ? 'Orden creada' : 'Work order created',
+    'edit_details' => es ? 'Alcance actualizado' : 'Work order scope updated',
+    'scope_previous' =>
+      es ? 'Alcance anterior registrado' : 'Previous scope recorded',
+    'schedule' => es ? 'Planificación actualizada' : 'Schedule updated',
+    'schedule_previous' =>
+      es ? 'Planificación anterior registrada' : 'Previous schedule recorded',
+    'assign' => es ? 'Responsable actualizado' : 'Assignment updated',
+    'start' => es ? 'Trabajo iniciado' : 'Labour started',
+    'pause' => es ? 'Trabajo pausado' : 'Labour paused',
+    'block' => es ? 'Trabajo bloqueado' : 'Work blocked',
+    'save_report' => es ? 'Borrador guardado' : 'Draft saved',
+    'submit' => es ? 'Enviado a revisión' : 'Submitted for review',
+    'add_part' => es ? 'Repuesto registrado' : 'Part recorded',
+    'remove_part' => es ? 'Repuesto retirado' : 'Part removed',
+    'approve' => es ? 'Trabajo aprobado' : 'Work approved',
+    'return' => es ? 'Devuelto para cambios' : 'Returned for changes',
+    'reopen' => es ? 'Trabajo reabierto' : 'Job reopened',
+    _ => es ? 'Trabajo actualizado' : 'Job updated',
+  };
+}
+
+String maintenanceDate(String? value, bool es, {bool french = false}) {
   final date = DateTime.tryParse(value ?? '');
   if (date == null) return '—';
-  final format = DateFormat.yMMMd(es ? 'es' : 'en');
+  final format = DateFormat.yMMMd(
+    french
+        ? 'fr_CA'
+        : es
+        ? 'es'
+        : 'en',
+  );
   if (value!.contains('T')) format.add_Hm();
   return format.format(date.toLocal());
 }
@@ -79,6 +178,7 @@ class MaintenanceJob {
   MaintenanceJob(this.data);
   final Map<String, dynamic> data;
   String get id => data['id'] as String;
+  String get costCurrency => data['cost_currency'] as String? ?? 'USD';
   String get assetId => data['asset_id'] as String;
   String get assetName => data['asset_name'] as String? ?? '';
   String get title => data['title'] as String? ?? '';
@@ -89,8 +189,10 @@ class MaintenanceJob {
   bool get hasBooking =>
       DateTime.tryParse(data['planned_start'] as String? ?? '') != null ||
       DateTime.tryParse(data['service_date'] as String? ?? '') != null;
-  String get lifecycle => maintenanceLifecycle(status, booked: hasBooking, returned: returned);
-  String lifecycleLabel(bool es) => maintenanceStatus(lifecycle, es);
+  String get lifecycle =>
+      maintenanceLifecycle(status, booked: hasBooking, returned: returned);
+  String lifecycleLabel(bool es, {bool french = false}) =>
+      maintenanceStatus(lifecycle, es, french: french);
   String get priority => data['priority'] as String? ?? 'normal';
   String? get dueDate => data['due_date'] as String?;
   int get revision => (data['revision'] as num?)?.toInt() ?? 0;
@@ -139,25 +241,37 @@ class MaintenanceJob {
   );
 }
 
-String maintenanceApprovalDescription(MaintenanceJob job, bool es) {
+String maintenanceApprovalDescription(
+  MaintenanceJob job,
+  bool es, {
+  bool french = false,
+}) {
   if (job.isService && job.data['service_applied_at'] != null) {
-    return es
+    return french
+        ? 'Ferme ce travail rouvert. L’entretien déjà effectué et la prochaine échéance restent inchangés.'
+        : es
         ? 'Cierra este trabajo reabierto. El servicio ya completado y las próximas horas de servicio no cambian.'
         : 'Closes this reopened job. Its previously completed service and next service due stay unchanged.';
   }
   if (job.isService &&
       (job.data['covered_plan_ids'] as List? ?? []).isNotEmpty) {
     final names = (job.data['covered_plan_names'] as List? ?? []).join(', ');
-    return es
+    return french
+        ? 'Termine ce travail et le plan associé, notamment : $names.'
+        : es
         ? 'Completa este trabajo y su plan, incluidos: $names.'
         : 'Completes this job and its plan, including: $names.';
   }
   if (job.isService) {
-    return es
+    return french
+        ? 'Termine le travail et met à jour uniquement le plan d’entretien associé.'
+        : es
         ? 'Completa el trabajo y actualiza únicamente su plan de servicio vinculado.'
         : 'Completes this job and updates only its linked service plan.';
   }
-  return es
+  return french
+      ? 'Termine ce bon de travail. La disponibilité de l’équipement et la résolution des défaillances sont vérifiées séparément.'
+      : es
       ? 'Completa esta orden de trabajo. La disponibilidad del equipo y la resolución de fallas se revisan por separado.'
       : 'Completes this work order. Asset availability and fault resolution are reviewed separately.';
 }

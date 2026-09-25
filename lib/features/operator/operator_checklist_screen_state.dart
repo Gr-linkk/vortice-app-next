@@ -5,6 +5,7 @@ import 'package:vortice_app/features/checklists/asset_checklist_template_filter.
 import 'package:uuid/uuid.dart';
 import 'package:vortice_app/sync/field_work_provider.dart';
 import 'package:vortice_app/core/account_storage.dart';
+import 'package:vortice_app/core/localized_text.dart';
 import 'operator_checklist_draft_store.dart';
 import 'dart:typed_data';
 
@@ -323,7 +324,6 @@ class OperatorChecklistScreenState
   }
 
   String _draftSubtitle(BuildContext context, Map<String, dynamic> draft) {
-    final es = Localizations.localeOf(context).languageCode == 'es';
     final template = ref
         .read(checklistTemplatesProvider)
         .valueOrNull!
@@ -333,19 +333,28 @@ class OperatorChecklistScreenState
     )?.toLocal();
     final localizations = MaterialLocalizations.of(context);
     final startedLabel = started == null
-        ? (es ? 'Hora de inicio no registrada' : 'Start time not recorded')
-        : '${es ? 'Iniciada' : 'Started'} ${localizations.formatShortDate(started)} · ${localizations.formatTimeOfDay(TimeOfDay.fromDateTime(started))}';
-    return '${template.name} · v${template.version}\n$startedLabel\n${es ? 'Guardado en este dispositivo' : 'Saved on this device'}';
+        ? localizedText(
+            context,
+            'Start time not recorded',
+            'Hora de inicio no registrada',
+            'Heure de début non enregistrée',
+          )
+        : '${localizedText(context, 'Started', 'Iniciada', 'Commencée')} ${localizations.formatShortDate(started)} · ${localizations.formatTimeOfDay(TimeOfDay.fromDateTime(started))}';
+    return '${template.name} · v${template.version}\n$startedLabel\n${localizedText(context, 'Saved on this device', 'Guardado en este dispositivo', 'Enregistrée sur cet appareil')}';
   }
 
   Widget _draftChoices(BuildContext context) {
-    final es = Localizations.localeOf(context).languageCode == 'es';
     final assets = ref.read(operatorAssignedAssetsProvider).valueOrNull ?? [];
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
         Text(
-          es ? 'Listas sin terminar' : 'Unfinished checklists',
+          localizedText(
+            context,
+            'Unfinished checklists',
+            'Listas sin terminar',
+            'Inspections inachevées',
+          ),
           style: Theme.of(context).textTheme.titleLarge,
         ),
         const SizedBox(height: 8),
@@ -354,9 +363,12 @@ class OperatorChecklistScreenState
             child: ListTile(
               leading: const Icon(Icons.restore),
               title: Text(
-                es
-                    ? 'Continuar lista de ${assets.firstWhere((a) => a['id'] == draft['assetId'])['name']}'
-                    : 'Resume ${assets.firstWhere((a) => a['id'] == draft['assetId'])['name']} checklist',
+                localizedText(
+                  context,
+                  'Resume ${assets.firstWhere((a) => a['id'] == draft['assetId'])['name']} checklist',
+                  'Continuar lista de ${assets.firstWhere((a) => a['id'] == draft['assetId'])['name']}',
+                  'Reprendre l’inspection de ${assets.firstWhere((a) => a['id'] == draft['assetId'])['name']}',
+                ),
               ),
               subtitle: Text(_draftSubtitle(context, draft)),
               trailing: const Icon(Icons.chevron_right),
@@ -367,7 +379,14 @@ class OperatorChecklistScreenState
         OutlinedButton.icon(
           onPressed: () => setState(() => _showDrafts = false),
           icon: const Icon(Icons.add),
-          label: Text(es ? 'Iniciar otra lista' : 'Start another checklist'),
+          label: Text(
+            localizedText(
+              context,
+              'Start another checklist',
+              'Iniciar otra lista',
+              'Commencer une autre inspection',
+            ),
+          ),
         ),
       ],
     );
@@ -391,15 +410,17 @@ class OperatorChecklistScreenState
       }
     });
 
-    final es = Localizations.localeOf(context).languageCode == 'es';
     if (ref.watch(sessionProvider)?.user.id != _accountId) {
       return Scaffold(
         appBar: AppBar(title: Text(l10n.operatorChecklistTitle)),
         body: Center(
           child: Text(
-            es
-                ? 'La cuenta cambió. Vuelve a abrir esta pantalla.'
-                : 'The account changed. Reopen this screen.',
+            localizedText(
+              context,
+              'The account changed. Reopen this screen.',
+              'La cuenta cambió. Vuelve a abrir esta pantalla.',
+              'Le compte a changé. Rouvrez cet écran.',
+            ),
           ),
         ),
       );
@@ -416,9 +437,12 @@ class OperatorChecklistScreenState
               mainAxisSize: MainAxisSize.min,
               children: [
                 Text(
-                  es
-                      ? 'No se pudieron cargar los equipos y las listas guardadas.'
-                      : 'Equipment and saved checklists could not be loaded.',
+                  localizedText(
+                    context,
+                    'Equipment and saved checklists could not be loaded.',
+                    'No se pudieron cargar los equipos y las listas guardadas.',
+                    'Impossible de charger les équipements et les inspections enregistrées.',
+                  ),
                 ),
                 TextButton(
                   onPressed: () {
@@ -430,7 +454,14 @@ class OperatorChecklistScreenState
                     ref.invalidate(checklistTemplatesProvider);
                     unawaited(_restoreDraftIfReady());
                   },
-                  child: Text(es ? 'Reintentar' : 'Try again'),
+                  child: Text(
+                    localizedText(
+                      context,
+                      'Try again',
+                      'Reintentar',
+                      'Réessayer',
+                    ),
+                  ),
                 ),
               ],
             ),
@@ -452,13 +483,23 @@ class OperatorChecklistScreenState
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Text(
-                    es
-                        ? 'No se pudo guardar la lista. Mantén esta pantalla abierta.'
-                        : 'The checklist could not be saved. Keep this screen open.',
+                    localizedText(
+                      context,
+                      'The checklist could not be saved. Keep this screen open.',
+                      'No se pudo guardar la lista. Mantén esta pantalla abierta.',
+                      'Impossible d’enregistrer l’inspection. Gardez cet écran ouvert.',
+                    ),
                   ),
                   TextButton(
                     onPressed: _saveDraft,
-                    child: Text(es ? 'Reintentar' : 'Try again'),
+                    child: Text(
+                      localizedText(
+                        context,
+                        'Try again',
+                        'Reintentar',
+                        'Réessayer',
+                      ),
+                    ),
                   ),
                 ],
               ),
@@ -471,9 +512,12 @@ class OperatorChecklistScreenState
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Text(
-                      Localizations.localeOf(context).languageCode == 'es'
-                          ? 'Esta revisión asignada ya no está disponible. Revisa el historial o pide al responsable una nueva asignación.'
-                          : 'This equipment or assignment is no longer available. Your draft is kept. Ask your manager to check access.',
+                      localizedText(
+                        context,
+                        'This equipment or assignment is no longer available. Your draft is kept. Ask your manager to check access.',
+                        'Esta revisión asignada ya no está disponible. Revisa el historial o pide al responsable una nueva asignación.',
+                        'Cet équipement ou cette attribution n’est plus disponible. Votre brouillon est conservé. Demandez à la personne responsable de vérifier l’accès.',
+                      ),
                     ),
                     TextButton(
                       onPressed: () => context.go('/client/dashboard'),
@@ -603,19 +647,24 @@ class OperatorChecklistScreenState
         if (!mounted || ref.read(sessionProvider)?.user.id != _accountId) {
           return;
         }
-        final es = Localizations.localeOf(context).languageCode == 'es';
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
               queued?.synced == true
                   ? AppLocalizations.of(context).checklistSubmitted
                   : queued?.needsAttention == true
-                  ? (es
-                        ? 'Guardado; necesita atención. Abre sincronización.'
-                        : 'Saved; needs attention. Open sync status.')
-                  : (es
-                        ? 'Guardado en este dispositivo; pendiente de envío.'
-                        : 'Saved on this device; pending upload.'),
+                  ? localizedText(
+                      context,
+                      'Saved; needs attention. Open sync status.',
+                      'Guardado; necesita atención. Abre sincronización.',
+                      'Enregistrée, mais nécessite une attention. Ouvrez l’état de synchronisation.',
+                    )
+                  : localizedText(
+                      context,
+                      'Saved on this device; pending upload.',
+                      'Guardado en este dispositivo; pendiente de envío.',
+                      'Enregistrée sur cet appareil; en attente d’envoi.',
+                    ),
             ),
           ),
         );
@@ -646,6 +695,7 @@ class OperatorChecklistScreenState
             content: Text(
               error.message(
                 Localizations.localeOf(context).languageCode == 'es',
+                french: Localizations.localeOf(context).languageCode == 'fr',
               ),
             ),
           ),

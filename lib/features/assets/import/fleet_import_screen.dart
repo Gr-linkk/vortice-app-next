@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' show PostgrestException;
 import 'package:vortice_app/core/app_dropdown_field.dart';
 import 'package:vortice_app/core/user_feedback.dart';
+import 'package:vortice_app/core/localized_text.dart';
 import 'package:vortice_app/features/auth/auth_provider.dart';
 import '../asset_provider.dart';
 import '../asset_type_provider.dart';
@@ -36,7 +37,9 @@ class _FleetImportScreenState extends ConsumerState<FleetImportScreen> {
   Uint8List? sourceBytes;
   String? actor, organization;
   bool get es => isSpanish(context);
-  String t(String en, String esText) => es ? esText : en;
+  bool get fr => isFrench(context);
+  String t(String en, String esText, [String? frText]) =>
+      localizedText(context, en, esText, frText ?? en);
   FleetImportRepository get repo => ref.read(fleetImportRepositoryProvider);
   @override
   void initState() {
@@ -110,7 +113,13 @@ class _FleetImportScreenState extends ConsumerState<FleetImportScreen> {
     );
     if (file == null) return;
     if (await file.length() > FleetImportTable.maxBytes) {
-      throw const FormatException('Use a file smaller than 5 MB.');
+      throw FormatException(
+        t(
+          'Use a file smaller than 5 MB.',
+          'Usa un archivo de menos de 5 MB.',
+          'Utilisez un fichier de moins de 5 Mo.',
+        ),
+      );
     }
     sourceBytes = await file.readAsBytes();
     filename = file.name;
@@ -126,7 +135,13 @@ class _FleetImportScreenState extends ConsumerState<FleetImportScreen> {
     );
     if (!mounted) return;
     if (parsed.sheets.isEmpty || parsed.sheets.values.every((r) => r.isEmpty)) {
-      throw const FormatException('The workbook is empty.');
+      throw FormatException(
+        t(
+          'The workbook is empty.',
+          'El libro está vacío.',
+          'Le classeur est vide.',
+        ),
+      );
     }
     table = parsed;
     sheet = parsed.sheets.entries.firstWhere((e) => e.value.isNotEmpty).key;
@@ -141,14 +156,22 @@ class _FleetImportScreenState extends ConsumerState<FleetImportScreen> {
       delimiter: delimiter == 'auto' ? null : delimiter,
     );
     sourceBytes = null;
-    filename = t('Pasted table', 'Tabla pegada');
+    filename = t('Pasted table', 'Tabla pegada', 'Tableau collé');
     sheet = table!.sheets.keys.first;
     header = 0;
     step = 1;
     resetColumns();
   });
   Future<void> inspect() => run(() async {
-    if (!sameAccount()) throw StateError('Company changed. Reopen the import.');
+    if (!sameAccount()) {
+      throw StateError(
+        t(
+          'Company changed. Reopen the import.',
+          'La empresa cambió. Vuelve a abrir la importación.',
+          'L’entreprise a changé. Rouvrez l’importation.',
+        ),
+      );
+    }
     final types = await ref.read(assetTypesProvider.future);
     final fresh = await repo.context(client);
     if (!mounted || !sameAccount()) return;
@@ -183,7 +206,15 @@ class _FleetImportScreenState extends ConsumerState<FleetImportScreen> {
     if (mounted) step = 2;
   });
   Future<void> save() => run(() async {
-    if (!sameAccount()) throw StateError('Company changed. Reopen the import.');
+    if (!sameAccount()) {
+      throw StateError(
+        t(
+          'Company changed. Reopen the import.',
+          'La empresa cambió. Vuelve a abrir la importación.',
+          'L’entreprise a changé. Rouvrez l’importation.',
+        ),
+      );
+    }
     final assets = pending == null
         ? review!.assets
         : (pending!['p_assets'] as List)
@@ -255,20 +286,25 @@ class _FleetImportScreenState extends ConsumerState<FleetImportScreen> {
     final allowed = AssetWorkflowPolicy.canManageProfile(profile);
     final changed = actor != null && !sameAccount();
     final steps = [
-      t('Choose a table', 'Elegir tabla'),
-      t('Match columns', 'Asignar columnas'),
-      t('Review import', 'Revisar importación'),
-      t('Resolve import', 'Resolver importación'),
-      t('Equipment imported', 'Equipos importados'),
+      t('Choose a table', 'Elegir tabla', 'Choisir un tableau'),
+      t('Match columns', 'Asignar columnas', 'Associer les colonnes'),
+      t('Review import', 'Revisar importación', 'Vérifier l’importation'),
+      t('Resolve import', 'Resolver importación', 'Finaliser l’importation'),
+      t('Equipment imported', 'Equipos importados', 'Équipement importé'),
     ];
     return Scaffold(
-      appBar: AppBar(title: Text(t('Import equipment', 'Importar equipos'))),
+      appBar: AppBar(
+        title: Text(
+          t('Import equipment', 'Importar equipos', 'Importer de l’équipement'),
+        ),
+      ),
       body: !allowed || changed
           ? Center(
               child: Text(
                 t(
                   'Reopen from the equipment list for your current company.',
                   'Vuelve a abrir desde los equipos de tu empresa actual.',
+                  'Rouvrez l’importation depuis la liste d’équipement de votre entreprise actuelle.',
                 ),
               ),
             )
@@ -294,16 +330,17 @@ class _FleetImportScreenState extends ConsumerState<FleetImportScreen> {
                           t(
                             'Connect to load your fleet and import permissions.',
                             'Conéctate para cargar tu flota y permisos.',
+                            'Connectez-vous pour charger votre parc et les autorisations d’importation.',
                           ),
                         ),
                         TextButton(
                           onPressed: load,
-                          child: Text(t('Retry', 'Reintentar')),
+                          child: Text(t('Retry', 'Reintentar', 'Réessayer')),
                         ),
                       ] else ...[
                         if (step < 3 && (data!['clients'] as List).length > 1)
                           dropdown(
-                            'Fleet / Flota',
+                            t('Fleet', 'Flota', 'Parc d’équipement'),
                             client!,
                             {
                               for (final c in data!['clients'])
@@ -320,13 +357,18 @@ class _FleetImportScreenState extends ConsumerState<FleetImportScreen> {
                             t(
                               'Bring a fleet list from Excel, Google Sheets or another system. Choose XLSX, CSV or TSV, or paste rows below. You will review everything before saving.',
                               'Trae una lista de Excel, Google Sheets u otro sistema. Elige XLSX, CSV o TSV, o pega las filas. Revisarás todo antes de guardar.',
+                              'Importez une liste de parc depuis Excel, Google Sheets ou un autre système. Choisissez un fichier XLSX, CSV ou TSV, ou collez les lignes ci-dessous. Vous pourrez tout vérifier avant l’enregistrement.',
                             ),
                           ),
                           FilledButton.icon(
                             onPressed: chooseFile,
                             icon: const Icon(Icons.upload_file),
                             label: Text(
-                              t('Choose spreadsheet', 'Elegir hoja de cálculo'),
+                              t(
+                                'Choose spreadsheet',
+                                'Elegir hoja de cálculo',
+                                'Choisir un tableur',
+                              ),
                             ),
                           ),
                           const SizedBox(height: 16),
@@ -338,6 +380,7 @@ class _FleetImportScreenState extends ConsumerState<FleetImportScreen> {
                               labelText: t(
                                 'Or paste a table',
                                 'O pega una tabla',
+                                'Ou collez un tableau',
                               ),
                               hintText:
                                   'Name\tType\tSerial\nExcavator 12\tExcavator\t001234',
@@ -347,13 +390,18 @@ class _FleetImportScreenState extends ConsumerState<FleetImportScreen> {
                           TextButton(
                             onPressed: fromPaste,
                             child: Text(
-                              t('Use pasted table', 'Usar tabla pegada'),
+                              t(
+                                'Use pasted table',
+                                'Usar tabla pegada',
+                                'Utiliser le tableau collé',
+                              ),
                             ),
                           ),
                           note(
                             t(
                               'Keep serials / VINs as text in the source spreadsheet to preserve leading zeroes. Formula cells need to be pasted as values. Photos, PDFs and older XLS files need a table export first.',
                               'Guarda series / VIN como texto para conservar ceros iniciales. Pega fórmulas como valores. Fotos, PDF y XLS antiguos requieren exportar una tabla.',
+                              'Dans le tableur source, conservez les numéros de série et NIV comme texte pour préserver les zéros initiaux. Collez les formules comme valeurs. Les photos, PDF et anciens fichiers XLS doivent d’abord être exportés en tableau.',
                             ),
                           ),
                         ],
@@ -361,7 +409,7 @@ class _FleetImportScreenState extends ConsumerState<FleetImportScreen> {
                           note(filename),
                           if (table!.sheets.length > 1)
                             dropdown(
-                              t('Worksheet', 'Hoja'),
+                              t('Worksheet', 'Hoja', 'Feuille de calcul'),
                               sheet!,
                               {
                                 for (final k in table!.sheets.keys)
@@ -376,16 +424,21 @@ class _FleetImportScreenState extends ConsumerState<FleetImportScreen> {
                           if (sourceBytes != null &&
                               !filename.toLowerCase().endsWith('.xlsx'))
                             dropdown(
-                              t('Separator', 'Separador'),
+                              t('Separator', 'Separador', 'Séparateur'),
                               delimiter,
                               {
                                 'auto': t(
                                   'Detect automatically',
                                   'Detectar automáticamente',
+                                  'Détecter automatiquement',
                                 ),
-                                ',': t('Comma', 'Coma'),
-                                ';': t('Semicolon', 'Punto y coma'),
-                                '\t': t('Tab', 'Tabulación'),
+                                ',': t('Comma', 'Coma', 'Virgule'),
+                                ';': t(
+                                  'Semicolon',
+                                  'Punto y coma',
+                                  'Point-virgule',
+                                ),
+                                '\t': t('Tab', 'Tabulación', 'Tabulation'),
                               },
                               (v) {
                                 delimiter = v!;
@@ -393,12 +446,17 @@ class _FleetImportScreenState extends ConsumerState<FleetImportScreen> {
                               },
                             ),
                           dropdown(
-                            t('Header row', 'Fila de encabezados'),
+                            t(
+                              'Header row',
+                              'Fila de encabezados',
+                              'Ligne d’en-tête',
+                            ),
                             header,
                             {
                               -1: t(
                                 'No header — every row is equipment',
                                 'Sin encabezado: cada fila es un equipo',
+                                'Sans en-tête — chaque ligne représente un équipement',
                               ),
                               for (var i = 0; i < rows.length && i < 25; i++)
                                 i: '${i + 1}: ${rows[i].take(3).join(' · ')}',
@@ -412,6 +470,7 @@ class _FleetImportScreenState extends ConsumerState<FleetImportScreen> {
                             t(
                               'Match only the columns you need. Unmapped columns stay out of the import. Repeated equipment rows can describe different components and service plans.',
                               'Asigna solo las columnas necesarias. Las demás no se importan. Filas repetidas pueden describir distintos componentes y planes.',
+                              'Associez uniquement les colonnes nécessaires. Les colonnes non associées sont exclues. Plusieurs lignes pour un même équipement peuvent décrire différents composants et plans d’entretien.',
                             ),
                           ),
                           for (final field in fleetImportFields.entries.take(3))
@@ -420,10 +479,15 @@ class _FleetImportScreenState extends ConsumerState<FleetImportScreen> {
                             t(
                               'Type when the cell is blank',
                               'Tipo si la celda está vacía',
+                              'Type si la cellule est vide',
                             ),
                             defaultType ?? '',
                             {
-                              '': t('Choose a type', 'Elegir tipo'),
+                              '': t(
+                                'Choose a type',
+                                'Elegir tipo',
+                                'Choisir un type',
+                              ),
                               for (final type in types) type.id: type.name,
                             },
                             (v) => setState(
@@ -455,10 +519,15 @@ class _FleetImportScreenState extends ConsumerState<FleetImportScreen> {
                                 t(
                                   'Type "$value" means',
                                   'Tipo "$value" significa',
+                                  'Le type « $value » correspond à',
                                 ),
                                 typeValues[value] ?? '',
                                 {
-                                  '': t('Choose a type', 'Elegir tipo'),
+                                  '': t(
+                                    'Choose a type',
+                                    'Elegir tipo',
+                                    'Choisir un type',
+                                  ),
                                   for (final type in types) type.id: type.name,
                                 },
                                 (v) => setState(() {
@@ -472,12 +541,16 @@ class _FleetImportScreenState extends ConsumerState<FleetImportScreen> {
                               ),
                           ],
                           dropdown(
-                            t('Default meter unit', 'Unidad predeterminada'),
+                            t(
+                              'Default meter unit',
+                              'Unidad predeterminada',
+                              'Unité de compteur par défaut',
+                            ),
                             unit,
                             {
-                              'hours': t('Hours', 'Horas'),
+                              'hours': t('Hours', 'Horas', 'Heures'),
                               'km': 'km',
-                              'mi': t('Miles', 'Millas'),
+                              'mi': t('Miles', 'Millas', 'Milles'),
                             },
                             (v) => setState(() => unit = v!),
                           ),
@@ -486,6 +559,7 @@ class _FleetImportScreenState extends ConsumerState<FleetImportScreen> {
                               t(
                                 'Equipment details & readings',
                                 'Detalles y lecturas del equipo',
+                                'Détails et relevés de l’équipement',
                               ),
                             ),
                             children: [
@@ -495,7 +569,9 @@ class _FleetImportScreenState extends ConsumerState<FleetImportScreen> {
                             ],
                           ),
                           ExpansionTile(
-                            title: Text(t('Components', 'Componentes')),
+                            title: Text(
+                              t('Components', 'Componentes', 'Composants'),
+                            ),
                             children: [
                               for (final f
                                   in fleetImportFields.entries.skip(10).take(6))
@@ -507,6 +583,7 @@ class _FleetImportScreenState extends ConsumerState<FleetImportScreen> {
                               t(
                                 'Service plans & last service',
                                 'Planes y último servicio',
+                                'Plans d’entretien et dernier entretien',
                               ),
                             ),
                             children: [
@@ -514,6 +591,7 @@ class _FleetImportScreenState extends ConsumerState<FleetImportScreen> {
                                 t(
                                   'Plans use the named component, or the equipment meter if there is no component. Last-service values establish a baseline; they do not create signed service history.',
                                   'Los planes usan el componente indicado o el medidor del equipo. Los valores establecen una referencia; no crean historial firmado.',
+                                  'Les plans utilisent le composant indiqué, ou le compteur de l’équipement s’il n’y a pas de composant. Les valeurs du dernier entretien servent de référence et ne créent pas un historique d’entretien signé.',
                                 ),
                               ),
                               for (final f in fleetImportFields.entries.skip(
@@ -521,7 +599,11 @@ class _FleetImportScreenState extends ConsumerState<FleetImportScreen> {
                               ))
                                 mapping(f),
                               dropdown(
-                                t('Date format', 'Formato de fecha'),
+                                t(
+                                  'Date format',
+                                  'Formato de fecha',
+                                  'Format de date',
+                                ),
                                 dateFormat,
                                 {
                                   'iso': 'YYYY-MM-DD',
@@ -534,10 +616,15 @@ class _FleetImportScreenState extends ConsumerState<FleetImportScreen> {
                                 t(
                                   'Checklist for imported service plans',
                                   'Lista para los planes importados',
+                                  'Liste de contrôle pour les plans d’entretien importés',
                                 ),
                                 template ?? '',
                                 {
-                                  '': t('No checklist', 'Sin lista'),
+                                  '': t(
+                                    'No checklist',
+                                    'Sin lista',
+                                    'Aucune liste',
+                                  ),
                                   for (final c in data!['templates'])
                                     c['id'] as String: c['name'] as String,
                                 },
@@ -550,12 +637,17 @@ class _FleetImportScreenState extends ConsumerState<FleetImportScreen> {
                           SwitchListTile(
                             contentPadding: EdgeInsets.zero,
                             title: Text(
-                              t('Decimal comma (12,5)', 'Coma decimal (12,5)'),
+                              t(
+                                'Decimal comma (12,5)',
+                                'Coma decimal (12,5)',
+                                'Virgule décimale (12,5)',
+                              ),
                             ),
                             subtitle: Text(
                               t(
                                 'No thousands separators',
                                 'Sin separadores de miles',
+                                'Sans séparateur de milliers',
                               ),
                             ),
                             value: comma,
@@ -563,12 +655,22 @@ class _FleetImportScreenState extends ConsumerState<FleetImportScreen> {
                           ),
                           FilledButton(
                             onPressed: inspect,
-                            child: Text(t('Preview import', 'Vista previa')),
+                            child: Text(
+                              t(
+                                'Preview import',
+                                'Vista previa',
+                                'Prévisualiser l’importation',
+                              ),
+                            ),
                           ),
                           TextButton(
                             onPressed: () => setState(() => step = 0),
                             child: Text(
-                              t('Choose another table', 'Elegir otra tabla'),
+                              t(
+                                'Choose another table',
+                                'Elegir otra tabla',
+                                'Choisir un autre tableau',
+                              ),
                             ),
                           ),
                         ],
@@ -577,12 +679,15 @@ class _FleetImportScreenState extends ConsumerState<FleetImportScreen> {
                             t(
                               '${review!.assets.length} equipment · ${excluded.length} excluded rows. Existing equipment will not be overwritten.',
                               '${review!.assets.length} equipos · ${excluded.length} filas excluidas. No se sobrescriben equipos existentes.',
+                              '${review!.assets.length} équipements · ${excluded.length} lignes exclues. Les équipements existants ne seront pas remplacés.',
                             ),
                           ),
                           for (final e in review!.errors.entries)
                             Card(
                               child: ListTile(
-                                title: Text('${t('Row', 'Fila')} ${e.key}'),
+                                title: Text(
+                                  '${t('Row', 'Fila', 'Ligne')} ${e.key}',
+                                ),
                                 subtitle: Text(e.value),
                                 trailing: e.key == 0
                                     ? null
@@ -591,7 +696,9 @@ class _FleetImportScreenState extends ConsumerState<FleetImportScreen> {
                                           excluded.add(e.key);
                                           inspect();
                                         },
-                                        child: Text(t('Exclude', 'Excluir')),
+                                        child: Text(
+                                          t('Exclude', 'Excluir', 'Exclure'),
+                                        ),
                                       ),
                               ),
                             ),
@@ -606,13 +713,18 @@ class _FleetImportScreenState extends ConsumerState<FleetImportScreen> {
                                 t(
                                   'Import ${review!.assets.length} equipment',
                                   'Importar ${review!.assets.length} equipos',
+                                  'Importer ${review!.assets.length} équipements',
                                 ),
                               ),
                             ),
                           TextButton(
                             onPressed: () => setState(() => step = 1),
                             child: Text(
-                              t('Change column mapping', 'Cambiar columnas'),
+                              t(
+                                'Change column mapping',
+                                'Cambiar columnas',
+                                'Modifier l’association des colonnes',
+                              ),
                             ),
                           ),
                           if (excluded.isNotEmpty)
@@ -625,6 +737,7 @@ class _FleetImportScreenState extends ConsumerState<FleetImportScreen> {
                                 t(
                                   'Restore excluded rows',
                                   'Restaurar filas excluidas',
+                                  'Rétablir les lignes exclues',
                                 ),
                               ),
                             ),
@@ -634,16 +747,21 @@ class _FleetImportScreenState extends ConsumerState<FleetImportScreen> {
                             t(
                               'This import has not yet been acknowledged. Retry to retrieve its receipt or safely complete it. The same records will not be created twice.',
                               'Esta importación aún no está confirmada. Reintenta para obtener el recibo o completarla. No se crearán registros duplicados.',
+                              'Cette importation n’a pas encore été confirmée. Réessayez pour récupérer le reçu ou la terminer en toute sécurité. Les mêmes dossiers ne seront pas créés deux fois.',
                             ),
                           ),
                           if (pending != null)
                             note(
-                              '${(pending!['p_assets'] as List).length} ${t('equipment records', 'equipos')}',
+                              '${(pending!['p_assets'] as List).length} ${t('equipment records', 'equipos', 'dossiers d’équipement')}',
                             ),
                           FilledButton(
                             onPressed: save,
                             child: Text(
-                              t('Retry same import', 'Reintentar importación'),
+                              t(
+                                'Retry same import',
+                                'Reintentar importación',
+                                'Réessayer la même importation',
+                              ),
                             ),
                           ),
                         ],
@@ -652,6 +770,7 @@ class _FleetImportScreenState extends ConsumerState<FleetImportScreen> {
                             t(
                               '${result!['equipment_count']} equipment imported successfully. Opening readings and service baselines are available from each equipment record.',
                               '${result!['equipment_count']} equipos importados. Las lecturas y referencias de servicio están disponibles en cada equipo.',
+                              '${result!['equipment_count']} équipements importés. Les relevés initiaux et les références d’entretien sont accessibles dans chaque dossier d’équipement.',
                             ),
                           ),
                           for (final a in result!['assets'])
@@ -662,7 +781,13 @@ class _FleetImportScreenState extends ConsumerState<FleetImportScreen> {
                             ),
                           FilledButton(
                             onPressed: () => context.go('/assets'),
-                            child: Text(t('Go to equipment', 'Ir a equipos')),
+                            child: Text(
+                              t(
+                                'Go to equipment',
+                                'Ir a equipos',
+                                'Voir les équipements',
+                              ),
+                            ),
                           ),
                         ],
                       ],
@@ -674,15 +799,15 @@ class _FleetImportScreenState extends ConsumerState<FleetImportScreen> {
     );
   }
 
-  Widget mapping(MapEntry<String, (String, String)> field) {
+  Widget mapping(MapEntry<String, (String, String, String)> field) {
     final width = rows.fold<int>(0, (m, r) => r.length > m ? r.length : m);
     return dropdown(
-      es ? field.value.$2 : field.value.$1,
+      fr ? field.value.$3 : (es ? field.value.$2 : field.value.$1),
       columns[field.key] ?? -1,
       {
-        -1: t('Not imported', 'No importar'),
+        -1: t('Not imported', 'No importar', 'Ne pas importer'),
         for (var i = 0; i < width; i++)
-          i: '${i + 1}: ${header < 0 ? 'Column ${i + 1}' : (i < rows[header].length ? rows[header][i] : '')} · ${rows.skip(header + 1).where((r) => r.length > i && r[i].isNotEmpty).firstOrNull?[i] ?? ''}',
+          i: '${i + 1}: ${header < 0 ? t('Column', 'Columna', 'Colonne') : (i < rows[header].length ? rows[header][i] : '')} ${i + 1} · ${rows.skip(header + 1).where((r) => r.length > i && r[i].isNotEmpty).firstOrNull?[i] ?? ''}',
       },
       (v) => setState(() {
         if (v == -1) {
@@ -700,7 +825,7 @@ class _FleetImportScreenState extends ConsumerState<FleetImportScreen> {
       initiallyExpanded: review!.assets.length == 1,
       title: Text(asset['name'].toString()),
       subtitle: Text(
-        '${t('Rows', 'Filas')} ${source.join(', ')} · ${asset['serial_number'] ?? t('No serial', 'Sin serie')}',
+        '${t('Rows', 'Filas', 'Lignes')} ${source.join(', ')} · ${asset['serial_number'] ?? t('No serial', 'Sin serie', 'Aucun numéro de série')}',
       ),
       children: [
         Padding(
@@ -710,21 +835,21 @@ class _FleetImportScreenState extends ConsumerState<FleetImportScreen> {
             children: [
               for (final e in asset.entries.where((e) => e.key != 'components'))
                 Text(
-                  '${fleetImportFields[e.key] == null ? e.key : (es ? fleetImportFields[e.key]!.$2 : fleetImportFields[e.key]!.$1)}: ${e.key == 'asset_type_id' ? (ref.read(assetTypesProvider).valueOrNull ?? []).where((t) => t.id == e.value).firstOrNull?.name ?? e.value : e.value}',
+                  '${fleetImportFields[e.key] == null ? e.key : (fr ? fleetImportFields[e.key]!.$3 : (es ? fleetImportFields[e.key]!.$2 : fleetImportFields[e.key]!.$1))}: ${e.key == 'asset_type_id' ? (ref.read(assetTypesProvider).valueOrNull ?? []).where((t) => t.id == e.value).firstOrNull?.name ?? e.value : e.value}',
                 ),
               for (final c in asset['components']) ...[
                 const Divider(),
                 Text(
-                  '${c['label']} · ${c['current_hours'] ?? t('No reading', 'Sin lectura')} ${c['meter_unit']}',
+                  '${c['label']} · ${c['current_hours'] ?? t('No reading', 'Sin lectura', 'Aucun relevé')} ${c['meter_unit']}',
                 ),
                 for (final key in ['serial_number', 'make', 'model'])
                   if (c[key] != null)
                     Text(
-                      '${es ? fleetImportFields[key]!.$2 : fleetImportFields[key]!.$1}: ${c[key]}',
+                      '${fr ? fleetImportFields[key]!.$3 : (es ? fleetImportFields[key]!.$2 : fleetImportFields[key]!.$1)}: ${c[key]}',
                     ),
                 for (final p in c['plans'])
                   Text(
-                    '${p['interval_label']} · ${p['interval_hours']} ${c['meter_unit']}${p['interval_months'] == null ? '' : ' / ${p['interval_months']} ${t('months', 'meses')}'}\n${t('Last service', 'Último servicio')}: ${p['last_service_hours'] ?? '—'} ${c['meter_unit']} · ${p['last_service_date'] ?? '—'}',
+                    '${p['interval_label']} · ${p['interval_hours']} ${c['meter_unit']}${p['interval_months'] == null ? '' : ' / ${p['interval_months']} ${t('months', 'meses', 'mois')}'}\n${t('Last service', 'Último servicio', 'Dernier entretien')}: ${p['last_service_hours'] ?? '—'} ${c['meter_unit']} · ${p['last_service_date'] ?? '—'}',
                   ),
               ],
               TextButton(
@@ -732,7 +857,13 @@ class _FleetImportScreenState extends ConsumerState<FleetImportScreen> {
                   excluded.addAll(source);
                   inspect();
                 },
-                child: Text(t('Exclude these rows', 'Excluir estas filas')),
+                child: Text(
+                  t(
+                    'Exclude these rows',
+                    'Excluir estas filas',
+                    'Exclure ces lignes',
+                  ),
+                ),
               ),
             ],
           ),

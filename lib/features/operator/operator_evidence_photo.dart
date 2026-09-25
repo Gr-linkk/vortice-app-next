@@ -2,7 +2,7 @@ import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:vortice_app/core/supabase_client.dart';
-import 'package:vortice_app/core/user_feedback.dart';
+import 'package:vortice_app/core/localized_text.dart';
 import 'package:vortice_app/features/auth/auth_provider.dart';
 import 'package:vortice_app/sync/field_work_provider.dart';
 import 'dart:convert';
@@ -44,7 +44,14 @@ class OperatorEvidencePhoto extends ConsumerWidget {
         error: (_, __) => TextButton.icon(
           onPressed: () => ref.invalidate(operatorEvidenceProvider(path)),
           icon: const Icon(Icons.refresh),
-          label: Text(isSpanish(context) ? 'Reintentar foto' : 'Retry photo'),
+          label: Text(
+            localizedText(
+              context,
+              'Retry photo',
+              'Reintentar foto',
+              'Réessayer la photo',
+            ),
+          ),
         ),
       );
 }

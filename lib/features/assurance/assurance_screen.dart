@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:vortice_app/core/user_feedback.dart';
+import 'package:vortice_app/core/localized_text.dart';
 import 'package:vortice_app/features/maintenance/maintenance_models.dart';
 import 'package:vortice_app/features/maintenance/maintenance_repository.dart';
 import 'assurance_repository.dart';
@@ -242,7 +243,7 @@ class _AssuranceScreenState extends ConsumerState<AssuranceScreen> {
                                   '${(event['previous'] as Map?)?['site'] ?? '—'} → ${(event['current_state'] as Map)['site']}',
                                 ),
                                 subtitle: Text(
-                                  '${(event['current_state'] as Map)['responsible_name']} · ${assuranceLabel((event['current_state'] as Map)['lifecycle'] as String, es)}\n${event['reason']}\n${event['actor_name']} · ${maintenanceDate(event['created_at'] as String, es)}',
+                                  '${(event['current_state'] as Map)['responsible_name']} · ${assuranceLabel((event['current_state'] as Map)['lifecycle'] as String, es)}\n${event['reason']}\n${event['actor_name']} · ${maintenanceDate(event['created_at'] as String, es, french: isFrench(context))}',
                                 ),
                               ),
                           ],
@@ -405,7 +406,7 @@ class InspectionCard extends StatelessWidget {
             ),
             if (approved != null)
               Text(
-                '${es ? 'Vence' : 'Expires'}: ${maintenanceDate(approved['expires_on'] as String, es)}',
+                '${localizedText(context, 'Expires', 'Vence', 'Expire le')} : ${maintenanceDate(approved['expires_on'] as String, es, french: isFrench(context))}',
               ),
             if (pending != null)
               Text(
@@ -466,7 +467,7 @@ class InspectionCard extends StatelessWidget {
                           style: Theme.of(context).textTheme.titleSmall,
                         ),
                         Text(
-                          '${maintenanceDate(version['inspected_on'] as String, es)} → ${maintenanceDate(version['expires_on'] as String, es)}',
+                          '${maintenanceDate(version['inspected_on'] as String, es, french: isFrench(context))} → ${maintenanceDate(version['expires_on'] as String, es, french: isFrench(context))}',
                         ),
                         Text(
                           '${es ? 'Procedimiento' : 'Procedure'}: ${version['procedure_notes']}',
@@ -475,11 +476,11 @@ class InspectionCard extends StatelessWidget {
                           '${es ? 'Resultados' : 'Results'}: ${version['result_notes']}',
                         ),
                         Text(
-                          '${version['submitted_name']} · ${maintenanceDate(version['submitted_at'] as String, es)}',
+                          '${version['submitted_name']} · ${maintenanceDate(version['submitted_at'] as String, es, french: isFrench(context))}',
                         ),
                         if (version['review_note'] != null)
                           Text(
-                            '${version['reviewed_name']} · ${maintenanceDate(version['reviewed_at'] as String, es)}\n${version['review_note']}',
+                            '${version['reviewed_name']} · ${maintenanceDate(version['reviewed_at'] as String, es, french: isFrench(context))}\n${version['review_note']}',
                           ),
                         const SizedBox(height: 8),
                         InspectionEvidence(

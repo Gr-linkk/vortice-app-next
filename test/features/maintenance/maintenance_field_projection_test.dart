@@ -65,6 +65,28 @@ void main() {
     },
   );
   test(
+    'queued report meter text remains numeric before the server acknowledges it',
+    () {
+      final pending = projectMaintenanceFieldWork(server, [
+        action('report', 0, 'submit', data: {'completion_hours': '1250.5'}),
+      ]);
+      expect(pending.data['hours_at_end'] as num?, 1250.5);
+      expect(pending.status, 'pending_review');
+      expect(pending.data['local_pending'], true);
+      final replay = projectMaintenanceFieldWork(server, [
+        action(
+          'report',
+          0,
+          'submit',
+          status: 'synced',
+          data: {'completion_hours': '1250.5'},
+        ),
+      ]);
+      expect(replay.data['hours_at_end'] as num?, 1250.5);
+      expect(server['hours_at_end'], isNull);
+    },
+  );
+  test(
     'acknowledged work remains visible if the next read must use an older cache',
     () {
       final job = projectMaintenanceFieldWork(server, [

@@ -73,7 +73,14 @@ class _FaultReportScreenState extends ConsumerState<FaultReportScreen> {
       child: Scaffold(
         appBar: AppBar(
           leading: const FormBackButton(fallbackRoute: '/fleet'),
-          title: Text(es ? 'Reportar falla' : 'Report a fault'),
+          title: Text(
+            fleetText(
+              context,
+              'Report a fault',
+              'Reportar falla',
+              'Signaler une défaillance',
+            ),
+          ),
         ),
         body: SafeArea(
           child: assets.when(
@@ -85,7 +92,12 @@ class _FaultReportScreenState extends ConsumerState<FaultReportScreen> {
             data: (rows) {
               if (rows.isEmpty) {
                 return FleetEmpty(
-                  title: es ? 'No hay equipos asignados' : 'No assigned assets',
+                  title: fleetText(
+                    context,
+                    'No assigned assets',
+                    'No hay equipos asignados',
+                    'Aucun équipement ne vous est attribué',
+                  ),
                   message: es
                       ? 'Pide a tu administrador que asigne tu flota.'
                       : 'Ask your administrator to assign your fleet.',
@@ -98,7 +110,12 @@ class _FaultReportScreenState extends ConsumerState<FaultReportScreen> {
                   padding: const EdgeInsets.all(20),
                   children: [
                     Text(
-                      es ? '¿Qué necesita atención?' : 'What needs attention?',
+                      fleetText(
+                        context,
+                        'What needs attention?',
+                        '¿Qué necesita atención?',
+                        'Que faut-il vérifier ?',
+                      ),
                       style: Theme.of(context).textTheme.headlineSmall,
                     ),
                     const SizedBox(height: 8),
@@ -113,7 +130,12 @@ class _FaultReportScreenState extends ConsumerState<FaultReportScreen> {
                       initialValue: selected?.id,
                       isExpanded: true,
                       decoration: InputDecoration(
-                        labelText: es ? 'Equipo' : 'Asset',
+                        labelText: fleetText(
+                          context,
+                          'Asset',
+                          'Equipo',
+                          'Équipement',
+                        ),
                       ),
                       items: rows
                           .map(
@@ -130,7 +152,12 @@ class _FaultReportScreenState extends ConsumerState<FaultReportScreen> {
                           ? null
                           : (id) => setState(() => _assetId = id),
                       validator: (value) => value == null
-                          ? (es ? 'Selecciona un equipo' : 'Select an asset')
+                          ? fleetText(
+                              context,
+                              'Select an asset',
+                              'Selecciona un equipo',
+                              'Choisissez un équipement',
+                            )
                           : null,
                     ),
                     if (selected != null) ...[
@@ -157,13 +184,20 @@ class _FaultReportScreenState extends ConsumerState<FaultReportScreen> {
                         alignLabelWithHint: true,
                       ),
                       validator: (value) => (value?.trim().length ?? 0) < 3
-                          ? (es ? 'Añade una descripción' : 'Add a description')
+                          ? fleetText(
+                              context,
+                              'Add a description',
+                              'Añade una descripción',
+                              'Ajoutez une description',
+                            )
                           : null,
                     ),
                     const SizedBox(height: 12),
                     SwitchListTile.adaptive(
                       contentPadding: EdgeInsets.zero,
-                      title: Text(es ? 'Urgente' : 'Urgent'),
+                      title: Text(
+                        fleetText(context, 'Urgent', 'Urgente', 'Urgent'),
+                      ),
                       subtitle: Text(
                         es
                             ? 'Requiere atención inmediata del responsable.'
@@ -188,7 +222,11 @@ class _FaultReportScreenState extends ConsumerState<FaultReportScreen> {
                       Padding(
                         padding: const EdgeInsets.symmetric(vertical: 12),
                         child: Text(
-                          fleetErrorMessage(_error!, es),
+                          fleetErrorMessage(
+                            _error!,
+                            es,
+                            french: fleetFrench(context),
+                          ),
                           style: TextStyle(color: context.appColors.warning),
                         ),
                       ),
@@ -204,8 +242,18 @@ class _FaultReportScreenState extends ConsumerState<FaultReportScreen> {
                           : const Icon(Icons.flag_outlined),
                       label: Text(
                         _saving
-                            ? (es ? 'Guardando…' : 'Saving…')
-                            : (es ? 'Enviar reporte' : 'Submit report'),
+                            ? fleetText(
+                                context,
+                                'Saving…',
+                                'Guardando…',
+                                'Enregistrement…',
+                              )
+                            : fleetText(
+                                context,
+                                'Submit report',
+                                'Enviar reporte',
+                                'Envoyer le signalement',
+                              ),
                       ),
                     ),
                     const SizedBox(height: 12),

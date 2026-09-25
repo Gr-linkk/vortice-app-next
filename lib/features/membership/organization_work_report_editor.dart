@@ -10,6 +10,7 @@ import 'package:uuid/uuid.dart';
 import 'package:vortice_app/core/account_storage.dart';
 import 'package:vortice_app/core/meter_units.dart';
 import 'package:vortice_app/core/user_feedback.dart';
+import 'package:vortice_app/core/localized_text.dart';
 import 'package:vortice_app/features/auth/auth_provider.dart';
 import 'package:vortice_app/features/checklists/checklist_answer_fields.dart';
 import 'package:vortice_app/features/maintenance/maintenance_models.dart';
@@ -21,6 +22,13 @@ import 'package:vortice_app/sync/field_evidence.dart';
 import 'package:vortice_app/sync/field_work_provider.dart';
 import 'organization_work_execution.dart';
 import 'organization_work_provider.dart';
+
+String _workReportText(
+  BuildContext context,
+  String english,
+  String spanish,
+  String french,
+) => localizedText(context, english, spanish, french);
 
 class OrganizationWorkReportEditor extends ConsumerStatefulWidget {
   const OrganizationWorkReportEditor({super.key, required this.data});
@@ -296,6 +304,7 @@ class _OrganizationWorkReportEditorState
       );
     }
     final es = isSpanish(context),
+        fr = isFrench(context),
         items = maintenanceRows(_data['checklist_snapshot']);
     final completed = maintenanceCompletedItems(items, _answers, _evidence);
     final repository = ref.watch(organizationWorkRepositoryProvider);
@@ -316,7 +325,14 @@ class _OrganizationWorkReportEditorState
       },
       child: Scaffold(
         appBar: AppBar(
-          title: Text(es ? 'Informe de servicio' : 'Service report'),
+          title: Text(
+            _workReportText(
+              context,
+              'Service report',
+              'Informe de servicio',
+              'Rapport d’entretien',
+            ),
+          ),
         ),
         body: ListView(
           padding: const EdgeInsets.all(20),
@@ -327,21 +343,30 @@ class _OrganizationWorkReportEditorState
             ),
             const SizedBox(height: 8),
             Text(
-              es
-                  ? 'El borrador permanece en este dispositivo. El cliente recibe el informe aprobado.'
-                  : 'Your draft stays on this device. The customer receives the approved report.',
+              _workReportText(
+                context,
+                'Your draft stays on this device. The customer receives the approved report.',
+                'El borrador permanece en este dispositivo. El cliente recibe el informe aprobado.',
+                'Votre brouillon reste sur cet appareil. Le client reçoit le rapport approuvé.',
+              ),
             ),
             const SizedBox(height: 8),
             Text(
-              es
-                  ? 'Puedes guardar texto y fotos sin conexión. Las fotos pendientes se suben al reconectar. Enviar a revisión requiere conexión.'
-                  : 'Record text and photos offline. Pending photos upload when connected. Submitting for review needs a connection.',
+              _workReportText(
+                context,
+                'Record text and photos offline. Pending photos upload when connected. Submitting for review needs a connection.',
+                'Puedes guardar texto y fotos sin conexión. Las fotos pendientes se suben al reconectar. Enviar a revisión requiere conexión.',
+                'Vous pouvez enregistrer le texte et les photos hors ligne. Les photos en attente seront téléversées à la reconnexion. L’envoi pour révision nécessite une connexion.',
+              ),
             ),
             if (pendingPhotos > 0)
               Text(
-                es
-                    ? '$pendingPhotos fotos guardadas aquí · pendientes de subir'
-                    : '$pendingPhotos photos saved here · waiting to upload',
+                _workReportText(
+                  context,
+                  '$pendingPhotos photos saved here · waiting to upload',
+                  '$pendingPhotos fotos guardadas aquí · pendientes de subir',
+                  '$pendingPhotos photos enregistrées ici · en attente de téléversement',
+                ),
               ),
             Card(
               child: Padding(
@@ -352,9 +377,12 @@ class _OrganizationWorkReportEditorState
                     OrganizationWorkLabour(data: _data),
                     const SizedBox(height: 8),
                     Text(
-                      es
-                          ? 'El tiempo sigue visible mientras completas el informe. Enviar a revisión detiene tu tiempo activo.'
-                          : 'Your timer stays visible while completing the report. Submitting for review stops your running timer.',
+                      _workReportText(
+                        context,
+                        'Your timer stays visible while completing the report. Submitting for review stops your running timer.',
+                        'El tiempo sigue visible mientras completas el informe. Enviar a revisión detiene tu tiempo activo.',
+                        'Le chronomètre reste visible pendant la rédaction du rapport. L’envoi pour révision arrête le chronomètre en cours.',
+                      ),
                     ),
                   ],
                 ),
@@ -365,7 +393,7 @@ class _OrganizationWorkReportEditorState
                 child: Padding(
                   padding: const EdgeInsets.all(12),
                   child: Text(
-                    '${es ? 'Cambios solicitados' : 'Requested changes'}: ${_data['review_note']}',
+                    '${_workReportText(context, 'Requested changes', 'Cambios solicitados', 'Modifications demandées')}: ${_data['review_note']}',
                   ),
                 ),
               ),
@@ -374,16 +402,22 @@ class _OrganizationWorkReportEditorState
                 child: Padding(
                   padding: const EdgeInsets.all(12),
                   child: Text(
-                    es
-                        ? 'La última solicitud no se ha confirmado. Reintenta la misma solicitud.'
-                        : 'The last request is unconfirmed. Retry the same request.',
+                    _workReportText(
+                      context,
+                      'The last request is unconfirmed. Retry the same request.',
+                      'La última solicitud no se ha confirmado. Reintenta la misma solicitud.',
+                      'La dernière demande n’a pas été confirmée. Réessayez la même demande.',
+                    ),
                   ),
                 ),
               ),
             if (_error != null) ...[
               Text(
                 _error is FieldEvidencePendingException
-                    ? (_error as FieldEvidencePendingException).label(es)
+                    ? (_error as FieldEvidencePendingException).label(
+                        es,
+                        french: fr,
+                      )
                     : friendlyError(context, _error!),
                 style: TextStyle(color: Theme.of(context).colorScheme.error),
               ),
@@ -391,9 +425,12 @@ class _OrganizationWorkReportEditorState
                 TextButton(
                   onPressed: _busy ? null : _refresh,
                   child: Text(
-                    es
-                        ? 'Actualizar trabajo y conservar borrador'
-                        : 'Refresh work and keep draft',
+                    _workReportText(
+                      context,
+                      'Refresh work and keep draft',
+                      'Actualizar trabajo y conservar borrador',
+                      'Actualiser le travail et conserver le brouillon',
+                    ),
                   ),
                 ),
             ],
@@ -404,51 +441,79 @@ class _OrganizationWorkReportEditorState
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   ServiceReportSectionHeader(
-                    title: es ? 'Diagnóstico' : 'Diagnosis',
+                    title: _workReportText(
+                      context,
+                      'Diagnosis',
+                      'Diagnóstico',
+                      'Diagnostic',
+                    ),
                   ),
                   ServiceReportTextField(
                     controller: _diagnosis,
-                    hintText: es
-                        ? 'Describe el problema encontrado'
-                        : 'Describe the problem found',
+                    hintText: _workReportText(
+                      context,
+                      'Describe the problem found',
+                      'Describe el problema encontrado',
+                      'Décrivez le problème constaté',
+                    ),
                   ),
                   if (_requirements && _progress.diagnosisMissing)
                     Text(
-                      es
-                          ? 'Describe el diagnóstico.'
-                          : 'Describe the diagnosis.',
+                      _workReportText(
+                        context,
+                        'Describe the diagnosis.',
+                        'Describe el diagnóstico.',
+                        'Décrivez le diagnostic.',
+                      ),
                       style: TextStyle(
                         color: Theme.of(context).colorScheme.error,
                       ),
                     ),
                   ServiceReportSectionHeader(
-                    title: es
-                        ? 'Reparación y verificación'
-                        : 'Repair and verification',
+                    title: _workReportText(
+                      context,
+                      'Repair and verification',
+                      'Reparación y verificación',
+                      'Réparation et vérification',
+                    ),
                   ),
                   ServiceReportTextField(
                     controller: _repair,
-                    hintText: es
-                        ? 'Describe el trabajo y su comprobación'
-                        : 'Describe the work performed and how it was checked',
+                    hintText: _workReportText(
+                      context,
+                      'Describe the work performed and how it was checked',
+                      'Describe el trabajo y su comprobación',
+                      'Décrivez les travaux effectués et leur vérification',
+                    ),
                   ),
                   if (_requirements && _progress.repairMissing)
                     Text(
-                      es
-                          ? 'Describe el trabajo realizado.'
-                          : 'Describe the work performed.',
+                      _workReportText(
+                        context,
+                        'Describe the work performed.',
+                        'Describe el trabajo realizado.',
+                        'Décrivez les travaux effectués.',
+                      ),
                       style: TextStyle(
                         color: Theme.of(context).colorScheme.error,
                       ),
                     ),
                   ServiceReportSectionHeader(
-                    title: es
-                        ? 'Notas para el cliente'
-                        : 'Customer-visible notes',
+                    title: _workReportText(
+                      context,
+                      'Customer-visible notes',
+                      'Notas para el cliente',
+                      'Notes visibles par le client',
+                    ),
                   ),
                   ServiceReportTextField(
                     controller: _notes,
-                    hintText: es ? 'Notas adicionales' : 'Additional notes',
+                    hintText: _workReportText(
+                      context,
+                      'Additional notes',
+                      'Notas adicionales',
+                      'Notes supplémentaires',
+                    ),
                   ),
                   if (_order['engine_id'] != null) ...[
                     const SizedBox(height: 16),
@@ -459,11 +524,11 @@ class _OrganizationWorkReportEditorState
                       ),
                       decoration: InputDecoration(
                         labelText:
-                            '${es ? 'Lectura al finalizar' : 'Completion reading'} (${meterSymbol(_order['meter_unit'] as String?)})',
+                            '${_workReportText(context, 'Completion reading', 'Lectura al finalizar', 'Relevé final')} (${meterSymbol(_order['meter_unit'] as String?)})',
                         helperText:
-                            '${es ? 'Inicial' : 'Starting'}: ${formatMeter(_order['hours_at_start'] as num?, _order['meter_unit'] as String?)}',
+                            '${_workReportText(context, 'Starting', 'Inicial', 'Initial')} : ${formatMeter(_order['hours_at_start'] as num?, _order['meter_unit'] as String?)}',
                         errorText: _requirements
-                            ? _progress.meterError(es)
+                            ? _progress.meterError(es, french: fr)
                             : null,
                       ),
                     ),
@@ -471,16 +536,19 @@ class _OrganizationWorkReportEditorState
                   if ((_data['procedure_notes']?.toString() ?? '')
                       .isNotEmpty) ...[
                     ServiceReportSectionHeader(
-                      title: es
-                          ? 'Procedimiento de esta orden'
-                          : 'Procedure for this work',
+                      title: _workReportText(
+                        context,
+                        'Procedure for this work',
+                        'Procedimiento de esta orden',
+                        'Procédure pour ce bon de travail',
+                      ),
                     ),
                     Text(_data['procedure_notes'].toString()),
                   ],
                   if (items.isNotEmpty) ...[
                     ServiceReportSectionHeader(
                       title:
-                          '${es ? 'Lista adjunta' : 'Attached checklist'} · $completed / ${items.length}',
+                          '${_workReportText(context, 'Attached checklist', 'Lista adjunta', 'Liste de contrôle jointe')} · $completed / ${items.length}',
                     ),
                     for (final item in items)
                       Card(
@@ -522,9 +590,12 @@ class _OrganizationWorkReportEditorState
                                       '',
                                   maxLines: 3,
                                   decoration: InputDecoration(
-                                    labelText: es
-                                        ? 'Problema encontrado'
-                                        : 'Issue found',
+                                    labelText: _workReportText(
+                                      context,
+                                      'Issue found',
+                                      'Problema encontrado',
+                                      'Problème constaté',
+                                    ),
                                   ),
                                   onChanged: (value) => _answer(
                                     item['id'] as String,
@@ -541,9 +612,12 @@ class _OrganizationWorkReportEditorState
                                   ),
                                   initialValue: _itemPhoto(item),
                                   decoration: InputDecoration(
-                                    labelText: es
-                                        ? 'Foto requerida'
-                                        : 'Required photo',
+                                    labelText: _workReportText(
+                                      context,
+                                      'Required photo',
+                                      'Foto requerida',
+                                      'Photo requise',
+                                    ),
                                   ),
                                   items: [
                                     for (
@@ -554,7 +628,7 @@ class _OrganizationWorkReportEditorState
                                       DropdownMenuItem(
                                         value: _evidence[index],
                                         child: Text(
-                                          '${es ? 'Foto' : 'Photo'} ${index + 1}',
+                                          '${_workReportText(context, 'Photo', 'Foto', 'Photo')} ${index + 1}',
                                         ),
                                       ),
                                   ],
@@ -575,9 +649,12 @@ class _OrganizationWorkReportEditorState
                                         ),
                                   icon: const Icon(Icons.camera_alt_outlined),
                                   label: Text(
-                                    es
-                                        ? 'Fotografiar este paso'
-                                        : 'Photograph this step',
+                                    _workReportText(
+                                      context,
+                                      'Photograph this step',
+                                      'Fotografiar este paso',
+                                      'Photographier cette étape',
+                                    ),
                                   ),
                                 ),
                               ],
@@ -587,6 +664,7 @@ class _OrganizationWorkReportEditorState
                                         _answers,
                                         _evidence,
                                         es,
+                                        french: fr,
                                       ) !=
                                       null)
                                 Text(
@@ -595,6 +673,7 @@ class _OrganizationWorkReportEditorState
                                     _answers,
                                     _evidence,
                                     es,
+                                    french: fr,
                                   )!,
                                   style: TextStyle(
                                     color: Theme.of(context).colorScheme.error,
@@ -606,7 +685,12 @@ class _OrganizationWorkReportEditorState
                       ),
                   ],
                   ServiceReportSectionHeader(
-                    title: es ? 'Fotos del informe' : 'Report photos',
+                    title: _workReportText(
+                      context,
+                      'Report photos',
+                      'Fotos del informe',
+                      'Photos du rapport',
+                    ),
                   ),
                   OrganizationWorkEvidence(paths: _evidence),
                   Wrap(
@@ -617,13 +701,25 @@ class _OrganizationWorkReportEditorState
                         onPressed: _frozen ? null : () => _photo(false),
                         icon: const Icon(Icons.photo_library_outlined),
                         label: Text(
-                          es ? 'Añadir de galería' : 'Add from gallery',
+                          _workReportText(
+                            context,
+                            'Add from gallery',
+                            'Añadir de galería',
+                            'Ajouter depuis la galerie',
+                          ),
                         ),
                       ),
                       OutlinedButton.icon(
                         onPressed: _frozen ? null : () => _photo(true),
                         icon: const Icon(Icons.camera_alt_outlined),
-                        label: Text(es ? 'Tomar foto' : 'Take photo'),
+                        label: Text(
+                          _workReportText(
+                            context,
+                            'Take photo',
+                            'Tomar foto',
+                            'Prendre une photo',
+                          ),
+                        ),
                       ),
                     ],
                   ),
@@ -638,7 +734,7 @@ class _OrganizationWorkReportEditorState
                             },
                       icon: const Icon(Icons.remove_circle_outline),
                       label: Text(
-                        '${es ? 'Quitar foto' : 'Remove photo'} ${index + 1}',
+                        '${_workReportText(context, 'Remove photo', 'Quitar foto', 'Supprimer la photo')} ${index + 1}',
                       ),
                     ),
                 ],
@@ -650,16 +746,37 @@ class _OrganizationWorkReportEditorState
                 onPressed: _busy
                     ? null
                     : () => _save(_pending!['action'] as String),
-                child: Text(es ? 'Reintentar solicitud' : 'Retry request'),
+                child: Text(
+                  _workReportText(
+                    context,
+                    'Retry request',
+                    'Reintentar solicitud',
+                    'Réessayer la demande',
+                  ),
+                ),
               )
             else ...[
               FilledButton(
                 onPressed: _busy || !_ready ? null : () => _save('submit'),
-                child: Text(es ? 'Enviar a revisión' : 'Submit for review'),
+                child: Text(
+                  _workReportText(
+                    context,
+                    'Submit for review',
+                    'Enviar a revisión',
+                    'Envoyer pour révision',
+                  ),
+                ),
               ),
               TextButton(
                 onPressed: _busy || !_ready ? null : () => _save('save_report'),
-                child: Text(es ? 'Guardar en el servidor' : 'Save to server'),
+                child: Text(
+                  _workReportText(
+                    context,
+                    'Save to server',
+                    'Guardar en el servidor',
+                    'Enregistrer sur le serveur',
+                  ),
+                ),
               ),
             ],
             if (_busy) const LinearProgressIndicator(),

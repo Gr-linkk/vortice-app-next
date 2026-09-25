@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:vortice_app/core/app_dropdown_field.dart';
+import 'package:vortice_app/core/localized_text.dart';
 import 'package:vortice_app/features/auth/auth_provider.dart';
 import 'package:vortice_app/features/fleet/fleet_widgets.dart';
 import 'package:vortice_app/models/profile.dart';
@@ -29,6 +30,7 @@ class FleetPriorityCard extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final es = fleetSpanish(context);
+    final fr = isFrench(context);
     final workspace = ref.watch(assetWorkspaceProvider);
     final work = ref.watch(maintenancePlanningProvider(null));
     final faults = ref.watch(fleetFaultsProvider(null));
@@ -56,7 +58,9 @@ class FleetPriorityCard extends ConsumerWidget {
       ).length;
       if (count > 0) {
         rows.add((
-          title: es
+          title: Localizations.localeOf(context).languageCode == 'fr'
+              ? assetWorkspaceFilters[key]!.$3
+              : es
               ? assetWorkspaceFilters[key]!.$2
               : assetWorkspaceFilters[key]!.$1,
           route: assetWorkspaceDestination(key),
@@ -65,7 +69,7 @@ class FleetPriorityCard extends ConsumerWidget {
       }
     }
 
-    void jobs(String key, String en, String spanish) {
+    void jobs(String key, String en, String spanish, String french) {
       final count =
           work.valueOrNull?.jobs
               .where((job) => job.matchesFilter(key, actor, now))
@@ -73,7 +77,11 @@ class FleetPriorityCard extends ConsumerWidget {
           0;
       if (count > 0) {
         rows.add((
-          title: es ? spanish : en,
+          title: fr
+              ? french
+              : es
+              ? spanish
+              : en,
           route: '/maintenance/planning?filter=$key',
           count: count,
         ));
@@ -88,17 +96,46 @@ class FleetPriorityCard extends ConsumerWidget {
         0;
     if (urgent > 0) {
       rows.add((
-        title: es ? 'Fallas urgentes' : 'Urgent faults',
+        title: fr
+            ? 'Défaillances urgentes'
+            : es
+            ? 'Fallas urgentes'
+            : 'Urgent faults',
         route: '/fleet?filter=urgent',
         count: urgent,
       ));
     }
-    jobs('overdue', 'Overdue work', 'Trabajo vencido');
+    jobs(
+      'overdue',
+      'Overdue work',
+      'Trabajo vencido',
+      'Bons de travail en retard',
+    );
     assets('inspection_expired');
-    jobs('review', 'Awaiting review', 'Pendiente de revisión');
-    jobs('parts', 'Waiting for parts', 'Esperando piezas');
-    jobs('people', 'Waiting for people', 'Esperando personas');
-    jobs('blocked', 'Other blocked work', 'Otros trabajos bloqueados');
+    jobs(
+      'review',
+      'Awaiting review',
+      'Pendiente de revisión',
+      'En attente de révision',
+    );
+    jobs(
+      'parts',
+      'Waiting for parts',
+      'Esperando piezas',
+      'En attente de pièces',
+    );
+    jobs(
+      'people',
+      'Waiting for people',
+      'Esperando personas',
+      'En attente de personnel',
+    );
+    jobs(
+      'blocked',
+      'Other blocked work',
+      'Otros trabajos bloqueados',
+      'Autres bons de travail bloqués',
+    );
     assets('inspection_pending');
     assets('overdue_service');
     assets('plan_setup');
@@ -110,14 +147,22 @@ class FleetPriorityCard extends ConsumerWidget {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Text(
-              es ? 'Necesita atención' : 'Needs attention',
+              fr
+                  ? 'À vérifier'
+                  : es
+                  ? 'Necesita atención'
+                  : 'Needs attention',
               style: Theme.of(context).textTheme.titleMedium,
             ),
             if (rows.isEmpty)
               Padding(
                 padding: const EdgeInsets.symmetric(vertical: 12),
                 child: Text(
-                  es ? 'Sin pendientes urgentes.' : 'No urgent items waiting.',
+                  fr
+                      ? 'Aucun élément urgent en attente.'
+                      : es
+                      ? 'Sin pendientes urgentes.'
+                      : 'No urgent items waiting.',
                 ),
               ),
             for (final row in rows.take(3))
@@ -290,6 +335,7 @@ class _FleetOverviewScreenState extends ConsumerState<FleetOverviewScreen> {
                                                     attentionCategories,
                                                     key,
                                                     es,
+                                                    french: isFrench(context),
                                                   ),
                                                 ),
                                               ],
@@ -328,6 +374,7 @@ class _FleetOverviewScreenState extends ConsumerState<FleetOverviewScreen> {
                                       attentionCategories,
                                       key,
                                       es,
+                                      french: isFrench(context),
                                     ),
                                   ),
                                 ),
@@ -420,7 +467,12 @@ class AttentionTile extends ConsumerWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    coordinationLabel(attentionCategories, category, es),
+                    coordinationLabel(
+                      attentionCategories,
+                      category,
+                      es,
+                      french: isFrench(context),
+                    ),
                     style: Theme.of(context).textTheme.labelLarge,
                   ),
                   const SizedBox(height: 6),

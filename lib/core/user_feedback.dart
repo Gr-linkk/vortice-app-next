@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:vortice_app/core/localized_text.dart';
 
 bool isSpanish(BuildContext context) =>
     Localizations.localeOf(context).languageCode == 'es';
@@ -7,20 +8,28 @@ bool isSpanish(BuildContext context) =>
 /// Keep server details out of user messages. Callers retain the original error
 /// in their state for diagnosis, and supply a retry action where possible.
 String friendlyError(BuildContext context, Object? error) {
-  final es = isSpanish(context);
   if (error is AuthException) {
     if (error.code == 'invalid_credentials') {
-      return es
-          ? 'Revisa tu correo y contraseña e inténtalo de nuevo.'
-          : 'Check your email and password, then try again.';
+      return localizedText(
+        context,
+        'Check your email and password, then try again.',
+        'Revisa tu correo y contraseña e inténtalo de nuevo.',
+        'Vérifiez votre adresse courriel et votre mot de passe, puis réessayez.',
+      );
     }
-    return es
-        ? 'No pudimos iniciar sesión. Revisa tu conexión e inténtalo de nuevo.'
-        : 'We could not sign you in. Check your connection and try again.';
+    return localizedText(
+      context,
+      'We could not sign you in. Check your connection and try again.',
+      'No pudimos iniciar sesión. Revisa tu conexión e inténtalo de nuevo.',
+      'Impossible de vous connecter. Vérifiez votre connexion et réessayez.',
+    );
   }
-  return es
-      ? 'No pudimos completar esta acción. Revisa tu conexión e inténtalo de nuevo. Si continúa, pide ayuda a tu administrador.'
-      : 'We could not complete this action. Check your connection and try again. If it continues, ask your administrator for help.';
+  return localizedText(
+    context,
+    'We could not complete this action. Check your connection and try again. If it continues, ask your administrator for help.',
+    'No pudimos completar esta acción. Revisa tu conexión e inténtalo de nuevo. Si continúa, pide ayuda a tu administrador.',
+    'Impossible de terminer cette action. Vérifiez votre connexion et réessayez. Si le problème persiste, demandez de l’aide à votre administrateur.',
+  );
 }
 
 class AppErrorState extends StatelessWidget {
@@ -43,7 +52,12 @@ class AppErrorState extends StatelessWidget {
               onPressed: onRetry,
               icon: const Icon(Icons.refresh),
               label: Text(
-                isSpanish(context) ? 'Intentar de nuevo' : 'Try again',
+                localizedText(
+                  context,
+                  'Try again',
+                  'Intentar de nuevo',
+                  'Réessayer',
+                ),
               ),
             ),
           ],

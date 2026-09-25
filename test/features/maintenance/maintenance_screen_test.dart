@@ -221,6 +221,7 @@ Future<void> pumpMaintenance(
   Widget screen,
   FixtureMaintenance repository, {
   bool es = false,
+  bool fr = false,
   double width = 390,
   double scale = 1,
   UserRole role = UserRole.clientAdmin,
@@ -322,8 +323,14 @@ Future<void> pumpMaintenance(
             ),
           ),
           debugShowCheckedModeBanner: false,
-          locale: Locale(es ? 'es' : 'en'),
-          supportedLocales: const [Locale('en'), Locale('es')],
+          locale: Locale(
+            fr
+                ? 'fr'
+                : es
+                ? 'es'
+                : 'en',
+          ),
+          supportedLocales: const [Locale('en'), Locale('es'), Locale('fr')],
           localizationsDelegates: const [
             AppLocalizations.delegate,
             GlobalMaterialLocalizations.delegate,
@@ -344,6 +351,50 @@ Future<void> pumpMaintenance(
 }
 
 void main() {
+  testWidgets('inspection report labels and requirements are French', (
+    tester,
+  ) async {
+    final data = jobData();
+    data['inspection_id'] = 'inspection';
+    data['inspection_snapshot'] = {'interval_months': 12};
+    await pumpMaintenance(
+      tester,
+      MaintenanceReportScreen(job: MaintenanceJob(data)),
+      FixtureMaintenance(),
+      fr: true,
+      width: 320,
+      scale: 2,
+    );
+    await tester.scrollUntilVisible(
+      find.text('Prochaine date d’échéance'),
+      180,
+      scrollable: find.byType(Scrollable).first,
+    );
+    expect(find.text('Certificat d’inspection'), findsOneWidget);
+    expect(find.text('Prochaine date d’échéance'), findsOneWidget);
+    await tester.scrollUntilVisible(
+      find.text('Résultat et certification'),
+      180,
+      scrollable: find.byType(Scrollable).first,
+    );
+    expect(find.text('Résultat et certification'), findsOneWidget);
+    await tester.scrollUntilVisible(
+      find.text('Photo du certificat'),
+      180,
+      scrollable: find.byType(Scrollable).first,
+    );
+    expect(find.text('Photo du certificat'), findsOneWidget);
+    final submit = find.widgetWithText(FilledButton, 'Soumettre pour révision');
+    await tester.scrollUntilVisible(
+      submit,
+      180,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.tap(submit);
+    await tester.pumpAndSettle();
+    expect(find.text('Ajoutez et sélectionnez une preuve'), findsOneWidget);
+  });
+
   testWidgets(
     'starting meter stays alive through dialog close and saves the reading',
     (tester) async {

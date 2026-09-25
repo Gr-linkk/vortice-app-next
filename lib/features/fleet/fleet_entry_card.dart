@@ -9,7 +9,6 @@ class FleetEntryCard extends ConsumerWidget {
   const FleetEntryCard({super.key});
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final es = fleetSpanish(context);
     final result = ref.watch(fleetAssetsProvider);
     final assets = result.valueOrNull;
     final faults = assets?.fold<int>(0, (n, a) => n + a.openFaults);
@@ -23,13 +22,28 @@ class FleetEntryCard extends ConsumerWidget {
           color: context.appColors.primaryLight,
           size: 22,
         ),
-        title: Text(es ? 'Fallas y disponibilidad' : 'Faults & availability'),
+        title: Text(
+          fleetText(
+            context,
+            'Faults & availability',
+            'Fallas y disponibilidad',
+            'Défaillances et disponibilité',
+          ),
+        ),
         subtitle: Text(
           faults == null
-              ? (es ? 'Abrir estado de la flota' : 'Open fleet readiness')
-              : (es
-                    ? '$faults fallas activas · $down no disponibles'
-                    : '$faults active faults · $down unavailable'),
+              ? fleetText(
+                  context,
+                  'Open fleet readiness',
+                  'Abrir estado de la flota',
+                  'Ouvrir l’état du parc',
+                )
+              : fleetText(
+                  context,
+                  '$faults active faults · $down unavailable',
+                  '$faults fallas activas · $down no disponibles',
+                  '$faults défaillances actives · $down indisponibles',
+                ),
         ),
         trailing: const Icon(Icons.chevron_right),
         onTap: () async {
@@ -46,7 +60,6 @@ class AssetReadinessCard extends ConsumerWidget {
   final String assetId;
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final es = fleetSpanish(context);
     final result = ref.watch(fleetAssetsProvider);
     final asset = result.valueOrNull?.where((a) => a.id == assetId).firstOrNull;
     return Card(
@@ -71,7 +84,12 @@ class AssetReadinessCard extends ConsumerWidget {
                   const SizedBox(width: 10),
                   Expanded(
                     child: Text(
-                      es ? 'Disponibilidad y fallas' : 'Availability & faults',
+                      fleetText(
+                        context,
+                        'Availability & faults',
+                        'Disponibilidad y fallas',
+                        'Disponibilité et défaillances',
+                      ),
                       style: Theme.of(context).textTheme.titleMedium,
                     ),
                   ),
@@ -83,17 +101,23 @@ class AssetReadinessCard extends ConsumerWidget {
                 OperatingStateBadge(state: asset.state)
               else
                 Text(
-                  es
-                      ? 'Abrir estado de disponibilidad'
-                      : 'Open availability status',
+                  fleetText(
+                    context,
+                    'Open availability status',
+                    'Abrir estado de disponibilidad',
+                    'Ouvrir l’état de disponibilité',
+                  ),
                   style: TextStyle(color: context.appColors.textSecondary),
                 ),
               if (asset != null && asset.openFaults > 0) ...[
                 const SizedBox(height: 8),
                 Text(
-                  es
-                      ? '${asset.openFaults} fallas activas'
-                      : '${asset.openFaults} active faults',
+                  fleetText(
+                    context,
+                    '${asset.openFaults} active faults',
+                    '${asset.openFaults} fallas activas',
+                    '${asset.openFaults} défaillances actives',
+                  ),
                 ),
               ],
             ],

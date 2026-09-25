@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:vortice_app/core/user_feedback.dart';
+import 'package:vortice_app/core/localized_text.dart';
 import 'package:vortice_app/features/membership/membership_models.dart';
 import 'package:vortice_app/features/membership/membership_provider.dart';
 import 'package:vortice_app/features/membership/membership_feedback.dart';
@@ -18,7 +19,8 @@ class OrganizationScreen extends ConsumerStatefulWidget {
 
 class _OrganizationScreenState extends ConsumerState<OrganizationScreen> {
   bool _busy = false;
-  String _t(String en, String es) => isSpanish(context) ? es : en;
+  String _t(String en, String es, [String? fr]) =>
+      localizedText(context, en, es, fr ?? en);
   Future<void> _switch(String organizationId) async {
     if (!await requireOnlineAction(context, ref) || !mounted) return;
     setState(() => _busy = true);
@@ -58,7 +60,9 @@ class _OrganizationScreenState extends ConsumerState<OrganizationScreen> {
 
   @override
   Widget build(BuildContext context) => Scaffold(
-    appBar: AppBar(title: Text(_t('Your company', 'Tu empresa'))),
+    appBar: AppBar(
+      title: Text(_t('Your company', 'Tu empresa', 'Votre entreprise')),
+    ),
     body: ref
         .watch(organizationContextProvider)
         .when(
@@ -81,7 +85,11 @@ class _OrganizationScreenState extends ConsumerState<OrganizationScreen> {
                       initialValue: active?.organizationId,
                       isExpanded: true,
                       decoration: InputDecoration(
-                        labelText: _t('Active company', 'Empresa activa'),
+                        labelText: _t(
+                          'Active company',
+                          'Empresa activa',
+                          'Entreprise active',
+                        ),
                       ),
                       items: data.memberships
                           .map(
@@ -107,6 +115,7 @@ class _OrganizationScreenState extends ConsumerState<OrganizationScreen> {
                       _t(
                         'No company membership is available.',
                         'No hay una empresa disponible.',
+                        'Aucune appartenance à une entreprise n’est disponible.',
                       ),
                       style: Theme.of(context).textTheme.titleMedium,
                     ),
@@ -122,7 +131,10 @@ class _OrganizationScreenState extends ConsumerState<OrganizationScreen> {
                           .map(
                             (key) => OrganizationRole.values
                                 .firstWhere((r) => r.key == key)
-                                .label(isSpanish(context)),
+                                .label(
+                                  isSpanish(context),
+                                  french: isFrench(context),
+                                ),
                           )
                           .join(' · '),
                     ),
@@ -134,7 +146,10 @@ class _OrganizationScreenState extends ConsumerState<OrganizationScreen> {
                               .map(
                                 (key) => OrganizationPermission.values
                                     .firstWhere((p) => p.key == key)
-                                    .label(isSpanish(context)),
+                                    .label(
+                                      isSpanish(context),
+                                      french: isFrench(context),
+                                    ),
                               )
                               .join(' · '),
                         ),
@@ -145,7 +160,11 @@ class _OrganizationScreenState extends ConsumerState<OrganizationScreen> {
                         onPressed: _busy ? null : () => _edit(active),
                         icon: const Icon(Icons.person_add_outlined),
                         label: Text(
-                          _t('Invite teammate', 'Invitar a una persona'),
+                          _t(
+                            'Invite teammate',
+                            'Invitar a una persona',
+                            'Inviter un membre de l’équipe',
+                          ),
                         ),
                       ),
                       const SizedBox(height: 20),
@@ -157,6 +176,7 @@ class _OrganizationScreenState extends ConsumerState<OrganizationScreen> {
                           _t(
                             'A Company Owner or delegated team administrator manages invitations and access.',
                             'Un propietario o administrador autorizado gestiona las invitaciones y el acceso.',
+                            'Un propriétaire ou un administrateur d’équipe délégué gère les invitations et les accès.',
                           ),
                         ),
                       ),
@@ -167,12 +187,17 @@ class _OrganizationScreenState extends ConsumerState<OrganizationScreen> {
                       contentPadding: EdgeInsets.zero,
                       leading: const Icon(Icons.business_center_outlined),
                       title: Text(
-                        _t('Company services', 'Servicios de la empresa'),
+                        _t(
+                          'Company services',
+                          'Servicios de la empresa',
+                          'Services de l’entreprise',
+                        ),
                       ),
                       subtitle: Text(
                         _t(
                           'Providers, customers and billing',
                           'Proveedores, clientes y facturación',
+                          'Fournisseurs, clients et facturation',
                         ),
                       ),
                       trailing: const Icon(Icons.chevron_right),
@@ -184,12 +209,17 @@ class _OrganizationScreenState extends ConsumerState<OrganizationScreen> {
                     contentPadding: EdgeInsets.zero,
                     leading: const Icon(Icons.add_business_outlined),
                     title: Text(
-                      _t('Join another company', 'Unirme a otra empresa'),
+                      _t(
+                        'Join another company',
+                        'Unirme a otra empresa',
+                        'Rejoindre une autre entreprise',
+                      ),
                     ),
                     subtitle: Text(
                       _t(
                         'Use an invitation code',
                         'Usar un código de invitación',
+                        'Utiliser un code d’invitation',
                       ),
                     ),
                     trailing: const Icon(Icons.chevron_right),
@@ -215,7 +245,7 @@ class _OrganizationScreenState extends ConsumerState<OrganizationScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              _t('Team', 'Equipo'),
+              _t('Team', 'Equipo', 'Équipe'),
               style: Theme.of(context).textTheme.titleLarge,
             ),
             for (final member in team.members)
@@ -224,12 +254,15 @@ class _OrganizationScreenState extends ConsumerState<OrganizationScreen> {
                 title: Text(member.name.isEmpty ? member.email : member.name),
                 subtitle: Text(
                   member.status == 'revoked'
-                      ? _t('Access removed', 'Acceso retirado')
+                      ? _t('Access removed', 'Acceso retirado', 'Accès retiré')
                       : member.roles
                             .map(
                               (key) => OrganizationRole.values
                                   .firstWhere((r) => r.key == key)
-                                  .label(isSpanish(context)),
+                                  .label(
+                                    isSpanish(context),
+                                    french: isFrench(context),
+                                  ),
                             )
                             .join(' · '),
                 ),
@@ -241,7 +274,11 @@ class _OrganizationScreenState extends ConsumerState<OrganizationScreen> {
             )) ...[
               const SizedBox(height: 24),
               Text(
-                _t('Open invitations', 'Invitaciones pendientes'),
+                _t(
+                  'Open invitations',
+                  'Invitaciones pendientes',
+                  'Invitations en cours',
+                ),
                 style: Theme.of(context).textTheme.titleLarge,
               ),
               for (final invite in team.invitations.where(
@@ -251,12 +288,17 @@ class _OrganizationScreenState extends ConsumerState<OrganizationScreen> {
                   contentPadding: EdgeInsets.zero,
                   title: Text(
                     invite.contact ??
-                        _t('Invitation code', 'Código de invitación'),
+                        _t(
+                          'Invitation code',
+                          'Código de invitación',
+                          'Code d’invitation',
+                        ),
                   ),
                   subtitle: Text(
                     _t(
                       'Expires ${MaterialLocalizations.of(context).formatShortDate(invite.expiresAt.toLocal())}',
                       'Vence ${MaterialLocalizations.of(context).formatShortDate(invite.expiresAt.toLocal())}',
+                      'Expire le ${MaterialLocalizations.of(context).formatShortDate(invite.expiresAt.toLocal())}',
                     ),
                   ),
                   trailing: TextButton(
@@ -285,7 +327,7 @@ class _OrganizationScreenState extends ConsumerState<OrganizationScreen> {
                               if (mounted) setState(() => _busy = false);
                             }
                           },
-                    child: Text(_t('Revoke', 'Revocar')),
+                    child: Text(_t('Revoke', 'Revocar', 'Révoquer')),
                   ),
                 ),
             ],
@@ -311,7 +353,8 @@ class _MembershipEditorState extends ConsumerState<MembershipEditor> {
   String? _createdCode;
   DateTime? _expires;
   bool get _owner => widget.organization.roles.contains('company_owner');
-  String _t(String en, String es) => isSpanish(context) ? es : en;
+  String _t(String en, String es, [String? fr]) =>
+      localizedText(context, en, es, fr ?? en);
   @override
   void initState() {
     super.initState();
@@ -372,7 +415,11 @@ class _MembershipEditorState extends ConsumerState<MembershipEditor> {
     await Clipboard.setData(ClipboardData(text: _createdCode!));
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(_t('Invitation copied', 'Invitación copiada'))),
+        SnackBar(
+          content: Text(
+            _t('Invitation copied', 'Invitación copiada', 'Invitation copiée'),
+          ),
+        ),
       );
     }
   }
@@ -385,6 +432,7 @@ class _MembershipEditorState extends ConsumerState<MembershipEditor> {
           text: _t(
             'Join ${widget.organization.name} in Vortice Next. Sign in with your email or phone, choose Use invitation, and enter: $_createdCode',
             'Únete a ${widget.organization.name} en Vortice Next. Accede con tu correo o teléfono, elige Usar invitación e introduce: $_createdCode',
+            'Rejoignez ${widget.organization.name} sur Vortice Next. Connectez-vous avec votre adresse courriel ou votre téléphone, choisissez « Utiliser une invitation », puis saisissez : $_createdCode',
           ),
           sharePositionOrigin: box == null
               ? null
@@ -414,9 +462,17 @@ class _MembershipEditorState extends ConsumerState<MembershipEditor> {
               Expanded(
                 child: Text(
                   _createdCode != null
-                      ? _t('Invitation ready', 'Invitación lista')
+                      ? _t(
+                          'Invitation ready',
+                          'Invitación lista',
+                          'Invitation prête',
+                        )
                       : widget.member == null
-                      ? _t('Invite teammate', 'Invitar a una persona')
+                      ? _t(
+                          'Invite teammate',
+                          'Invitar a una persona',
+                          'Inviter un membre de l’équipe',
+                        )
                       : widget.member!.name,
                   style: Theme.of(context).textTheme.titleLarge,
                 ),
@@ -424,7 +480,7 @@ class _MembershipEditorState extends ConsumerState<MembershipEditor> {
               IconButton(
                 onPressed: _busy ? null : () => Navigator.pop(context),
                 icon: const Icon(Icons.close),
-                tooltip: _t('Close', 'Cerrar'),
+                tooltip: _t('Close', 'Cerrar', 'Fermer'),
               ),
             ],
           ),
@@ -434,6 +490,7 @@ class _MembershipEditorState extends ConsumerState<MembershipEditor> {
               _t(
                 'Share this code with your teammate. It can be used once.',
                 'Comparte este código con la persona invitada. Solo se puede usar una vez.',
+                'Partagez ce code avec le membre de votre équipe. Il ne peut être utilisé qu’une fois.',
               ),
             ),
             const SizedBox(height: 16),
@@ -446,6 +503,7 @@ class _MembershipEditorState extends ConsumerState<MembershipEditor> {
               _t(
                 'Expires ${MaterialLocalizations.of(context).formatShortDate(_expires!.toLocal())}',
                 'Vence ${MaterialLocalizations.of(context).formatShortDate(_expires!.toLocal())}',
+                'Expire le ${MaterialLocalizations.of(context).formatShortDate(_expires!.toLocal())}',
               ),
             ),
             const SizedBox(height: 20),
@@ -453,16 +511,22 @@ class _MembershipEditorState extends ConsumerState<MembershipEditor> {
             FilledButton.icon(
               onPressed: _share,
               icon: const Icon(Icons.share_outlined),
-              label: Text(_t('Share invitation', 'Compartir invitación')),
+              label: Text(
+                _t(
+                  'Share invitation',
+                  'Compartir invitación',
+                  'Partager l’invitation',
+                ),
+              ),
             ),
             TextButton.icon(
               onPressed: _copy,
               icon: const Icon(Icons.copy_outlined),
-              label: Text(_t('Copy code', 'Copiar código')),
+              label: Text(_t('Copy code', 'Copiar código', 'Copier le code')),
             ),
           ] else ...[
             Text(
-              _t('Working roles', 'Roles de trabajo'),
+              _t('Working roles', 'Roles de trabajo', 'Rôles de travail'),
               style: Theme.of(context).textTheme.titleMedium,
             ),
             const SizedBox(height: 8),
@@ -470,12 +534,15 @@ class _MembershipEditorState extends ConsumerState<MembershipEditor> {
               _t(
                 'Choose every role this person performs.',
                 'Elige todos los roles que desempeña esta persona.',
+                'Choisissez tous les rôles exercés par cette personne.',
               ),
             ),
             for (final role in OrganizationRole.values)
               CheckboxListTile(
                 contentPadding: EdgeInsets.zero,
-                title: Text(role.label(isSpanish(context))),
+                title: Text(
+                  role.label(isSpanish(context), french: isFrench(context)),
+                ),
                 value: _roles.contains(role.key),
                 onChanged:
                     _busy ||
@@ -493,7 +560,11 @@ class _MembershipEditorState extends ConsumerState<MembershipEditor> {
               ),
             const SizedBox(height: 12),
             Text(
-              _t('Delegated permissions', 'Permisos delegados'),
+              _t(
+                'Delegated permissions',
+                'Permisos delegados',
+                'Autorisations déléguées',
+              ),
               style: Theme.of(context).textTheme.titleMedium,
             ),
             const SizedBox(height: 8),
@@ -501,6 +572,7 @@ class _MembershipEditorState extends ConsumerState<MembershipEditor> {
               _t(
                 'Supervisors manage daily work. Team access, billing and inspection administration are delegated separately.',
                 'Los supervisores gestionan el trabajo diario. El equipo, la facturación y las inspecciones requieren permisos separados.',
+                'Les superviseurs organisent le travail quotidien. La gestion de l’équipe, la facturation et l’administration des inspections nécessitent des autorisations distinctes.',
               ),
             ),
             if (_roles.contains('company_owner'))
@@ -510,6 +582,7 @@ class _MembershipEditorState extends ConsumerState<MembershipEditor> {
                   _t(
                     'Company Owners already have every organization permission.',
                     'Los propietarios ya tienen todos los permisos de la empresa.',
+                    'Les propriétaires de l’entreprise disposent déjà de toutes les autorisations de l’organisation.',
                   ),
                 ),
               )
@@ -517,7 +590,12 @@ class _MembershipEditorState extends ConsumerState<MembershipEditor> {
               for (final permission in OrganizationPermission.values)
                 CheckboxListTile(
                   contentPadding: EdgeInsets.zero,
-                  title: Text(permission.label(isSpanish(context))),
+                  title: Text(
+                    permission.label(
+                      isSpanish(context),
+                      french: isFrench(context),
+                    ),
+                  ),
                   value: _permissions.contains(permission.key),
                   onChanged: !_owner || _busy
                       ? null

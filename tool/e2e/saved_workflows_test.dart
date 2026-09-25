@@ -94,7 +94,7 @@ void main() {
             await h.go('/maintenance/assets/$asset');
             await h.tap(find.text('Add component'));
             await h.fill(h.field('Component name'), '$marker Main engine');
-            await h.fill(h.field('Initial meter hours'), '1250.5');
+            await h.fill(h.field('Initial meter (h)'), '1250.5');
             await h.tap(find.widgetWithText(FilledButton, 'Save'));
             final row = await supabase
                 .from('asset_engines')

@@ -1,3 +1,5 @@
+import 'canadian_invoice.dart';
+import 'canadian_invoice_exports.dart';
 import 'package:vortice_app/features/invoices/invoice_download.dart';
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:vortice_app/features/invoices/invoice_detail_support.dart';
@@ -27,6 +29,7 @@ class InvoicePdfService {
   static Future<void> generateAndShare(
     Invoice invoice, {
     bool spanish = false,
+    bool french = false,
   }) async {
     final exportContext = await InvoiceExportContextService.load(invoice);
     invoice = exportContext.currentInvoice ?? invoice;
@@ -34,6 +37,7 @@ class InvoicePdfService {
       invoice,
       exportContext: exportContext,
       spanish: spanish,
+      french: french,
     );
 
     await Printing.sharePdf(
@@ -45,6 +49,7 @@ class InvoicePdfService {
   static Future<File> downloadAndOpen(
     Invoice invoice, {
     bool spanish = false,
+    bool french = false,
   }) async {
     final exportContext = await InvoiceExportContextService.load(invoice);
     invoice = exportContext.currentInvoice ?? invoice;
@@ -52,6 +57,7 @@ class InvoicePdfService {
       invoice,
       exportContext: exportContext,
       spanish: spanish,
+      french: french,
     );
     final file = await writeInvoiceDownload(
       invoice,
@@ -66,7 +72,18 @@ class InvoicePdfService {
     Invoice invoice, {
     InvoiceExportContext? exportContext,
     bool spanish = false,
+    bool french = false,
   }) async {
+    if (invoice.isNativeCad) {
+      return canadianInvoicePdf(
+        invoice,
+        language: french
+            ? 'fr'
+            : spanish
+            ? 'es'
+            : 'en',
+      );
+    }
     final pdf = pw.Document(
       theme: pw.ThemeData.withFont(
         base: pw.Font.ttf(

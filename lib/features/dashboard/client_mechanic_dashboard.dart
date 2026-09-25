@@ -104,8 +104,9 @@ class ClientMechanicDashboard extends ConsumerWidget {
                     ),
                     availableChecklistsAsync.when(
                       loading: () => const DashboardLoadingTile(),
-                      error: (err, _) =>
-                          DashboardErrorTile(message: friendlyError(context, err)),
+                      error: (err, _) => DashboardErrorTile(
+                        message: friendlyError(context, err),
+                      ),
                       data: (options) {
                         if (options.isEmpty) {
                           return const DashboardEmptyState(
@@ -172,7 +173,7 @@ class _AvailableChecklistCard extends ConsumerWidget {
         ),
         title: Text(template.name),
         subtitle: Text(
-          '${asset.name} · ${dashboardText(context, 'Start checklist', 'Iniciar revisión')}',
+          '${asset.name} · ${dashboardText(context, 'Start checklist', 'Iniciar revisión', 'Commencer une inspection')}',
         ),
         trailing: const Icon(Icons.chevron_right),
         onTap: () => context.push(query),
@@ -182,8 +183,6 @@ class _AvailableChecklistCard extends ConsumerWidget {
 }
 
 // ── Shared widgets ────────────────────────────────────────────────────────────
-
-
 
 class _HelperTile extends StatelessWidget {
   final IconData icon;

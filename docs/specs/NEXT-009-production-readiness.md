@@ -15,6 +15,22 @@ with the retained session. NEXT-012 has the recovery receipt. Earlier mismatch
 statements below describe the initial audit and are resolved. Google Play work
 is deferred; continue app completion, then E2E and a final polish review.
 
+## September 25 connected verification continuation
+
+NEXT-011 now supplies native CAD billing and explicit CAD/USD cost snapshots;
+its three migrations are deployed to the authorized Next project. The current
+hosted operational check passes migration parity, RLS and private Storage. A
+fresh backup verifies six database/access files and 78 objects, using the
+checksum-verified user-local PostgreSQL 17.11 client. All 51 SQL contracts and a
+populated local restore pass on that same major version. This remains local
+plaintext staging, not encrypted off-device recovery or hosted restoration.
+
+A separate internal E2E mechanic preserves the existing demo accounts' active
+timers. Connected scripts use account-owned memory databases on Linux, current
+visible control labels and exact manifest cleanup, including generated recurring
+cycles. The native CAD connected job-to-customer workflow passes; further broad
+workflow and French rendered evidence is being consolidated before delivery.
+
 ## Linux tooling and workflow audit — September 24, 2026
 
 This audit continued `codex/canada-play-readiness` from `4310fa3` in
@@ -312,3 +328,22 @@ checks on the final signed candidate later. Preserve current app data/drafts.
 
 Record each as pass/fail/not exercised with build, role and action. User/customer
 acceptance and final signed upgrade remain open even when automated checks pass.
+
+## Build 41 delivery — September 25
+
+Internal Android `1.20.0+41` passed guarded verification (814 tests, clean
+analysis) and was installed in place on S24 `R3CX906TS9X` with the recovered Next
+debug signer. All 26 existing private files were byte-identical immediately
+after installation; the original install time was preserved. The app launches
+and the APK is also in S24 Downloads as `Vortice-Next-Build-41.apk`.
+Local artifact: `outputs/builds/vortice-next-android-debug-20260924-223621.apk`.
+SHA-256: `9c145906e04cd6699f8f602f25166c4c8fff99d5880d54625949d5dc76484773`.
+Receipts: `outputs/build41/upgrade.json`,
+`outputs/next011/native-cad/verify-build41-final.log` and `build41.log`.
+
+The connected PM journey exposed a real offline projection defect: completion
+meter text was copied into a numeric display field before server acknowledgement.
+The projection now parses it as a number without altering the durable request;
+pending and acknowledged replay are regression-tested. Final connected reruns
+and the remaining production/physical acceptance gates are tracked below; this
+internal debug build is not a production release.

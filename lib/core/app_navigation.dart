@@ -16,13 +16,24 @@ class AppDestination {
     this.route, {
     this.description = '',
     this.descriptionEs = '',
+    this.fr = '',
+    this.descriptionFr = '',
     this.group = 0,
   });
-  final String en, es, route, description, descriptionEs;
+  final String en, es, route, description, descriptionEs, fr, descriptionFr;
   final IconData icon;
   final int group;
-  String label(bool spanish) => spanish ? es : en;
-  String detail(bool spanish) => spanish ? descriptionEs : description;
+  String label(bool spanish, {bool french = false}) => french && fr.isNotEmpty
+      ? fr
+      : spanish
+      ? es
+      : en;
+  String detail(bool spanish, {bool french = false}) =>
+      french && descriptionFr.isNotEmpty
+      ? descriptionFr
+      : spanish
+      ? descriptionEs
+      : description;
 }
 
 List<AppDestination> primaryDestinations(
@@ -31,12 +42,19 @@ List<AppDestination> primaryDestinations(
 }) {
   final prefix = roleRoutePrefix(role);
   return [
-    AppDestination('Home', 'Inicio', Icons.home_outlined, '$prefix/dashboard'),
+    AppDestination(
+      'Home',
+      'Inicio',
+      Icons.home_outlined,
+      '$prefix/dashboard',
+      fr: 'Accueil',
+    ),
     const AppDestination(
       'Assets',
       'Equipos',
       Icons.directions_boat_outlined,
       '/assets',
+      fr: 'Équipements',
     ),
     if (canUseMaintenance(role))
       const AppDestination(
@@ -44,6 +62,7 @@ List<AppDestination> primaryDestinations(
         'Órdenes de trabajo',
         Icons.calendar_month_outlined,
         '/maintenance/planning',
+        fr: 'Bons de travail',
       ),
     if ((role == UserRole.operator || role == UserRole.clientOperator) &&
         operationalChecklistsEnabled)
@@ -52,14 +71,22 @@ List<AppDestination> primaryDestinations(
         'Revisiones',
         Icons.checklist,
         '/operator/checklist',
+        fr: 'Inspections',
       ),
     const AppDestination(
       'Faults',
       'Fallas',
       Icons.report_problem_outlined,
       '/fleet',
+      fr: 'Défaillances',
     ),
-    const AppDestination('More', 'Más', Icons.grid_view_outlined, '/more'),
+    const AppDestination(
+      'More',
+      'Más',
+      Icons.grid_view_outlined,
+      '/more',
+      fr: 'Plus',
+    ),
   ];
 }
 
@@ -77,6 +104,9 @@ List<AppDestination> toolDestinations(UserRole role) {
         description: 'Build PM procedures and pre-operation checks',
         descriptionEs:
             'Crear procedimientos de mantenimiento y revisiones antes de operar',
+        fr: 'Bibliothèque de listes de contrôle',
+        descriptionFr:
+            'Créer des procédures d’entretien et des inspections avant utilisation',
       ),
     if (role == UserRole.owner || admin)
       const AppDestination(
@@ -87,6 +117,9 @@ List<AppDestination> toolDestinations(UserRole role) {
         group: 1,
         description: 'Compare maintenance costs, downtime and repeat faults',
         descriptionEs: 'Comparar costos, inactividad y fallas repetidas',
+        fr: 'Rapport sur les équipements',
+        descriptionFr:
+            'Comparer les coûts d’entretien, les temps d’arrêt et les défaillances récurrentes',
       ),
     if (staff || admin)
       AppDestination(
@@ -100,6 +133,10 @@ List<AppDestination> toolDestinations(UserRole role) {
         descriptionEs: staff
             ? 'Revisar solicitudes y organizar el trabajo'
             : 'Pedir ayuda y consultar solicitudes anteriores',
+        fr: 'Demandes de service',
+        descriptionFr: staff
+            ? 'Examiner les demandes des clients et organiser les travaux'
+            : 'Demander de l’aide et consulter vos demandes précédentes',
       ),
     if (staff || admin || role == UserRole.clientMechanic)
       AppDestination(
@@ -109,6 +146,9 @@ List<AppDestination> toolDestinations(UserRole role) {
         '$prefix/service-reports',
         description: 'Read completed work and service history',
         descriptionEs: 'Consultar trabajos realizados e historial de servicio',
+        fr: 'Rapports d’intervention',
+        descriptionFr:
+            'Consulter les travaux terminés et l’historique d’entretien',
       ),
     if (staff)
       AppDestination(
@@ -118,6 +158,8 @@ List<AppDestination> toolDestinations(UserRole role) {
         '$prefix/parts',
         description: 'Find parts and record materials used',
         descriptionEs: 'Buscar repuestos y registrar materiales utilizados',
+        fr: 'Pièces',
+        descriptionFr: 'Trouver des pièces et consigner les matériaux utilisés',
       ),
     if (role == UserRole.owner || admin)
       AppDestination(
@@ -128,6 +170,8 @@ List<AppDestination> toolDestinations(UserRole role) {
         group: 1,
         description: 'View charges and payment status',
         descriptionEs: 'Consultar cargos y estado de pago',
+        fr: 'Factures',
+        descriptionFr: 'Consulter les frais et l’état des paiements',
       ),
     if (role == UserRole.owner) ...[
       const AppDestination(
@@ -138,6 +182,9 @@ List<AppDestination> toolDestinations(UserRole role) {
         group: 1,
         description: 'Manage customer accounts and capabilities',
         descriptionEs: 'Administrar clientes y funciones disponibles',
+        fr: 'Clients',
+        descriptionFr:
+            'Gérer les comptes clients et les fonctionnalités disponibles',
       ),
       const AppDestination(
         'Invite codes',
@@ -147,6 +194,8 @@ List<AppDestination> toolDestinations(UserRole role) {
         group: 1,
         description: 'Help people join the right company',
         descriptionEs: 'Ayudar a las personas a unirse a su empresa',
+        fr: 'Codes d’invitation',
+        descriptionFr: 'Aider les gens à joindre la bonne entreprise',
       ),
       const AppDestination(
         'Reminders',
@@ -155,6 +204,8 @@ List<AppDestination> toolDestinations(UserRole role) {
         '/owner/reminders',
         description: 'Review upcoming maintenance reminders',
         descriptionEs: 'Revisar recordatorios de mantenimiento',
+        fr: 'Rappels',
+        descriptionFr: 'Consulter les rappels d’entretien à venir',
       ),
     ],
     if (admin)
@@ -166,6 +217,8 @@ List<AppDestination> toolDestinations(UserRole role) {
         group: 1,
         description: 'Manage your company and its members',
         descriptionEs: 'Administrar tu empresa y sus miembros',
+        fr: 'Équipe',
+        descriptionFr: 'Gérer votre entreprise et ses membres',
       ),
     const AppDestination(
       'Notifications',
@@ -174,6 +227,8 @@ List<AppDestination> toolDestinations(UserRole role) {
       '/notifications',
       description: 'Catch up on updates that need attention',
       descriptionEs: 'Consultar novedades que requieren atención',
+      fr: 'Notifications',
+      descriptionFr: 'Consulter les nouvelles qui demandent votre attention',
     ),
   ];
 }

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'asset_workflow_policy.dart';
 import 'package:vortice_app/core/user_feedback.dart';
+import 'package:vortice_app/core/localized_text.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:vortice_app/l10n/app_localizations.dart';
@@ -56,6 +57,7 @@ class _AssetListScreenState extends ConsumerState<AssetListScreen> {
     final assetsAsync = ref.watch(visibleAssetsProvider);
     final workspace = ref.watch(assetWorkspaceProvider);
     final es = isSpanish(context);
+    final fr = isFrench(context);
     final types =
         ref.watch(assetTypesProvider).valueOrNull ?? const <AssetType>[];
     final typeNames = {for (final type in types) type.id: type.name};
@@ -72,12 +74,24 @@ class _AssetListScreenState extends ConsumerState<AssetListScreen> {
         actions: [
           if (canAdd)
             PopupMenuButton<String>(
-              tooltip: es ? 'Más acciones' : 'More actions',
+              tooltip: localizedText(
+                context,
+                'More actions',
+                'Más acciones',
+                'Plus d’actions',
+              ),
               onSelected: (_) => context.push('/assets/import'),
               itemBuilder: (_) => [
                 PopupMenuItem(
                   value: 'import',
-                  child: Text(es ? 'Importar equipos' : 'Import equipment'),
+                  child: Text(
+                    localizedText(
+                      context,
+                      'Import equipment',
+                      'Importar equipos',
+                      'Importer des équipements',
+                    ),
+                  ),
                 ),
               ],
             ),
@@ -97,9 +111,12 @@ class _AssetListScreenState extends ConsumerState<AssetListScreen> {
                     suffixIcon: _searchQuery.isEmpty
                         ? null
                         : IconButton(
-                            tooltip: isSpanish(context)
-                                ? 'Borrar búsqueda'
-                                : 'Clear search',
+                            tooltip: localizedText(
+                              context,
+                              'Clear search',
+                              'Borrar búsqueda',
+                              'Effacer la recherche',
+                            ),
                             icon: const Icon(Icons.close),
                             onPressed: () => setState(() {
                               _search.clear();
@@ -120,7 +137,12 @@ class _AssetListScreenState extends ConsumerState<AssetListScreen> {
                   initialValue: _filter,
                   isExpanded: true,
                   decoration: InputDecoration(
-                    labelText: es ? 'Mostrar equipos' : 'Show assets',
+                    labelText: localizedText(
+                      context,
+                      'Show assets',
+                      'Mostrar equipos',
+                      'Afficher les équipements',
+                    ),
                     isDense: true,
                   ),
                   items: [
@@ -128,7 +150,11 @@ class _AssetListScreenState extends ConsumerState<AssetListScreen> {
                       DropdownMenuItem(
                         value: entry.key,
                         child: Text(
-                          '${es ? entry.value.$2 : entry.value.$1}${workspace.hasValue ? ' (${filterWorkspaceAssets(workspace.value!, entry.key).length})' : ''}',
+                          '${fr
+                              ? entry.value.$3
+                              : es
+                              ? entry.value.$2
+                              : entry.value.$1}${workspace.hasValue ? ' (${filterWorkspaceAssets(workspace.value!, entry.key).length})' : ''}',
                         ),
                       ),
                   ],
@@ -192,9 +218,12 @@ class _AssetListScreenState extends ConsumerState<AssetListScreen> {
                   return Center(
                     child: Text(
                       _searchQuery.trim().isNotEmpty || _filter != 'all'
-                          ? (isSpanish(context)
-                                ? 'No hay coincidencias. Prueba otro nombre o borra la búsqueda.'
-                                : 'No matching assets. Try another name or clear the search.')
+                          ? localizedText(
+                              context,
+                              'No matching assets. Try another name or clear the search.',
+                              'No hay coincidencias. Prueba otro nombre o borra la búsqueda.',
+                              'Aucun équipement trouvé. Essayez un autre nom ou effacez la recherche.',
+                            )
                           : l10n.noAssets,
                       style: TextStyle(color: context.appColors.textSecondary),
                     ),
@@ -218,7 +247,9 @@ class _AssetListScreenState extends ConsumerState<AssetListScreen> {
                       showAssignedClient: showAssignedClient,
                       attentionLabel: _filter == 'all'
                           ? null
-                          : (es
+                          : (fr
+                                ? assetWorkspaceFilters[_filter]!.$3
+                                : es
                                 ? assetWorkspaceFilters[_filter]!.$2
                                 : assetWorkspaceFilters[_filter]!.$1),
                       openWork:
@@ -238,7 +269,14 @@ class _AssetListScreenState extends ConsumerState<AssetListScreen> {
               onPressed: () => context.push('/assets/new'),
               backgroundColor: context.appColors.primary,
               icon: const Icon(Icons.add),
-              label: Text(isSpanish(context) ? 'Añadir equipo' : 'Add asset'),
+              label: Text(
+                localizedText(
+                  context,
+                  'Add asset',
+                  'Añadir equipo',
+                  'Ajouter un équipement',
+                ),
+              ),
             )
           : null,
     );
@@ -259,7 +297,14 @@ class _AssignedClientLine extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final label = _assignedProfileLabel(profile) ?? 'Unassigned / unknown';
+    final label =
+        _assignedProfileLabel(profile) ??
+        localizedText(
+          context,
+          'Unassigned / unknown',
+          'Sin asignar / desconocido',
+          'Non attribué / inconnu',
+        );
     return Padding(
       padding: const EdgeInsets.only(top: 2, bottom: 2),
       child: Row(
@@ -272,7 +317,12 @@ class _AssignedClientLine extends StatelessWidget {
           const SizedBox(width: 3),
           Flexible(
             child: Text(
-              'Assigned to $label',
+              localizedText(
+                context,
+                'Assigned to $label',
+                'Asignado a $label',
+                'Attribué à $label',
+              ),
               overflow: TextOverflow.ellipsis,
               style: TextStyle(
                 color: context.appColors.textSecondary,
@@ -326,9 +376,12 @@ class _AssetListTile extends StatelessWidget {
               ),
             if (openWork != null && openWork! > 0)
               Text(
-                isSpanish(context)
-                    ? '$openWork trabajos abiertos'
-                    : '$openWork open work orders',
+                localizedText(
+                  context,
+                  '$openWork open work orders',
+                  '$openWork trabajos abiertos',
+                  '$openWork bons de travail ouverts',
+                ),
               ),
             if (showAssignedClient)
               _AssignedClientLine(profile: assignedProfile),

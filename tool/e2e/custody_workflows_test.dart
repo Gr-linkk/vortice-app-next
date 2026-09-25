@@ -1,334 +1,257 @@
+// Connected current custody -> generated inspection work -> approved certificate.
+// The evidence upload uses a fixed test file; physical picker acceptance is separate.
 import 'dart:convert';
 import 'dart:io';
-import 'audit_output.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_localizations/flutter_localizations.dart';
-import 'package:go_router/go_router.dart';
-import 'package:image_picker/image_picker.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:uuid/uuid.dart';
-import 'package:vortice_app/core/theme.dart';
 import 'package:vortice_app/core/supabase_client.dart';
-import 'package:vortice_app/l10n/app_localizations.dart';
-import 'package:vortice_app/features/assurance/assurance_screen.dart';
-import 'package:vortice_app/features/assurance/assurance_form.dart';
 import 'package:vortice_app/features/assurance/assurance_repository.dart';
-import 'package:vortice_app/features/auth/auth_provider.dart';
+import 'package:vortice_app/features/maintenance/maintenance_repository.dart';
+import 'audit_output.dart';
+import 'connected_harness.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
   testWidgets(
-    'E2E-010 actual native screens and hosted persistence',
+    'custody and generated inspection work retain reviewed evidence',
     (tester) async {
       await tester.runAsync(() async {
-        HttpOverrides.global = null;
-        // Connected test host; stored preferences are deliberately disposable.
-        // ignore: invalid_use_of_visible_for_testing_member
-        SharedPreferences.setMockInitialValues({});
-        final config =
-            jsonDecode(
-                  File(
-                    Platform.environment['VORTICE_E2E_CONFIG']!,
-                  ).readAsStringSync(),
-                )
-                as Map;
-        if (config['SUPABASE_URL'] !=
-            'https://hkjpojobdbbtjkhaudki.supabase.co') {
-          throw StateError('Wrong target');
-        }
-        final passwords =
-            jsonDecode(config['DEV_LOGIN_PASSWORDS'] as String) as Map;
-        await Supabase.initialize(
-          url: config['SUPABASE_URL'] as String,
-          anonKey: config['SUPABASE_ANON_KEY'] as String,
-          authOptions: const FlutterAuthClientOptions(
-            autoRefreshToken: false,
-            detectSessionInUri: false,
-          ),
-        );
-        final repo = SupabaseAssuranceRepository(supabase);
+        final h = ConnectedHarness(tester, report: 'custody010');
+        await h.start();
         final asset = const Uuid().v4();
+        final marker = 'E2E-010-${asset.substring(0, 8)}';
         final manifest = <String, dynamic>{
           'asset': asset,
-          'marker': 'E2E-010',
-          'objects': <String>[],
+          'asset_name': '$marker Inspection crane',
+          'marker': marker,
         };
-        void record() {
-          File(
-            auditOutputPath('NOW-010-custody-live-manifest.json'),
-          ).writeAsStringSync(jsonEncode(manifest));
-          File(
-            auditOutputPath('NOW-010-custody-live-$asset.json'),
-          ).writeAsStringSync(jsonEncode(manifest));
-        }
-
+        void record() => File(
+          auditOutputPath('NOW-010-fixture-$marker.json'),
+        ).writeAsStringSync(jsonEncode(manifest));
         record();
-        Future<void> login(String email) async {
-          await supabase.auth.signInWithPassword(
-            email: email,
-            password: passwords[email] as String,
-          );
-        }
-
-        await login('paradise@vortice.dev');
-        final workspace = await supabase.rpc('maintenance_workspace') as Map;
-        await supabase.rpc(
-          'save_maintenance_setup',
-          params: {
-            'p_operation': const Uuid().v4(),
-            'p_kind': 'asset',
-            'p_id': asset,
-            'p_revision': 0,
-            'p_data': {
-              'name': 'E2E-010 Custody inspection crane',
-              'location': 'E2E-010 Initial dock',
-              'asset_type_id': (workspace['asset_types'] as List).first['id'],
+        AssuranceRepository assurance() =>
+            h.container.read(assuranceRepositoryProvider);
+        MaintenanceRepository maintenance() =>
+            h.container.read(maintenanceRepositoryProvider);
+        Future<void> field(String key, String value) =>
+            h.fill(find.byKey(ValueKey(key)), value);
+        String? job, evidence;
+        final photo = File('tool/e2e/fixtures/evidence.png').readAsBytesSync();
+        try {
+          await h.login('paradise@vortice.dev');
+          final workspace = await maintenance().workspace();
+          await maintenance().setup(const Uuid().v4(), 'asset', asset, 0, {
+            'name': manifest['asset_name'],
+            'location': '$marker Initial dock',
+            'asset_type_id': (workspace['asset_types'] as List).first['id'],
+          });
+          await h.step(
+            'custody transfer persists and reopens from equipment',
+            () async {
+              await h.go('/assurance/assets/$asset');
+              await h.tap(find.text('Update location & responsibility'));
+              await field('site', '$marker North workshop');
+              final people =
+                  (await assurance().context(asset))['people'] as List;
+              await h.select(
+                'Responsible person',
+                people.first['name'] as String,
+              );
+              await field('reason', '$marker Move for annual inspection');
+              await h.tap(find.widgetWithText(FilledButton, 'Save changes'));
+              expect(
+                (await assurance().context(asset))['custody']['site'],
+                '$marker North workshop',
+              );
+              await h.tap(find.text('Update location & responsibility'));
+              expect(
+                tester
+                    .widget<TextFormField>(find.byKey(const ValueKey('site')))
+                    .controller!
+                    .text,
+                '$marker North workshop',
+              );
+              await h.tap(find.byType(BackButton));
+              await h.screenshot('custody010-transfer');
             },
-          },
-        );
-        final container = ProviderContainer(
-          overrides: [
-            inspectionPhotoPickerProvider.overrideWithValue(
-              () async => XFile('tool/e2e/fixtures/evidence.png'),
-            ),
-          ],
-        );
-        final router = GoRouter(
-          initialLocation: '/assurance/assets/$asset',
-          routes: [
-            GoRoute(
-              path: '/assurance',
-              builder: (_, __) => const AssuranceScreen(),
-            ),
-            GoRoute(
-              path: '/assurance/assets/:id',
-              builder: (_, state) =>
-                  AssuranceScreen(asset: state.pathParameters['id']!),
-            ),
-          ],
-        );
-        await tester.pumpWidget(
-          UncontrolledProviderScope(
-            container: container,
-            child: MaterialApp.router(
-              routerConfig: router,
-              theme: AppTheme.darkNavyTheme,
-              locale: const Locale('en'),
-              supportedLocales: const [Locale('en'), Locale('es')],
-              localizationsDelegates: const [
-                AppLocalizations.delegate,
-                GlobalMaterialLocalizations.delegate,
-                GlobalWidgetsLocalizations.delegate,
-                GlobalCupertinoLocalizations.delegate,
-              ],
-            ),
-          ),
-        );
-        Future<void> waitFor(Finder finder) async {
-          for (var n = 0; n < 150; n++) {
-            await tester.pump(const Duration(milliseconds: 40));
-            if (finder.evaluate().isNotEmpty) return;
-            await Future<void>.delayed(const Duration(milliseconds: 100));
-          }
-          throw StateError('Visible control not found: $finder');
-        }
-
-        Future<void> tap(Finder finder) async {
-          if (finder.evaluate().isEmpty &&
-              find.byType(Scrollable).evaluate().isNotEmpty) {
-            await tester.scrollUntilVisible(
-              finder,
-              200,
-              scrollable: find.byType(Scrollable).first,
-              maxScrolls: 25,
-            );
-          }
-          await waitFor(finder);
-          await tester.ensureVisible(finder.last);
-          await tester.pump();
-          await tester.tap(finder.last);
-          for (var n = 0; n < 8; n++) {
-            await tester.pump(const Duration(milliseconds: 100));
-            await Future<void>.delayed(const Duration(milliseconds: 20));
-          }
-        }
-
-        Future<void> settle() async {
-          for (var n = 0; n < 15; n++) {
-            await tester.pump(const Duration(milliseconds: 100));
-            await Future<void>.delayed(const Duration(milliseconds: 100));
-          }
-        }
-
-        Future<void> field(String key, String value) async {
-          final finder = find.byKey(ValueKey(key));
-          await waitFor(finder);
-          await tester.ensureVisible(finder);
-          await tester.enterText(finder, value);
-          await tester.pump();
-        }
-
-        Future<void> refresh() async {
-          container.invalidate(assuranceContextProvider);
-          container.invalidate(inspectionRegisterProvider);
-          await settle();
-        }
-
-        Future<void> switchAccount(String email) async {
-          await login(email);
-          container.invalidate(profileProvider);
-          await refresh();
-        }
-
-        Future<void> review(String action, String note) async {
-          final header = find.text('Evidence & review history');
-          if (find.text(action).evaluate().isEmpty) {
-            await tap(header);
-            await settle();
-          }
-          await tap(find.text(action));
-          await field('note', note);
-          await tap(find.widgetWithText(FilledButton, action));
-          await settle();
-        }
-
-        await waitFor(find.text('Update location & responsibility'));
-        await tap(find.text('Update location & responsibility'));
-        await field('site', 'E2E-010 North workshop');
-        await tap(find.byType(DropdownButtonFormField<String>).first);
-        final context = await repo.context(asset);
-        final person = (context['people'] as List).first as Map;
-        await tap(find.text(person['name'] as String).last);
-        await field('reason', 'E2E-010 Move for annual inspection');
-        await tap(find.widgetWithText(FilledButton, 'Save changes'));
-        await settle();
-        final saved = await repo.context(asset);
-        expect((saved['custody'] as Map)['site'], 'E2E-010 North workshop');
-        expect((saved['transfers'] as List).length, 1);
-        await waitFor(find.text('E2E-010 North workshop'));
-        await tap(find.text('Update location & responsibility'));
-        await waitFor(find.byKey(const ValueKey('site')));
-        expect(
-          tester
-              .widget<TextFormField>(find.byKey(const ValueKey('site')))
-              .controller!
-              .text,
-          'E2E-010 North workshop',
-        );
-        Navigator.of(tester.element(find.byType(AssuranceForm))).pop();
-        await settle();
-        stdout.writeln(
-          'PASS connected transfer submit, persisted journal and reopened form',
-        );
-        await tap(find.text('Add inspection'));
-        await field('title', 'E2E-010 Annual lifting certificate');
-        await tap(find.widgetWithText(FilledButton, 'Add inspection'));
-        await settle();
-        var items = await repo.inspections(asset);
-        expect(items.length, 1);
-        manifest['inspection'] = items.single['id'];
-        record();
-        stdout.writeln('PASS connected inspection registration and reopen');
-        await switchAccount('client_mechanic@vortice.dev');
-        expect(find.text('Update location & responsibility'), findsNothing);
-        Future<void> submit(String result, String expiry) async {
-          await tap(find.text('Submit renewal'));
-          await field('inspected_on', '2026-09-01');
-          await field('expires_on', expiry);
-          await field('procedure_notes', 'E2E-010 Load test procedure v1');
-          await field('result_notes', result);
-          await tap(find.text('Add evidence photo'));
-          await settle();
-          await tap(find.widgetWithText(FilledButton, 'Submit renewal'));
-          await settle();
-          items = await repo.inspections(asset);
-          final pending = items.single['pending'] as Map;
-          (manifest['objects'] as List).add(pending['evidence_path']);
+          );
+          await h.step(
+            'inspection registration opens generated work and accepts assignment',
+            () async {
+              await h.tap(find.text('Add inspection'));
+              await field('title', '$marker Annual lifting certificate');
+              await h.tap(find.widgetWithText(FilledButton, 'Add inspection'));
+              final inspection = (await assurance().inspections(asset)).single;
+              manifest['inspection'] = inspection['id'];
+              record();
+              await h.tap(find.text('Open inspection work'));
+              final jobs = await maintenance().jobs(assetId: asset);
+              expect(jobs, hasLength(1));
+              job = jobs.single.id;
+              manifest['maintenance_job'] = job;
+              record();
+              await h.waitFor(find.text('Assign work order'));
+              await h.tap(find.text('Assign work order'));
+              final catalog = await maintenance().assetContext(asset);
+              final mechanic = (catalog['assignees'] as List).firstWhere(
+                (p) =>
+                    p['role'] == 'client_mechanic' &&
+                    (h.executorId == null || p['id'] == h.executorId),
+              );
+              await h.select('Assigned to', mechanic['name'] as String);
+              await h.tap(find.widgetWithText(FilledButton, 'Confirm'));
+              expect(
+                (await maintenance().jobs(jobId: job)).single.status,
+                'assigned',
+              );
+            },
+          );
+          await h.step(
+            'mechanic submits inspection results and private certificate through the work report',
+            () async {
+              await h.login('client_mechanic@vortice.dev');
+              await h.go('/maintenance/jobs/$job');
+              await h.tap(find.widgetWithText(FilledButton, 'Start work'));
+              await h.tap(find.widgetWithText(TextButton, 'Pause'));
+              // Headless evidence fixture, uploaded with the mechanic's real scoped session.
+              evidence =
+                  '$job/${supabase.auth.currentUser!.id}/${const Uuid().v4()}.png';
+              await maintenance().uploadEvidence(evidence!, photo, 'image/png');
+              final current = (await maintenance().jobs(jobId: job)).single;
+              await maintenance().change(
+                job!,
+                current.revision,
+                const Uuid().v4(),
+                'save_report',
+                {
+                  'evidence_paths': [evidence],
+                  'inspection': <String, dynamic>{},
+                },
+              );
+              await h.go('/client/dashboard');
+              await h.go('/maintenance/jobs/$job');
+              await h.tap(
+                find.textContaining(
+                  RegExp(r'^(Create|Continue) service report$'),
+                ),
+              );
+              await h.fill(h.field('Findings'), '$marker Annual inspection');
+              await h.fill(
+                h.field('Work performed and results'),
+                '$marker Completed load test',
+              );
+              await h.fill(h.field('Inspection date'), '2026-09-24');
+              await h.fill(h.field('Next expiry date'), '2027-09-24');
+              await h.fill(
+                h.field('Procedure performed'),
+                '$marker Load test procedure',
+              );
+              await h.fill(
+                h.field('Result and certification'),
+                '$marker Load test passed',
+              );
+              await h.select('Certificate photo', 'Photo 1');
+              await h.screenshot('custody010-inspection-report');
+              await h.tap(
+                find.widgetWithText(FilledButton, 'Submit for review'),
+              );
+              final inspection = (await assurance().inspections(asset)).single;
+              expect(inspection['approved'], isNull);
+              expect(
+                inspection['pending']['result_notes'],
+                '$marker Load test passed',
+              );
+              expect(
+                await supabase.storage
+                    .from('maintenance-evidence')
+                    .download(evidence!),
+                photo,
+              );
+            },
+          );
+          await h.step(
+            'return and correction preserve versions; approval publishes the certificate',
+            () async {
+              await h.login('paradise@vortice.dev');
+              await h.go('/maintenance/jobs/$job');
+              await h.tap(find.text('Return for changes'));
+              await h.fill(
+                h.field('Reason / note'),
+                '$marker Include test pressure',
+              );
+              await h.tap(find.widgetWithText(FilledButton, 'Confirm'));
+              expect(
+                (await assurance().inspections(asset)).single['approved'],
+                isNull,
+              );
+              await h.login('client_mechanic@vortice.dev');
+              await h.go('/maintenance/jobs/$job');
+              await h.tap(
+                find.textContaining(
+                  RegExp(r'^(Create|Continue) service report$'),
+                ),
+              );
+              await h.fill(
+                h.field('Result and certification'),
+                '$marker Verified 100 psi',
+              );
+              await h.tap(
+                find.widgetWithText(FilledButton, 'Submit for review'),
+              );
+              await h.login('paradise@vortice.dev');
+              await h.go('/maintenance/jobs/$job');
+              await h.tap(find.text('Approve & complete'));
+              await h.fill(
+                h.field('Reason / note'),
+                '$marker Evidence verified',
+              );
+              await h.tap(find.widgetWithText(FilledButton, 'Confirm'));
+              final inspection = (await assurance().inspections(asset)).single;
+              expect(inspection['approved']['expires_on'], '2027-09-24');
+              expect(
+                inspection['approved']['result_notes'],
+                '$marker Verified 100 psi',
+              );
+              expect(inspection['versions'], hasLength(2));
+              expect(inspection['pending'], isNull);
+              await h.go('/assurance/assets/$asset');
+              await h.screenshot('custody010-approved');
+            },
+          );
+          await h.step(
+            'operator can read; other company cannot read records or private evidence',
+            () async {
+              await h.login('operator@vortice.dev');
+              await h.go('/assurance/assets/$asset');
+              expect(
+                find.text('Update location & responsibility'),
+                findsNothing,
+              );
+              expect((await assurance().inspections(asset)), hasLength(1));
+              await h.login('client@vortice.dev');
+              expect(await assurance().inspections(asset), isEmpty);
+              await expectLater(
+                assurance().context(asset),
+                throwsA(isA<PostgrestException>()),
+              );
+              await expectLater(
+                supabase.storage
+                    .from('maintenance-evidence')
+                    .download(evidence!),
+                throwsA(isA<StorageException>()),
+              );
+            },
+          );
+          expect(h.issues, isEmpty);
+          manifest['passed'] = true;
           record();
-          expect(pending['result_notes'], result);
-          final bytes = await supabase.storage
-              .from('inspection-evidence')
-              .download(pending['evidence_path'] as String);
-          expect(
-            bytes,
-            File('tool/e2e/fixtures/evidence.png').readAsBytesSync(),
-          );
+        } finally {
+          await h.close();
         }
-
-        await submit('E2E-010 Initial load test passed', '2026-09-05');
-        expect(find.text('Approve renewal'), findsNothing);
-        stdout.writeln(
-          'PASS connected mechanic submits evidence; saved object bytes match',
-        );
-        await switchAccount('paradise@vortice.dev');
-        await review('Return renewal', 'E2E-010 Include test pressure');
-        items = await repo.inspections(asset);
-        expect((items.single['versions'] as List).single['status'], 'returned');
-        await switchAccount('client_mechanic@vortice.dev');
-        await submit(
-          'E2E-010 Corrected result: pressure 100 psi passed',
-          '2026-09-05',
-        );
-        await switchAccount('paradise@vortice.dev');
-        await review(
-          'Approve renewal',
-          'E2E-010 Pressure and evidence reviewed',
-        );
-        items = await repo.inspections(asset);
-        expect(items.single['approved'], isNotNull);
-        expect((items.single['versions'] as List).length, 2);
-        expect(inspectionState(items.single, DateTime(2026, 9, 6)), 'expired');
-        stdout.writeln(
-          'PASS connected return, resubmit and manager approval; old versions retained',
-        );
-        await submit('E2E-010 Renewed full inspection passed', '2027-09-01');
-        items = await repo.inspections(asset);
-        expect((items.single['approved'] as Map)['expires_on'], '2026-09-05');
-        await review('Approve renewal', 'E2E-010 Renewal evidence verified');
-        items = await repo.inspections(asset);
-        expect((items.single['approved'] as Map)['expires_on'], '2027-09-01');
-        expect((items.single['versions'] as List).length, 3);
-        stdout.writeln(
-          'PASS connected second renewal updates current certificate only after approval',
-        );
-        await switchAccount('operator@vortice.dev');
-        expect(find.text('Update location & responsibility'), findsNothing);
-        expect(find.text('Submit renewal'), findsNothing);
-        expect((await repo.inspections(asset)).length, 1);
-        stdout.writeln(
-          'PASS connected operator reads records with no mutation controls',
-        );
-        final owningClient = supabase.auth.currentUser!.id;
-        await switchAccount('client@vortice.dev');
-        expect((await repo.inspections(asset)), isEmpty);
-        await expectLater(
-          repo.context(asset),
-          throwsA(isA<PostgrestException>()),
-        );
-        for (final path in manifest['objects'] as List) {
-          await expectLater(
-            supabase.storage
-                .from('inspection-evidence')
-                .download(path as String),
-            throwsA(isA<StorageException>()),
-          );
-        }
-        expect(supabase.auth.currentUser!.id, isNot(owningClient));
-        stdout.writeln(
-          'PASS connected other-company record, direct-link and evidence denial',
-        );
-        manifest['passed'] = true;
-        record();
-        await tester.pumpWidget(const SizedBox());
-        container.dispose();
-        router.dispose();
-        await supabase.auth.signOut();
-        await Supabase.instance.dispose();
       });
     },
-    timeout: const Timeout(Duration(minutes: 6)),
+    timeout: const Timeout(Duration(minutes: 8)),
   );
 }

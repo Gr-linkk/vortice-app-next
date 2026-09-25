@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:vortice_app/core/localized_text.dart';
 import 'package:vortice_app/features/operator/operator_evidence_photo.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -293,7 +294,7 @@ class _DiscussionPostState extends ConsumerState<DiscussionPost> {
             if (handover) ...[
               const SizedBox(height: 16),
               Text(
-                '${es ? 'Aislamiento' : 'Isolation'}: ${coordinationLabel(isolationStates, post['isolation'] as String? ?? 'unknown', es)}',
+                '${localizedText(context, 'Isolation', 'Aislamiento', 'Isolement')} : ${coordinationLabel(isolationStates, post['isolation'] as String? ?? 'unknown', es, french: isFrench(context))}',
               ),
               const SizedBox(height: 12),
               Text(
