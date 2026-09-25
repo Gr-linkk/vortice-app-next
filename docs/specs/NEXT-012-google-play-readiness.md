@@ -16,16 +16,20 @@ NEXT-009's Linux audit receipt; connection alone does not close phone acceptance
 
 - The primary Linux checkout is `/home/garrett/projects/vortice-app-next`.
   `/home/garrett/Documents/ChatGPT/Vortice app` is a local reference copy at
-  the same Build 40 commit. Both are independent from the original app.
+  Build 40. The primary checkout has subsequent work on
+  `codex/canada-play-readiness`. Both are independent from the original app.
 - The independent GitHub `main` currently ends at `f6c54e8` (September 5),
-  while Build 40 is `78b9c62` (September 14). The current branch has 83 commits
-  beyond remote main and is not advertised by that remote. No history was
-  rewritten. A verified all-ref Git bundle is in ignored
+  while Build 40 is `78b9c62` (September 14), 83 commits beyond remote main.
+  The September 24 follow-up authenticated GitHub and published the current
+  `codex/canada-play-readiness` branch, including the Fleet owner guard and Linux
+  workflow audit (`e1b315d`). No main history was rewritten. A prior verified
+  all-ref Git bundle is in ignored
   `outputs/recovery/vortice-next-source-20260924.bundle` (SHA-256
   `945855b03f3a4a103826558cbfc88402aa5549212f303f328eef387711560da1`).
-  Linux GitHub credentials are unavailable, so remote publication is pending.
 - Flutter doctor reports no issues, and Build 40's manifest targets Android
-  API 36. Its APK checksum matches NEXT-010. No phone is currently attached.
+  API 36. Its APK checksum matches NEXT-010. The S24 is now connected with
+  Build 39 installed. The guarded Linux build succeeds, but its debug signer
+  differs; recovery of the old Next debug key is required for an in-place upgrade.
 - The source checkout retains the ignored Next configuration, exact linked
   project ref `hkjpojobdbbtjkhaudki` and a completed September 14 backup. Its
   manifest verifies 84 files including 78 Storage objects. This is plaintext

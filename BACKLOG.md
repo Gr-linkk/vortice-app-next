@@ -13,7 +13,7 @@ without creating a new backlog item.
    reviewed before a customer receives an invoice.
 2. **NEXT-012 (release blocker):** establish production Android identity and
    signing, Play Console path, account deletion, privacy disclosures and an
-actual signed App Bundle. Complete the phone workflow and Play testing gates.
+   actual signed App Bundle. Complete the phone workflow and Play testing gates.
 3. **NEXT-009 (operating blocker):** complete independent hosted recovery,
    provider email/recovery, rights/entitlement, support and customer terms.
    Use one assisted pilot to validate the offer and release experience.
