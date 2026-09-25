@@ -36,6 +36,33 @@ Canadian invoice.
   Their stored values need a currency contract before a Canadian company enters
   costs. A label-only conversion would misstate historical values.
 
+## September 24 implementation and verification receipt
+
+- On `codex/canada-play-readiness`, the new
+  `20260924100000_company_billing_purpose.sql` migration rejects enabling
+  provider work or customer billing for Fleet owner. It turns billing off when
+  an owner changes a company to Fleet owner, and rejects new or first-issued
+  customer invoices for that purpose. Existing issued history stays intact. Company services hides
+  the billing switch for a Fleet owner and explains customer billing only to
+  providers.
+- The migration and changed contracts parsed with PostgreSQL syntax tools.
+  All 64 current migrations and all 49 local SQL contracts then passed on an
+  isolated, Unix-socket-only PostgreSQL 18.6 instance in ignored `work/`.
+  The affected `company_purpose` and `organization_provider_work` contracts
+  explicitly cover the new fleet boundary and old issued invoice retention.
+  The disposable server was stopped. The authorized hosted Next target has
+  **not** received this migration; hosted checks are still required.
+- Targeted Flutter analysis and purpose tests pass. The Company services screen
+  was rendered at 320×844 with 200% text for Fleet owner and Service provider.
+  Fleet showed its company code and connection path without a billing switch;
+  Service provider showed the customer-billing switch and explanation without
+  clipped text. Local captures are under ignored
+  `outputs/next011/rendered/`. Flutter test rendering uses substitute icon
+  glyphs; real Android icons and touch still require phone acceptance. No new
+  APK or customer invoice was delivered.
+- Native CAD company costs, issuer profile, explicit Canadian tax lines,
+  frozen Canadian invoice totals, PDF/XLSX and customer acceptance remain open.
+
 ## Completion evidence required
 
 1. Canadian company cost entry, stock, work and equipment reporting show the

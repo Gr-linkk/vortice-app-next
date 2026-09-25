@@ -3,6 +3,12 @@
 Authorized September 14, 2026. Base: `430f7a0`, internal Build 39 (`1.18.1+39`).
 Branch: `codex/production-readiness-closeout`. BACKLOG.md owns priority.
 
+September 24 update: Garrett selected Android Google Play and Canadian general
+construction, including customer invoicing for Service provider and Both.
+NEXT-011 and NEXT-012 now own these release blockers; this document retains
+operating closeout and earlier verification evidence. The province, pilot,
+identity and final offer remain open.
+
 ## Outcome and boundaries
 
 Complete the independently verifiable housekeeping and leave Garrett one

@@ -5,6 +5,24 @@ elsewhere, but substantive product/implementation tasks must be represented
 here with a stable ID. Incidental mechanical fixes may reference existing scope
 without creating a new backlog item.
 
+## Launch order — September 24, 2026
+
+1. **NEXT-011 (release blocker):** make Canadian company costs and provider
+   invoices native CAD with explicit, configurable tax treatment. Keep Fleet
+   owner customer billing unavailable. A real issuer and tax case must be
+   reviewed before a customer receives an invoice.
+2. **NEXT-012 (release blocker):** establish production Android identity and
+   signing, Play Console path, account deletion, privacy disclosures and an
+   actual signed App Bundle. Complete the phone workflow and Play testing gates.
+3. **NEXT-009 (operating blocker):** complete independent hosted recovery,
+   provider email/recovery, rights/entitlement, support and customer terms.
+   Use one assisted pilot to validate the offer and release experience.
+
+These tracks can advance together. Province, pilot company, final name/domain,
+Android package ID and signer are open choices, so unreviewed assumptions must
+not be put into customer bills or the Play listing. NEXT-010 is delivered
+currency *valuation* work and does not close NEXT-011.
+
 ## Now
 
 ### NEXT-012 — Prepare the independent Android app for Google Play
@@ -27,13 +45,6 @@ invoices, and require an explicit, reviewed province and tax treatment before a
 Canadian invoice can be issued. No first province or pilot company is selected.
 Scope and acceptance: `docs/specs/NEXT-011-canadian-billing.md`.
 
-### NEXT-010 — Canadian dollar support
-
-Garrett requested CAD alongside USD and MXN on September 14, 2026. Preserve
-USD accounting, stored exchange rates, issued history and current tax settings.
-Scope and verification: `docs/specs/NEXT-010-canadian-currency.md`.
-Naming is a proposal; domain selection is deferred until Garrett is home.
-
 ### NEXT-009 — Production-readiness housekeeping
 
 Garrett authorized autonomous housekeeping on September 14, 2026, followed by
@@ -43,12 +54,19 @@ company-purpose model and shared Work order vocabulary. Pricing remains a
 proposal. Do not expand the feature roadmap or activate commercial charges.
 
 Scope, evidence, release gates and Garrett's next actions:
-`docs/specs/NEXT-009-production-readiness.md`. This is the current closeout
-priority; it consolidates the remaining NEXT-002 acceptance and NEXT-001 invoice
+`docs/specs/NEXT-009-production-readiness.md`. This is the operating closeout
+track; it consolidates the remaining NEXT-002 acceptance and NEXT-001 invoice
 audit without discarding their original evidence. Production launch remains
 conditional on the recorded external decisions and acceptance.
 
 ## Prior delivery and acceptance references
+
+### NEXT-010 — Canadian dollar valuation delivered in Build 40
+
+Garrett requested CAD alongside USD and MXN on September 14, 2026. Build 40
+preserves USD accounting, stored exchange rates, issued history and current tax
+settings. Scope and verification: `docs/specs/NEXT-010-canadian-currency.md`.
+Native Canadian money, tax and invoice output remain under NEXT-011.
 
 ### NEXT-002 — Human-centered workflow consolidation
 

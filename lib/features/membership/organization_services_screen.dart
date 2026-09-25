@@ -96,21 +96,27 @@ class _OrganizationServicesScreenState
             final org = data['organization_id'];
             final provider = settings['provider_enabled'] == true;
             final billing = settings['billing_enabled'] == true;
+            final purpose = CompanyPurpose.parse(
+              settings['company_purpose'] as String?,
+            );
             return ListView(
               padding: const EdgeInsets.all(20),
               children: [
                 Text(
-                  _t(
-                    'Maintain your equipment and work with other companies.',
-                    'Mantén tus equipos y trabaja con otras empresas.',
-                  ),
+                  purpose == CompanyPurpose.fleet || !provider
+                      ? _t(
+                          'Maintain your own equipment. Connect with a service provider when you need outside work.',
+                          'Mantén tus propios equipos. Conecta con un proveedor cuando necesites trabajo externo.',
+                        )
+                      : _t(
+                          'Maintain your own equipment and work with customer companies.',
+                          'Mantén tus propios equipos y trabaja con empresas clientes.',
+                        ),
                   style: Theme.of(context).textTheme.titleMedium,
                 ),
                 const SizedBox(height: 16),
                 CompanyPurposePicker(
-                  value: CompanyPurpose.parse(
-                    settings['company_purpose'] as String?,
-                  ),
+                  value: purpose,
                   spanish: isSpanish(context),
                   onChanged: !owner || _busy
                       ? null
@@ -121,29 +127,38 @@ class _OrganizationServicesScreenState
                         ),
                 ),
                 const SizedBox(height: 16),
-                SwitchListTile(
-                  contentPadding: EdgeInsets.zero,
-                  value: billing,
-                  title: Text(
-                    _t(
-                      'Enable company billing',
-                      'Activar facturación de empresa',
+                if (purpose != CompanyPurpose.fleet || billing)
+                  SwitchListTile(
+                    contentPadding: EdgeInsets.zero,
+                    value: billing,
+                    title: Text(
+                      _t(
+                        'Enable company billing',
+                        'Activar facturación de empresa',
+                      ),
                     ),
-                  ),
-                  subtitle: Text(
-                    _t(
-                      'Only people with Billing permission can manage invoices.',
-                      'Solo las personas con permiso de facturación pueden administrar facturas.',
+                    subtitle: Text(
+                      purpose == CompanyPurpose.fleet
+                          ? _t(
+                              'Customer invoices are for service providers. Turn this off to match your company choice.',
+                              'Las facturas a clientes son para proveedores de servicios. Desactiva esta opción para que coincida con tu empresa.',
+                            )
+                          : _t(
+                              'For customer work only. People also need Billing permission to manage invoices.',
+                              'Solo para trabajos de clientes. También se necesita permiso de facturación para gestionar facturas.',
+                            ),
                     ),
+                    onChanged:
+                        !owner ||
+                            _busy ||
+                            (purpose == CompanyPurpose.fleet && !billing)
+                        ? null
+                        : (value) => _run(
+                            () => ref
+                                .read(organizationWorkRepositoryProvider)
+                                .configure(provider, value),
+                          ),
                   ),
-                  onChanged: !owner || _busy
-                      ? null
-                      : (value) => _run(
-                          () => ref
-                              .read(organizationWorkRepositoryProvider)
-                              .configure(provider, value),
-                        ),
-                ),
                 const Divider(height: 32),
                 Text(
                   _t('Your company code', 'Código de tu empresa'),

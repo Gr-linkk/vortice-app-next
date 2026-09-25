@@ -24,10 +24,10 @@ Canadian money and invoicing; NEXT-012 owns Google Play preparation. Continue
 to use only the independent Next repository and services authorized in
 `AGENTS.md`.
 
-NEXT-009 is the current production-readiness closeout. Finish the existing
-workflows, release safeguards, access verification, recovery preparation and
-customer operating material before expanding features. Its specification
-consolidates remaining acceptance and Garrett's decisions. The company-purpose
+NEXT-011 and NEXT-012 are the current launch blockers; NEXT-009 is the operating
+closeout. Finish the existing workflows, release safeguards, access verification,
+recovery preparation and customer operating material before expanding features.
+Its specification consolidates remaining acceptance and Garrett's decisions. The company-purpose
 model in decision 0018 and Field Notes design remain authoritative. Subscription
 prices discussed on September 14 are hypotheses, not accepted product tiers.
 The requested NEXT-010 follow-up adds CAD alongside USD/MXN in internal Build 40

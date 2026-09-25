@@ -85,6 +85,14 @@ select pg_temp.assert_true(public.organization_work_order_context('b0190000-0000
 select public.organization_invoice_action('b0190000-0000-4000-8000-000000000030','generate','{"cad_exchange_rate":2}');
 select pg_temp.assert_true(public.organization_work_order_context('b0190000-0000-4000-8000-000000000030')->'invoice'->>'total_cad'='343.75','organization retry preserves CAD');
 select pg_temp.expect_error($q$select public.generate_provider_invoice('b0190000-0000-4000-8000-000000000030',17.5,1.375)$q$,'Use organization billing');
+select public.set_company_purpose('fleet');
+select pg_temp.expect_error($q$select public.organization_invoice_action('b0190000-0000-4000-8000-000000000030','sent')$q$,'billing capability and permission');
+reset role;
+select pg_temp.expect_error($q$update public.invoices set status='sent' where work_order_id='b0190000-0000-4000-8000-000000000030'$q$,'Customer billing requires a service provider company');
+set local role authenticated;
+select set_config('request.jwt.claim.sub','b0190000-0000-4000-8000-000000000001',true);
+select public.set_company_purpose('service');
+select public.configure_organization_services(true,true);
 select public.organization_invoice_action('b0190000-0000-4000-8000-000000000030','sent');
 select set_config('request.jwt.claim.sub','b0190000-0000-4000-8000-000000000002',true);
 select pg_temp.assert_true(public.organization_work_order_context('b0190000-0000-4000-8000-000000000030')->'invoice'->>'status'='sent','customer Billing permission sees issued invoice');
@@ -103,8 +111,13 @@ select public.set_organization_relationship((select value::uuid from fixture whe
 select pg_temp.assert_true(public.organization_work_order_context('b0190000-0000-4000-8000-000000000030')->'report'->>'repair'='Replaced and tested','customer keeps approved service history after relationship ends');
 select set_config('request.jwt.claim.sub','b0190000-0000-4000-8000-000000000001',true);
 select pg_temp.expect_error($q$select public.organization_work_order_context('b0190000-0000-4000-8000-000000000030')$q$,'access denied');
+select public.set_company_purpose('fleet');
+select pg_temp.assert_true(public.organization_service_configuration()->'settings'->>'billing_enabled'='false','fleet choice retires customer billing');
 reset role;
 select pg_temp.assert_true((select count(*)=1 from public.work_orders where id='b0190000-0000-4000-8000-000000000030'),'single canonical work order retained');
 select pg_temp.assert_true((select count(*)=1 from public.service_reports where work_order_id='b0190000-0000-4000-8000-000000000030'),'single canonical service report retained');
 select pg_temp.assert_true((select count(*)=1 from public.invoices where work_order_id='b0190000-0000-4000-8000-000000000030'),'single canonical invoice retained');
+select pg_temp.assert_true((select status='sent' from public.invoices where work_order_id='b0190000-0000-4000-8000-000000000030'),'issued provider invoice survives a later fleet choice');
+select pg_temp.expect_error($q$insert into public.invoices(id,work_order_id,client_id,invoice_number,labour_hours,billable_rate_usd,labour_total_usd,parts_total_usd,consumables_total_usd,exchange_rate,iva_pct)
+ values(gen_random_uuid(),'b0190000-0000-4000-8000-000000000030','b0190000-0000-4000-8000-000000000002','FLEET-REJECTED',0,0,0,0,0,1,0)$q$,'Customer billing requires a service provider company');
 rollback;
