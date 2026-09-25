@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:vortice_app/core/router.dart';
+import 'package:vortice_app/features/assets/add_asset_screen.dart';
 import 'connected_harness.dart';
 import 'audit_output.dart';
 
@@ -29,6 +30,12 @@ void main() {
         await h.screenshot(name);
         pages.add({
           'screen': name,
+          'topRoute': h.container
+              .read(routerProvider)
+              .routerDelegate
+              .currentConfiguration
+              .last
+              .matchedLocation,
           'route': h.container
               .read(routerProvider)
               .routeInformationProvider
@@ -64,6 +71,27 @@ void main() {
             await h.login('demo_$role@vortice.dev');
             await h.go('/client/dashboard');
             await capture('$role-home');
+            if (role == 'service_owner') {
+              // The prepared service company has no own equipment. Its owner
+              // must be able to start setup directly from the empty Home card.
+              await h.reveal(find.text('Add asset'));
+              await capture('$role-home-add-asset');
+              await h.tap(find.text('Add asset'));
+              expect(
+                h.container
+                    .read(routerProvider)
+                    .routerDelegate
+                    .currentConfiguration
+                    .last
+                    .matchedLocation,
+                '/assets/new',
+              );
+              expect(find.byType(AddAssetScreen), findsOneWidget);
+              await capture('$role-home-add-asset-form');
+              await h.reveal(h.field('Location'));
+              await capture('$role-home-add-asset-details');
+              await h.go('/client/dashboard');
+            }
             // Use the actual navigation controls to establish discoverability.
             for (final label in ['Assets', 'Work orders', 'Faults', 'More']) {
               final target = find.text(label).hitTestable();

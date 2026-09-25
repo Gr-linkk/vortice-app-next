@@ -8,14 +8,15 @@ import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:vortice_app/core/theme.dart';
 import 'package:vortice_app/features/assets/asset_provider.dart';
+import 'package:vortice_app/features/assets/asset_workflow_policy.dart';
+import 'package:vortice_app/features/auth/auth_provider.dart';
 import 'package:vortice_app/features/operator/operator_runs_provider.dart';
 import 'package:vortice_app/features/invoices/invoice_provider.dart';
 import 'package:vortice_app/features/service_reports/service_report_provider.dart';
 import 'package:vortice_app/models/asset.dart';
 import 'package:vortice_app/models/invoice.dart';
 
-/// Managed Tier (T1+) client dashboard.
-/// Clients do NOT see work orders — only service reports, invoices, vessels, flags.
+/// Company dashboard with equipment, service history and permitted invoices.
 class ClientDashboardManaged extends ConsumerWidget {
   const ClientDashboardManaged({super.key});
 
@@ -25,6 +26,10 @@ class ClientDashboardManaged extends ConsumerWidget {
     final invoicesAsync = ref.watch(invoicesProvider);
     final reportsAsync = ref.watch(clientServiceReportsProvider);
     final flagsAsync = ref.watch(clientFlaggedIssuesProvider);
+    final canAddAsset = AssetWorkflowPolicy.canManageProfile(
+      ref.watch(profileProvider).valueOrNull,
+    );
+    final es = isSpanish(context);
 
     return Scaffold(
       appBar: const DashboardAppBar(),
@@ -190,7 +195,7 @@ class ClientDashboardManaged extends ConsumerWidget {
               },
             ),
 
-            // ── My Vessels ───────────────────────────────────────────────
+            // ── My Assets ────────────────────────────────────────────────
             const DashboardSection(title: 'My Assets'),
             assetsAsync.when(
               loading: () => const _MLoadingTile(),
@@ -198,9 +203,29 @@ class ClientDashboardManaged extends ConsumerWidget {
                   _MErrorTile(message: friendlyError(context, err)),
               data: (assets) {
                 if (assets.isEmpty) {
-                  return const _MEmptyStateTile(
-                    icon: Icons.directions_boat_outlined,
-                    message: 'No assets yet. Contact Vórtice to get started.',
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _MEmptyStateTile(
+                        icon: Icons.inventory_2_outlined,
+                        message: canAddAsset
+                            ? (es
+                                  ? 'Añade el primer equipo de tu empresa para planificar su mantenimiento.'
+                                  : 'Add your company’s first asset to plan its maintenance.')
+                            : (es
+                                  ? 'Todavía no hay equipos disponibles. Pide acceso al responsable de tu empresa.'
+                                  : 'No assets available yet. Ask your company owner or manager for access.'),
+                      ),
+                      if (canAddAsset)
+                        Padding(
+                          padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+                          child: FilledButton.icon(
+                            onPressed: () => context.push('/assets/new'),
+                            icon: const Icon(Icons.add),
+                            label: Text(es ? 'Añadir equipo' : 'Add asset'),
+                          ),
+                        ),
+                    ],
                   );
                 }
                 return Column(

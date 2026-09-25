@@ -252,50 +252,40 @@ class _AddAssetScreenState extends ConsumerState<AddAssetScreen> {
                 ),
               ),
               const SizedBox(height: 16),
-              Row(
+              _AssetFieldPair(
                 children: [
-                  Expanded(
-                    child: TextFormField(
-                      controller: _manufacturerCtrl,
-                      textCapitalization: TextCapitalization.words,
-                      decoration: InputDecoration(labelText: l10n.manufacturer),
-                    ),
+                  TextFormField(
+                    controller: _manufacturerCtrl,
+                    textCapitalization: TextCapitalization.words,
+                    decoration: InputDecoration(labelText: l10n.manufacturer),
                   ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: TextFormField(
-                      controller: _modelCtrl,
-                      decoration: InputDecoration(labelText: l10n.model),
-                    ),
+                  TextFormField(
+                    controller: _modelCtrl,
+                    decoration: InputDecoration(labelText: l10n.model),
                   ),
                 ],
               ),
               const SizedBox(height: 16),
-              Row(
+              _AssetFieldPair(
                 children: [
-                  Expanded(
-                    child: TextFormField(
-                      controller: _yearCtrl,
-                      keyboardType: TextInputType.number,
-                      decoration: InputDecoration(labelText: l10n.year),
-                      validator: (v) {
-                        if (v == null || v.isEmpty) return null;
-                        final y = int.tryParse(v);
-                        if (y == null || y < 1900 || y > 2100) {
-                          return l10n.invalidYear;
-                        }
-                        return null;
-                      },
-                    ),
+                  TextFormField(
+                    controller: _yearCtrl,
+                    keyboardType: TextInputType.number,
+                    decoration: InputDecoration(labelText: l10n.year),
+                    validator: (v) {
+                      if (v == null || v.isEmpty) return null;
+                      final y = int.tryParse(v);
+                      if (y == null || y < 1900 || y > 2100) {
+                        return l10n.invalidYear;
+                      }
+                      return null;
+                    },
                   ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: TextFormField(
-                      controller: _locationCtrl,
-                      decoration: InputDecoration(
-                        labelText: l10n.location,
-                        prefixIcon: const Icon(Icons.location_on_outlined),
-                      ),
+                  TextFormField(
+                    controller: _locationCtrl,
+                    decoration: InputDecoration(
+                      labelText: l10n.location,
+                      prefixIcon: const Icon(Icons.location_on_outlined),
                     ),
                   ),
                 ],
@@ -348,41 +338,31 @@ class _AddAssetScreenState extends ConsumerState<AddAssetScreen> {
                 },
               ),
               const SizedBox(height: 12),
-              Row(
+              _AssetFieldPair(
                 children: [
-                  Expanded(
-                    child: TextFormField(
-                      controller: _engineMakeCtrl,
-                      textCapitalization: TextCapitalization.words,
-                      decoration: InputDecoration(labelText: l10n.manufacturer),
-                    ),
+                  TextFormField(
+                    controller: _engineMakeCtrl,
+                    textCapitalization: TextCapitalization.words,
+                    decoration: InputDecoration(labelText: l10n.manufacturer),
                   ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: TextFormField(
-                      controller: _engineModelCtrl,
-                      decoration: InputDecoration(labelText: l10n.model),
-                    ),
+                  TextFormField(
+                    controller: _engineModelCtrl,
+                    decoration: InputDecoration(labelText: l10n.model),
                   ),
                 ],
               ),
               const SizedBox(height: 12),
-              Row(
+              _AssetFieldPair(
                 children: [
-                  Expanded(
-                    child: TextFormField(
-                      controller: _engineSerialCtrl,
-                      decoration: InputDecoration(labelText: l10n.serialNumber),
-                    ),
+                  TextFormField(
+                    controller: _engineSerialCtrl,
+                    decoration: InputDecoration(labelText: l10n.serialNumber),
                   ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Text(
-                      'Hours will come from the latest work order.',
-                      style: TextStyle(
-                        color: context.appColors.textSecondary,
-                        fontSize: 12,
-                      ),
+                  Text(
+                    'Hours will come from the latest work order.',
+                    style: TextStyle(
+                      color: context.appColors.textSecondary,
+                      fontSize: 12,
                     ),
                   ),
                 ],
@@ -407,6 +387,34 @@ class _AddAssetScreenState extends ConsumerState<AddAssetScreen> {
       ),
     );
   }
+}
+
+/// Keep field labels readable at narrow widths and enlarged system text.
+class _AssetFieldPair extends StatelessWidget {
+  const _AssetFieldPair({required this.children});
+  final List<Widget> children;
+
+  @override
+  Widget build(BuildContext context) => LayoutBuilder(
+    builder: (context, constraints) {
+      final stack =
+          constraints.maxWidth < 328 ||
+          MediaQuery.textScalerOf(context).scale(14) > 18;
+      if (stack) {
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [children.first, const SizedBox(height: 12), children.last],
+        );
+      }
+      return Row(
+        children: [
+          Expanded(child: children.first),
+          const SizedBox(width: 12),
+          Expanded(child: children.last),
+        ],
+      );
+    },
+  );
 }
 
 // ── Client dropdown (owner only) ──────────────────────────────────────────────

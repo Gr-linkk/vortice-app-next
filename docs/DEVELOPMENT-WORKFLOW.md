@@ -16,6 +16,34 @@ Run setup once, or whenever dependencies change:
 ./scripts/setup.cmd
 ```
 
+On Linux, use the same PowerShell implementation directly:
+
+```sh
+pwsh -NoProfile -File scripts/setup.ps1
+pwsh -NoProfile -File scripts/run.ps1 --device-id=web-server
+pwsh -NoProfile -File scripts/verify.ps1
+VORTICE_NEXT_FIREBASE_CONFIG="$PWD/config/vortice-next-firebase.local.json" bash scripts/build-android.sh
+```
+
+The current working checkout is `/home/garrett/projects/vortice-app-next`;
+the Documents copy is reference-only. The September 24 Linux setup has Flutter
+3.44.0/Dart 3.12.0, JDK 17, Android SDK 36, accepted SDK licences, ADB and browser
+tooling. PowerShell 7.6.6 and Supabase CLI 2.117.0 are user-local installations
+under `~/.local/share/vortice-tools/`, exposed through `~/.local/bin/`. Their
+official release archives were SHA-256 checked before extraction. Installation
+does not authenticate GitHub or Supabase: use `gh auth login` and
+`supabase login --agent no --output-format text` interactively. Never put access
+tokens, passwords or signing keys into tracked files or chat.
+
+The app's Next client configuration is present. The four public Firebase client
+defines were recovered from the installed independent Next Build 39 APK and
+validated against the exact Next project/app/sender IDs; they are in ignored
+`config/vortice-next-firebase.local.json`. The Linux debug signer differs from
+the S24 installation. Recover the previous **Next** debug key before an in-place
+update; do not uninstall or clear phone data to get around the mismatch.
+Successful compilation does not prove notification delivery. See NEXT-009's
+Linux audit receipt.
+
 Run the app against the dedicated backend:
 
 ```powershell
@@ -63,6 +91,25 @@ CI now runs all database contracts and a populated archive restore through
 `bash scripts/test-database.sh --restore-drill`, in addition to the Work hub
 performance check. The restore stays inside a network-disabled disposable
 PostgreSQL container. It does not restore hosted Supabase or Storage objects.
+
+Linux without Docker access can explicitly select an isolated native runner:
+
+```sh
+export VORTICE_TEST_DATABASE_BACKEND=local
+export VORTICE_PG_BIN="$HOME/.local/share/vortice-tools/postgresql/18.6/bin"
+bash scripts/test-database.sh --restore-drill
+bash scripts/check-work-hub-performance.sh
+```
+
+`VORTICE_PG_BIN` must contain `postgres`, `initdb` and `pg_ctl`; compatible
+`psql`, `pg_dump`, `pg_restore` and `createdb` must be on PATH. The current
+machine has the extracted PostgreSQL/numactl libraries in the user-local prefix
+above. The runner creates a fresh cluster under ignored `work/`, uses a private
+Unix socket, disables TCP, overrides connection environment variables and stops
+the server on exit. Failed clusters/logs remain for diagnosis; successful runs
+remove their disposable files. Docker remains the default for CI, on PostgreSQL
+17; the Linux fallback was checked on PostgreSQL 18.6. Neither substitutes for
+hosted Supabase Auth, Storage, email or device acceptance.
 
 For one-shot hosted operational checks and local backup staging, see
 `docs/operations/PRODUCTION-RUNBOOK.md`. These do not schedule jobs or send alerts.

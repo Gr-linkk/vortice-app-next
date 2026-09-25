@@ -5,6 +5,13 @@ release. There is no selected final name, domain, Android application ID,
 production signing key, production service target or pilot company. Build 40 is
 an internal debug artifact, not a Google Play release.
 
+September 24 follow-up: Garrett confirmed there is **no Google Play Console
+developer account yet** and connected the S24 to the Linux machine. Account
+creation/type remains a release dependency; do not assume an existing personal
+or organization account. The installed phone app was verified as Build 39
+(`1.18.1+39`, API 36). Current tooling and workflow evidence is recorded in
+NEXT-009's Linux audit receipt; connection alone does not close phone acceptance.
+
 ## Verified starting point
 
 - The primary Linux checkout is `/home/garrett/projects/vortice-app-next`.

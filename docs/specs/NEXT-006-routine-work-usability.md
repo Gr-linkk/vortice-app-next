@@ -220,6 +220,26 @@ continues through the existing customer connection/request path. Follow-up
 creation does not grant general access to that customer's fleet. Existing
 NEXT-002 email/SMS setup and physical acceptance are still open.
 
+## September 24 Linux audit follow-up
+
+NEXT-009's production review found a dead end on both installed S24 Build 39 and
+the current connected Service provider Home: an owner with no equipment was told
+to contact Vórtice. Home now offers **Add asset** to the same permitted managers
+as Assets, and directs other users to their company owner/manager for access.
+The normal path Home → Add asset opens the existing form without changing
+company ownership or permissions. Rendered inspection at 320×844/200% text then
+found truncated Manufacturer/Location labels; asset and component field pairs
+now stack for narrow screens or enlarged text.
+
+The extended read-only connected walkthrough covers Fleet owner, supervisor,
+mechanic, operator and Service provider at normal and large text, including
+Home → Add asset → scroll to Location. Final evidence is under
+`outputs/next009-linux-audit/asset-fix-normal/` and `asset-fix-large/`.
+NEXT-009 contains the full verification/tooling receipt. No form was submitted,
+and the new code is not installed on the S24: its existing signer differs from
+the Linux debug signer. Saved creation contracts pass locally; physical creation,
+camera/picker and final-build acceptance remain open. Field Notes is preserved.
+
 ## Boundaries
 
 The September 13 company-purpose onboarding/capability refinement is selected.

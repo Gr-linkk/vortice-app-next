@@ -13,7 +13,7 @@ without creating a new backlog item.
    reviewed before a customer receives an invoice.
 2. **NEXT-012 (release blocker):** establish production Android identity and
    signing, Play Console path, account deletion, privacy disclosures and an
-   actual signed App Bundle. Complete the phone workflow and Play testing gates.
+actual signed App Bundle. Complete the phone workflow and Play testing gates.
 3. **NEXT-009 (operating blocker):** complete independent hosted recovery,
    provider email/recovery, rights/entitlement, support and customer terms.
    Use one assisted pilot to validate the offer and release experience.
@@ -22,6 +22,14 @@ These tracks can advance together. Province, pilot company, final name/domain,
 Android package ID and signer are open choices, so unreviewed assumptions must
 not be put into customer bills or the Play listing. NEXT-010 is delivered
 currency *valuation* work and does not close NEXT-011.
+
+September 24 Linux audit: development/verification/build tooling is restored,
+GitHub and Next Supabase authentication pass, and the S24 is connected. The
+workflow review fixed Home's empty-equipment dead end and enlarged-text asset
+fields. Current evidence and the remaining workflow matrix are in NEXT-009's
+Linux audit receipt. The installed Next debug signing key must be recovered for
+an in-place phone upgrade; no Play Console account exists yet. These are release
+dependencies within the tracks above, not a new feature queue.
 
 ## Now
 
