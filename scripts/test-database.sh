@@ -24,6 +24,7 @@ if [ "$backend" = local ]; then
   test -x "$pg_bin/pg_ctl"
   test -x "$pg_bin/initdb"
   # Also supports a user-local extracted PostgreSQL package and its libraries.
+  export PATH="$pg_bin:$PATH"
   export LD_LIBRARY_PATH="$pg_bin/../lib${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
   for command in psql pg_dump pg_restore createdb; do command -v "$command" >/dev/null; done
   mkdir -p work

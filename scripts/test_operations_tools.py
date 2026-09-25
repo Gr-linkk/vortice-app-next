@@ -88,6 +88,37 @@ class BackupTests(unittest.TestCase):
             with self.assertRaises(RuntimeError):
                 backup.assert_dump_target(script)
 
+    def test_local_dump_rejects_wrong_client_before_getting_credentials(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            (root / 'supabase/.temp').mkdir(parents=True)
+            (root / 'supabase/.temp/postgres-version').write_text('17.6.1')
+            (root / 'pg_dump').touch()
+            with patch.object(backup, 'ROOT', root), \
+                 patch.dict(backup.os.environ, {'VORTICE_BACKUP_DATABASE_BACKEND': 'local', 'VORTICE_PG_BIN': str(root)}), \
+                 patch.object(backup, 'checked', return_value='pg_dump (PostgreSQL) 18.6\n') as checked:
+                with self.assertRaisesRegex(RuntimeError, 'PostgreSQL 17'):
+                    backup.dump_database(root / 'dump.sql', [])
+                self.assertEqual(checked.call_count, 1)
+
+    def test_local_dump_keeps_credentials_on_stdin(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            (root / 'supabase/.temp').mkdir(parents=True)
+            (root / 'supabase/.temp/postgres-version').write_text('17.6.1')
+            (root / 'pg_dump').touch()
+            script = 'export PGHOST="db.hkjpojobdbbtjkhaudki.supabase.co"\nexport PGUSER="postgres"\nexport PGPASSWORD="test-secret"\npg_dump'
+            with patch.object(backup, 'ROOT', root), \
+                 patch.dict(backup.os.environ, {'VORTICE_BACKUP_DATABASE_BACKEND': 'local', 'VORTICE_PG_BIN': str(root)}), \
+                 patch.object(backup, 'checked', side_effect=['pg_dump (PostgreSQL) 17.11\n', script]), \
+                 patch.object(backup.subprocess, 'Popen') as popen:
+                process = popen.return_value.__enter__.return_value
+                process.returncode = 0
+                backup.dump_database(root / 'dump.sql', [])
+                self.assertEqual(popen.call_args.args[0], ['bash', '-s'])
+                self.assertNotIn('test-secret', str(popen.call_args))
+                process.communicate.assert_called_once_with(script, timeout=180)
+
     def test_private_download_stays_on_next_and_refuses_redirects(self):
         with tempfile.TemporaryDirectory() as temp, \
              patch.object(backup, 'checked', return_value=json.dumps([{'name': 'service_role', 'api_key': 'fixture'}])), \

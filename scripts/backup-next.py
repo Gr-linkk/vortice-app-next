@@ -4,6 +4,8 @@
 This is plaintext staging in ignored outputs. A complete receipt is not proof of
 an atomic cross-service snapshot, encryption, off-device retention or recovery.
 """
+import os
+import signal
 import hashlib
 import json
 import subprocess
@@ -48,23 +50,46 @@ def dump_database(target, flags):
     # Credentials travel on stdin, never in argv, a saved script or diagnostics.
     if not (ROOT / 'supabase/.temp/postgres-version').read_text().strip().startswith('17.'):
         raise RuntimeError('Review dump client compatibility for this Postgres version')
-    checked(['docker', 'image', 'inspect', 'postgres:17'])
+    backend = os.environ.get('VORTICE_BACKUP_DATABASE_BACKEND', 'docker')
+    env = None
+    if backend == 'local':
+        bin_dir = Path(os.environ.get('VORTICE_PG_BIN', ''))
+        if not bin_dir.is_absolute() or not (bin_dir / 'pg_dump').is_file():
+            raise RuntimeError('Set VORTICE_PG_BIN to a PostgreSQL 17 client directory')
+        version = checked([str(bin_dir / 'pg_dump'), '--version'])
+        if not re.fullmatch(r'pg_dump \(PostgreSQL\) 17\.\d+\s*', version):
+            raise RuntimeError('Local backup requires a PostgreSQL 17 pg_dump client')
+        env = {**os.environ, 'PATH': str(bin_dir) + os.pathsep + os.environ.get('PATH', ''),
+               'PGCONNECT_TIMEOUT': '15'}
+    elif backend == 'docker':
+        checked(['docker', 'image', 'inspect', 'postgres:17'])
+    else:
+        raise RuntimeError('Backup backend must be docker or local')
     script = checked(['supabase', 'db', 'dump', '--linked', *flags, '--dry-run'])
     assert_dump_target(script)
     container = 'vortice-next-export-' + uuid.uuid4().hex
     try:
         with target.open('w') as output:
-            result = subprocess.run(
-                ['docker', 'run', '--rm', '--name', container, '-i', '--env', 'PGCONNECT_TIMEOUT=15',
-                 'postgres:17', 'bash', '-s'], cwd=ROOT, input=script, text=True,
-                stdout=output, stderr=subprocess.PIPE, timeout=180,
-            )
+            command = ['bash', '-s'] if backend == 'local' else [
+                'docker', 'run', '--rm', '--name', container, '-i', '--env', 'PGCONNECT_TIMEOUT=15',
+                'postgres:17', 'bash', '-s']
+            with subprocess.Popen(command, cwd=ROOT, env=env, stdin=subprocess.PIPE,
+                                  text=True, stdout=output, stderr=subprocess.PIPE,
+                                  start_new_session=True) as process:
+                try:
+                    process.communicate(script, timeout=180)
+                except subprocess.TimeoutExpired:
+                    os.killpg(process.pid, signal.SIGKILL)
+                    process.communicate()
+                    raise
+                returncode = process.returncode
     except subprocess.TimeoutExpired:
         # Only the unique read-only export container created by this invocation.
-        subprocess.run(['docker', 'rm', '-f', container], capture_output=True,
-                       stdin=subprocess.DEVNULL, timeout=20)
+        if backend == 'docker':
+            subprocess.run(['docker', 'rm', '-f', container], capture_output=True,
+                           stdin=subprocess.DEVNULL, timeout=20)
         raise
-    if result.returncode:
+    if returncode:
         raise RuntimeError('Database dump failed; no raw connection details logged')
 
 
@@ -112,7 +137,8 @@ def main():
     output.mkdir(parents=True, mode=0o700)
     (output / 'objects').mkdir()
     receipt = {'project_ref': REF, 'started_at': stamp, 'complete': False,
-               'plaintext_staging': True, 'database': [], 'objects': [],
+               'plaintext_staging': True, 'database_backend': os.environ.get('VORTICE_BACKUP_DATABASE_BACKEND', 'docker'),
+               'database': [], 'objects': [],
                'limits': 'Not an atomic cross-service snapshot or an accepted hosted restore.'}
     manifest = output / 'manifest.json'
 

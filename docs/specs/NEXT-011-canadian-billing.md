@@ -63,6 +63,47 @@ Canadian invoice.
 - Native CAD company costs, issuer profile, explicit Canadian tax lines,
   frozen Canadian invoice totals, PDF/XLSX and customer acceptance remain open.
 
+## Native CAD continuation — September 24/25
+
+Implemented locally in `20260925010000_native_cad_invoices.sql` and the invoice
+screens. Historical USD valuations are retained. New organization invoices use
+native CAD with USD/MXN fields absent, explicit issuer/customer/supply snapshots,
+reviewed tax names, bases and rates, separate rounded tax amounts, invoice/due
+dates and payment terms. No province or rate is inferred. Company Owners save
+the issuer profile; Billing permission still controls job invoices. Drafts can
+be edited; issue freezes the document and corrections require void/new invoice.
+The app opens issuer setup from an approved job when it is missing. The invoice
+summary, PDF and XLSX share one saved document projection; provider invoice
+open/export access now matches job billing access. There is no hard-coded issuer
+in the native path. Existing legacy invoice rendering is preserved.
+
+Targeted local evidence in `outputs/next011/native-cad/`: native invoice, legacy
+CAD and organization provider SQL contracts pass. The invoice test suite passes
+40 tests, including round-trip native fields, numeric XLSX totals and saved
+issuer/tax export content. The approved-job → CAD setup path and draft editing
+passed rendered English/French checks at 390×844/100% and 320×844/200%. A visual
+pass found truncated long labels and a missing PDF arrow glyph; full wrapping
+labels and a supported separator address them. PDF rendering and further
+integration/connected/phone checks continue before build delivery.
+
+The companion cost-currency migration records CAD/USD on jobs, stock and used
+parts, rejects cross-currency stock links, and preserves currency in approved
+receipts/history. Equipment reports and CSV separate CAD/USD instead of adding
+them. Existing records and older clients retain USD; new company settings default
+to CAD and owners can select future cost currency.
+
+All 51 database contracts and the populated restore passed on PostgreSQL 17.11
+(`all-database-17.log`), after the earlier 18.6 run. The 172-test money,
+maintenance, parts and report slice passed. Subsequent targeted invoice tests
+also pass for cent rounding, long French PDF fields, company-bound profile saves
+and unsaved-edit protection. A fresh Next backup verified all 84 recorded files
+(6 database/access files and 78 Storage objects); this is local plaintext staging,
+not hosted recovery/off-device acceptance.
+
+These migrations are not yet deployed. Connected native invoice creation/export,
+final full regression and qualified review of a real issuer/tax case remain open. Synthetic test registration IDs
+and tax cases must never be used as customer billing setup.
+
 ## Completion evidence required
 
 1. Canadian company cost entry, stock, work and equipment reporting show the

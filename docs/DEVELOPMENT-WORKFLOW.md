@@ -102,12 +102,13 @@ Linux without Docker access can explicitly select an isolated native runner:
 
 ```sh
 export VORTICE_TEST_DATABASE_BACKEND=local
-export VORTICE_PG_BIN="$HOME/.local/share/vortice-tools/postgresql/18.6/bin"
+export VORTICE_PG_BIN="$HOME/.local/share/vortice-tools/postgresql/17.11/bin"
 bash scripts/test-database.sh --restore-drill
 bash scripts/check-work-hub-performance.sh
 ```
 
-`VORTICE_PG_BIN` must contain `postgres`, `initdb` and `pg_ctl`; compatible
+`VORTICE_PG_BIN` must contain `postgres`, `initdb`, `pg_ctl`, `psql`,
+`pg_dump`, `pg_restore` and `createdb`; compatible
 `psql`, `pg_dump`, `pg_restore` and `createdb` must be on PATH. The current
 machine has the extracted PostgreSQL/numactl libraries in the user-local prefix
 above. The runner creates a fresh cluster under ignored `work/`, uses a private
@@ -139,3 +140,11 @@ Finish the authorized scope with its results and remaining limits. Opening a
 pull request, merging it, and deleting a branch are distinct actions; perform
 them only within the user-authorized scope. Update affected backlog and durable
 decision/specification records when the substantive change requires it.
+
+September 25 tooling receipt: user-local PostgreSQL 17.11 was built from the
+[official release source](https://ftp.postgresql.org/pub/source/v17.11/) after
+verifying its published SHA-256 checksum, including pgcrypto and uuid-ossp.
+The complete database contracts and populated restore passed on this major,
+matching the hosted Next major. The local runner now selects the client binaries
+from the same installation as the server. The read-only backup helper supports
+this runtime too; it does not require Docker group or system configuration edits.

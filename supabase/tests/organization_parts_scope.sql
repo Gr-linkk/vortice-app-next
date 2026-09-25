@@ -42,7 +42,7 @@ select public.parts_change(null,'b0148000-0000-4000-8000-000000000081','stock_cr
 select set_config('request.jwt.claim.sub','b0148000-0000-4000-8000-000000000007',true);
 select public.parts_change(null,'b0148000-0000-4000-8000-000000000082','stock_create','{"description":"Global filter","location":"Legacy store","unit_cost":2}');
 select set_config('request.jwt.claim.sub','b0148000-0000-4000-8000-000000000001',true);
-select public.parts_change(null,'b0148000-0000-4000-8000-000000000080','stock_create','{"description":"Provider filter","location":"Provider store","unit_cost":10}');
+select public.parts_change(null,'b0148000-0000-4000-8000-000000000080','stock_create','{"description":"Provider filter","location":"Provider store","unit_cost":10,"cost_currency":"CAD"}');
 select public.parts_change(null,gen_random_uuid(),'stock_count','{"stock_id":"b0148000-0000-4000-8000-000000000080","revision":0,"quantity":1,"note":"Opening count"}');
 select pg_temp.assert_true(jsonb_array_length(public.parts_workspace(null)->'stock')=1,'provider sees only its company stock');
 select pg_temp.assert_true(public.parts_workspace(null)->'stock'->0->>'client_id'='b0148000-0000-4000-8000-000000000001','provider stock belongs to provider owner identity');
@@ -132,7 +132,7 @@ select pg_temp.assert_true(exists(select 1 from jsonb_array_elements(public.part
 select set_config('request.jwt.claim.sub','b0148000-0000-4000-8000-000000000001',true);
 select public.set_active_organization((select value::uuid from fixture where key='unrelated'));
 select pg_temp.assert_true(jsonb_array_length(public.parts_workspace(null)->'stock')=0,'switching active company changes stock scope');
-select pg_temp.expect_error($q$select public.parts_change(null,'b0148000-0000-4000-8000-000000000080','stock_create','{"description":"Provider filter","location":"Provider store","unit_cost":10}')$q$,'different input');
+select pg_temp.expect_error($q$select public.parts_change(null,'b0148000-0000-4000-8000-000000000080','stock_create','{"description":"Provider filter","location":"Provider store","unit_cost":10,"cost_currency":"CAD"}')$q$,'different input');
 select public.set_active_organization((select value::uuid from fixture where key='provider'));
 select set_config('request.jwt.claim.sub','b0148000-0000-4000-8000-000000000002',true);
 select public.set_organization_relationship((select value::uuid from fixture where key='provider'),public.active_organization_id(),'revoke');

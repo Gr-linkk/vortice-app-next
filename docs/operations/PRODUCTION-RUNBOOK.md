@@ -43,7 +43,17 @@ retains bucket privacy/limits, checks source Storage inventory again at the end,
 and marks interrupted/failed exports incomplete. The CLI needs working database
 dump and Storage permissions; it never asks for a password interactively. It uses
 the CLI-generated dump/filter script with the existing `postgres:17` Docker image
-and independently checks its PGHOST/PGUSER target. Connection values stay in
+and independently checks its PGHOST/PGUSER target. On Linux without Docker
+access, explicitly select the local backend and a PostgreSQL 17 client:
+
+```bash
+VORTICE_BACKUP_DATABASE_BACKEND=local \
+VORTICE_PG_BIN="$HOME/.local/share/vortice-tools/postgresql/17.11/bin" \
+python3 scripts/backup-next.py
+```
+
+The helper rejects other client major versions before requesting the dump script.
+Both backends run the same CLI-generated export and filtering instructions. Connection values stay in
 process stdin and are not saved as scripts. A different hosted PostgreSQL major
 version requires a deliberate client-compatibility update.
 Private files use the [authenticated Storage download API](https://supabase.com/docs/guides/storage/serving/downloads).
