@@ -1,3 +1,4 @@
+import 'package:vortice_app/features/checklists/checklist_snapshot_items.dart';
 import 'package:vortice_app/models/profile.dart';
 import 'package:vortice_app/models/work_order.dart';
 import 'package:intl/intl.dart';
@@ -213,8 +214,10 @@ class MaintenanceJob {
   String get expectedMaterials => data['expected_materials'] as String? ?? '';
   List<Map<String, dynamic>> get labour => maintenanceRows(data['labour']);
   List<Map<String, dynamic>> get parts => maintenanceRows(data['parts']);
-  List<Map<String, dynamic>> get checklist =>
-      maintenanceRows(data['checklist_snapshot']);
+  List<Map<String, dynamic>> get checklist => checklistSnapshotItems(
+    data['checklist_snapshot'],
+    data['checklist_template_id'] as String?,
+  );
   Map<String, dynamic> get answers =>
       Map<String, dynamic>.from(data['checklist_answers'] as Map? ?? {});
   Map<String, dynamic> get report =>

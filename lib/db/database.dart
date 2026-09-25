@@ -13,6 +13,26 @@ import 'package:vortice_app/features/auth/auth_provider.dart';
 
 part 'database.g.dart';
 
+// Each browser account gets its own durable database, just like Android.
+QueryExecutor _openDatabase(String name) => driftDatabase(
+  name: name,
+  web: DriftWebOptions(
+    sqlite3Wasm: Uri.parse('sqlite3.wasm'),
+    driftWorker: Uri.parse('drift_worker.js'),
+    onResult: (result) {
+      if (result.chosenImplementation == WasmStorageImplementation.inMemory ||
+          result.chosenImplementation ==
+              WasmStorageImplementation.unsafeIndexedDb) {
+        // Never advertise offline durability when the browser cannot provide it.
+        result.resolvedExecutor.close();
+        throw StateError(
+          'Persistent browser storage is unavailable. Open this app in a regular browser window with storage enabled.',
+        );
+      }
+    },
+  ),
+);
+
 // ── Table definitions ──────────────────────────────────────────────────────
 
 class ProfilesTable extends Table {
@@ -338,11 +358,11 @@ class LocalAttachmentsTable extends Table {
 class AppDatabase extends _$AppDatabase {
   AppDatabase([QueryExecutor? executor])
     : accountId = null,
-      super(executor ?? driftDatabase(name: 'vortice_db'));
+      super(executor ?? _openDatabase('vortice_db'));
 
   AppDatabase.forAccount(String account, {QueryExecutor? executor})
     : accountId = account,
-      super(executor ?? driftDatabase(name: accountDatabaseName(account)));
+      super(executor ?? _openDatabase(accountDatabaseName(account)));
 
   final String? accountId;
   bool belongsTo(String? currentAccount) =>

@@ -1,4 +1,6 @@
 import 'dart:async';
+import 'package:vortice_app/models/asset.dart';
+import 'package:vortice_app/models/checklist_template.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:vortice_app/core/account_storage.dart';
@@ -33,6 +35,65 @@ void main() {
       'Les données hors ligne nécessitent une attention.',
     );
   });
+  test(
+    'offline preparation excludes out-of-scope pages but keeps pinned assignments',
+    () {
+      const asset = Asset(
+        id: 'asset-a',
+        clientId: 'company-a',
+        assetTypeId: 'type-a',
+        name: 'Equipment',
+      );
+      final templates = [
+        const ChecklistTemplate(id: 'shared', name: 'Shared'),
+        const ChecklistTemplate(
+          id: 'ours',
+          name: 'Ours',
+          clientId: 'company-a',
+          scopeAssetId: 'asset-a',
+        ),
+        const ChecklistTemplate(
+          id: 'other-company',
+          name: 'Other',
+          clientId: 'company-b',
+        ),
+        const ChecklistTemplate(
+          id: 'other-asset',
+          name: 'Other',
+          scopeAssetId: 'asset-b',
+        ),
+        const ChecklistTemplate(
+          id: 'other-type',
+          name: 'Other',
+          assetTypeId: 'type-b',
+        ),
+        const ChecklistTemplate(
+          id: 'component',
+          name: 'Component',
+          scopeEngineId: 'engine',
+        ),
+        const ChecklistTemplate(id: 'retired', name: 'Old', isActive: false),
+      ];
+      expect(
+        offlineChecklistTemplateIds(
+          templates,
+          [
+            {
+              'status': 'in_progress',
+              'checklist_templates': {'id': 'retired'},
+            },
+            {
+              'status': 'completed',
+              'checklist_templates': {'id': 'finished'},
+            },
+          ],
+          [asset],
+        ),
+        {'shared', 'ours', 'retired'},
+      );
+      expect(offlineChecklistTemplateIds(templates, [], []), isEmpty);
+    },
+  );
   test(
     'fresh refresh rejects fallback without changing the existing cache',
     () async {

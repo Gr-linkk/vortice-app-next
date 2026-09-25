@@ -1,3 +1,4 @@
+import 'browser/browser.dart';
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
@@ -30,6 +31,21 @@ bool isAccessDenial(Object error) =>
 const _requireFreshReads = #vorticeRequireFreshReads;
 Future<T> withFreshAccountReads<T>(Future<T> Function() body) =>
     runZoned(body, zoneValues: {_requireFreshReads: true});
+
+/// A concurrent permissions refresh invalidates an in-flight read. Retry once
+/// against the server, only while the original account is still signed in.
+Future<T> retryInvalidatedAccountRead<T>({
+  required String account,
+  required String? Function() currentAccount,
+  required Future<T> Function() read,
+}) async {
+  try {
+    return await read();
+  } on AccountChangedException {
+    if (currentAccount() != account) rethrow;
+    return withFreshAccountReads(read);
+  }
+}
 
 /// Invalidate read permissions without touching drafts, retries or the outbox.
 Future<void> invalidateAccountReadCaches(String account) async {
@@ -91,6 +107,9 @@ class AccountJsonCache {
     var epoch = prefs.getInt(epochKey) ?? 0;
     final previous = prefs.getString(storageKey);
     try {
+      // A browser already reporting offline cannot validate a remote read.
+      // Skip transport retries; fresh-read callers still reject cached fallback.
+      if (browserIsOffline) throw http.ClientException('Browser is offline');
       final data = await fetch();
       checkAccount();
       if ((prefs.getInt(epochKey) ?? 0) != epoch) {

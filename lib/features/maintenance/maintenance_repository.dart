@@ -263,10 +263,16 @@ final maintenanceJobsProvider = FutureProvider.autoDispose
     });
 final maintenanceJobProvider = FutureProvider.autoDispose
     .family<MaintenanceJob?, String>((ref, id) async {
-      if (await ref.watch(profileProvider.future) == null) return null;
+      final profile = await ref.watch(profileProvider.future);
+      if (profile == null) return null;
       ref.watch(fieldOperationsProvider);
-      return (await ref.watch(maintenanceRepositoryProvider).jobs(jobId: id))
-          .firstOrNull;
+      final account = profile.id;
+      final repository = ref.watch(maintenanceRepositoryProvider);
+      return (await retryInvalidatedAccountRead(
+        account: account,
+        currentAccount: () => supabase.auth.currentUser?.id,
+        read: () => repository.jobs(jobId: id),
+      )).firstOrNull;
     });
 final maintenanceWorkspaceProvider =
     FutureProvider.autoDispose<Map<String, dynamic>>((ref) async {
@@ -291,6 +297,13 @@ bool maintenanceWriteWasRejected(Object error) =>
       '22003',
     ].contains(error.code);
 String maintenanceError(Object error, bool es, {bool french = false}) {
+  if (error is AccountChangedException) {
+    return french
+        ? 'Les accès ont été actualisés. Rechargez ce bon de travail.'
+        : es
+        ? 'Se actualizaron los permisos. Vuelve a cargar esta orden de trabajo.'
+        : 'Access was refreshed. Reload this work order.';
+  }
   if (error is PostgrestException) {
     if (error.code == '40001') {
       return french

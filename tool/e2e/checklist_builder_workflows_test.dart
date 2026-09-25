@@ -116,6 +116,7 @@ void main() {
                   );
               remember(procedure['id'] as String);
               await h.tap(find.text('Publish version'));
+              await h.waitFor(find.text('Published. Available for new work.'));
               starter = checklistRows(
                 (await builder.library())['templates'],
               ).singleWhere((t) => t['procedure_id'] == procedure['id']);
@@ -161,6 +162,7 @@ void main() {
                 starter!['id'],
               );
               await h.tap(find.text('Publish version'));
+              await h.waitFor(find.text('Published. Available for new work.'));
               privateTemplate = checklistRows(
                 (await builder.library())['templates'],
               ).singleWhere((t) => t['procedure_id'] == privateProcedure);
@@ -436,6 +438,7 @@ void main() {
               );
               h.container.invalidate(maintenanceJobProvider(pmJob!));
               await h.go('/maintenance/jobs/$pmJob');
+              await h.waitFor(find.text('Continue service report'));
               await h.tap(
                 find.textContaining(
                   RegExp(r'^(Create|Continue) service report$'),
@@ -459,6 +462,11 @@ void main() {
               await h.go('/maintenance/jobs/$pmJob');
               await h.tap(find.text('Approve & complete'));
               await h.tap(find.widgetWithText(FilledButton, 'Confirm'));
+              await h.waitFor(
+                find.text(
+                  'The next service was updated. Reopening this job will not advance it again.',
+                ),
+              );
               final plans =
                   (await maintenance.assetContext(asset))['plans'] as List;
               expect(

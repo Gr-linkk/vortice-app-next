@@ -47,6 +47,11 @@ on the S24 with all 26 pre-existing private files byte-identical before first
 launch. NEXT-011, NEXT-013 and NEXT-009 retain detailed evidence and open gates.
 Garrett also requested one companion web app with an office dashboard and full
 field workflows; NEXT-014 adapts this same product after mobile completion.
+Build 45 (`1.20.4+45`) is now installed on the S24 with all 26 existing private
+files preserved. The same app runs locally in a browser with the office dashboard
+and field workflows; 822 shared-app tests and clean analysis pass. NEXT-014 records
+actual browser execution, offline persistence, downloads and the remaining hosted
+and browser-device acceptance gates. See NEXT-009 for the final delivery receipt.
 
 
 NEXT-008 adds published-checklist attachment and an editable scheduled date to

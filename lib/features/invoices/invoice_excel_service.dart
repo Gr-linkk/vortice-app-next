@@ -3,6 +3,8 @@ import 'canadian_invoice_exports.dart';
 import 'package:vortice_app/features/invoices/invoice_download.dart';
 import 'package:vortice_app/features/invoices/invoice_detail_support.dart';
 import 'dart:io';
+import 'dart:typed_data';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:excel/excel.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:open_file/open_file.dart';
@@ -14,6 +16,14 @@ import 'package:vortice_app/models/invoice.dart';
 /// Generates Excel (.xlsx) exports of invoices for accounting
 class InvoiceExcelService {
   InvoiceExcelService._();
+
+  static Future<void> _browserDownload(Invoice invoice, List<int> bytes) =>
+      XFile.fromData(
+        Uint8List.fromList(bytes),
+        name: '${invoice.invoiceNumber}.xlsx',
+        mimeType:
+            'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      ).saveTo('${invoice.invoiceNumber}.xlsx');
 
   static Future<void> generateAndShare(
     Invoice invoice, {
@@ -30,6 +40,10 @@ class InvoiceExcelService {
     );
     if (bytes == null) return;
 
+    if (kIsWeb) {
+      await _browserDownload(invoice, bytes);
+      return;
+    }
     final dir = await getTemporaryDirectory();
     final file = File('${dir.path}/${invoice.invoiceNumber}.xlsx');
     await file.writeAsBytes(bytes, flush: true);
@@ -64,6 +78,10 @@ class InvoiceExcelService {
     );
     if (bytes == null) return null;
 
+    if (kIsWeb) {
+      await _browserDownload(invoice, bytes);
+      return null;
+    }
     final file = await writeInvoiceDownload(
       invoice,
       extension: 'xlsx',

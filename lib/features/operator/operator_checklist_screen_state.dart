@@ -119,13 +119,14 @@ class OperatorChecklistScreenState
         _selectionError = 'assignment';
         return;
       }
+      // The assignment read may overlap a background fleet refresh. Await its
+      // permission-bearing results instead of treating a loading value as empty.
+      final assets = await ref.read(operatorAssignedAssetsProvider.future);
+      final templates = await ref.read(checklistTemplatesProvider.future);
+      if (!_sameAccount) return;
       if (draft != null) {
-        _restoreRun(draft);
+        _restoreRun(draft, assets: assets, templates: templates);
       } else {
-        final assets =
-            ref.read(operatorAssignedAssetsProvider).valueOrNull ?? [];
-        final templates =
-            ref.read(checklistTemplatesProvider).valueOrNull ?? [];
         _selectedAsset = assets.where((a) => a['id'] == assetId).firstOrNull;
         _selectedTemplate = templates
             .where((t) => t.id == templateId)
@@ -169,9 +170,13 @@ class OperatorChecklistScreenState
     clientId: asset['client_id'] as String?,
   );
 
-  bool _draftAvailable(Map<String, dynamic> draft) {
-    final assets = ref.read(operatorAssignedAssetsProvider).valueOrNull ?? [];
-    final templates = ref.read(checklistTemplatesProvider).valueOrNull ?? [];
+  bool _draftAvailable(
+    Map<String, dynamic> draft, {
+    List<Map<String, dynamic>>? assets,
+    List<ChecklistTemplate>? templates,
+  }) {
+    assets ??= ref.read(operatorAssignedAssetsProvider).valueOrNull ?? [];
+    templates ??= ref.read(checklistTemplatesProvider).valueOrNull ?? [];
     final asset = assets.where((a) => a['id'] == draft['assetId']).firstOrNull;
     final template = templates
         .where((t) => t.id == draft['templateId'])
@@ -181,16 +186,23 @@ class OperatorChecklistScreenState
         _templateMatches(template, asset, pinned: true);
   }
 
-  void _restoreRun(Map<String, dynamic> draft) {
-    if (!_sameAccount || !_draftAvailable(draft)) {
+  void _restoreRun(
+    Map<String, dynamic> draft, {
+    List<Map<String, dynamic>>? assets,
+    List<ChecklistTemplate>? templates,
+  }) {
+    assets ??= ref.read(operatorAssignedAssetsProvider).valueOrNull ?? [];
+    templates ??= ref.read(checklistTemplatesProvider).valueOrNull ?? [];
+    if (!_sameAccount ||
+        !_draftAvailable(draft, assets: assets, templates: templates)) {
       _selectionError = 'asset';
       return;
     }
     final restored = decodeOperatorChecklistDraft(
       draft,
       fallbackCompletedAt: DateTime.now(),
-      assets: ref.read(operatorAssignedAssetsProvider).valueOrNull,
-      templates: ref.read(checklistTemplatesProvider).valueOrNull ?? [],
+      assets: assets,
+      templates: templates,
     );
     _operationId = draft['operation_id'] as String;
     _assignmentId = draft['assignment_id'] as String?;

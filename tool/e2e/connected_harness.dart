@@ -188,6 +188,12 @@ class ConnectedHarness {
 
   Future<void> login(String email) async {
     email = loginEmail(email);
+    // Match ordinary sign-out/sign-in navigation so old routes unmount.
+    // Local scope preserves other development sessions (including the phone).
+    if (supabase.auth.currentUser != null) {
+      await supabase.auth.signOut(scope: SignOutScope.local);
+      await settle();
+    }
     await supabase.auth.signInWithPassword(
       email: email,
       password: passwords[email] as String,
@@ -290,6 +296,9 @@ class ConnectedHarness {
     (w) => w is TextField && w.decoration?.hintText == label,
   );
   Future<void> fill(Finder target, String text) async {
+    await reveal(target);
+    await tester.tap(target.last);
+    await settle(3);
     await reveal(target);
     await tester.enterText(target.last, text);
     await tester.pump();

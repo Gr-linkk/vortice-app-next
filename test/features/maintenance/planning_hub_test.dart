@@ -340,6 +340,33 @@ void main() {
     expect(find.text('Service repair'), findsNothing);
   });
 
+  testWidgets('calendar search finds undated work awaiting review', (
+    tester,
+  ) async {
+    await showPlanning(
+      tester,
+      const MaintenancePlanningScreen(initialView: 'month'),
+      FixturePlanning(
+        PlanningData(
+          jobs: [
+            booking('awaiting', status: 'pending_review'),
+            booking('unrelated'),
+          ],
+          plans: [],
+        ),
+      ),
+    );
+    await tester.tap(find.byTooltip('Search & filters'));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byType(TextField).first, 'awaiting');
+    await applyFilters(tester);
+    await tester.pumpAndSettle();
+    await reveal(tester, find.text('Service awaiting'));
+    expect(find.text('Service awaiting'), findsOneWidget);
+    expect(find.text('Service unrelated'), findsNothing);
+    expect(find.text('List'), findsOneWidget);
+  });
+
   testWidgets('completed provider orders keep their authorized billing route', (
     tester,
   ) async {

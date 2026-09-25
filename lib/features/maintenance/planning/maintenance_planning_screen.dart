@@ -155,6 +155,11 @@ class _MaintenancePlanningScreenState
     if (result != null && mounted) {
       setState(() {
         _query = result['query'] ?? '';
+        if (_query.isNotEmpty) {
+          // A text search must also find undated work awaiting approval.
+          _view = 'list';
+          _showUnscheduled = false;
+        }
         _filter = result['filter'] ?? 'all';
         _asset = result['asset'];
         _person = result['person'];

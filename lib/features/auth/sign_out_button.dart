@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:vortice_app/core/localized_text.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:vortice_app/core/user_feedback.dart';
 import 'package:vortice_app/features/auth/auth_provider.dart';
@@ -6,24 +7,40 @@ import 'package:vortice_app/features/auth/auth_provider.dart';
 /// Shared by every dashboard and the account entry in More.
 Future<void> confirmSignOut(BuildContext context, WidgetRef ref) async {
   if (ref.read(authControllerProvider).isLoading) return;
-  final es = isSpanish(context);
   final confirmed = await showDialog<bool>(
     context: context,
     builder: (dialogContext) => AlertDialog(
-      title: Text(es ? '¿Cerrar sesión?' : 'Sign out?'),
+      title: Text(
+        localizedText(
+          context,
+          'Sign out?',
+          '¿Cerrar sesión?',
+          'Se déconnecter?',
+        ),
+      ),
       content: Text(
-        es
-            ? 'Necesitarás tu correo y contraseña para volver.'
-            : 'You will need your email and password to sign in again.',
+        localizedText(
+          context,
+          'Sign in again to return to your company.',
+          'Vuelve a iniciar sesión para acceder a tu empresa.',
+          'Connectez-vous de nouveau pour accéder à votre entreprise.',
+        ),
       ),
       actions: [
         TextButton(
           onPressed: () => Navigator.pop(dialogContext, false),
-          child: Text(es ? 'Cancelar' : 'Cancel'),
+          child: Text(localizedText(context, 'Cancel', 'Cancelar', 'Annuler')),
         ),
         FilledButton(
           onPressed: () => Navigator.pop(dialogContext, true),
-          child: Text(es ? 'Cerrar sesión' : 'Sign out'),
+          child: Text(
+            localizedText(
+              context,
+              'Sign out',
+              'Cerrar sesión',
+              'Se déconnecter',
+            ),
+          ),
         ),
       ],
     ),
@@ -45,7 +62,12 @@ class SignOutButton extends ConsumerWidget {
   const SignOutButton({super.key});
   @override
   Widget build(BuildContext context, WidgetRef ref) => IconButton(
-    tooltip: isSpanish(context) ? 'Cerrar sesión' : 'Sign out',
+    tooltip: localizedText(
+      context,
+      'Sign out',
+      'Cerrar sesión',
+      'Se déconnecter',
+    ),
     icon: const Icon(Icons.logout),
     onPressed: ref.watch(authControllerProvider).isLoading
         ? null

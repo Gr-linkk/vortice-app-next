@@ -63,6 +63,7 @@ Widget app({
   List<Map<String, dynamic>> fleet = assets,
   List<ChecklistTemplate> catalog = templates,
   Future<List<Map<String, dynamic>>>? delayedAssets,
+  Future<List<Map<String, dynamic>>> Function()? loadAssets,
   Future<List<Map<String, dynamic>>> Function()? assignments,
   OperatorChecklistScreen screen = const OperatorChecklistScreen(),
 }) => ProviderScope(
@@ -82,7 +83,11 @@ Widget app({
     ),
     profileProvider.overrideWith((ref) async => null),
     operatorAssignedAssetsProvider.overrideWith(
-      (ref) async => delayedAssets == null ? fleet : await delayedAssets,
+      (ref) async => loadAssets != null
+          ? await loadAssets()
+          : delayedAssets == null
+          ? fleet
+          : await delayedAssets,
     ),
     checklistTemplatesProvider.overrideWith((ref) async => catalog),
     checklistItemsProvider.overrideWith((ref, id) async => []),
@@ -349,6 +354,50 @@ void main() {
       );
     },
   );
+  testWidgets('assignment restoration waits for a concurrent fleet refresh', (
+    tester,
+  ) async {
+    await seed(assignment: 'assigned');
+    final assignment = Completer<List<Map<String, dynamic>>>();
+    final refreshingFleet = Completer<List<Map<String, dynamic>>>();
+    var reads = 0;
+    await tester.pumpWidget(
+      app(
+        screen: const OperatorChecklistScreen(initialAssignmentId: 'assigned'),
+        loadAssets: () async =>
+            ++reads == 1 ? [] : await refreshingFleet.future,
+        assignments: () => assignment.future,
+      ),
+    );
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 100));
+    final container = ProviderScope.containerOf(
+      tester.element(find.byType(OperatorChecklistScreen)),
+    );
+    container.invalidate(operatorAssignedAssetsProvider);
+    await tester.pump();
+    assignment.complete([
+      {
+        'id': 'assigned',
+        'status': 'in_progress',
+        'assets': {'id': 'dredge'},
+        'checklist_templates': {'id': 'dredge-check'},
+      },
+    ]);
+    await tester.pump();
+    refreshingFleet.complete(assets);
+    await tester.pumpAndSettle();
+    expect(find.byType(OperatorChecklistRunForm), findsOneWidget);
+    expect(find.textContaining('Your draft is kept'), findsNothing);
+    expect(
+      tester
+          .widget<OperatorChecklistRunForm>(
+            find.byType(OperatorChecklistRunForm),
+          )
+          .responses,
+      {'oil': 'monitor'},
+    );
+  });
   testWidgets(
     'changed assignment cannot attach saved answers to a different asset',
     (tester) async {

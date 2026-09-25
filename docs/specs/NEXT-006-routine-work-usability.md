@@ -248,3 +248,19 @@ deletion, schema consolidation or billing-policy change is selected here.
 Existing internal/provider data boundaries remain intact. NEXT-002 retains its
 external setup and physical acceptance; this item does not silently close them.
 The standing requirement in AGENTS.md continues after this round is complete.
+
+## September 25 office review follow-up
+
+Real browser acceptance followed Work orders → Search & filters to find a field
+report submitted for approval. An undated pending-review job was hidden by the
+selected calendar/unscheduled view, despite matching the search. Non-empty text
+searches now select List and clear the temporary unscheduled view, while keeping
+the chosen company/person/status filters. A regression starts in Month, searches
+for an undated pending-review job and verifies the matching result is visible.
+The Field Notes design and normal calendar selection are retained.
+Evidence and final artifact acceptance are recorded in NEXT-014.
+
+The independent debug signer was subsequently recovered and Build 45 is installed
+on the S24; the earlier Linux signer limitation above is historical. NEXT-009
+records the preserving installation, and NEXT-014 records the final browser
+field submission through office approval.

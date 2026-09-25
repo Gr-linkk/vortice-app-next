@@ -213,6 +213,11 @@ void main() {
               expect(find.text('Plan work'), findsNothing);
               await h.reveal(find.text('$marker Generator service'));
               await h.tap(find.text('$marker Generator service'));
+              // A concurrent permission-cache refresh can invalidate this read.
+              // Exercise the visible recovery action instead of bypassing access.
+              if (find.text('Try again').evaluate().isNotEmpty) {
+                await h.tap(find.text('Try again'));
+              }
               await h.tap(find.widgetWithText(FilledButton, 'Start work'));
               await h.tap(
                 find.descendant(
@@ -245,7 +250,7 @@ void main() {
             },
           );
           await h.step(
-            'approval advances the original interval and removes completed work from planning',
+            'approval advances the original interval and retains closed work in calendar history',
             () async {
               await h.login('paradise@vortice.dev');
               await h.go('/maintenance/jobs/$job');
@@ -254,7 +259,7 @@ void main() {
               );
               await h.tap(find.widgetWithText(FilledButton, 'Confirm'));
               final data = await planning();
-              expect(data.jobs.any((j) => j.id == job), isFalse);
+              expect(data.jobs.firstWhere((j) => j.id == job).status, 'closed');
               expect(data.plans.single.data['next_due_hours'], 500);
               expect(data.plans.single.hasJob, isFalse);
               await h.go('/maintenance/planning?assetId=$asset');

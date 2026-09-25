@@ -1,3 +1,4 @@
+import 'checklist_snapshot_items.dart';
 import 'package:vortice_app/core/constants.dart';
 import 'package:vortice_app/core/account_storage.dart';
 import 'package:vortice_app/core/supabase_client.dart';
@@ -42,7 +43,10 @@ class WorkOrderChecklistSnapshot {
   );
 
   factory WorkOrderChecklistSnapshot.fromJson(Map<String, dynamic> json) {
-    final itemsJson = (json['items_json'] as List?) ?? const [];
+    final itemsJson = checklistSnapshotItems(
+      json['items_json'],
+      json['template_id'] as String?,
+    );
     return WorkOrderChecklistSnapshot(
       workOrderId: json['work_order_id'] as String,
       templateId: json['template_id'] as String?,

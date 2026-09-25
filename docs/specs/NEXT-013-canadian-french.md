@@ -45,3 +45,16 @@ invitation/OTP email preferences currently support English/Spanish. Customer
 content, manuals and stored procedure text are not automatically translated.
 These limits prevent claiming complete French coverage. Physical French phone
 acceptance is separate from the rendered, connected walkthroughs.
+
+Build 42 additionally translates the initial email/phone and developer sign-in
+labels and constrains the browser sign-in form on wide screens. Real Chromium
+at 320 px selected Français through More → Language, reloaded the page, and
+retained French navigation and Settings (`outputs/web/field-workflow/french-phone-settings.png`).
+
+Build 43 completes the shared French sign-out tooltip and confirmation, including
+wording compatible with password and passwordless sign-in. Shared guarded
+verification passes 819 tests after this final polish.
+
+Build 45 is the final installed shared-app candidate for this round (822 tests,
+clean analysis). NEXT-009 and NEXT-014 supersede the intermediate build receipts;
+the translation boundaries above remain explicit.

@@ -47,6 +47,12 @@ workflows. Use the existing Flutter product, accounts, permissions and company
 data. Adapt wide-screen navigation/dashboard and browser persistence, evidence
 and exports; preserve phone workflows. Domain and Google Play remain deferred.
 Scope and browser acceptance: `docs/specs/NEXT-014-companion-web.md`.
+September 25: the combined workspace is built and locally runnable. Real Chromium
+checks cover office/phone navigation, offline reload, account-owned drafts,
+photo upload, queued report submission and PDF/XLSX downloads. Build 45 is on
+the S24; guarded verification passes 822 tests. Finish the recorded hosting,
+physical/browser-device acceptance and first-load performance gates before
+public web rollout; domain and Play remain deferred.
 
 ### NEXT-013 — Canadian French and translation polish
 

@@ -1,3 +1,5 @@
+import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:vortice_app/core/browser/browser.dart';
 import 'dart:async';
 import 'package:app_links/app_links.dart';
 import 'package:flutter/material.dart';
@@ -8,7 +10,20 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:vortice_app/core/supabase_client.dart';
 import 'package:vortice_app/core/user_feedback.dart';
 
-const recoveryRedirect = 'com.vortice.next://auth/recovery';
+String get recoveryRedirect => kIsWeb
+    ? Uri.base
+          .replace(queryParameters: {'vortice_recovery': '1'}, fragment: '')
+          .toString()
+    : 'com.vortice.next://auth/recovery';
+
+bool isBrowserRecoveryCallback(Uri uri, Uri appAddress) =>
+    ['https', 'http'].contains(uri.scheme) &&
+    uri.origin == appAddress.origin &&
+    uri.path == appAddress.path &&
+    uri.queryParameters['vortice_recovery'] == '1' &&
+    (uri.queryParameters.containsKey('code') ||
+        uri.queryParameters.containsKey('error_description'));
+
 bool isRecoveryCallback(Uri uri) =>
     uri.scheme == 'com.vortice.next' &&
     uri.host == 'auth' &&
@@ -61,6 +76,10 @@ class PasswordRecoveryController extends ChangeNotifier {
         _notify();
       }
     });
+    if (kIsWeb) {
+      await handleCallback(Uri.base);
+      return;
+    }
     final links = AppLinks();
     _links = links.uriLinkStream.listen(
       (uri) => unawaited(handleCallback(uri)),
@@ -78,7 +97,10 @@ class PasswordRecoveryController extends ChangeNotifier {
     redirectTo: recoveryRedirect,
   );
   Future<void> handleCallback(Uri uri) async {
-    if (!isRecoveryCallback(uri) || _lastLink == uri.toString()) return;
+    final accepted = kIsWeb
+        ? isBrowserRecoveryCallback(uri, Uri.base)
+        : isRecoveryCallback(uri);
+    if (!accepted || _lastLink == uri.toString()) return;
     _lastLink = uri.toString();
     phase = RecoveryPhase.verifying;
     _notify();
@@ -98,6 +120,7 @@ class PasswordRecoveryController extends ChangeNotifier {
     } catch (_) {
       phase = RecoveryPhase.failed;
     }
+    if (kIsWeb) clearRecoveryAddress();
     _notify();
   }
 

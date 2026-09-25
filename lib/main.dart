@@ -1,3 +1,6 @@
+import 'core/browser/browser.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:go_router/go_router.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -11,6 +14,8 @@ import 'package:vortice_app/core/appearance_settings.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await initializeBrowserPreferences();
+  if (kIsWeb) GoRouter.optionURLReflectsImperativeAPIs = true;
 
   validateBackendConfig(AppConstants.supabaseUrl, AppConstants.supabaseAnonKey);
 

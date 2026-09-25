@@ -1,3 +1,4 @@
+import 'workspace_layout.dart';
 import 'package:flutter/material.dart';
 import 'package:vortice_app/sync/field_sync_status.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -97,38 +98,47 @@ class AppShell extends ConsumerWidget {
         // leaf screen or top-level tab.
         return true;
       },
-      child: Scaffold(
-        body: SafeArea(
+      child: WorkspaceLayout(
+        destinations: items,
+        selectedIndex: currentIndex,
+        onSelect: (index) => context.go(items[index].route),
+        spanish: es,
+        french: fr,
+        hideNavigation: hideBottomNavigation,
+        compactNavigation: Container(
+          decoration: BoxDecoration(
+            border: Border(top: BorderSide(color: context.appColors.divider)),
+          ),
+          child: BottomNavigationBar(
+            currentIndex: currentIndex,
+            onTap: (index) => context.go(items[index].route),
+            items: items
+                .map(
+                  (item) => BottomNavigationBarItem(
+                    icon: Icon(item.icon),
+                    label: item.label(es, french: fr),
+                  ),
+                )
+                .toList(),
+          ),
+        ),
+        child: SafeArea(
           top: false,
           child: Column(
             children: [
               const FieldSyncStatus(),
-              Expanded(child: child),
+              // The nested Navigator contains BlockSemantics. Give it its own
+              // boundary so it cannot hide the workspace navigation/status.
+              Expanded(
+                child: Semantics(
+                  container: true,
+                  explicitChildNodes: true,
+                  child: child,
+                ),
+              ),
             ],
           ),
         ),
-        bottomNavigationBar: hideBottomNavigation
-            ? null
-            : Container(
-                decoration: BoxDecoration(
-                  border: Border(
-                    top: BorderSide(color: context.appColors.divider, width: 1),
-                  ),
-                ),
-                child: BottomNavigationBar(
-                  currentIndex: currentIndex,
-                  onTap: (index) => context.go(items[index].route),
-                  items: items
-                      .map(
-                        (item) => BottomNavigationBarItem(
-                          icon: Icon(item.icon),
-                          activeIcon: Icon(item.icon),
-                          label: item.label(es, french: fr),
-                        ),
-                      )
-                      .toList(),
-                ),
-              ),
       ),
     );
   }

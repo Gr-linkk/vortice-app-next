@@ -4,6 +4,8 @@ import 'package:vortice_app/features/invoices/invoice_download.dart';
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:vortice_app/features/invoices/invoice_detail_support.dart';
 import 'dart:io';
+import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:file_selector/file_selector.dart' show XFile;
 import 'dart:typed_data';
 
 import 'package:pdf/pdf.dart';
@@ -46,7 +48,7 @@ class InvoicePdfService {
     );
   }
 
-  static Future<File> downloadAndOpen(
+  static Future<File?> downloadAndOpen(
     Invoice invoice, {
     bool spanish = false,
     bool french = false,
@@ -59,6 +61,14 @@ class InvoicePdfService {
       spanish: spanish,
       french: french,
     );
+    if (kIsWeb) {
+      await XFile.fromData(
+        bytes,
+        name: '${invoice.invoiceNumber}.pdf',
+        mimeType: 'application/pdf',
+      ).saveTo('${invoice.invoiceNumber}.pdf');
+      return null;
+    }
     final file = await writeInvoiceDownload(
       invoice,
       extension: 'pdf',

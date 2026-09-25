@@ -103,22 +103,66 @@ class DashboardList extends ConsumerWidget {
   const DashboardList({super.key, required this.children});
   final List<Widget> children;
   @override
-  Widget build(BuildContext context, WidgetRef ref) => ListView(
-    physics: const AlwaysScrollableScrollPhysics(),
-    padding: const EdgeInsets.only(bottom: 32),
-    children: [
-      const DashboardIntro(),
-      const DashboardPriorities(),
-      const FleetEntryCard(),
-      if ([
-        UserRole.employee,
-        UserRole.clientMechanic,
-      ].contains(ref.watch(profileProvider).valueOrNull?.role))
-        const DashboardCurrentWork(),
-      ...children,
-      const DashboardShortcuts(),
-    ],
-  );
+  Widget build(BuildContext context, WidgetRef ref) {
+    final showCurrent = [
+      UserRole.employee,
+      UserRole.clientMechanic,
+    ].contains(ref.watch(profileProvider).valueOrNull?.role);
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final wide =
+            constraints.maxWidth >= 950 &&
+            MediaQuery.textScalerOf(context).scale(1) < 1.8;
+        return ListView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          padding: EdgeInsets.fromLTRB(
+            wide ? 24 : 0,
+            wide ? 16 : 0,
+            wide ? 24 : 0,
+            32,
+          ),
+          children: [
+            const DashboardIntro(),
+            if (wide)
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    flex: 3,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        if (showCurrent) const DashboardCurrentWork(),
+                        ...children,
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 24),
+                  const Expanded(
+                    flex: 2,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        DashboardPriorities(),
+                        FleetEntryCard(),
+                        DashboardShortcuts(),
+                      ],
+                    ),
+                  ),
+                ],
+              )
+            else ...[
+              const DashboardPriorities(),
+              const FleetEntryCard(),
+              if (showCurrent) const DashboardCurrentWork(),
+              ...children,
+              const DashboardShortcuts(),
+            ],
+          ],
+        );
+      },
+    );
+  }
 }
 
 class DashboardIntro extends ConsumerWidget {

@@ -387,7 +387,7 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.text('pump'), findsOneWidget);
       await applyFilters(tester, es: true);
-      await showUnscheduled(tester, es: true);
+      expect(find.text('Lista'), findsOneWidget);
       await reveal(tester, find.text('Programar'));
       expect(tester.takeException(), isNull);
     },

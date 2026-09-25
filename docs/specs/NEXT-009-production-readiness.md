@@ -347,3 +347,86 @@ The projection now parses it as a number without altering the durable request;
 pending and acknowledged replay are regression-tested. Final connected reruns
 and the remaining production/physical acceptance gates are tracked below; this
 internal debug build is not a production release.
+
+### Build 42 and web continuation — September 25
+
+The authorized office + field companion is one Flutter web workspace (NEXT-014).
+Build 42 (`1.20.1+42`) includes the shared operator-resume and permission-refresh
+fixes plus browser layout/storage/export support. Guarded verification passes
+with **818 tests and clean analysis**, plus two real Chromium storage tests and
+two public-build configuration/security checks. Evidence:
+`outputs/web/verify42.log`, `preferences-tests.log`, `build-security-tests.log`.
+
+The S24 update succeeded with the independent signer. All 26 pre-existing
+private files remained byte-identical before first launch, and install time was
+preserved (`outputs/build42/upgrade.json`). APK:
+`outputs/builds/vortice-next-android-debug-20260924-232030.apk`, SHA-256
+`6a395532a21b8f520ed9ac91215d1ca0b0bc0872d623de67b9ed7067f407617a`.
+The APK is also in phone Downloads as `Vortice-Next-Build-42.apk`.
+This is an internal debug build; installation evidence does not replace
+Garrett's physical workflow, camera or notification acceptance.
+
+Connected completion receipts after Build 41 cover saved workflows, operations,
+direct work, field reliability, fleet import/calendar, parts readiness, custody,
+internal work and planning under `outputs/e2e/completion-20260925T*/`.
+The isolated mechanic avoids other users' running timers. Every mutating suite
+uses exact fixture manifests and verifies unrelated counts during cleanup.
+Planning retains closed history; custody now follows the actual generated
+inspection workflow. Browser evidence and remaining limits are owned by NEXT-014.
+
+Still external: final name/domain and provider-email setup; reviewed issuer,
+province and tax treatment; hosted off-device recovery proof and operating/
+rights/support decisions; physical acceptance. Google Play remains deferred.
+
+The final six-step connected checklist-builder journey and exact cleanup both
+pass: `outputs/e2e/completion-20260925T061933Z/checklist_builder_workflows/`.
+It covers shared/private publication, older assigned-version resume, critical
+finding → corrective work → verification, PM snapshot/version independence,
+next-service advancement and private evidence access denial across companies.
+The harness now waits for visible save/approval acknowledgements before checking
+server state, avoiding timing-dependent assertions on unacknowledged operations.
+
+Build 43 (`1.20.2+43`) supersedes Build 42 after the real browser offline test
+exposed out-of-scope checklist reference prefetch. Scope-aware preparation is
+regression-tested and the mechanic browser can now reload its report offline.
+French sign-out confirmation is also localized and no longer implies that
+password login is mandatory. Final guarded verification passes **819 tests** with
+clean analysis (`outputs/web/verify43.log`). The preserving S24 update again
+kept all 26 private files and install time (`outputs/build43/upgrade.json`).
+APK: `outputs/builds/vortice-next-android-debug-20260924-233035.apk`, SHA-256
+`29a00cb12482828a4f74b7cd3b41f6446003f6782967bdf10bebe85b7b260d51`.
+Phone Downloads contains `Vortice-Next-Build-43.apk`.
+
+Build 44 (`1.20.3+44`) adds the final calendar search improvement and repairs
+procedure-page requests from older saved snapshots by retaining their parent
+publication ID. Details, browser acceptance and remaining website polish are in
+NEXT-014 and NEXT-006. This supersedes the intermediate Build 43 artifact.
+
+Final guarded verification: **821 tests, clean analysis**, including persisted
+read scopes, source identity and calendar-search regressions
+(`outputs/web/verify44-final.log`). Build 44 was installed with the recovered Next
+signer and again preserved all 26 existing private files and install time.
+APK: `outputs/builds/vortice-next-android-debug-20260924-234324.apk`, SHA-256
+`d0816dd151eadcbdcb07c273bb92d16a03c123be445e79f8854737bb0b999307`.
+Receipts: `outputs/build44/upgrade.json`, `settled-home.png`.
+Phone Downloads contains `Vortice-Next-Build-44.apk`.
+
+### Final Build 45 delivery — September 25
+
+Build 45 (`1.20.4+45`) supersedes the intermediate candidates above. A rendered
+browser replay exposed an unused signed-photo URL request starting even when the
+photo was available in the durable local outbox. Evidence now waits for local
+restore and starts a remote request only when its result will be observed; a
+regression verifies local bytes render with no remote request. Browser dispatch
+also avoids network attempts while the browser already reports offline.
+
+Guarded verification passes **822 tests and clean analysis**
+(`outputs/web/verify45-final.log`). The final APK was installed in place on the
+S24 using the independent Next debug signer. All 26 pre-existing private files
+remained byte-identical before first launch, and install time was preserved.
+APK: `outputs/builds/vortice-next-android-debug-20260925-000217.apk`, SHA-256
+`58e853958887fc6c0f6fac74625d9e347ef556811388672e65764ff24fa54d6f`.
+Phone Downloads: `Vortice-Next-Build-45.apk`. Receipts:
+`outputs/build45/upgrade.json`, `settled-home.png`.
+The one office/field web workspace and final browser receipts are in NEXT-014.
+The production and physical acceptance gates listed above still apply.

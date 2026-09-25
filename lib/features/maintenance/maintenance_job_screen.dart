@@ -1212,16 +1212,16 @@ class MaintenanceEvidence extends ConsumerStatefulWidget {
 }
 
 class _MaintenanceEvidenceState extends ConsumerState<MaintenanceEvidence> {
-  late Future<String> _url;
-  @override
-  void initState() {
-    super.initState();
-    _url = ref.read(maintenanceRepositoryProvider).evidenceUrl(widget.path);
-  }
+  Future<String>? _url;
 
   @override
   Widget build(BuildContext context) {
-    final local = (ref.watch(fieldOperationsProvider).valueOrNull ?? [])
+    final operations = ref.watch(fieldOperationsProvider);
+    // Restore the local outbox before deciding that a photo needs the network.
+    if (operations.isLoading && !operations.hasValue) {
+      return const LinearProgressIndicator();
+    }
+    final local = (operations.valueOrNull ?? [])
         .where(
           (r) =>
               r.kind == 'upload' &&
@@ -1247,7 +1247,11 @@ class _MaintenanceEvidenceState extends ConsumerState<MaintenanceEvidence> {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8),
       child: FutureBuilder<String>(
-        future: _url,
+        // Pending/local evidence needs no signed URL. Start this request only
+        // when a FutureBuilder will observe it, including its offline errors.
+        future: _url ??= ref
+            .read(maintenanceRepositoryProvider)
+            .evidenceUrl(widget.path),
         builder: (context, result) {
           if (result.hasError) {
             return TextButton(

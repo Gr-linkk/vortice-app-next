@@ -61,6 +61,67 @@ void main() {
       throwsA(isA<TimeoutException>()),
     );
   });
+  test(
+    'an invalidated read retries fresh, but never crosses accounts or masks denial',
+    () async {
+      String? active = 'a';
+      final cache = AccountJsonCache('a', () => active);
+      var calls = 0;
+      final result = await retryInvalidatedAccountRead(
+        account: 'a',
+        currentAccount: () => active,
+        read: () async {
+          if (++calls == 1) throw const AccountChangedException();
+          return cache.readThrough('job', () async => 'fresh permitted job');
+        },
+      );
+      expect(result, 'fresh permitted job');
+      expect(calls, 2);
+      calls = 0;
+      await expectLater(
+        retryInvalidatedAccountRead(
+          account: 'a',
+          currentAccount: () => active,
+          read: () async {
+            if (++calls == 1) throw const AccountChangedException();
+            return cache.readThrough(
+              'job',
+              () async => throw TimeoutException('offline'),
+            );
+          },
+        ),
+        throwsA(isA<TimeoutException>()),
+      );
+      calls = 0;
+      await expectLater(
+        retryInvalidatedAccountRead(
+          account: 'a',
+          currentAccount: () => active,
+          read: () async {
+            calls++;
+            active = 'b';
+            throw const AccountChangedException();
+          },
+        ),
+        throwsA(isA<AccountChangedException>()),
+      );
+      expect(calls, 1);
+      active = 'a';
+      calls = 0;
+      await expectLater(
+        retryInvalidatedAccountRead(
+          account: 'a',
+          currentAccount: () => active,
+          read: () async {
+            calls++;
+            throw const PostgrestException(message: 'Denied', code: '42501');
+          },
+        ),
+        throwsA(isA<PostgrestException>()),
+      );
+      expect(calls, 1);
+    },
+  );
   test('account paths cannot alias or traverse another database', () {
     expect(accountDatabaseName('a'), isNot(accountDatabaseName('b')));
     expect(() => accountDatabaseName('../a'), throwsArgumentError);

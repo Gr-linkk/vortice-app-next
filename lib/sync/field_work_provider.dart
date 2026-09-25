@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:vortice_app/core/browser/browser.dart';
 import 'dart:convert';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:http/http.dart' as http;
@@ -25,6 +26,9 @@ final fieldWorkQueueProvider = Provider<FieldWorkQueue?>((ref) {
     currentAccount: () => supabase.auth.currentUser?.id,
     send: (operation) async {
       queue.checkAccount();
+      // The outbox already owns the bytes. A browser reporting offline must
+      // keep them pending without starting a failing HTTP upload stream.
+      if (browserIsOffline) throw http.ClientException('Browser is offline');
       // Capture this account's token before starting I/O. A later sign-in must
       // never send the previous account's data with the new account's session.
       final token = supabase.auth.currentSession!.accessToken;

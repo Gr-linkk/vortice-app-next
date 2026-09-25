@@ -1,3 +1,5 @@
+import 'package:vortice_app/core/localized_text.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'canadian_invoice.dart';
 import 'package:vortice_app/core/user_feedback.dart';
 import 'package:flutter/material.dart';
@@ -457,7 +459,15 @@ class _InvoiceDetailScreenState extends ConsumerState<InvoiceDetailScreen> {
                                             ).languageCode ==
                                             'fr',
                                       );
-                                  return 'Downloaded PDF: ${file.path}';
+                                  if (!context.mounted) return null;
+                                  return kIsWeb
+                                      ? localizedText(
+                                          context,
+                                          'PDF download started.',
+                                          'Descarga de PDF iniciada.',
+                                          'Téléchargement du PDF lancé.',
+                                        )
+                                      : 'Downloaded PDF: ${file!.path}';
                                 }),
                           icon: const Icon(Icons.download_outlined),
                           label: Text(l10n.downloadPdf),
@@ -479,12 +489,20 @@ class _InvoiceDetailScreenState extends ConsumerState<InvoiceDetailScreen> {
                                             ).languageCode ==
                                             'fr',
                                       );
-                                  if (file == null) {
+                                  if (file == null && !kIsWeb) {
                                     throw StateError(
                                       'Excel generation returned no data',
                                     );
                                   }
-                                  return 'Downloaded Excel: ${file.path}';
+                                  if (!context.mounted) return null;
+                                  return kIsWeb
+                                      ? localizedText(
+                                          context,
+                                          'Excel download started.',
+                                          'Descarga de Excel iniciada.',
+                                          'Téléchargement du fichier Excel lancé.',
+                                        )
+                                      : 'Downloaded Excel: ${file!.path}';
                                 }),
                           icon: const Icon(Icons.download_outlined),
                           label: Text(l10n.downloadExcel),

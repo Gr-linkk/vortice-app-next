@@ -26,6 +26,8 @@ import 'package:vortice_app/features/maintenance/planning/planning_repository.da
 import 'package:vortice_app/features/membership/membership_models.dart';
 import 'package:vortice_app/features/membership/organization_work_provider.dart';
 import 'package:vortice_app/models/checklist_template.dart';
+import 'package:vortice_app/models/asset.dart';
+import 'package:vortice_app/features/checklists/asset_checklist_template_filter.dart';
 
 class OfflineReadiness {
   const OfflineReadiness({
@@ -44,12 +46,25 @@ class OfflineReadiness {
 
 /// Current assignments pin their publication even after it leaves the library.
 /// Warming those items must not reactivate that template or substitute a newer one.
+/// The library can also contain publications unusable by this fleet. Preparing
+/// their private source pages causes a correct denial and invalidates readiness.
+/// Unbound engine-specific publications are prepared with their assigned jobs.
 Set<String> offlineChecklistTemplateIds(
   Iterable<ChecklistTemplate> templates,
   Iterable<Map<String, dynamic>> assignments,
+  Iterable<Asset> assets,
 ) => {
   for (final template in templates)
-    if (template.isActive) template.id,
+    if (assets.any(
+      (asset) => checklistTemplateMatches(
+        template,
+        kind: template.checklistType,
+        assetId: asset.id,
+        assetTypeId: asset.assetTypeId,
+        clientId: asset.clientId,
+      ),
+    ))
+      template.id,
   for (final assignment in assignments)
     if (['pending', 'in_progress'].contains(assignment['status']) &&
         (assignment['checklist_templates'] as Map?)?['id'] is String)
@@ -60,10 +75,15 @@ Future<void> warmOfflineChecklistTemplates({
   required ChecklistRepository repository,
   required ChecklistSourceRepository sources,
   required Iterable<ChecklistTemplate> templates,
+  required Iterable<Asset> assets,
   required Iterable<Map<String, dynamic>> assignments,
   required void Function() check,
 }) async {
-  for (final id in offlineChecklistTemplateIds(templates, assignments)) {
+  for (final id in offlineChecklistTemplateIds(
+    templates,
+    assignments,
+    assets,
+  )) {
     check();
     final items = await repository.listItemsForTemplate(id);
     check();
@@ -250,6 +270,7 @@ final offlineReadinessProvider =
             repository: repository,
             sources: sources,
             templates: templates,
+            assets: assets,
             assignments: assignments,
             check: check,
           );

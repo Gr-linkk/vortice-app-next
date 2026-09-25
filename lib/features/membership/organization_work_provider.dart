@@ -1,3 +1,4 @@
+import 'package:vortice_app/features/checklists/checklist_snapshot_items.dart';
 import 'dart:async';
 import 'dart:typed_data';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -37,11 +38,22 @@ class OrganizationWorkRepository {
     return Map<String, dynamic>.from(raw as Map);
   }
 
-  Future<Map<String, dynamic>> context(String id) => _read(
-    'organization_work_order_context',
-    params: {'p_work_order': id},
-    suffix: id,
-  );
+  Future<Map<String, dynamic>> context(String id) async {
+    final data = await _read(
+      'organization_work_order_context',
+      params: {'p_work_order': id},
+      suffix: id,
+    );
+    if (!data.containsKey('checklist_snapshot')) return data;
+    return {
+      ...data,
+      'checklist_snapshot': checklistSnapshotItems(
+        data['checklist_snapshot'],
+        (data['work_order'] as Map?)?['checklist_template_id'] as String?,
+      ),
+    };
+  }
+
   Future<Map<String, dynamic>> configuration() =>
       _read('organization_service_configuration');
   Future<Map<String, dynamic>> requestContext() =>

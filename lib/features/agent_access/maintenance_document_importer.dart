@@ -1,4 +1,4 @@
-import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:file_selector/file_selector.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:printing/printing.dart';
@@ -65,7 +65,7 @@ class MaintenanceDocumentImporter {
   }
 
   Future<List<MaintenanceDocumentPage>> recover() async {
-    if (!Platform.isAndroid) return [];
+    if (kIsWeb || defaultTargetPlatform != TargetPlatform.android) return [];
     final result = await ImagePicker().retrieveLostData();
     if (result.exception != null) throw result.exception!;
     return Future.wait(
