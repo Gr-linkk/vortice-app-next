@@ -35,7 +35,9 @@ The requested NEXT-010 follow-up adds CAD alongside USD/MXN in internal Build 40
 complete regional tax/issuer setup. Scope and evidence:
 `docs/specs/NEXT-010-canadian-currency.md`. Naming proposals are in
 `docs/operations/PRODUCT-NAME-SHORTLIST.md`; domain selection remains deferred.
-Build 39 remains the last phone-delivered artifact until Build 40 is transferred.
+Build 40 is installed on the S24 after recovery of the independent Next debug
+signer; NEXT-012 records the verified in-place update. Google Play work is
+deferred at Garrett’s September 24 request while app completion and E2E proceed.
 These internal builds do not constitute a production release.
 
 NEXT-008 adds published-checklist attachment and an editable scheduled date to

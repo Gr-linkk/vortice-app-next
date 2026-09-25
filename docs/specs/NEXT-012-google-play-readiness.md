@@ -12,6 +12,31 @@ or organization account. The installed phone app was verified as Build 39
 (`1.18.1+39`, API 36). Current tooling and workflow evidence is recorded in
 NEXT-009's Linux audit receipt; connection alone does not close phone acceptance.
 
+September 24 direction: Google Play work is deferred. Continue product completion
+and end-to-end verification before returning to these release gates.
+
+## Independent debug-key recovery and phone update
+
+Recovered the matching independent Next debug keystore from the old WSL disk,
+opened read-only. Windows and the new Linux global debug keys did not match.
+The recovered key is ignored, mode 600, at `config/vortice-next-debug.keystore`.
+Gradle now explicitly uses that project key (or `VORTICE_NEXT_DEBUG_KEYSTORE`)
+and rejects a missing key or a different SHA-256 certificate. The expected public
+certificate is `bff1c47390f744b8143ddb53762d7a63e4a62c2ffe099d27d340ba73da435769`.
+The global Android key and production Release guard remain unchanged.
+
+The guarded build and positive signer check passed. Separate Gradle checks
+confirmed missing-key, wrong-key and unconfigured-release rejection. Built
+`outputs/builds/vortice-next-android-debug-20260924-204838.apk`, SHA-256
+`c7701c8c7c2b483610a798542a113f34463c27b2ffed2b5c43ffdc8f98238b54`.
+ADB accepted an in-place Build 39 → 40 update. Private cold snapshots taken before
+and after installation showed all 26 persisted files byte-identical before
+launch; the first-install timestamp was preserved. The app then opened Home
+with its existing Demo session. The real screen was inspected. These checks
+prove the update/session recovery, not full physical workflow acceptance or a
+complete Android Keystore restore. Local receipts and private snapshots are under
+ignored `outputs/debug-key-recovery/`; signing material is never committed.
+
 ## Verified starting point
 
 - The primary Linux checkout is `/home/garrett/projects/vortice-app-next`.
@@ -28,8 +53,8 @@ NEXT-009's Linux audit receipt; connection alone does not close phone acceptance
   `945855b03f3a4a103826558cbfc88402aa5549212f303f328eef387711560da1`).
 - Flutter doctor reports no issues, and Build 40's manifest targets Android
   API 36. Its APK checksum matches NEXT-010. The S24 is now connected with
-  Build 39 installed. The guarded Linux build succeeds, but its debug signer
-  differs; recovery of the old Next debug key is required for an in-place upgrade.
+  Build 40 installed after the key recovery below. The guarded Linux build and
+  in-place upgrade now use the established independent Next debug signer.
 - The source checkout retains the ignored Next configuration, exact linked
   project ref `hkjpojobdbbtjkhaudki` and a completed September 14 backup. Its
   manifest verifies 84 files including 78 Storage objects. This is plaintext

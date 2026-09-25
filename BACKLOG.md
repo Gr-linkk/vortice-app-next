@@ -27,9 +27,15 @@ September 24 Linux audit: development/verification/build tooling is restored,
 GitHub and Next Supabase authentication pass, and the S24 is connected. The
 workflow review fixed Home's empty-equipment dead end and enlarged-text asset
 fields. Current evidence and the remaining workflow matrix are in NEXT-009's
-Linux audit receipt. The installed Next debug signing key must be recovered for
-an in-place phone upgrade; no Play Console account exists yet. These are release
+Linux audit receipt. The Next debug key has since been recovered and verified by
+an in-place S24 update with saved data preserved; no Play Console account exists yet. These are release
 dependencies within the tracks above, not a new feature queue.
+
+September 24 continuation: Garrett authorized completing all possible launch
+work before purchasing a domain. Google Play work is now deferred at Garrett’s request. Continue NEXT-011 and
+NEXT-009 with
+configurable settings and concrete verification. Prepare domain-dependent setup
+for later connection; no domain purchase or unselected public identity is implied.
 
 ## Now
 

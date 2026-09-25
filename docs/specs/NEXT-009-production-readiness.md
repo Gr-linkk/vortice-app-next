@@ -9,6 +9,12 @@ NEXT-011 and NEXT-012 now own these release blockers; this document retains
 operating closeout and earlier verification evidence. The province, pilot,
 identity and final offer remain open.
 
+September 24 continuation: the independent Next debug key is recovered, Build 40
+is installed in place, all 26 persisted files survived unchanged, and Home opens
+with the retained session. NEXT-012 has the recovery receipt. Earlier mismatch
+statements below describe the initial audit and are resolved. Google Play work
+is deferred; continue app completion, then E2E and a final polish review.
+
 ## Linux tooling and workflow audit — September 24, 2026
 
 This audit continued `codex/canada-play-readiness` from `4310fa3` in

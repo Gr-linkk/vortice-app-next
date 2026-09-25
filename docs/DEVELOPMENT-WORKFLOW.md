@@ -38,11 +38,17 @@ tokens, passwords or signing keys into tracked files or chat.
 The app's Next client configuration is present. The four public Firebase client
 defines were recovered from the installed independent Next Build 39 APK and
 validated against the exact Next project/app/sender IDs; they are in ignored
-`config/vortice-next-firebase.local.json`. The Linux debug signer differs from
-the S24 installation. Recover the previous **Next** debug key before an in-place
-update; do not uninstall or clear phone data to get around the mismatch.
-Successful compilation does not prove notification delivery. See NEXT-009's
-Linux audit receipt.
+`config/vortice-next-firebase.local.json`. The matching **Next** debug key was
+recovered read-only from the old WSL disk into ignored, owner-only
+`config/vortice-next-debug.keystore`. Gradle uses this project-specific key and
+checks the established certificate before Debug tasks. Missing or different keys
+fail explicitly; the machine's global debug key is unchanged. An isolated
+worktree can set `VORTICE_NEXT_DEBUG_KEYSTORE` to the recovered file's absolute
+path. Preserve the key privately when moving machines; never commit it.
+The S24 accepted an in-place Build 39 → 40 update with all 26 saved app files
+unchanged before launch. Production signing remains separately blocked.
+Successful compilation does not prove notification delivery. See NEXT-012's
+key-recovery receipt and NEXT-009's Linux audit.
 
 Run the app against the dedicated backend:
 
