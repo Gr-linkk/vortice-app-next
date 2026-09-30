@@ -64,7 +64,10 @@ class _RestorePageState extends State<RestorePage> {
       if (source.text.trim().isEmpty) {
         throw StateError('Enter the entire private backup folder.');
       }
-      final backup = await OfficeBackup.inspect(Directory(source.text.trim()));
+      final backup = await OfficeBackup.inspect(
+        Directory(source.text.trim()),
+        requiredFormat: OfficeBackupFormat.maintenance,
+      );
       if (mounted) {
         setState(() {
           summary = backup;
@@ -96,6 +99,7 @@ class _RestorePageState extends State<RestorePage> {
         Directory(verifiedSource),
         Directory(newWorkspace),
         expectedFingerprint: savedFingerprint,
+        requiredFormat: OfficeBackupFormat.maintenance,
       );
       if (!mounted) return;
       setState(() => busy = false);

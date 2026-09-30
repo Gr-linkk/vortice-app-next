@@ -24,11 +24,15 @@ Future<void> main(List<String> args) async {
       ),
     );
     final summary = args.first == 'verify'
-        ? await OfficeBackup.inspect(Directory(args[1]))
+        ? await OfficeBackup.inspect(
+            Directory(args[1]),
+            requiredFormat: OfficeBackupFormat.maintenance,
+          )
         : (await OfficeBackup.restore(
             Directory(args[1]),
             Directory(args[2]),
             expectedFingerprint: args[3],
+            requiredFormat: OfficeBackupFormat.maintenance,
           )).backup;
     stdout.writeln(
       canonical({

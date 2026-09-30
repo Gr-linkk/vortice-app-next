@@ -9,6 +9,14 @@ import 'model.dart';
 import 'maintenance_domain.dart';
 import 'src/rust/api/documents.dart';
 
+/// Product entry points require [maintenance]. A null requirement retains the
+/// adopted Sync Lab APIs for synthetic regression fixtures only.
+enum OfficeBackupFormat { syncLab, maintenance }
+
+class _WrongBackupFormat extends StateError {
+  _WrongBackupFormat(super.message);
+}
+
 /// Safe metadata only. Private credentials remain in the owner-only directory.
 class OfficeBackupSummary {
   const OfficeBackupSummary({
@@ -153,10 +161,15 @@ class OfficeBackup {
     });
   }
 
-  static Future<OfficeBackupSummary> inspect(Directory directory) async {
+  static Future<OfficeBackupSummary> inspect(
+    Directory directory, {
+    OfficeBackupFormat? requiredFormat,
+  }) async {
     _linux();
     try {
-      return await _inspect(directory);
+      return await _inspect(directory, requiredFormat: requiredFormat);
+    } on _WrongBackupFormat {
+      rethrow;
     } catch (_) {
       throw StateError('This is not a complete, valid office backup.');
     }
@@ -166,6 +179,7 @@ class OfficeBackup {
     Directory backup,
     Directory destination, {
     String? expectedFingerprint,
+    OfficeBackupFormat? requiredFormat,
   }) async {
     _linux();
     Directory? stage;
@@ -181,7 +195,11 @@ class OfficeBackup {
                 ),
               )
               as Json;
-      final summary = await _inspect(backup, manifest: manifest);
+      final summary = await _inspect(
+        backup,
+        manifest: manifest,
+        requiredFormat: requiredFormat,
+      );
       if (expectedFingerprint != null &&
           summary.fingerprint != expectedFingerprint) {
         throw StateError('Office identity did not match.');
@@ -207,7 +225,7 @@ class OfficeBackup {
         File('${stage.path}/manifest.json'),
         utf8.encode(canonical(manifest)),
       );
-      final staged = await _inspect(stage);
+      final staged = await _inspect(stage, requiredFormat: requiredFormat);
       if (staged.fingerprint != summary.fingerprint ||
           staged.device != summary.device) {
         throw StateError('Backup changed while being restored.');
@@ -222,6 +240,18 @@ class OfficeBackup {
             "UPDATE phones SET status='pending' WHERE status IN ('active','pending')",
           );
           db.execute('DELETE FROM invites');
+          if (requiredFormat == OfficeBackupFormat.maintenance) {
+            for (final entry in {
+              'localMaintenanceApplication':
+                  'org.vortice.next.maintenance_local',
+              'localMaintenanceRole': 'linux-office',
+            }.entries) {
+              db.execute(
+                'INSERT INTO settings VALUES (?,?) ON CONFLICT(key) DO UPDATE SET value=excluded.value',
+                [entry.key, canonical(entry.value)],
+              );
+            }
+          }
           final note = <String, dynamic>{
             'restoredAt': DateTime.now().toUtc().toIso8601String(),
             'backupCreatedAt': summary.createdAt,
@@ -258,6 +288,8 @@ class OfficeBackup {
       await _publish(stage, destination);
       stage = null;
       return OfficeRestoreResult(destination, summary);
+    } on _WrongBackupFormat {
+      rethrow;
     } catch (_) {
       throw StateError(
         'Office restore failed. Use a complete office backup with '
@@ -404,6 +436,7 @@ class OfficeBackup {
   static Future<OfficeBackupSummary> _inspect(
     Directory root, {
     Json? manifest,
+    OfficeBackupFormat? requiredFormat,
   }) async {
     if (await FileSystemEntity.type(root.path, followLinks: false) !=
         FileSystemEntityType.directory) {
@@ -439,6 +472,23 @@ class OfficeBackup {
         !hashPattern.hasMatch(manifest['fingerprint'] as String) ||
         manifest['files'] is! Map) {
       throw StateError('Invalid backup manifest.');
+    }
+    if (requiredFormat != null) {
+      final expected = switch (requiredFormat) {
+        OfficeBackupFormat.syncLab => ('vortice-sync-lab-office', version),
+        OfficeBackupFormat.maintenance => (
+          'maintenance-local-office',
+          maintenanceVersion,
+        ),
+      };
+      if (manifest['format'] != expected.$1 ||
+          manifest['version'] != expected.$2) {
+        throw _WrongBackupFormat(
+          requiredFormat == OfficeBackupFormat.maintenance
+              ? 'Use a Local Maintenance office backup. Sync Lab backups cannot be restored here.'
+              : 'Use a Sync Lab office backup for this compatibility operation.',
+        );
+      }
     }
     await for (final item in root.list(followLinks: false)) {
       final name = item.uri.pathSegments.where((s) => s.isNotEmpty).last;
@@ -591,6 +641,14 @@ class OfficeBackup {
       }
       final catalog = settings['catalog'];
       final real = catalog != null;
+      if ((settings.containsKey('localMaintenanceApplication') ||
+              settings.containsKey('localMaintenanceRole')) &&
+          (!real ||
+              settings['localMaintenanceApplication'] !=
+                  'org.vortice.next.maintenance_local' ||
+              settings['localMaintenanceRole'] != 'linux-office')) {
+        throw StateError('This is not a Local Maintenance office workspace.');
+      }
       Json? workspace;
       if (real) {
         if (catalog is! Json ||
