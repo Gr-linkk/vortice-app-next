@@ -447,6 +447,17 @@ void main() {
           }),
           throwsStateError,
         );
+        // Giving the same immutable version a fresh envelope ID must not
+        // manufacture another received version or advance its retry history.
+        for (final replay in [first, next]) {
+          await expectLater(
+            connection.request('/submit', {
+              ...replay,
+              'id': 'relabelled-${replay['id']}',
+            }),
+            throwsStateError,
+          );
+        }
       } finally {
         connection.close();
       }
