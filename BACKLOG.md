@@ -7,6 +7,16 @@ without creating a new backlog item.
 
 ## Selected local-first slice — September 30, 2026
 
+### LF-002 — Current inspection work and focused exact review
+
+Garrett authorized sustained core local-first development while LF-001's combined
+audit continues at immutable `45380ae`. On isolated `codex/maintenance-progress-slice`
+from receipt `b6d1c8d`, show saved current drafts separately from exact immutable
+decisions, focus office undecided review and make returned-job correction clear.
+Typed read-only projections reuse reviewed rules; no schema, wire, authority or
+native change. Architecture review drives actual module boundaries and independent
+race/storage/render checks. [Scope and acceptance](docs/specs/LF-002-work-progress-and-review.md).
+
 ### LF-001 — Real local equipment inspection through review and recovery
 
 Garrett authorized a complete bounded local-first maintenance workflow, with
