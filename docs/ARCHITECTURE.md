@@ -1,9 +1,13 @@
 # Architecture: maintenance first
 
 Current cleanup: [ARCH-001](specs/ARCH-001-architecture-cleanup.md).
+Selected experimental local workflow: [LF-001](specs/LF-001-local-maintenance-slice.md),
+with [LF-002](specs/LF-002-work-progress-and-review.md) continuing current-work
+clarity on a separate descendant while LF-001's immutable source is audited.
 Boundary decision: [0020](decisions/0020-maintenance-domain-and-runtime-boundaries.md).
-This map distinguishes working code from the local-first target. It does not
-claim the existing application has already migrated.
+The hosted application remains the rollback path. The experimental local app has
+its own identity, storage and launch/build helper; no production migration,
+installation or cutover has occurred.
 
 ## Shape of the application
 
@@ -48,6 +52,33 @@ verification runs it alongside analysis and the Flutter suite.
 
 ## Local-first target and what survives
 
+The selected real slice is now `experiments/maintenance_local/`, based on the
+reviewed retained app rather than a wholesale lab merge. Normal office setup
+creates actual equipment, authored published checklists and prepared inspection
+snapshots. It supports job-scoped offline work/evidence, frozen submissions,
+exact office decisions, immutable history and strict private same-identity
+recovery. Reviewed native lab mechanisms were ported selectively. See the
+[runtime boundary summary](specs/LF-001-API-BOUNDARIES.md) for wire, startup,
+history and recovery differences. Automated evidence does not replace physical
+acceptance or a person/account identity design.
+
+| Experimental concern | Entry point | Boundary |
+| --- | --- | --- |
+| Real equipment, procedure snapshots and draft completeness | `maintenance_local/lib/maintenance_domain.dart` | Pure Dart, reusing the portable checklist rules; no storage or authority. |
+| Current draft and immutable-version progress | `maintenance_local/lib/job_progress.dart` (LF-002) | Typed pure projection; exact document identity, no inferred approval or persisted workflow state. |
+| Coherent progress reads | `maintenance_local/lib/work_progress_reader.dart` (LF-002) | Small read-only adapter captures bytes/context/history and checks evidence; late snapshots are fenced. |
+| Catalog/documents and frozen commands | `maintenance_local/lib/lab_store.dart` | Existing serial SQLite/native boundary; job IDs and frozen context remain explicit. |
+| Office decisions and command/history validation | `maintenance_local/lib/approval_rules.dart` | Exact-version checks and immutable receipts; enrollment and office role remain runtime authority. |
+| Evidence integrity | `maintenance_local/lib/evidence_store.dart` | Hashed bytes outside editable documents; complete bytes required, partials never inferred complete. |
+| Local transfer and enrollment | `maintenance_local/lib/local_sync.dart` | Pinned TLS, office confirmation/revocation and all-job verified-send status. |
+| Private office recovery | `maintenance_local/lib/office_backup.dart` | Coherent maintenance-v2 snapshot, strict ownership/schema/history, identity verification and phone reconfirmation. |
+| Work screens | `maintenance_local/lib/ui/` | Input/navigation and composed projections; no new schema, wire or authority policy in LF-002 widgets. |
+
+LF-002's projection replaces widget-derived status that could call an edited
+draft approved merely because an older submission has a receipt. The existing
+decision guard still owns approval. Pending review and immutable decided history
+remain separate facts; selecting a job cannot change another job's projection.
+
 The separate Sync Lab owns the feasibility experiment: local SQLite
 transactions, editable Automerge documents through Rust, separately hashed
 photos, confirmed device enrollment, pinned TLS, immutable approval receipts,
@@ -59,9 +90,10 @@ The lab's desktop OS account is its owner boundary. Device credentials are
 not a second person-role system. Multi-worker capabilities need a separate
 complete scope; do not infer company ownership from possession of a phone.
 
-The lab proves one synthetic inspection on Android and Linux. It does not
-implement the retained application's recurring work, inventory, billing,
-customer/provider sharing, multiple workers or company-computer recovery.
+The earlier lab proved one synthetic inspection on Android and Linux. The real
+slice adds local catalog/work creation and company-computer recovery with tested
+limits, but it does not implement the retained application's recurring work,
+inventory, billing, customer/provider sharing or multiple-person authorization.
 Keep those existing implementations until their replacement is scoped and
 verified. Do not port all those screens into the experiment to make it look
 like the finished product.
@@ -80,12 +112,15 @@ inspection certificates and review authority remain explicit policies.
 
 ## The next integration must be a complete workflow
 
-After the lab's evidence is reviewed, the next implementation scope should
-migrate equipment -> one inspection/work order -> offline evidence -> exact
-submission -> office review -> history -> replacement-device recovery.
+The implemented LF-001 experimental workflow follows equipment -> one inspection/
+work order -> offline evidence -> exact submission -> office review -> history ->
+replacement-device recovery. LF-002 improves its ordinary work visibility using
+read-only projections. Any later production integration must retain this complete
+workflow and rehearse migration and rollback with deliberately authorized data.
 
-It must select a destination base that preserves Build 45's delivered work,
-resolve the two meanings of NEXT-011, and name exactly one write authority.
+The selected experimental destination preserves reviewed Build 45 work, uses
+branch-qualified backlog IDs and names the office as its one write authority.
+A production integration must still reconcile the two meanings of NEXT-011.
 For each record it must preserve IDs, original units, procedure versions,
 attachments and historical approvals. Import and rollback must be rehearsed
 before real records are switched. Do not dual-write to SQL and a local authority
