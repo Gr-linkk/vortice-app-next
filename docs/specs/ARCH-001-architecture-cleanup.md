@@ -3,6 +3,11 @@
 Authorized September 29, 2026. Status: pre-integration cleanup implemented and
 verified. Full runtime migration and public release remain open.
 
+September 30: the independently reproduced retained boundary defects have an
+isolated repair and regression follow-up in
+[ARCH-001 retained boundary fixes](ARCH-001-retained-boundary-fixes.md).
+Its activation and independent review are separate from the earlier milestones.
+
 ## Purpose and source
 
 Garrett asked for the original DHH-style architecture/code audit to be fixed

@@ -27,6 +27,13 @@ retained app and deferred workflows working. The accepted boundary is
 complete-workflow integration gates. Runtime migration, physical acceptance,
 rights clearance and public release remain separately evidenced work.
 
+September 30 retained boundary follow-up: automatic stock release ownership,
+private cache read completion and unsupported future SQLite schemas are repaired
+on an isolated branch from `102f630`. Original audit assertions and companion
+regressions are preserved. Independent review precedes any merge or activation;
+historical event repair is separate. Scope and local evidence:
+[retained boundary fixes](docs/specs/ARCH-001-retained-boundary-fixes.md).
+
 ## Previously selected launch order — September 24, 2026
 
 1. **NEXT-011 (release blocker):** make Canadian company costs and provider

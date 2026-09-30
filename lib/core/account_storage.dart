@@ -80,18 +80,28 @@ class AccountJsonCache {
     if (currentAccount() != account) throw const AccountChangedException();
   }
 
+  void _checkRead(SharedPreferences prefs, String epochKey, int epoch) {
+    checkAccount();
+    if ((prefs.getInt(epochKey) ?? 0) != epoch) {
+      throw const AccountChangedException();
+    }
+  }
+
   Future<void> save(String key, dynamic data) async {
     checkAccount();
     final prefs = await SharedPreferences.getInstance();
     checkAccount();
+    final epochKey = accountStorageKey(account, 'read_epoch');
+    final epoch = prefs.getInt(epochKey) ?? 0;
     await prefs.setString(
       accountStorageKey(account, 'cache:$key'),
       jsonEncode({
         'value': data,
         'savedAt': now().toUtc().toIso8601String(),
-        'epoch': prefs.getInt(accountStorageKey(account, 'read_epoch')) ?? 0,
+        'epoch': epoch,
       }),
     );
+    _checkRead(prefs, epochKey, epoch);
   }
 
   Future<dynamic> readThrough(
@@ -102,6 +112,7 @@ class AccountJsonCache {
   }) async {
     checkAccount();
     final prefs = await SharedPreferences.getInstance();
+    checkAccount();
     final storageKey = accountStorageKey(account, 'cache:$key');
     final epochKey = accountStorageKey(account, 'read_epoch');
     var epoch = prefs.getInt(epochKey) ?? 0;
@@ -111,10 +122,7 @@ class AccountJsonCache {
       // Skip transport retries; fresh-read callers still reject cached fallback.
       if (browserIsOffline) throw http.ClientException('Browser is offline');
       final data = await fetch();
-      checkAccount();
-      if ((prefs.getInt(epochKey) ?? 0) != epoch) {
-        throw const AccountChangedException();
-      }
+      _checkRead(prefs, epochKey, epoch);
       if (previous != null &&
           key != 'profile' &&
           key != 'current_org' &&
@@ -136,8 +144,10 @@ class AccountJsonCache {
                       ),
                 );
         if (removed) {
+          // Accept this read's own rotation, never a concurrent invalidation.
+          epoch++;
           await invalidateAccountReadCaches(account);
-          epoch = prefs.getInt(epochKey) ?? 0;
+          _checkRead(prefs, epochKey, epoch);
         }
       }
       if (previous != null &&
@@ -156,8 +166,9 @@ class AccountJsonCache {
                       old['org_id'] != data['org_id']))
             : jsonEncode(old) != jsonEncode(data);
         if (changed) {
+          epoch++;
           await invalidateAccountReadCaches(account);
-          epoch = prefs.getInt(epochKey) ?? 0;
+          _checkRead(prefs, epochKey, epoch);
         }
       }
       final derived = derivedValues?.call(data) ?? const <String, dynamic>{};
@@ -176,10 +187,7 @@ class AccountJsonCache {
         }
       }
       for (final entry in {...derived, key: data}.entries) {
-        checkAccount();
-        if ((prefs.getInt(epochKey) ?? 0) != epoch) {
-          throw const AccountChangedException();
-        }
+        _checkRead(prefs, epochKey, epoch);
         await prefs.setString(
           accountStorageKey(account, 'cache:${entry.key}'),
           jsonEncode({
@@ -189,11 +197,14 @@ class AccountJsonCache {
           }),
         );
       }
+      // Persistence yields too: fence the API result after its final await.
+      _checkRead(prefs, epochKey, epoch);
       return data;
     } catch (error) {
       checkAccount();
       if (isAccessDenial(error)) await invalidateAccountReadCaches(account);
       if (!isConnectionFailure(error)) rethrow;
+      _checkRead(prefs, epochKey, epoch);
       if (Zone.current[_requireFreshReads] == true) rethrow;
       final cached = prefs.getString(storageKey);
       if (cached == null) rethrow;

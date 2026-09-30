@@ -374,6 +374,14 @@ class AppDatabase extends _$AppDatabase {
   @override
   MigrationStrategy get migration => MigrationStrategy(
     onUpgrade: (m, from, to) async {
+      // Drift also calls onUpgrade for downgrades. Reject before touching an
+      // unsupported store so its version and saved work remain recoverable.
+      if (from > to) {
+        throw StateError(
+          'Database schema $from is newer than supported schema $to. '
+          'Open it with a newer app version.',
+        );
+      }
       if (from < 8) {
         await m.addColumn(assetsTable, assetsTable.meterUnit);
         await m.addColumn(assetsTable, assetsTable.primaryMeterEngineId);
