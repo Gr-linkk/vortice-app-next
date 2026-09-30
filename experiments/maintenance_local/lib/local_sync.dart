@@ -481,7 +481,8 @@ class PhoneSync {
       message = 'Sending saved work…';
       onChange?.call();
       var bundle = await c.request('/bundle', {});
-      if ((bundle['workspace'] as Json)['companyId'] != pairing!['companyId']) {
+      final company = (bundle['catalog'] ?? bundle['workspace']) as Json;
+      if (company['companyId'] != pairing!['companyId']) {
         throw StateError('Office company changed.');
       }
       await store.importOfficeBundle(bundle);
