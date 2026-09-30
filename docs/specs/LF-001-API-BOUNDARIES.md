@@ -2,6 +2,10 @@
 
 This summary is self-contained for review of preserved milestone
 `7192166cd2411a92cba7bc180b6d3aeff0d3593d` and its reviewed setup follow-up.
+Combined verified source: `45380ae6b093a400e8a5f589b19359fe822bfc28` (setup port
+plus both submission fixes); full builder gate passes 170 Flutter/four Rust
+tests. External combined audit remains pending. Receipt documentation is a
+separate later commit and does not alter that source.
 Checkout: `task-8/local-maintenance`, branch `codex/local-maintenance-slice`.
 The hosted rollback and active lab are separate and untouched. This is an
 experimental single-company office-coordinator/mechanic workflow. It grants no
@@ -102,6 +106,9 @@ raw transport diagnostics, URLs or tokens into guidance. Application, photo and
 recovery failures retain their own presentation. A newer actual connection
 response may clear its associated transport banner; starting a retry alone does
 not clear it. Manual confirmation and revoked/auth-failure states remain visible.
+Manual invitation entry/scanning and enrollment fence the automatic timer for the
+whole action; a running sync disables connection updates to prevent stale action
+completion from replacing newer help or confirmation.
 
 `PhoneSync.visibleMessage`, `lastGuidance` and `connectionResponses` are
 presentation APIs. Verified-send status is derived from the **final office bundle's

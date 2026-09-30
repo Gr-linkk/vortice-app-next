@@ -189,3 +189,73 @@ The adapter and reviewer boundaries are documented in
 `LF-001-API-BOUNDARIES.md`. Stable follow-up source, full applicable gate results,
 separate packaging receipt and independent clearance remain required before
 calling this revision ready for the next physical acceptance step.
+
+### Follow-up builder receipt
+
+Verified source is `45380ae6b093a400e8a5f589b19359fe822bfc28`; its maintenance
+subtree is `adb8720d6f762da816ae22dfd4c75d0700bd6485`. Later receipt documentation
+commits change no application source. `9a4b493` fixes both ingestion findings;
+`b07759d` adds ten independently authored TLS/import/private-recovery companions.
+Those tests reject both poisons atomically, retain exact-ID retries after later
+successors, and allow changed-byte histories even when visible values match.
+The original audit reproduction files remain unchanged in the reviewer's frozen
+checkout. A fresh internal source review found no P1/P2 in these two fixes;
+external combined re-review remains **pending**, and the original `7192166`
+review remains blocked until the reviewer clears it.
+
+The reviewed setup port is integrated through `b8d4c76`, `125e7b3` and `45380ae`.
+Whole-job confirmation uses the final office bundle's document map. Selecting a
+different job retains confirmation; new drafts, queued commands, absent/new job
+documents and partial photo/history results cannot inherit it. Safe connection
+guidance has independent response tracking: starting a retry retains help, a
+fresh actual response clears only associated transport help, and application or
+persisted photo-recovery failures remain visible. Invitation dialog/scanning and
+enrollment fence automatic sync for the whole manual action; existing in-flight
+sync disables connection update. Address refresh invalidates stale invitations,
+rechecks the selected address before creation and preserves explicit office code
+confirmation and revocation. `SETUP.md` explains manual transfer and hotspot
+reconnection without changing network settings.
+
+Fresh full `scripts/local-maintenance.sh verify --reporter expanded` passes
+locked offline dependencies, clean whole-package analysis, **four Rust tests**,
+native build and **170 Flutter tests**. This includes every original maintenance
+regression, ten real-v2 controlled interruption/publication cases, three focused
+ingestion checks, ten independent ingestion companions, twelve setup/network
+race probes, and eight ordinary/setup/recovery raster cases at 412×915, 1x/2x text.
+Three repository isolation tests, service guard and portable domain guard pass.
+Both setup renders and both recovery renders also pass without screenshot output.
+The earlier retained 879 Flutter / 52 SQL / five browser / repository gates are
+preserved prior evidence; the follow-up changes only the experimental app and its
+own documentation, so those hosted gates were not rerun for this follow-up.
+
+There are **94 fresh PNG captures** in `outputs/lf001-setup/screenshots/`, with
+dimensions and checksums in `Screenshot-Manifest.json`. Actual gallery pixels,
+notes, queue/verified states, private copy instructions, code confirmation,
+revocation, exact review and restored approval were checked at normal/large text.
+Large-text notes instructions now wrap completely. Real loopback TLS and fresh
+synthetic catalog/equipment/job fixtures drive verified-status renders; no
+fabricated success message or live physical workspace is used.
+
+Linux and Android arm64 debug builds pass at `0.2.1+2`. APK metadata confirms
+the separate maintenance identity and existing certificate SHA-256
+`9b46bb98db0519dbb53c5e17086cc8b16459157275561dcc68174a6cec463b81`.
+All 17 regular Linux archive files match the built bundle. Packaged SQLite,
+Rust and Flutter native libraries are present; Linux uses `$ORIGIN/lib` and its
+normal relative native-assets manifest. No key was created, device installed or
+active application launched.
+
+| Follow-up local deliverable | SHA-256 |
+| --- | --- |
+| `outputs/lf001-setup/Vortice-Local-Maintenance-0.2.1-internal.apk` | `dece29145fc66d2e0d039b310477c3542bae1da122e92e9bf58b1779f8db7a1d` |
+| `outputs/lf001-setup/Vortice-Local-Maintenance-0.2.1-linux-x64.tar.gz` | `982039b67d279ee86905c92f09022d4b0bdf971bd374f0b68d3e0f3982aaa955` |
+
+`Milestone-Receipt.json`, `SHA256SUMS`, native dependency and Linux file manifests,
+full gate/build/signature logs and worker evidence accompany those ignored
+deliverables. The original `outputs/lf001/` receipt, checksum file and both
+`0.2.0+1` binaries were checked against their previous hashes and remain identical.
+Build45, retained, cleanup and both source lab checkouts remain clean at their
+previous revisions. The next step is independent combined audit, followed by
+separately authorized physical gallery/approval/restore and unassisted setup
+acceptance. Existing-company import, multi-coordinator failover, engine-cache
+ownership and broader identity recovery remain the specific deferred decisions
+already recorded above.
