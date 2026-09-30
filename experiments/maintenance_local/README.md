@@ -57,10 +57,13 @@ folder to separate storage. Only records received by the office are included.
 Incomplete or corrupt photos prevent a successful complete backup.
 
 Close the original office. On the replacement Linux computer choose **Restore
-office computer**, enter the entire private backup directory, an absent workspace
+office backup**, enter the entire private backup directory, an absent workspace
 directory and the separately saved fingerprint. **Check backup** must succeed
 before restore is enabled. The app opens the restored workspace. Reinvite and
 reconfirm the same surviving phones; revoked phones remain blocked.
+Normal restore requires a Local Maintenance v2 backup. It rejects Sync Lab
+backups, and normal startup rejects an unrelated or wrong-role workspace before
+changing its permissions, schema or identity.
 
 An older backup can receive a surviving phone's own queued submission chain.
 Office decisions created after that backup cannot be reconstructed from the

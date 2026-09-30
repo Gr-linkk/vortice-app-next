@@ -61,12 +61,58 @@ The setup UX builder owns the separate address-refresh/plain-language-error/
 dialog-resume follow-up from the lab. Only a stable parent-relayed commit may be
 reviewed and ported later; its active files are not edited here.
 
+Stable candidate `e6956ae8d3274142cc09fa23c6ced05eda4bac00` was inspected read-only
+after the parent relayed it. Its independent review is still pending. The planned
+selective port is address refresh/invitation invalidation and safe connection
+guidance, followed by status updates adapted to **all job documents**. Its
+single-document `PhoneSync.visibleMessage` comparison cannot be copied unchanged
+into this multi-job runtime. Preparation/workspace/inspection screens must be
+merged selectively, retaining real catalogs, frozen context and interrupted-photo
+job binding. Port the relevant tests with maintenance identities and TCP 47841;
+exclude lab backlog/demo claims and the already-adopted subprocess harness fix.
+No part of that candidate is accepted or ported by this milestone.
+
 ## Verification receipt
 
-Implementation/test results and exact milestone commits will be appended after
-integration. Initial native build and four Rust tests pass on cached toolchains.
-Tooling is copied into task-8 writable cache locations; the original SDK, active
-office/phone workspace and physical network settings are not modified.
+Five independent GPT-6.1 Sol Ultra workstreams handled native persistence/sync,
+portable domain rules, workflow UI, adversarial tests and rendered acceptance.
+Workers used separate branches/checkouts with file ownership; the coordinator
+integrated commits and ran the retained gates. A separate Fast switch was not
+exposed by these worker tools. Disposable tooling caches are in task-8. No active
+office/phone workspace or physical network settings are modified.
+
+Implemented: office-created company/equipment/procedures/prepared inspections;
+frozen checklist context/provenance; null versus zero and pinned meter units;
+job-scoped offline CRDT answers, notes and gallery evidence; immutable idempotent
+submission chains; exact-version approval/return/history; referenced-only public
+photo replication; coherent private backups and reconfirmed recovery. Surviving
+phones can resend their own submissions after an older backup, but missing newer
+office decisions cause an explicit incomplete-history failure. Phone receipts
+never recreate office authority.
+
+Final audit tightened two isolation boundaries: normal UI/CLI restoration requires
+maintenance-local-office/v2 before staging, and normal startup checks existing
+app/role ownership read-only before chmod/schema/identity writes. Legacy lab APIs
+remain fixture compatibility only. Foreign directories and legacy backups are
+not silently adopted or converted. Restored ownership markers are written within
+the fenced stage transaction before publication.
+
+Retained gates pass: 879 Flutter tests through the official verification script,
+clean analysis and portable-Dart guard; 52 SQL contracts plus archive restore/RLS,
+populated coordination/report upgrades and Work hub performance; five headless
+Chromium checks; 15 repository script tests and two web-preparation checks.
+The native four Rust tests pass. The initial combined maintenance regression
+passed 103 tests, including the 12 domain cases and 30 independently authored
+workflow/network probes. Real-v2 SIGKILL/publication recovery subsequently passed
+all 10 interruption cases through the strict normal CLI. Both ordinary workflow
+render cases passed at 412×915 with 1x/2x text and actual decoded photo pixels.
+Final integrated totals, restore renders and artifact hashes follow below.
+
+Local evidence is in `outputs/lf001/`; generated binaries and screenshots are
+ignored deliverables rather than source-control payloads. Original rollback and
+source checkouts remain clean at Build45 `9a3b5d3`, reviewed retained `eb2d0d4`,
+cleanup `102f630` and active lab `f6608e10`. No merge, push, deployment, public
+release, new signing key or live-data import occurred.
 
 Physical gates remain distinct: user-reported lab hotspot pairing, offline note
 save/reopen and delivery on reconnect do not establish this new real workflow's
