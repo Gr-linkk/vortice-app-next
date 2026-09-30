@@ -7,41 +7,132 @@ import '../local_sync.dart';
 import 'common.dart';
 
 class DevicesPage extends StatefulWidget {
-  const DevicesPage({super.key, required this.server});
+  const DevicesPage({
+    super.key,
+    required this.server,
+    this.addressLoader = availableLocalAddresses,
+  });
   final OfficeServer server;
+  final Future<List<String>> Function() addressLoader;
   @override
   State<DevicesPage> createState() => _DevicesPageState();
 }
 
-class _DevicesPageState extends State<DevicesPage> {
+Future<List<String>> availableLocalAddresses() async {
+  final interfaces = await NetworkInterface.list(
+    type: InternetAddressType.IPv4,
+  );
+  return interfaces
+      .where((i) => !i.name.startsWith('docker') && !i.name.startsWith('br-'))
+      .expand((i) => i.addresses)
+      .map((a) => a.address)
+      .where((a) => localAddress(a) && !a.startsWith('127.'))
+      .toSet()
+      .toList();
+}
+
+class _DevicesPageState extends State<DevicesPage> with WidgetsBindingObserver {
   List<String> addresses = [];
-  String? host, invitation, message;
-  Timer? timer;
+  String? host, invitation, invitationHost, message, addressProblem;
+  Timer? timer, addressTimer;
+  int refreshVersion = 0;
+  bool loading = true, creating = false, foreground = true;
+  bool addressesVerified = false;
+
   @override
   void initState() {
     super.initState();
-    load();
+    WidgetsBinding.instance.addObserver(this);
+    refreshAddresses();
     timer = Timer.periodic(const Duration(seconds: 2), (_) {
-      if (mounted) setState(() {});
+      if (mounted && foreground) setState(() {});
+    });
+    addressTimer = Timer.periodic(const Duration(seconds: 10), (_) {
+      if (foreground && !loading && !creating) refreshAddresses();
     });
   }
 
-  Future<void> load() async {
-    final interfaces = await NetworkInterface.list(
-      type: InternetAddressType.IPv4,
-    );
-    addresses = interfaces
-        .where((i) => !i.name.startsWith('docker') && !i.name.startsWith('br-'))
-        .expand((i) => i.addresses)
-        .map((a) => a.address)
-        .where(localAddress)
-        .toList();
-    if (mounted) setState(() => host = addresses.firstOrNull);
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    foreground = state == AppLifecycleState.resumed;
+    if (foreground) refreshAddresses();
+  }
+
+  Future<bool> refreshAddresses() async {
+    final version = ++refreshVersion;
+    setState(() => loading = true);
+    try {
+      final latest = (await widget.addressLoader())
+          .where((a) => localAddress(a) && !a.startsWith('127.'))
+          .toSet()
+          .toList();
+      if (!mounted || version != refreshVersion) return false;
+      setState(() {
+        addresses = latest;
+        if (!latest.contains(host)) host = latest.firstOrNull;
+        if (invitationHost != null && !latest.contains(invitationHost)) {
+          invitation = invitationHost = message = null;
+          addressProblem =
+              'The computer address changed. Create a new invitation and paste it on the phone.';
+        } else {
+          addressProblem = null;
+        }
+        loading = false;
+        addressesVerified = true;
+      });
+      return true;
+    } catch (_) {
+      if (!mounted || version != refreshVersion) return false;
+      setState(() {
+        loading = false;
+        addressesVerified = false;
+        invitation = invitationHost = message = null;
+        addressProblem =
+            'Could not check the computer address. Choose Refresh addresses and try again.';
+      });
+      return false;
+    }
+  }
+
+  Future<void> createInvitation() async {
+    final selected = host;
+    if (selected == null || creating) return;
+    setState(() => creating = true);
+    try {
+      final fresh = await refreshAddresses();
+      if (!mounted || !fresh) return;
+      if (host != selected || !addresses.contains(selected)) {
+        setState(
+          () => addressProblem =
+              'The computer address changed. Check the address below, then create a new invitation.',
+        );
+        return;
+      }
+      final created = widget.server.invitation(selected);
+      setState(() {
+        invitation = created;
+        invitationHost = selected;
+        message = addressProblem = null;
+      });
+    } catch (_) {
+      if (mounted) {
+        setState(() {
+          invitation = invitationHost = message = null;
+          addressProblem =
+              'Could not create an invitation. Refresh addresses, then try again.';
+        });
+      }
+    } finally {
+      if (mounted) setState(() => creating = false);
+    }
   }
 
   @override
   void dispose() {
+    ++refreshVersion;
+    WidgetsBinding.instance.removeObserver(this);
     timer?.cancel();
+    addressTimer?.cancel();
     super.dispose();
   }
 
@@ -51,13 +142,21 @@ class _DevicesPageState extends State<DevicesPage> {
     body: page([
       Text('Connect a phone', style: Theme.of(context).textTheme.headlineSmall),
       const Text(
-        'Keep both apps open on the same Wi-Fi. Create an invitation, copy and paste it on the phone, then compare and confirm the code here. A saved invitation image also works without a camera.',
+        '1. Keep this app and the phone app open on the same Wi-Fi or phone hotspot.\n2. Check the computer address below, then create an invitation.',
       ),
       const SizedBox(height: 16),
-      if (addresses.isEmpty)
-        notice('Join a local Wi-Fi network to invite a phone.', error: true)
-      else
+      TextButton.icon(
+        key: const ValueKey('refresh-addresses'),
+        onPressed: creating ? null : refreshAddresses,
+        icon: const Icon(Icons.refresh),
+        label: Text(loading ? 'Checking addresses…' : 'Refresh addresses'),
+      ),
+      if (addressProblem != null) notice(addressProblem!, error: true),
+      if (addresses.isEmpty && !loading)
+        notice('Join a local Wi-Fi network to invite a phone.', error: true),
+      if (addresses.isNotEmpty)
         DropdownButtonFormField<String>(
+          key: ValueKey('computer-address-$host'),
           initialValue: host,
           isExpanded: true,
           decoration: const InputDecoration(
@@ -66,18 +165,20 @@ class _DevicesPageState extends State<DevicesPage> {
           items: addresses
               .map((a) => DropdownMenuItem(value: a, child: Text(a)))
               .toList(),
-          onChanged: (value) => setState(() {
-            host = value;
-            invitation = null;
-          }),
+          onChanged: creating
+              ? null
+              : (value) => setState(() {
+                  host = value;
+                  invitation = invitationHost = message = null;
+                }),
         ),
       const SizedBox(height: 16),
       FilledButton(
-        onPressed: host == null
+        key: const ValueKey('create-invitation'),
+        onPressed: host == null || loading || creating || !addressesVerified
             ? null
-            : () =>
-                  setState(() => invitation = widget.server.invitation(host!)),
-        child: const Text('Create phone invitation'),
+            : createInvitation,
+        child: Text(creating ? 'Checking address…' : 'Create phone invitation'),
       ),
       if (invitation != null) ...[
         Center(
@@ -87,14 +188,18 @@ class _DevicesPageState extends State<DevicesPage> {
             backgroundColor: Colors.white,
           ),
         ),
-        const Text('Expires in 10 minutes. Keep this invitation private.'),
+        const Text(
+          '3. Copy this private invitation. On the phone, choose Paste invitation and paste the complete text. A saved invitation image also works without a camera.\n4. Compare the code on both screens, then allow the phone here.\nExpires in 10 minutes.',
+        ),
         TextButton(
           onPressed: () async {
-            await Clipboard.setData(ClipboardData(text: invitation!));
-            if (mounted) {
+            final copied = invitation;
+            if (copied == null) return;
+            await Clipboard.setData(ClipboardData(text: copied));
+            if (mounted && invitation == copied) {
               setState(
                 () => message =
-                    'Invitation copied. Bring this private text to the phone and choose Paste invitation. Compare the confirmation code here before allowing it.',
+                    'Invitation copied on this computer only. Send the complete private text to yourself using a method you trust, then copy it on the phone and choose Paste invitation. Compare the confirmation code here before allowing it.',
               );
             }
           },
@@ -119,7 +224,7 @@ class _DevicesPageState extends State<DevicesPage> {
                 ),
                 Text(
                   p['status'] == 'active'
-                      ? 'Connected'
+                      ? 'Allowed to connect'
                       : p['status'] == 'revoked'
                       ? 'Revoked — connection blocked'
                       : 'Awaiting your confirmation',
