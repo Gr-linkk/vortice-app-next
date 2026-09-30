@@ -106,7 +106,44 @@ passed 103 tests, including the 12 domain cases and 30 independently authored
 workflow/network probes. Real-v2 SIGKILL/publication recovery subsequently passed
 all 10 interruption cases through the strict normal CLI. Both ordinary workflow
 render cases passed at 412×915 with 1x/2x text and actual decoded photo pixels.
-Final integrated totals, restore renders and artifact hashes follow below.
+The final integrated `scripts/local-maintenance.sh verify --reporter expanded`
+passes locked offline dependency resolution, clean package-wide analysis, four
+Rust tests/native build and **111 Flutter tests**. This includes all adopted
+runtime regressions, independent workflow/network probes, four strict
+startup/restore boundary cases (including actual CLI rejection), ten real-v2
+interruption/publication cases, and four ordinary/recovery render cases at 1x/2x.
+The strict rejection tests first caught SQLite read-only opens creating WAL/SHM
+sidecars; the final ownership-file guard performs no SQLite open on a foreign
+folder. The unchanged-byte/file/permission assertions now pass.
+
+Both internal debug builds succeed at `0.2.0+1`. APK metadata confirms application
+ID `org.vortice.next.maintenance_local`, label **Vortice Local Maintenance**, and
+debuggable mode. Signature verification confirms the existing internal debug
+certificate SHA-256 `9b46bb98db0519dbb53c5e17086cc8b16459157275561dcc68174a6cec463b81`;
+no new key was generated. Runtime source was frozen at `db6ecbf`; subsequent
+`8188e4e`/`96ee764` add tests/integration fixtures only. Final full verification
+ran at `96ee76480782f22e2aa5952a0bd0c3f3ae36bcca`.
+
+| Local deliverable | SHA-256 |
+| --- | --- |
+| `outputs/lf001/Vortice-Local-Maintenance-0.2.0-internal.apk` | `0701d65a0236b5f30c0e64a8724a418ff1125c08993cbeb755e2df2dbad46d5f` |
+| `outputs/lf001/Vortice-Local-Maintenance-0.2.0-linux-x64.tar.gz` | `2e32bca44563f19cb922bafe6e1f2085d470ae679942360990768ad5e5278371` |
+
+The packaged Linux archive was compared with every current bundle regular file.
+`outputs/lf001/SHA256SUMS`, build/package/signature logs and 50 inspected ordinary/
+recovery PNG captures accompany the artifacts. Gallery selection uses the
+plugin's synthetic test seam; captures show actual Flutter widget rendering,
+Roboto/Material icons and decoded photo pixels. A native desktop integration
+session was not launched: there is no disposable Xvfb display here, and the
+active physical workspace was preserved. This is a tested internal reviewable
+milestone, not proof of device installation or production readiness.
+
+Meaningful integrated commits: `99f780e` isolated runtime foundation; `c3a6fe0`
+portable real domain; `084b212` real workflow UI; `16ccb72` shared rules/startup
+guard; `008d1c6` real native catalog/job persistence; `003d339` independent probes;
+`3cb1a36` older-backup history; `7d0f578` ordinary renders; `60c998c` strict restore;
+`b78d1ea`/`db6ecbf` ownership guards; `8188e4e` rejection tests; `96ee764` real
+recovery renders. Final review should use the branch tip and these artifacts.
 
 Local evidence is in `outputs/lf001/`; generated binaries and screenshots are
 ignored deliverables rather than source-control payloads. Original rollback and
