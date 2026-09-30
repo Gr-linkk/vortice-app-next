@@ -7,6 +7,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:maintenance_local/lab_store.dart';
 import 'package:maintenance_local/local_sync.dart';
 import 'package:maintenance_local/model.dart';
+import 'package:maintenance_local/office_backup.dart';
 import 'package:maintenance_local/src/rust/api/documents.dart';
 import 'package:maintenance_local/src/rust/frb_generated.dart';
 
@@ -131,6 +132,33 @@ void main() {
     await sync.enroll(server.invitation('127.0.0.1'));
     server.authority.confirm(phone.device);
     await sync.sync();
+  }
+
+  Future<void> restoreOlderOffice(Directory backup, String fingerprint) async {
+    final officeDevice = office.device, token = sync.pairing!['token'];
+    await server.close();
+    await office.close();
+    final restored = Directory('${root.path}/restored-office');
+    await OfficeBackup.restore(
+      backup,
+      restored,
+      expectedFingerprint: fingerprint,
+    );
+    office = await LabStore.open(restored, office: true);
+    server = await OfficeServer.start(
+      office,
+      port: 0,
+      address: InternetAddress.loopbackIPv4,
+    );
+    expect(office.device, officeDevice);
+    expect(server.identity.fingerprint, fingerprint);
+    expect(server.authority.phones.single['status'], 'pending');
+    await sync.enroll(server.invitation('127.0.0.1'));
+    expect(sync.pairing!['token'], token);
+    expect(sync.pairing!['fingerprint'], fingerprint);
+    await sync.sync();
+    expect(sync.message, contains('Confirm code'));
+    server.authority.confirm(phone.device);
   }
 
   Future<Json> submit(
@@ -469,6 +497,129 @@ void main() {
       });
       expect(office.receipts, isEmpty);
     },
+  );
+
+  test(
+    'Older office backup recovers a received predecessor before its later queued submission',
+    () async {
+      await connect();
+      final backup = Directory('${root.path}/older-office-backup');
+      final summary = await OfficeBackup.create(office, backup);
+      final first = await submit(firstId());
+      await sync.sync();
+      expect(phone.submissions.single['_state'], 'received');
+      expect(office.submissions.single['id'], first['id']);
+
+      await phone.update({
+        'notes': 'Synthetic later findings queued after the backup.',
+      }, jobId: firstId());
+      await phone.attach(
+        List.generate(9001, (i) => (i * 13 + 17) % 251),
+        jobId: firstId(),
+      );
+      final later = await phone.submit(jobId: firstId());
+      expect(later['submissionRevision'], 2);
+      expect(later['predecessorId'], first['id']);
+      expect(phone.submissions.last['_state'], 'queued');
+      final originals = {first['id']: first, later['id']: later};
+      final photos = <String, List<int>>{};
+      for (final payload in originals.values) {
+        final hash = (payload['values'] as Json)['photo'] as String;
+        photos[hash] = await phone.evidence.file(hash).readAsBytes();
+      }
+      expect(photos, hasLength(2));
+
+      await restoreOlderOffice(backup, summary.fingerprint);
+      expect(office.submissions, isEmpty);
+      expect(office.receipts, isEmpty);
+      await sync.sync();
+      await sync.sync();
+
+      expect(office.submissions.map((p) => p['id']), [
+        first['id'],
+        later['id'],
+      ]);
+      for (final saved in office.submissions) {
+        final payload = Map<String, dynamic>.from(saved)..remove('_state');
+        expect(canonical(payload), canonical(originals[saved['id']]));
+        expect(saved['_state'], 'received');
+      }
+      expect(phone.submissions.every((p) => p['_state'] == 'received'), isTrue);
+      for (final entry in photos.entries) {
+        expect(await office.evidence.complete(entry.key), isTrue);
+        expect(
+          await office.evidence.file(entry.key).readAsBytes(),
+          orderedEquals(entry.value),
+        );
+      }
+      expect(await office.approvalProblem(later), isNull);
+      expect(office.receipts, isEmpty);
+      expect(phone.receipts, isEmpty);
+      expect(
+        office.db.select("SELECT * FROM events WHERE kind='reviewed'"),
+        isEmpty,
+      );
+      expect(sync.message, 'Saved on the computer. Photos verified.');
+    },
+    skip: !Platform.isLinux,
+  );
+
+  test(
+    'Older office backup cannot acquire a phone-held approval or report complete recovery',
+    () async {
+      await connect();
+      final backup = Directory('${root.path}/older-office-backup');
+      final summary = await OfficeBackup.create(office, backup);
+      final submission = await submit(firstId());
+      await sync.sync();
+      final receipt = await office.decide(
+        submission['id'] as String,
+        approve: true,
+      );
+      await sync.sync();
+      expect(phone.receipts.single, receipt);
+      final lastComplete = phone.setting('lastCompleteSync');
+      expect(lastComplete, isNotNull);
+      final photo = (submission['values'] as Json)['photo'] as String;
+      final bytes = await phone.evidence.file(photo).readAsBytes();
+
+      await restoreOlderOffice(backup, summary.fingerprint);
+      expect(office.submissions, isEmpty);
+      expect(office.receipts, isEmpty);
+      expect(phone.setting('lastCompleteSync'), lastComplete);
+      for (var attempt = 0; attempt < 2; attempt++) {
+        await expectLater(
+          sync.sync(),
+          throwsA(
+            isA<StateError>().having(
+              (e) => e.message,
+              'missing authoritative receipt',
+              contains('missing an earlier office decision'),
+            ),
+          ),
+        );
+        expect(sync.message, contains('missing an earlier office decision'));
+        expect(sync.busy, isFalse);
+        expect(phone.setting('lastCompleteSync'), lastComplete);
+        expect(phone.receipts.single, receipt);
+        expect(office.receipts, isEmpty);
+        expect(office.submissions, hasLength(1));
+      }
+      final restoredPayload = Map<String, dynamic>.from(
+        office.submissions.single,
+      )..remove('_state');
+      expect(canonical(restoredPayload), canonical(submission));
+      expect(await office.evidence.complete(photo), isTrue);
+      expect(
+        await office.evidence.file(photo).readAsBytes(),
+        orderedEquals(bytes),
+      );
+      expect(
+        office.db.select("SELECT * FROM events WHERE kind='reviewed'"),
+        isEmpty,
+      );
+    },
+    skip: !Platform.isLinux,
   );
 
   test(
