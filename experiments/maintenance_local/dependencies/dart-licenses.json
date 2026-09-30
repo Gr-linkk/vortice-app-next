@@ -1,0 +1,524 @@
+[
+  {
+    "name": "args",
+    "version": "2.7.0",
+    "licenseFile": "licenses/args.txt",
+    "sha256": "dfb09c74e29386cd3e2719f32d4995d59526179753931d31840757c77fbf2791"
+  },
+  {
+    "name": "async",
+    "version": "2.13.1",
+    "licenseFile": "licenses/async.txt",
+    "sha256": "ff15faa32a2e638107b7789592b14426162a75ba620044ee2340a20ec6ce5e73"
+  },
+  {
+    "name": "boolean_selector",
+    "version": "2.1.2",
+    "licenseFile": "licenses/boolean_selector.txt",
+    "sha256": "b71519245009a3b8f126196a5408ec031e216e8e0d985085958c6543f82a8a2a"
+  },
+  {
+    "name": "build_cli_annotations",
+    "version": "2.1.1",
+    "licenseFile": "licenses/build_cli_annotations.txt",
+    "sha256": "2ba6b4fdfeda37720de46a37ebe5c654fc2f62f9e31a1f1c548f3df4c56e5553"
+  },
+  {
+    "name": "characters",
+    "version": "1.4.1",
+    "licenseFile": "licenses/characters.txt",
+    "sha256": "0371d1da6a57fb791db29d29b95333429205f51f3cb2eb3a0c12d91838a38744"
+  },
+  {
+    "name": "charcode",
+    "version": "1.4.0",
+    "licenseFile": "licenses/charcode.txt",
+    "sha256": "8a4dbe6d3ddcf937b18d1768d13f9ba718b45bcb43bc00a3b63eb160d264acf7"
+  },
+  {
+    "name": "clock",
+    "version": "1.1.2",
+    "licenseFile": "licenses/clock.txt",
+    "sha256": "58d1e17ffe5109a7ae296caafcadfdbe6a7d176f0bc4ab01e12a689b0499d8bd"
+  },
+  {
+    "name": "code_assets",
+    "version": "1.2.1",
+    "licenseFile": "licenses/code_assets.txt",
+    "sha256": "21ae23b0b9ff67a2dc75ab085d1e8db8ac548c5faf370af17f28dd2ef3b52b7b"
+  },
+  {
+    "name": "collection",
+    "version": "1.19.1",
+    "licenseFile": "licenses/collection.txt",
+    "sha256": "ff15faa32a2e638107b7789592b14426162a75ba620044ee2340a20ec6ce5e73"
+  },
+  {
+    "name": "cross_file",
+    "version": "0.3.5+5",
+    "licenseFile": "licenses/cross_file.txt",
+    "sha256": "420f7739f169097f0aad1242045169cd643c8f1d94e62866fad265ae4c369b7d"
+  },
+  {
+    "name": "crypto",
+    "version": "3.0.7",
+    "licenseFile": "licenses/crypto.txt",
+    "sha256": "ad6a71997da90924b2cfb1fb47ec46537f70faf469efe016168794ae45ed6888"
+  },
+  {
+    "name": "fake_async",
+    "version": "1.3.3",
+    "licenseFile": "licenses/fake_async.txt",
+    "sha256": "58d1e17ffe5109a7ae296caafcadfdbe6a7d176f0bc4ab01e12a689b0499d8bd"
+  },
+  {
+    "name": "ffi",
+    "version": "2.2.0",
+    "licenseFile": "licenses/ffi.txt",
+    "sha256": "0371d1da6a57fb791db29d29b95333429205f51f3cb2eb3a0c12d91838a38744"
+  },
+  {
+    "name": "file",
+    "version": "7.0.1",
+    "licenseFile": "licenses/file.txt",
+    "sha256": "f6df86b1412172537273e8e80ee2fb8a66aa7307ce0b39ea5ddab47ca41b8c49"
+  },
+  {
+    "name": "file_selector_linux",
+    "version": "0.9.4+1",
+    "licenseFile": "licenses/file_selector_linux.txt",
+    "sha256": "420f7739f169097f0aad1242045169cd643c8f1d94e62866fad265ae4c369b7d"
+  },
+  {
+    "name": "file_selector_macos",
+    "version": "0.9.5+1",
+    "licenseFile": "licenses/file_selector_macos.txt",
+    "sha256": "420f7739f169097f0aad1242045169cd643c8f1d94e62866fad265ae4c369b7d"
+  },
+  {
+    "name": "file_selector_platform_interface",
+    "version": "2.7.0",
+    "licenseFile": "licenses/file_selector_platform_interface.txt",
+    "sha256": "420f7739f169097f0aad1242045169cd643c8f1d94e62866fad265ae4c369b7d"
+  },
+  {
+    "name": "file_selector_windows",
+    "version": "0.9.3+6",
+    "licenseFile": "licenses/file_selector_windows.txt",
+    "sha256": "420f7739f169097f0aad1242045169cd643c8f1d94e62866fad265ae4c369b7d"
+  },
+  {
+    "name": "fixnum",
+    "version": "1.1.1",
+    "licenseFile": "licenses/fixnum.txt",
+    "sha256": "ff0b91d4f3c32b25cb6ec84985e8da89b0ba2a2b2f7eef353cda5e5423a20390"
+  },
+  {
+    "name": "flutter",
+    "version": "Flutter SDK 3.44.0",
+    "licenseFile": "licenses/flutter.txt",
+    "sha256": "a598db94b6290ffbe10b5ecf911057b6a943351c727fdda9e5f2891d68700a20"
+  },
+  {
+    "name": "flutter_driver",
+    "version": "Flutter SDK 3.44.0",
+    "licenseFile": "licenses/flutter_driver.txt",
+    "sha256": "a598db94b6290ffbe10b5ecf911057b6a943351c727fdda9e5f2891d68700a20"
+  },
+  {
+    "name": "flutter_lints",
+    "version": "6.0.0",
+    "licenseFile": "licenses/flutter_lints.txt",
+    "sha256": "89519eca6f7b9529b35bdddd623a58c3af06a88c458dbd6531ddb4675acf75a9"
+  },
+  {
+    "name": "flutter_plugin_android_lifecycle",
+    "version": "2.0.35",
+    "licenseFile": "licenses/flutter_plugin_android_lifecycle.txt",
+    "sha256": "420f7739f169097f0aad1242045169cd643c8f1d94e62866fad265ae4c369b7d"
+  },
+  {
+    "name": "flutter_rust_bridge",
+    "version": "2.13.0",
+    "licenseFile": "licenses/flutter_rust_bridge.txt",
+    "sha256": "d56622df159a9967bd6a16c726823a2cbe8546c1f18437617283c9da27000390"
+  },
+  {
+    "name": "flutter_test",
+    "version": "Flutter SDK 3.44.0",
+    "licenseFile": "licenses/flutter_test.txt",
+    "sha256": "a598db94b6290ffbe10b5ecf911057b6a943351c727fdda9e5f2891d68700a20"
+  },
+  {
+    "name": "flutter_web_plugins",
+    "version": "Flutter SDK 3.44.0",
+    "licenseFile": "licenses/flutter_web_plugins.txt",
+    "sha256": "a598db94b6290ffbe10b5ecf911057b6a943351c727fdda9e5f2891d68700a20"
+  },
+  {
+    "name": "fuchsia_remote_debug_protocol",
+    "version": "Flutter SDK 3.44.0",
+    "licenseFile": "licenses/fuchsia_remote_debug_protocol.txt",
+    "sha256": "a598db94b6290ffbe10b5ecf911057b6a943351c727fdda9e5f2891d68700a20"
+  },
+  {
+    "name": "glob",
+    "version": "2.2.0",
+    "licenseFile": "licenses/glob.txt",
+    "sha256": "3c32b53167c7dae9190c38dab5dd9fe1789c53623ebc7d1babcb29914c5b3f16"
+  },
+  {
+    "name": "hooks",
+    "version": "2.0.2",
+    "licenseFile": "licenses/hooks.txt",
+    "sha256": "21ae23b0b9ff67a2dc75ab085d1e8db8ac548c5faf370af17f28dd2ef3b52b7b"
+  },
+  {
+    "name": "http",
+    "version": "1.6.0",
+    "licenseFile": "licenses/http.txt",
+    "sha256": "3c32b53167c7dae9190c38dab5dd9fe1789c53623ebc7d1babcb29914c5b3f16"
+  },
+  {
+    "name": "http_parser",
+    "version": "4.1.2",
+    "licenseFile": "licenses/http_parser.txt",
+    "sha256": "3c32b53167c7dae9190c38dab5dd9fe1789c53623ebc7d1babcb29914c5b3f16"
+  },
+  {
+    "name": "image_picker",
+    "version": "1.2.3",
+    "licenseFile": "licenses/image_picker.txt",
+    "sha256": "8e22fae63e4e8ac897f0cb3018ed94ed730b3e5da5d42c6856a26ba524f0fd88"
+  },
+  {
+    "name": "image_picker_android",
+    "version": "0.8.13+23",
+    "licenseFile": "licenses/image_picker_android.txt",
+    "sha256": "8e22fae63e4e8ac897f0cb3018ed94ed730b3e5da5d42c6856a26ba524f0fd88"
+  },
+  {
+    "name": "image_picker_for_web",
+    "version": "3.1.1",
+    "licenseFile": "licenses/image_picker_for_web.txt",
+    "sha256": "420f7739f169097f0aad1242045169cd643c8f1d94e62866fad265ae4c369b7d"
+  },
+  {
+    "name": "image_picker_ios",
+    "version": "0.8.13+8",
+    "licenseFile": "licenses/image_picker_ios.txt",
+    "sha256": "8e22fae63e4e8ac897f0cb3018ed94ed730b3e5da5d42c6856a26ba524f0fd88"
+  },
+  {
+    "name": "image_picker_linux",
+    "version": "0.2.2",
+    "licenseFile": "licenses/image_picker_linux.txt",
+    "sha256": "89519eca6f7b9529b35bdddd623a58c3af06a88c458dbd6531ddb4675acf75a9"
+  },
+  {
+    "name": "image_picker_macos",
+    "version": "0.2.2+1",
+    "licenseFile": "licenses/image_picker_macos.txt",
+    "sha256": "420f7739f169097f0aad1242045169cd643c8f1d94e62866fad265ae4c369b7d"
+  },
+  {
+    "name": "image_picker_platform_interface",
+    "version": "2.11.1",
+    "licenseFile": "licenses/image_picker_platform_interface.txt",
+    "sha256": "420f7739f169097f0aad1242045169cd643c8f1d94e62866fad265ae4c369b7d"
+  },
+  {
+    "name": "image_picker_windows",
+    "version": "0.2.2",
+    "licenseFile": "licenses/image_picker_windows.txt",
+    "sha256": "89519eca6f7b9529b35bdddd623a58c3af06a88c458dbd6531ddb4675acf75a9"
+  },
+  {
+    "name": "integration_test",
+    "version": "Flutter SDK 3.44.0",
+    "licenseFile": "licenses/integration_test.txt",
+    "sha256": "a598db94b6290ffbe10b5ecf911057b6a943351c727fdda9e5f2891d68700a20"
+  },
+  {
+    "name": "jni",
+    "version": "1.0.3",
+    "licenseFile": "licenses/jni.txt",
+    "sha256": "08a004aa8956c3cf3b24f7f69c966247233953e18e6afaa61191ea47b7eb70f6"
+  },
+  {
+    "name": "jni_flutter",
+    "version": "1.0.3",
+    "licenseFile": "licenses/jni_flutter.txt",
+    "sha256": "b1fcb475d67817411f335ac92872507011e574c4cb29cfdaaf7707b75641932c"
+  },
+  {
+    "name": "jni_util",
+    "version": "1.0.0",
+    "licenseFile": "licenses/jni_util.txt",
+    "sha256": "b1fcb475d67817411f335ac92872507011e574c4cb29cfdaaf7707b75641932c"
+  },
+  {
+    "name": "leak_tracker",
+    "version": "11.0.2",
+    "licenseFile": "licenses/leak_tracker.txt",
+    "sha256": "08a004aa8956c3cf3b24f7f69c966247233953e18e6afaa61191ea47b7eb70f6"
+  },
+  {
+    "name": "leak_tracker_flutter_testing",
+    "version": "3.0.10",
+    "licenseFile": "licenses/leak_tracker_flutter_testing.txt",
+    "sha256": "08a004aa8956c3cf3b24f7f69c966247233953e18e6afaa61191ea47b7eb70f6"
+  },
+  {
+    "name": "leak_tracker_testing",
+    "version": "3.0.2",
+    "licenseFile": "licenses/leak_tracker_testing.txt",
+    "sha256": "08a004aa8956c3cf3b24f7f69c966247233953e18e6afaa61191ea47b7eb70f6"
+  },
+  {
+    "name": "lints",
+    "version": "6.1.0",
+    "licenseFile": "licenses/lints.txt",
+    "sha256": "421fe78c3b5df297f8b4ab2c74f2450a274ee6d245a113091f6b9f90570af193"
+  },
+  {
+    "name": "logging",
+    "version": "1.3.0",
+    "licenseFile": "licenses/logging.txt",
+    "sha256": "dfb09c74e29386cd3e2719f32d4995d59526179753931d31840757c77fbf2791"
+  },
+  {
+    "name": "matcher",
+    "version": "0.12.19",
+    "licenseFile": "licenses/matcher.txt",
+    "sha256": "3c32b53167c7dae9190c38dab5dd9fe1789c53623ebc7d1babcb29914c5b3f16"
+  },
+  {
+    "name": "material_color_utilities",
+    "version": "0.13.0",
+    "licenseFile": "licenses/material_color_utilities.txt",
+    "sha256": "d103f246ef4c18dab8af0c1dcf6a8af884e5cff554da7261a48ac43c17d98f2e"
+  },
+  {
+    "name": "meta",
+    "version": "1.18.0",
+    "licenseFile": "licenses/meta.txt",
+    "sha256": "b71519245009a3b8f126196a5408ec031e216e8e0d985085958c6543f82a8a2a"
+  },
+  {
+    "name": "mime",
+    "version": "2.1.0",
+    "licenseFile": "licenses/mime.txt",
+    "sha256": "ff15faa32a2e638107b7789592b14426162a75ba620044ee2340a20ec6ce5e73"
+  },
+  {
+    "name": "native_toolchain_c",
+    "version": "0.19.2",
+    "licenseFile": "licenses/native_toolchain_c.txt",
+    "sha256": "aa81abb1ac43e40d2f5a606385edd37e974a5858d4109f7f439dd43d964487a7"
+  },
+  {
+    "name": "objective_c",
+    "version": "9.5.0",
+    "licenseFile": "licenses/objective_c.txt",
+    "sha256": "1cda25a8de6880c5338de0b4a06ee89e8537c213eb1379c16a4c035bfd198b5c"
+  },
+  {
+    "name": "package_config",
+    "version": "3.0.0",
+    "licenseFile": "licenses/package_config.txt",
+    "sha256": "0371d1da6a57fb791db29d29b95333429205f51f3cb2eb3a0c12d91838a38744"
+  },
+  {
+    "name": "path",
+    "version": "1.9.1",
+    "licenseFile": "licenses/path.txt",
+    "sha256": "3c32b53167c7dae9190c38dab5dd9fe1789c53623ebc7d1babcb29914c5b3f16"
+  },
+  {
+    "name": "path_provider",
+    "version": "2.1.6",
+    "licenseFile": "licenses/path_provider.txt",
+    "sha256": "420f7739f169097f0aad1242045169cd643c8f1d94e62866fad265ae4c369b7d"
+  },
+  {
+    "name": "path_provider_android",
+    "version": "2.3.1",
+    "licenseFile": "licenses/path_provider_android.txt",
+    "sha256": "420f7739f169097f0aad1242045169cd643c8f1d94e62866fad265ae4c369b7d"
+  },
+  {
+    "name": "path_provider_foundation",
+    "version": "2.6.0",
+    "licenseFile": "licenses/path_provider_foundation.txt",
+    "sha256": "420f7739f169097f0aad1242045169cd643c8f1d94e62866fad265ae4c369b7d"
+  },
+  {
+    "name": "path_provider_linux",
+    "version": "2.2.2",
+    "licenseFile": "licenses/path_provider_linux.txt",
+    "sha256": "420f7739f169097f0aad1242045169cd643c8f1d94e62866fad265ae4c369b7d"
+  },
+  {
+    "name": "path_provider_platform_interface",
+    "version": "2.1.3",
+    "licenseFile": "licenses/path_provider_platform_interface.txt",
+    "sha256": "420f7739f169097f0aad1242045169cd643c8f1d94e62866fad265ae4c369b7d"
+  },
+  {
+    "name": "path_provider_windows",
+    "version": "2.3.0",
+    "licenseFile": "licenses/path_provider_windows.txt",
+    "sha256": "89519eca6f7b9529b35bdddd623a58c3af06a88c458dbd6531ddb4675acf75a9"
+  },
+  {
+    "name": "platform",
+    "version": "3.2.0",
+    "licenseFile": "licenses/platform.txt",
+    "sha256": "143839f62c9b7f88143ea9f688361c27050888acde7696b34e04414bd254fafc"
+  },
+  {
+    "name": "plugin_platform_interface",
+    "version": "2.1.8",
+    "licenseFile": "licenses/plugin_platform_interface.txt",
+    "sha256": "89519eca6f7b9529b35bdddd623a58c3af06a88c458dbd6531ddb4675acf75a9"
+  },
+  {
+    "name": "process",
+    "version": "5.0.6",
+    "licenseFile": "licenses/process.txt",
+    "sha256": "5f018bbc25a55406d7a4e1d3229135439e315210b0050ca56dbb367a4934e85d"
+  },
+  {
+    "name": "pub_semver",
+    "version": "2.2.1",
+    "licenseFile": "licenses/pub_semver.txt",
+    "sha256": "3c32b53167c7dae9190c38dab5dd9fe1789c53623ebc7d1babcb29914c5b3f16"
+  },
+  {
+    "name": "qr",
+    "version": "3.0.2",
+    "licenseFile": "licenses/qr.txt",
+    "sha256": "1d6c0bc8208cd835577eeb9195dc646f092728b62803abd60c404d984524abf7"
+  },
+  {
+    "name": "qr_flutter",
+    "version": "4.1.0",
+    "licenseFile": "licenses/qr_flutter.txt",
+    "sha256": "1bc86cb2619634e54a97f88dd9c11fd99afcacd52c25bdf6f84c2700b4174203"
+  },
+  {
+    "name": "record_use",
+    "version": "0.6.0",
+    "licenseFile": "licenses/record_use.txt",
+    "sha256": "1cda25a8de6880c5338de0b4a06ee89e8537c213eb1379c16a4c035bfd198b5c"
+  },
+  {
+    "name": "sky_engine",
+    "version": "Flutter SDK 3.44.0",
+    "licenseFile": "licenses/sky_engine.txt",
+    "sha256": "82a5f93f918f99ff82af18c8be176c709dc812cb3f5e1e1cd93847bdeb0f9369"
+  },
+  {
+    "name": "source_span",
+    "version": "1.10.2",
+    "licenseFile": "licenses/source_span.txt",
+    "sha256": "3c32b53167c7dae9190c38dab5dd9fe1789c53623ebc7d1babcb29914c5b3f16"
+  },
+  {
+    "name": "sqlite3",
+    "version": "3.5.0",
+    "licenseFile": "licenses/sqlite3.txt",
+    "sha256": "67e5d73a3a0c6e41f33d688a672b1161bf7f16e04da9ae48a7a14f1ba7436a4d"
+  },
+  {
+    "name": "stack_trace",
+    "version": "1.12.1",
+    "licenseFile": "licenses/stack_trace.txt",
+    "sha256": "ff0b91d4f3c32b25cb6ec84985e8da89b0ba2a2b2f7eef353cda5e5423a20390"
+  },
+  {
+    "name": "stream_channel",
+    "version": "2.1.4",
+    "licenseFile": "licenses/stream_channel.txt",
+    "sha256": "ff15faa32a2e638107b7789592b14426162a75ba620044ee2340a20ec6ce5e73"
+  },
+  {
+    "name": "string_scanner",
+    "version": "1.4.1",
+    "licenseFile": "licenses/string_scanner.txt",
+    "sha256": "3c32b53167c7dae9190c38dab5dd9fe1789c53623ebc7d1babcb29914c5b3f16"
+  },
+  {
+    "name": "sync_http",
+    "version": "0.3.1",
+    "licenseFile": "licenses/sync_http.txt",
+    "sha256": "b9b748d4dd6f725387bf69e96df4e4ebff167ae83547954242a731504d037644"
+  },
+  {
+    "name": "term_glyph",
+    "version": "1.2.2",
+    "licenseFile": "licenses/term_glyph.txt",
+    "sha256": "ea97a7558a7bd7cee4e2355f7529e3cbebb0dcbb546ddb9a90f10c9eb6b08da5"
+  },
+  {
+    "name": "test_api",
+    "version": "0.7.11",
+    "licenseFile": "licenses/test_api.txt",
+    "sha256": "ff1b9f0df9036c04be424b1e3ce12789bea880ad5ffc3a48e069ae2d40a087a4"
+  },
+  {
+    "name": "typed_data",
+    "version": "1.4.0",
+    "licenseFile": "licenses/typed_data.txt",
+    "sha256": "ff15faa32a2e638107b7789592b14426162a75ba620044ee2340a20ec6ce5e73"
+  },
+  {
+    "name": "uuid",
+    "version": "4.6.0",
+    "licenseFile": "licenses/uuid.txt",
+    "sha256": "ad3e5523e51004e94ba9ce728805b1b4242dbccdb65e62b523800e35a8a7cfdc"
+  },
+  {
+    "name": "vector_math",
+    "version": "2.2.0",
+    "licenseFile": "licenses/vector_math.txt",
+    "sha256": "b5d856a1e27e9ebea4957fc3526f1c65782a04894b113c6b3b0fb1321dbdec55"
+  },
+  {
+    "name": "vm_service",
+    "version": "15.3.0",
+    "licenseFile": "licenses/vm_service.txt",
+    "sha256": "ad6a71997da90924b2cfb1fb47ec46537f70faf469efe016168794ae45ed6888"
+  },
+  {
+    "name": "web",
+    "version": "1.1.1",
+    "licenseFile": "licenses/web.txt",
+    "sha256": "aa913ff50d7542eb8cc35b9f48a80928ac6819ba9057f85d424655e3e8dc271c"
+  },
+  {
+    "name": "webdriver",
+    "version": "3.2.0",
+    "licenseFile": "licenses/webdriver.txt",
+    "sha256": "74cb46b123c9fa918ea8e0a0f5be736a1cd661edf145ccc723dc7ce30324ebab"
+  },
+  {
+    "name": "xdg_directories",
+    "version": "1.1.0",
+    "licenseFile": "licenses/xdg_directories.txt",
+    "sha256": "89519eca6f7b9529b35bdddd623a58c3af06a88c458dbd6531ddb4675acf75a9"
+  },
+  {
+    "name": "yaml",
+    "version": "3.1.4",
+    "licenseFile": "licenses/yaml.txt",
+    "sha256": "d47b93335401b052d79a2f5a3710e4cf7b5aed782faedf84d40fbdd6eb934ec7"
+  },
+  {
+    "name": "zxing2",
+    "version": "0.2.4",
+    "licenseFile": "licenses/zxing2.txt",
+    "sha256": "d2bfc0fd9aae0a7d4cdab8ea024c75881c0ab38332683539f7f26ea88fec9ca2"
+  }
+]

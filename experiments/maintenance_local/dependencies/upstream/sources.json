@@ -1,0 +1,38 @@
+[
+  {
+    "package": "automerge",
+    "source": "https://raw.githubusercontent.com/automerge/automerge/1755d0dbd9a467cb849cf08a5c86e207835f5533/LICENSE",
+    "file": "upstream/automerge.txt",
+    "sha256": "7a06f577e39ec132eb8657abc3471f81f668ff3810a160db79b9b18a9568242b"
+  },
+  {
+    "package": "hexane",
+    "source": "https://raw.githubusercontent.com/automerge/automerge/8d20da046282a43b5af3c3bdacd4467b48545087/LICENSE",
+    "file": "upstream/hexane.txt",
+    "sha256": "7a06f577e39ec132eb8657abc3471f81f668ff3810a160db79b9b18a9568242b"
+  },
+  {
+    "package": "flutter_rust_bridge",
+    "source": "https://raw.githubusercontent.com/fzyzcjy/flutter_rust_bridge/8631db91a90c699439c9ce2a1fb4164ae8661da9/LICENSE",
+    "file": "upstream/flutter_rust_bridge.txt",
+    "sha256": "d56622df159a9967bd6a16c726823a2cbe8546c1f18437617283c9da27000390"
+  },
+  {
+    "package": "flutter_rust_bridge_macros",
+    "source": "https://raw.githubusercontent.com/fzyzcjy/flutter_rust_bridge/8631db91a90c699439c9ce2a1fb4164ae8661da9/LICENSE",
+    "file": "upstream/flutter_rust_bridge_macros.txt",
+    "sha256": "d56622df159a9967bd6a16c726823a2cbe8546c1f18437617283c9da27000390"
+  },
+  {
+    "package": "dart-sys",
+    "source": "https://raw.githubusercontent.com/dart-sys/dart-sys/c9329430a5a8e3828cf59600babe7896326c7c44/LICENSE-MIT.md",
+    "file": "upstream/dart-sys.txt",
+    "sha256": "a6b742d988bc83c6182193ca4e5abf2dbb67e929817fc94f5ed6e9f49b803f29"
+  },
+  {
+    "package": "r-efi",
+    "source": "https://raw.githubusercontent.com/r-efi/r-efi/7e1b0322d31d625f81a5656096330934f9cd835d/AUTHORS",
+    "file": "upstream/r-efi.txt",
+    "sha256": "d027e91dbc9cdbb2f1190068e498bd6b61cff022b6a032b191021ba658d96111"
+  }
+]

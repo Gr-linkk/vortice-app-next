@@ -1,0 +1,29 @@
+name: maintenance_local
+description: Experimental Vortice local-first maintenance workspace.
+publish_to: none
+version: 0.1.2+3
+environment:
+  sdk: ^3.12.0
+dependencies:
+  flutter:
+    sdk: flutter
+  rust_lib_sync_lab:
+    path: rust_builder
+  flutter_rust_bridge: 2.13.0
+  zxing2: 0.2.4
+  sqlite3: 3.5.0
+  path_provider: 2.1.6
+  crypto: 3.0.7
+  uuid: 4.6.0
+  image_picker: 1.2.3
+  qr_flutter: 4.1.0
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: 6.0.0
+  integration_test:
+    sdk: flutter
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/THIRD_PARTY_NOTICES.txt
