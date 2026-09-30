@@ -7,6 +7,10 @@ String equipmentName(Object? equipment) => equipment is Map
     ? (equipment['name'] ?? 'Equipment').toString()
     : (equipment ?? 'Equipment').toString();
 
+String jobTitle(Object? job) => job is Map
+    ? (job['title'] ?? 'Equipment inspection').toString()
+    : (job ?? 'Equipment inspection').toString();
+
 List<Json> inspectionItems(Json context) =>
     (jsonMap(context['checklistSnapshot'])['items'] as List? ?? [])
         .map(jsonMap)

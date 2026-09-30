@@ -257,7 +257,7 @@ class _InspectionPageState extends State<InspectionPage> {
                 ),
                 if (!legacy) ...[
                   Text(
-                    jobContext['job'] as String,
+                    jobTitle(jobContext['job']),
                     style: Theme.of(context).textTheme.titleLarge,
                   ),
                   const SizedBox(height: 8),

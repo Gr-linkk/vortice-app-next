@@ -107,7 +107,7 @@ class _ReviewPageState extends State<ReviewPage> {
         ),
         if (!legacy) ...[
           Text(
-            (job['job'] ?? '').toString(),
+            jobTitle(job['job']),
             style: Theme.of(context).textTheme.titleLarge,
           ),
           Text((job['company'] ?? '').toString()),

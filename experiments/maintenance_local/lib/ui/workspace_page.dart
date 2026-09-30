@@ -565,7 +565,7 @@ class _WorkspacePageState extends State<WorkspacePage>
               style: Theme.of(context).textTheme.titleLarge,
             ),
             const SizedBox(height: 8),
-            Text(jobContext['job'] as String),
+            Text(jobTitle(jobContext['job'])),
             const SizedBox(height: 8),
             Text(
               latest == null
@@ -605,7 +605,7 @@ class _WorkspacePageState extends State<WorkspacePage>
         subtitle: Text(
           [
             if (submittedContext.isNotEmpty)
-              '${equipmentName(submittedContext['equipment'])} · ${submittedContext['job']}',
+              '${equipmentName(submittedContext['equipment'])} · ${jobTitle(submittedContext['job'])}',
             'Submitted ${displayTime(p['createdAt'] as String)}',
             if (submittedContext.isEmpty ||
                 submittedContext['meterRequired'] == true)
