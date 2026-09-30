@@ -1,10 +1,12 @@
 import 'dart:convert';
 import 'dart:io';
+import 'dart:typed_data';
 import 'package:sqlite3/sqlite3.dart';
 import 'approval_rules.dart';
 import 'evidence_store.dart';
 import 'lab_store.dart';
 import 'model.dart';
+import 'maintenance_domain.dart';
 import 'src/rust/api/documents.dart';
 
 /// Safe metadata only. Private credentials remain in the owner-only directory.
@@ -45,6 +47,7 @@ class OfficeRestoreResult {
 /// access. Compare a separately retained TLS fingerprint when restoring.
 class OfficeBackup {
   static const version = 1;
+  static const maintenanceVersion = 2;
   static const _maxFiles = 4096;
   static const _maxTotalBytes = 512 * 1024 * 1024;
   static const _maxDatabaseBytes = 128 * 1024 * 1024;
@@ -121,8 +124,10 @@ class OfficeBackup {
         final facts = await _database(stage);
         final files = await _inventory(stage);
         final manifest = <String, dynamic>{
-          'format': 'vortice-sync-lab-office',
-          'version': version,
+          'format': store.realWorkspace
+              ? 'maintenance-local-office'
+              : 'vortice-sync-lab-office',
+          'version': store.realWorkspace ? maintenanceVersion : version,
           'role': 'linux-office',
           'createdAt': store.stamp(),
           'device': facts.device,
@@ -423,8 +428,10 @@ class OfficeBackup {
           'fingerprint',
           'files',
         }).isNotEmpty ||
-        manifest['format'] != 'vortice-sync-lab-office' ||
-        manifest['version'] != version ||
+        !((manifest['format'] == 'vortice-sync-lab-office' &&
+                manifest['version'] == version) ||
+            (manifest['format'] == 'maintenance-local-office' &&
+                manifest['version'] == maintenanceVersion)) ||
         manifest['role'] != 'linux-office' ||
         manifest['createdAt'] is! String ||
         DateTime.tryParse(manifest['createdAt'] as String) == null ||
@@ -452,7 +459,8 @@ class OfficeBackup {
     final fingerprint = await _identity(root);
     final facts = await _database(root);
     if (fingerprint != manifest['fingerprint'] ||
-        facts.device != manifest['device']) {
+        facts.device != manifest['device'] ||
+        facts.real != (manifest['format'] == 'maintenance-local-office')) {
       throw StateError('Office identity failed.');
     }
     return OfficeBackupSummary(
@@ -549,7 +557,7 @@ class OfficeBackup {
     try {
       final schemaVersion =
           db.select('PRAGMA user_version').single.values.single as int;
-      if (schemaVersion != 0 && schemaVersion != 1) {
+      if (schemaVersion != 0 && schemaVersion != 1 && schemaVersion != 2) {
         throw StateError('Unsupported office database version.');
       }
       if (db.select('PRAGMA quick_check').single.values.single != 'ok' ||
@@ -581,21 +589,40 @@ class OfficeBackup {
       if (!_id(settings['device']) || settings.containsKey('pairing')) {
         throw StateError('Not an office authority.');
       }
-      final workspace = settings['workspace'];
-      if (workspace is! Json ||
-          workspace.keys.toSet().length != 5 ||
-          !{
-            'companyId',
-            'jobId',
-            'company',
-            'equipment',
-            'job',
-          }.every((k) => _id(workspace[k]))) {
-        throw StateError('Invalid office workspace.');
+      final catalog = settings['catalog'];
+      final real = catalog != null;
+      Json? workspace;
+      if (real) {
+        if (catalog is! Json ||
+            settings['workspace'] != null ||
+            schemaVersion != 2) {
+          throw StateError('Invalid company database format.');
+        }
+        validateCatalog(catalog);
+      } else {
+        workspace = settings['workspace'] as Json?;
+        if (schemaVersion == 2 ||
+            workspace == null ||
+            workspace.keys.toSet().length != 5 ||
+            !{
+              'companyId',
+              'jobId',
+              'company',
+              'equipment',
+              'job',
+            }.every((k) => _id(workspace![k]))) {
+          throw StateError('Invalid office workspace.');
+        }
       }
       final documents = db.select('SELECT * FROM documents');
-      if (documents.length != 1 || documents.single['id'] != 'inspection') {
-        throw StateError('Missing inspection document.');
+      final jobIds = real
+          ? (catalog['jobs'] as List)
+                .map((j) => (j as Map)['id'] as String)
+                .toSet()
+          : {'inspection'};
+      if (documents.length != jobIds.length ||
+          documents.any((d) => !jobIds.contains(d['id']))) {
+        throw StateError('Missing prepared-work document.');
       }
       if (settings['officeFingerprint'] != null &&
           settings['officeFingerprint'] != await _identity(root)) {
@@ -603,13 +630,23 @@ class OfficeBackup {
           'Saved office fingerprint differs from its certificate.',
         );
       }
-      final view =
-          jsonDecode(await documentValues(bytes: documents.single['bytes']))
-              as Json;
-      validateDocument(view);
-      final required = <String>{
-        ...((view['photo'] as List).whereType<String>()),
-      };
+      final required = <String>{};
+      for (final row in documents) {
+        final bytes = row['bytes'] as Uint8List;
+        if (bytes.isEmpty || bytes.length > 16 * 1024 * 1024) {
+          throw StateError('Invalid work history size.');
+        }
+        final view = jsonDecode(await documentValues(bytes: bytes)) as Json;
+        if (real) {
+          validateJobDocument(
+            view,
+            jobContext(catalog as Json, row['id'] as String),
+          );
+        } else {
+          validateDocument(view);
+        }
+        required.addAll((view['photo'] as List).whereType<String>());
+      }
       final phoneRows = db.select('SELECT * FROM phones');
       var active = 0, pending = 0, revoked = 0;
       final devices = <String>{settings['device'] as String};
@@ -649,7 +686,12 @@ class OfficeBackup {
       final submitted = <String, Json>{};
       for (final row in submissions) {
         final payload = jsonDecode(row['payload'] as String) as Json;
-        await ApprovalRules.validateSubmission(payload, workspace);
+        await ApprovalRules.validateSubmission(
+          payload,
+          real
+              ? jobContext(catalog as Json, payload['jobId'] as String)
+              : workspace,
+        );
         if (row['id'] != payload['id'] ||
             row['hash'] != contentHash(payload) ||
             row['state'] != 'received' ||
@@ -659,35 +701,26 @@ class OfficeBackup {
         submitted[row['id'] as String] = payload;
         required.add((payload['values'] as Json)['photo'] as String);
       }
+      if (real) ApprovalRules.validateSubmissionHistory(submitted.values);
       final receipts = db.select('SELECT * FROM receipts');
       for (final row in receipts) {
         final p = jsonDecode(row['payload'] as String) as Json;
         final sub = submitted[row['submission_id']];
-        if (p.keys.toSet().difference({
-              'id',
-              'submissionId',
-              'submissionHash',
-              'decision',
-              'reason',
-              'reviewedAt',
-              'reviewedBy',
-              'values',
-            }).isNotEmpty ||
-            !_id(p['id']) ||
+        if (sub == null ||
             p['id'] != row['id'] ||
             p['submissionId'] != row['submission_id'] ||
-            row['hash'] != contentHash(p) ||
-            sub == null ||
-            p['submissionHash'] != contentHash(sub) ||
-            !{'approved', 'returned'}.contains(p['decision']) ||
-            p['reason'] is! String ||
-            (p['decision'] == 'returned' &&
-                (p['reason'] as String).trim().isEmpty) ||
-            p['reviewedAt'] is! String ||
-            DateTime.tryParse(p['reviewedAt'] as String) == null ||
-            p['reviewedBy'] != 'Office owner' ||
-            canonical(p['values']) != canonical(sub['values'])) {
+            row['hash'] != contentHash(p)) {
           throw StateError('Invalid immutable decision.');
+        }
+        ApprovalRules.validateReceipt(
+          p,
+          sub,
+          workspace: real
+              ? jobContext(catalog as Json, sub['jobId'] as String)
+              : workspace,
+        );
+        if (real && p['reviewerDevice'] != settings['device']) {
+          throw StateError('Decision belongs to a different office authority.');
         }
       }
       final evidence = EvidenceStore(Directory('${root.path}/evidence'));
@@ -710,6 +743,7 @@ class OfficeBackup {
         pending,
         revoked,
         invites.length,
+        real,
       );
     } finally {
       db.close();
@@ -726,7 +760,9 @@ class _Facts {
     this.pending,
     this.revoked,
     this.invites,
+    this.real,
   );
   final String device;
+  final bool real;
   final int submissions, receipts, active, pending, revoked, invites;
 }

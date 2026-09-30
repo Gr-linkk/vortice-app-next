@@ -14,7 +14,7 @@ String connectionProblem(Object error) {
   if (error is SocketException ||
       error is TimeoutException ||
       error is HttpException) {
-    return 'Cannot reach the computer. Keep both apps open on the same Wi-Fi, check its selected address, and retry. The computer must accept the local connection on TCP 47831.';
+    return 'Cannot reach the computer. Keep both apps open on the same Wi-Fi, check its selected address, and retry. The computer must accept the local connection on TCP 47841.';
   }
   if (error is FormatException || error is TypeError) {
     return 'The invitation or saved connection is incomplete. Paste a fresh complete invitation from the same computer.';
@@ -147,10 +147,14 @@ class OfficeServer {
   final _sessions = <String, ({String id, DocumentSession state})>{};
   void Function()? onChange;
   int get port => server.port;
-  static Future<OfficeServer> start(LabStore store, {int port = 47831}) async {
+  static Future<OfficeServer> start(
+    LabStore store, {
+    int port = 47841,
+    InternetAddress? address,
+  }) async {
     final identity = await OfficeIdentity.load(store);
     final http = await HttpServer.bindSecure(
-      InternetAddress.anyIPv4,
+      address ?? InternetAddress.anyIPv4,
       port,
       identity.context,
     );
@@ -212,31 +216,46 @@ class OfficeServer {
             checkAuthority();
             final id = p['session'] as String;
             if (id.length > 100) throw StateError('Invalid sync session.');
-            var entry = _sessions[device];
+            final jobId = store.realWorkspace ? p['jobId'] as String : null;
+            if (store.realWorkspace) store.jobContextFor(jobId!);
+            if (p.keys.toSet().difference({
+              'session',
+              'message',
+              if (store.realWorkspace) 'jobId',
+            }).isNotEmpty) {
+              throw StateError('Invalid sync operation.');
+            }
+            final sessionKey = store.realWorkspace ? '$device:$jobId' : device!;
+            var entry = _sessions[sessionKey];
             if (entry == null || entry.id != id) {
               entry = (id: id, state: await newSession());
-              _sessions[device!] = entry;
+              _sessions[sessionKey] = entry;
             }
             try {
               final packet = await entry.state.step(
-                bytes: store.document!,
+                bytes: jobId == null
+                    ? store.document!
+                    : store.documentFor(jobId)!,
                 incoming: p['message'] == null
                     ? null
                     : base64Decode(p['message'] as String),
               );
-              validateDocument(
+              store.validateFields(
                 jsonDecode(await documentValues(bytes: packet.document))
                     as Json,
+                jobId: jobId,
               );
               checkAuthority();
-              store.transaction(() => store.saveDocument(packet.document));
+              store.transaction(
+                () => store.saveDocument(packet.document, jobId: jobId),
+              );
               return {
                 'message': packet.message == null
                     ? null
                     : base64Encode(packet.message!),
               };
             } catch (_) {
-              _sessions.remove(device);
+              _sessions.remove(sessionKey);
               rethrow;
             }
           });
@@ -250,6 +269,13 @@ class OfficeServer {
         case '/blob/status':
           result = await store.queue.run(() async {
             checkAuthority();
+            if (store.realWorkspace &&
+                !(await store.requiredEvidence()).contains(p['hash'])) {
+              throw StateError(
+                'Photo is not referenced by this company’s work.',
+              );
+            }
+            checkAuthority();
             return store.evidence.status(
               p['hash'] as String,
               checkAuthority: checkAuthority,
@@ -257,6 +283,13 @@ class OfficeServer {
           });
         case '/blob/put':
           result = await store.queue.run(() async {
+            checkAuthority();
+            if (store.realWorkspace &&
+                !(await store.requiredEvidence()).contains(p['hash'])) {
+              throw StateError(
+                'Photo is not referenced by this company’s work.',
+              );
+            }
             checkAuthority();
             await store.evidence.append(
               p['hash'] as String,
@@ -272,14 +305,22 @@ class OfficeServer {
             );
           });
         case '/blob/get':
-          result = {
-            'bytes': base64Encode(
-              await store.evidence.chunk(
-                p['hash'] as String,
-                p['offset'] as int,
-              ),
-            ),
-          };
+          result = await store.queue.run(() async {
+            checkAuthority();
+            if (store.realWorkspace &&
+                !(await store.requiredEvidence()).contains(p['hash'])) {
+              throw StateError(
+                'Photo is not referenced by this company’s work.',
+              );
+            }
+            checkAuthority();
+            final bytes = await store.evidence.chunk(
+              p['hash'] as String,
+              p['offset'] as int,
+            );
+            checkAuthority();
+            return {'bytes': base64Encode(bytes)};
+          });
         default:
           throw StateError('Unknown local operation.');
       }
@@ -444,34 +485,45 @@ class PhoneSync {
         throw StateError('Office company changed.');
       }
       await store.importOfficeBundle(bundle);
-      final state = await newSession(), id = secret();
-      Uint8List? incoming;
-      for (var round = 0; round < 32; round++) {
-        final packet = await store.queue.run(() async {
-          final p = await state.step(
-            bytes: store.document!,
-            incoming: incoming,
-          );
-          validateDocument(
-            jsonDecode(await documentValues(bytes: p.document)) as Json,
-          );
-          store.transaction(() => store.saveDocument(p.document));
-          return p;
-        });
-        final response = await c.request('/sync', {
-          'session': id,
-          'message': packet.message == null
+      final jobIds = store.realWorkspace
+          ? store.jobs.map((j) => j['id'] as String?).toList()
+          : <String?>[null];
+      for (final jobId in jobIds) {
+        final state = await newSession(), id = secret();
+        Uint8List? incoming;
+        for (var round = 0; round < 32; round++) {
+          final packet = await store.queue.run(() async {
+            final p = await state.step(
+              bytes: jobId == null
+                  ? store.document!
+                  : store.documentFor(jobId)!,
+              incoming: incoming,
+            );
+            store.validateFields(
+              jsonDecode(await documentValues(bytes: p.document)) as Json,
+              jobId: jobId,
+            );
+            store.transaction(
+              () => store.saveDocument(p.document, jobId: jobId),
+            );
+            return p;
+          });
+          final response = await c.request('/sync', {
+            'session': id,
+            'jobId': ?jobId,
+            'message': packet.message == null
+                ? null
+                : base64Encode(packet.message!),
+          });
+          incoming = response['message'] == null
               ? null
-              : base64Encode(packet.message!),
-        });
-        incoming = response['message'] == null
-            ? null
-            : base64Decode(response['message'] as String);
-        if (incoming == null && packet.message == null) break;
-        if (round == 31) {
-          throw StateError(
-            'Sync needs another attempt; saved work is retained.',
-          );
+              : base64Decode(response['message'] as String);
+          if (incoming == null && packet.message == null) break;
+          if (round == 31) {
+            throw StateError(
+              'Sync needs another attempt; saved work is retained.',
+            );
+          }
         }
       }
       // A process can stop after flushing the last local chunk but before its
@@ -481,12 +533,26 @@ class PhoneSync {
         await store.evidence.status(hash);
       }
       for (final p
-          in store.submissions.where((p) => p['_state'] == 'queued').toList()) {
+          in store.submissions
+              .where(
+                (p) => store.realWorkspace
+                    ? p['device'] == store.device
+                    : p['_state'] == 'queued',
+              )
+              .toList()) {
         final payload = Map<String, dynamic>.from(p)..remove('_state');
-        await c.request('/submit', payload);
+        final accepted = await c.request('/submit', payload);
+        if (accepted['accepted'] != payload['id']) {
+          throw StateError(
+            'Computer acknowledgement did not match the submitted version.',
+          );
+        }
         // Queued state clears only on the authoritative bundle below.
       }
-      for (final blob in await store.evidence.manifest()) {
+      final required = await store.requiredEvidence();
+      for (final blob in (await store.evidence.manifest()).where(
+        (blob) => !store.realWorkspace || required.contains(blob['hash']),
+      )) {
         var remote = await c.request('/blob/status', {'hash': blob['hash']});
         while (remote['complete'] != true) {
           final offset = remote['offset'] as int;
@@ -528,6 +594,21 @@ class PhoneSync {
           throw StateError(
             'The computer is still missing an inspection photo. Keep the original phone connected to finish saving it; a lost photo cannot be restored.',
           );
+        }
+      }
+      if (store.realWorkspace) {
+        final officeReceipts = <String, Json>{
+          for (final r in bundle['receipts'] as List)
+            (r as Json)['id'] as String: r,
+        };
+        for (final receipt in store.receipts) {
+          final retained = officeReceipts[receipt['id']];
+          if (retained == null ||
+              contentHash(retained) != contentHash(receipt)) {
+            throw StateError(
+              'The computer is missing an earlier office decision. Retain this phone and reconcile its saved history before treating the restored computer as complete.',
+            );
+          }
         }
       }
       store.setSetting('lastCompleteSync', store.stamp());
