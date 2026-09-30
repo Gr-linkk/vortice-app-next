@@ -26,13 +26,38 @@ void main() {
 
   setUp(() async {
     root = await Directory.systemTemp.createTemp('vortice-interruption-');
-    office = await LabStore.open(path('office'), office: true);
-    await office.createWorkspace();
+    office = await LabStore.open(
+      path('office'),
+      office: true,
+      maintenanceOnly: true,
+    );
+    await office.createCompany(
+      'Synthetic interruption company',
+      coordinatorName: 'Synthetic coordinator',
+    );
+    final equipment = await office.addEquipment(
+      name: 'Synthetic hydraulic power unit',
+      serial: 'INTERRUPTION-ONLY-01',
+      meterUnit: 'hours',
+    );
+    final checklist = await office.publishChecklist(
+      title: 'Synthetic committed inspection',
+      items: [
+        {'id': 'fluid', 'label': 'Inspect fluid', 'input_type': 'check'},
+        {'id': 'guards', 'label': 'Inspect guards', 'input_type': 'check'},
+      ],
+      provenance: {'kind': 'company-authored', 'reference': ''},
+    );
+    await office.prepareWork(
+      equipmentId: equipment['id'] as String,
+      templateId: checklist['id'] as String,
+      title: 'Synthetic interruption inspection',
+    );
     identity = await OfficeIdentity.load(office);
     await office.update({
       'notes': 'Synthetic committed inspection',
-      'fluid': 'pass',
-      'guards': 'pass',
+      'answer:fluid': {'result': 'pass', 'value': null},
+      'answer:guards': {'result': 'pass', 'value': null},
       'meter': 125.5,
     });
     await office.attach([1, 2, 3, 4]);
