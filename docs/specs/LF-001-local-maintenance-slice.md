@@ -156,3 +156,28 @@ save/reopen and delivery on reconnect do not establish this new real workflow's
 gallery-photo delivery, exact approval or fresh-computer restore. The S24 camera
 is broken; gallery images are the accepted path. No physical app installation or
 credentials/access change occurs during these synthetic automated tests.
+
+## Setup follow-up and independent review remediation
+
+The preceding receipt describes preserved `7192166`, including its original
+`0.2.0+1` files. It is not replaced by this follow-up. The parent subsequently
+relayed independent PASS for setup source `e6956ae8d3274142cc09fa23c6ced05eda4bac00`
+(34 focused checks and two renders). The selective maintenance port uses explicit
+file ownership across isolated runtime, Devices, workspace/inspection UI and
+independent test workers. Its version is `0.2.1+2`; new evidence goes only to
+`outputs/lf001-setup/`.
+
+Independent review of `7192166` is **blocked** on reproduced P2 findings
+LF001-AUDIT-001/002: fresh command identities could duplicate an already submitted
+document version, and wire `_state` metadata could poison a stored command hash.
+Both require deliberately altered requests from an enrolled synthetic phone;
+they do not bypass office decision authority. The follow-up must reject them
+before persistence, preserve exact retries and actually edited resubmission, and
+enforce version uniqueness in imported/recovered history. No store backfill or
+live repair is authorized. The audit's recovery-render wait also needed an
+absent-finder guard; both cases now pass without screenshot output enabled.
+
+The adapter and reviewer boundaries are documented in
+`LF-001-API-BOUNDARIES.md`. Stable follow-up source, full applicable gate results,
+separate packaging receipt and independent clearance remain required before
+calling this revision ready for the next physical acceptance step.
