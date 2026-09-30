@@ -161,8 +161,10 @@ class _InspectionPageState extends State<InspectionPage> {
     }
   }
 
-  Json answerFor(Json item, Json values) =>
-      jsonMap(dirty['answer:${item['id']}'] ?? values['answer:${item['id']}']);
+  Json answerFor(Json item, Json values) {
+    final key = 'answer:${item['id']}';
+    return jsonMap(dirty.containsKey(key) ? dirty[key] : values[key]);
+  }
 
   void changeAnswer(
     Json item,
@@ -484,6 +486,16 @@ class _InspectionPageState extends State<InspectionPage> {
                 child: Text(
                   'Finding recorded. Explain the action needed in the inspection notes.',
                 ),
+              ),
+            if (item['required'] == false)
+              TextButton(
+                onPressed: busy
+                    ? null
+                    : () => setState(() {
+                        dirty['answer:$id'] = null;
+                        answers[id]?.clear();
+                      }),
+                child: const Text('Leave optional step unanswered'),
               ),
           ],
         ),
