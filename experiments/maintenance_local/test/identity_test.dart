@@ -73,7 +73,7 @@ void main() {
         connectionProblem(
           const SocketException('sensitive raw platform details'),
         ),
-        contains('TCP 47831'),
+        contains('TCP 47841'),
       );
       expect(
         connectionProblem(

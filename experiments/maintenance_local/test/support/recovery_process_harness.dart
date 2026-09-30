@@ -83,7 +83,7 @@ exec /usr/bin/"\$command" "\$@"
     }
     final process = await Process.start(
       dart,
-      args,
+      ['--suppress-analytics', 'run', ...args],
       environment: {
         'PATH':
             '${bin.path}:${Platform.environment['PATH'] ?? '/usr/bin:/bin'}',
