@@ -7,18 +7,48 @@ import 'lab_store.dart';
 import 'model.dart';
 import 'src/rust/api/documents.dart';
 
-String connectionProblem(Object error) {
+class ConnectionGuidance {
+  const ConnectionGuidance(this.message, this.nextStep, {this.details});
+
+  final String message;
+  final String nextStep;
+  final String? details;
+
+  String get text => [message, nextStep, ?details].join(' ');
+}
+
+// Transport diagnostics can contain invitations, credentials or request data.
+// Classify by exception type only; never include their raw messages or URLs.
+ConnectionGuidance? connectionGuidance(Object error) {
   if (error is HandshakeException || error is TlsException) {
-    return 'The computer identity could not be verified. Use an invitation from the same office computer or restore its verified backup.';
+    return const ConnectionGuidance(
+      'The computer identity could not be verified.',
+      'Use an invitation from the same office computer or restore its verified backup.',
+    );
   }
   if (error is SocketException ||
       error is TimeoutException ||
       error is HttpException) {
-    return 'Cannot reach the computer. Keep both apps open on the same Wi-Fi, check its selected address, and retry. The computer must accept the local connection on TCP 47841.';
+    return const ConnectionGuidance(
+      'Cannot reach the computer.',
+      'Reconnect both devices to the same Wi-Fi or hotspot, keep both apps open, and retry.',
+      details:
+          'After changing networks, use Update computer connection with a fresh invitation from the same office computer to refresh its address. If it still cannot connect, ask the network administrator to check local device access and TCP 47841 for the computer app.',
+    );
   }
   if (error is FormatException || error is TypeError) {
-    return 'The invitation or saved connection is incomplete. Paste a fresh complete invitation from the same computer.';
+    return const ConnectionGuidance(
+      'The invitation or saved connection is incomplete.',
+      'Paste a fresh complete invitation from the same computer.',
+    );
   }
+  return null;
+}
+
+String connectionProblem(Object error) {
+  final guidance = connectionGuidance(error);
+  if (guidance != null) return guidance.text;
+  // Preserve actionable application errors, including verified-backup failures.
   return error.toString().replaceFirst('Bad state: ', '');
 }
 
@@ -395,6 +425,49 @@ class PhoneSync {
   final LabStore store;
   bool busy = false;
   String message = 'Saved on this phone.';
+  ConnectionGuidance? lastGuidance;
+  int connectionResponses = 0;
+  Map<String, String>? _verifiedOfficeDocuments;
+
+  Map<String, String>? _localDocumentHashes() {
+    if (!store.realWorkspace) {
+      final bytes = store.document;
+      return bytes == null ? null : {'inspection': digest(bytes)};
+    }
+    final hashes = <String, String>{};
+    for (final job in store.jobs) {
+      final id = job['id'] as String;
+      final bytes = store.documentFor(id);
+      if (bytes == null) return null;
+      hashes[id] = digest(bytes);
+    }
+    final storedIds = store.db
+        .select('SELECT id FROM documents')
+        .map((row) => row['id'] as String)
+        .toSet();
+    if (storedIds.length != hashes.length ||
+        !storedIds.containsAll(hashes.keys)) {
+      return null;
+    }
+    return hashes;
+  }
+
+  String get visibleMessage {
+    final queued = store.submissions.any((p) => p['_state'] == 'queued');
+    if (message == 'Saved on this phone.' && queued) {
+      return 'Saved on this phone—waiting to send.';
+    }
+    if (message == 'Saved on the computer. Photos verified.' &&
+        (queued ||
+            _verifiedOfficeDocuments == null ||
+            canonical(_localDocumentHashes()) !=
+                canonical(_verifiedOfficeDocuments))) {
+      return 'Saved on this phone—waiting to send.';
+    }
+    if (lastGuidance != null) return 'Saved on this phone—waiting to send.';
+    return message;
+  }
+
   void Function()? onChange;
   Json? get pairing => store.setting('pairing') as Json?;
   Future<void> enroll(
@@ -461,6 +534,8 @@ class PhoneSync {
       'token': p['token'],
       'invitation': p['invitation'],
     }, authenticated: false);
+    lastGuidance = null;
+    connectionResponses++;
     message = response['status'] == 'pending'
         ? 'Confirm code ${response['code']} on the computer.'
         : response['status'] == 'revoked'
@@ -613,8 +688,19 @@ class PhoneSync {
         }
       }
       store.setSetting('lastCompleteSync', store.stamp());
+      // Bind confirmation to every document in the office's final bundle.
+      // Selection changes are harmless; later edits and missing work are not.
+      _verifiedOfficeDocuments = bundle['documents'] is Map
+          ? {
+              for (final entry in (bundle['documents'] as Map).entries)
+                entry.key as String: digest(
+                  base64Decode(entry.value as String),
+                ),
+            }
+          : {'inspection': digest(base64Decode(bundle['document'] as String))};
       message = 'Saved on the computer. Photos verified.';
     } catch (error) {
+      lastGuidance = connectionGuidance(error);
       message =
           'Saved on this phone—waiting to send. ${connectionProblem(error)}';
       rethrow;
