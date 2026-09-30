@@ -7,6 +7,8 @@ environment:
   sdk: '>=3.8.0 <4.0.0'
 
 dependencies:
+  maintenance_rules:
+    path: packages/maintenance_rules
   flutter:
     sdk: flutter
   flutter_localizations:

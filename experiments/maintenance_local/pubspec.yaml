@@ -5,6 +5,8 @@ version: 0.1.2+3
 environment:
   sdk: ^3.12.0
 dependencies:
+  maintenance_rules:
+    path: ../../packages/maintenance_rules
   flutter:
     sdk: flutter
   rust_lib_sync_lab:

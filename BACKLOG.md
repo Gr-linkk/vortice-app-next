@@ -5,6 +5,21 @@ elsewhere, but substantive product/implementation tasks must be represented
 here with a stable ID. Incidental mechanical fixes may reference existing scope
 without creating a new backlog item.
 
+## Selected local-first slice — September 30, 2026
+
+### LF-001 — Real local equipment inspection through review and recovery
+
+Garrett authorized a complete bounded local-first maintenance workflow, with
+the hosted app retained for rollback. Start from reviewed `eb2d0d4` in an
+isolated checkout. Port the native runtime from pinned `f6608e10` selectively;
+do not merge the older lab fork. Create company equipment and procedures in
+the app, freeze prepared inspection context, capture readings/notes/gallery
+evidence offline, submit durable exact versions, review/approve/return at the
+office and preserve history through coherent same-identity recovery. Independent
+workers own domain, runtime, UI and adversarial tests. The separate lab setup
+UX follow-up is not edited here. Scope and evidence:
+[LF-001](docs/specs/LF-001-local-maintenance-slice.md).
+
 ## Architecture cleanup — September 29, 2026
 
 ### ARCH-001 — Implement the architecture audit

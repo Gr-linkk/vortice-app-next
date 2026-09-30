@@ -21,6 +21,13 @@ was separated from `https://github.com/Gr-linkk/vortice-app` at commit
 
 ## Service isolation
 
+- LF-001 is an explicitly authorized, isolated local-first inspection slice at
+  `experiments/maintenance_local/`. Use `scripts/local-maintenance.sh`; it has
+  dedicated application identity, storage and launch/build paths. It must never
+  initialize hosted services or reuse hosted/lab workspace data. The hosted
+  application and its guards below remain the rollback baseline. No cutover,
+  public release, live data import or device credential change is authorized.
+
 - Never connect this checkout to the original Supabase project
   `REDACTED_SUPABASE_PROJECT`.
 - The only authorized Supabase target for this checkout is `Vortice Next`,

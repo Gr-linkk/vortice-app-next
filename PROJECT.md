@@ -14,6 +14,20 @@ parts, and invoices.
 
 ## Current direction
 
+September 30 selected direction: Garrett explicitly chose offline/local-first
+maintenance while keeping the current Supabase app available for rollback.
+The bounded first real inspection workflow is [LF-001](docs/specs/LF-001-local-maintenance-slice.md)
+on isolated `codex/local-maintenance-slice`, based on the reviewed Build 45
+descendant `eb2d0d4`. One office coordinator owns prepared work, procedure
+publications, enrollment and immutable inspection review; one mechanic phone
+captures readings, notes and gallery evidence offline. Local creation uses
+synthetic verification fixtures, without live-company migration. The older
+launch receipts below remain historical evidence for the intact hosted app.
+This implementation authorization does not authorize merge, push, deployment,
+installation, Supabase retirement, a public release or persistent changes to
+real-device access. Decision [0022](docs/decisions/0022-local-inspection-authority.md)
+records this slice's authority and recovery limits.
+
 The current code map and retain/replace boundaries are in
 [Architecture: maintenance first](docs/ARCHITECTURE.md).
 
