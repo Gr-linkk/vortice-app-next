@@ -35,13 +35,19 @@ Future<void> main() async {
         final lost = await ImagePicker().retrieveLostData();
         if (store.setting('pendingInspectionPhoto') is String &&
             (store.catalog == null
-                ? store.setting('pendingInspectionPhoto') == store.workspace?['jobId']
-                : store.jobs.any((job) => job['id'] == store.setting('pendingInspectionPhoto')))) {
+                ? store.setting('pendingInspectionPhoto') ==
+                      (store.workspace?['jobId'])
+                : store.jobs.any(
+                    (job) =>
+                        job['id'] == store.setting('pendingInspectionPhoto'),
+                  ))) {
           if (lost.exception != null) throw lost.exception!;
           for (final file in lost.files ?? <XFile>[]) {
             await store.attach(
               await file.readAsBytes(),
-              jobId: store.catalog == null ? null : store.setting('pendingInspectionPhoto') as String,
+              jobId: store.catalog == null
+                  ? null
+                  : store.setting('pendingInspectionPhoto') as String,
             );
             store.setSetting('photoRecoveryError', null);
           }
