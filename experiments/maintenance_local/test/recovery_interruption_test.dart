@@ -56,8 +56,8 @@ void main() {
     identity = await OfficeIdentity.load(office);
     await office.update({
       'notes': 'Synthetic committed inspection',
-      'answer:fluid': {'result': 'pass', 'value': null},
-      'answer:guards': {'result': 'pass', 'value': null},
+      'answer:fluid': {'result': 'pass', 'value': ''},
+      'answer:guards': {'result': 'pass', 'value': ''},
       'meter': 125.5,
     });
     await office.attach([1, 2, 3, 4]);
