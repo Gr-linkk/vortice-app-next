@@ -167,6 +167,14 @@ file ownership across isolated runtime, Devices, workspace/inspection UI and
 independent test workers. Its version is `0.2.1+2`; new evidence goes only to
 `outputs/lf001-setup/`.
 
+Evidence correction: the earlier ignored receipt's `applicationTree` field was
+stale. The actual immutable `experiments/maintenance_local` subtree at both
+`7192166` and verified source `96ee764` is
+`87710f4f85ae2e1771a3017746a7a1efb505da17`. The original receipt and binary files
+remain preserved byte-for-byte; the new receipt records this correction
+separately. Their recorded binary checksums are unchanged and were independently
+confirmed by the reviewer.
+
 Independent review of `7192166` is **blocked** on reproduced P2 findings
 LF001-AUDIT-001/002: fresh command identities could duplicate an already submitted
 document version, and wire `_state` metadata could poison a stored command hash.
