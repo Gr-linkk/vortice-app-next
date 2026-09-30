@@ -10,7 +10,16 @@ class ApprovalRules {
   static bool _date(Object? value) =>
       value is String && DateTime.tryParse(value) != null;
 
-  static Future<void> validateSubmission(Json p, Json? workspace) async {
+  static Future<void> validateSubmission(
+    Json p,
+    Json? workspace, {
+    bool allowLocalState = false,
+  }) async {
+    if (!allowLocalState && p.containsKey('_state')) {
+      throw StateError(
+        'Local send status cannot be submitted. Retry the original submission without local status metadata; saved work has been retained.',
+      );
+    }
     final real = workspace?.containsKey('checklistSnapshot') == true;
     final allowed = {
       'id',
@@ -21,7 +30,7 @@ class ApprovalRules {
       'document',
       'documentHash',
       'values',
-      '_state',
+      if (allowLocalState) '_state',
       if (real) ...{
         'schemaVersion',
         'equipmentId',
@@ -119,11 +128,19 @@ class ApprovalRules {
   static void validateSubmissionHistory(Iterable<Json> history) {
     final byId = <String, Json>{for (final p in history) p['id'] as String: p};
     final revisions = <String, Set<int>>{};
+    final documentVersions = <String>{};
     for (final p in byId.values) {
       if (p['schemaVersion'] != 1) continue;
+      if (!documentVersions.add(
+        canonical([p['device'], p['jobId'], p['documentHash']]),
+      )) {
+        throw StateError(
+          'Submitted history assigns more than one record to the same device, work order and document version. Retain the saved history and reconcile the original submissions.',
+        );
+      }
       final revision = p['submissionRevision'] as int;
       final predecessor = byId[p['predecessorId']];
-      final key = '${p['device']}:${p['jobId']}';
+      final key = canonical([p['device'], p['jobId']]);
       if (!revisions.putIfAbsent(key, () => <int>{}).add(revision) ||
           (revision == 1
               ? predecessor != null
@@ -143,7 +160,9 @@ class ApprovalRules {
     String? currentDocumentHash,
     required Future<bool> Function(String) completeEvidence,
   }) async {
-    await validateSubmission(submission, workspace);
+    // Getter records include a local SQL status for display. That metadata is
+    // allowed here only; stored, transferred and restored commands stay clean.
+    await validateSubmission(submission, workspace, allowLocalState: true);
     if (!await completeEvidence(
       (submission['values'] as Json)['photo'] as String,
     )) {

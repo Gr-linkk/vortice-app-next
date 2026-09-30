@@ -512,6 +512,16 @@ class LabStore {
     if (!realWorkspace) return;
     final existing = submissions.where((s) => s['id'] == p['id']).firstOrNull;
     if (existing != null) return;
+    if (submissions.any(
+      (s) =>
+          s['device'] == p['device'] &&
+          s['jobId'] == p['jobId'] &&
+          s['documentHash'] == p['documentHash'],
+    )) {
+      throw StateError(
+        'This document version already has a submitted record. Retry its original submission or save changed work before submitting a new version.',
+      );
+    }
     final prior = _previousSubmission(
       p['jobId'] as String,
       p['device'] as String,
@@ -537,6 +547,11 @@ class LabStore {
   }) => queue.run(() async {
     requireOffice();
     checkAuthority?.call();
+    if (payload.containsKey('_state')) {
+      throw StateError(
+        'Local send status cannot be submitted. Retry the original submission without local status metadata; saved work has been retained.',
+      );
+    }
     if (payload['device'] != authenticatedDevice) {
       throw StateError('Submission device does not match this connection.');
     }
