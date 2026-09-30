@@ -11,6 +11,8 @@ import 'review_page.dart';
 import 'devices_page.dart';
 import 'backup_page.dart';
 import 'restore_page.dart';
+import 'preparation_page.dart';
+import 'inspection_content.dart';
 
 class WorkspacePage extends StatefulWidget {
   const WorkspacePage({
@@ -121,7 +123,11 @@ class _WorkspacePageState extends State<WorkspacePage>
   }
 
   Future<void> restoreOffice() async {
-    if (store.workspace != null || widget.onRestored == null) return;
+    if (store.catalog != null ||
+        store.workspace != null ||
+        widget.onRestored == null) {
+      return;
+    }
     setState(() => working = true);
     LabStore? next;
     try {
@@ -154,13 +160,14 @@ class _WorkspacePageState extends State<WorkspacePage>
 
   @override
   Widget build(BuildContext context) {
+    if (store.catalog != null) return realWorkspace();
     final workspace = store.workspace;
     return Scaffold(
       appBar: AppBar(
         title: const Text('Vortice · Local Maintenance'),
         actions: [
           IconButton(
-            tooltip: 'About Sync Lab',
+            tooltip: 'About local maintenance',
             icon: const Icon(Icons.info_outline),
             onPressed: () => showAboutDialog(
               context: context,
@@ -168,7 +175,7 @@ class _WorkspacePageState extends State<WorkspacePage>
               applicationVersion: '0.1.2 · internal experiment',
               children: [
                 const Text(
-                  'Synthetic workspace for two trusted devices. Public release and project license selection are separate work.',
+                  'A separate local maintenance experiment for one office coordinator and one mechanic phone. Equipment, authored checklists and inspection records stay on your devices.',
                 ),
               ],
             ),
@@ -182,26 +189,30 @@ class _WorkspacePageState extends State<WorkspacePage>
         ),
         const SizedBox(height: 8),
         const Text(
-          'Synthetic test workspace · Your normal Vortice app is separate.',
+          'Local maintenance experiment · Your normal Vortice app is separate.',
         ),
         if (error != null) notice(error!, error: true),
         if (workspace == null) ...[
           const SizedBox(height: 24),
           Text(
-            store.office ? 'Start one inspection' : 'Connect to your computer',
+            store.office
+                ? 'Start with your company'
+                : 'Connect to your computer',
             style: Theme.of(context).textTheme.headlineMedium,
           ),
           const SizedBox(height: 12),
           Text(
             store.office
-                ? 'Create a demo company, generator and fixed inspection checklist. Everything stays on your devices.'
-                : 'Open Sync Lab on the computer and choose Connect or replace a phone. Copy its invitation, bring the text to this phone and paste it below. Keep both apps open on the same Wi-Fi, then compare the confirmation code.',
+                ? 'Create your company, add equipment and author a checklist. Prepare an inspection for the mechanic, then review its submitted record here.'
+                : 'On the office computer, choose Connect or replace a phone. Copy its invitation, bring the text to this phone and paste it below. Keep both apps open on the same Wi-Fi, then compare the confirmation code.',
           ),
           const SizedBox(height: 20),
           if (store.office) ...[
             FilledButton(
-              onPressed: working ? null : () => act(store.createWorkspace),
-              child: const Text('Create demo workspace'),
+              onPressed: working
+                  ? null
+                  : () => prepare(PreparationStep.company),
+              child: const Text('Create company'),
             ),
             if (widget.onRestored != null)
               OutlinedButton(
@@ -330,21 +341,278 @@ class _WorkspacePageState extends State<WorkspacePage>
     );
   }
 
-  Widget submissionCard(Json p) {
+  Future<void> prepare(PreparationStep step) async {
+    await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => PreparationPage(store: store, step: step),
+      ),
+    );
+    refresh();
+  }
+
+  Future<void> openJob(String id) async {
+    store.selectJob(id);
+    await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => InspectionPage(store: store, jobId: id),
+      ),
+    );
+    refresh();
+  }
+
+  Widget realWorkspace() {
+    final catalog = store.catalog!;
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Vortice · Local Maintenance'),
+        actions: [
+          IconButton(
+            tooltip: 'About local maintenance',
+            icon: const Icon(Icons.info_outline),
+            onPressed: () => showAboutDialog(
+              context: context,
+              applicationName: 'Vortice Local Maintenance',
+              applicationVersion: '0.1.2 · internal experiment',
+              children: const [
+                Text(
+                  'A separate local maintenance experiment for one office coordinator and one mechanic phone. Equipment, authored checklists and inspection records stay on your devices. Your normal Vortice app is separate.',
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+      body: page([
+        Text(
+          store.office ? 'OFFICE COMPUTER' : 'INSPECTION PHONE',
+          style: Theme.of(context).textTheme.labelLarge,
+        ),
+        const SizedBox(height: 8),
+        const Text(
+          'Local maintenance experiment · Your normal Vortice app is separate.',
+        ),
+        if (error != null) notice(error!, error: true),
+        const SizedBox(height: 20),
+        Text(
+          catalog['company'] as String,
+          style: Theme.of(context).textTheme.headlineSmall,
+        ),
+        Text('Coordinator: ${catalog['coordinatorName']}'),
+        if (!store.office) ...[
+          notice(sync?.message ?? 'Saved on this phone.'),
+          OutlinedButton.icon(
+            onPressed: sync == null || sync!.busy
+                ? null
+                : () => act(sync!.sync),
+            icon: const Icon(Icons.sync),
+            label: const Text('Sync now'),
+          ),
+          const Text(
+            'Automatic sending runs while both apps are open. Only work saved on the computer can be restored to a replacement phone.',
+          ),
+          TextButton(
+            onPressed: sync == null || sync!.busy ? null : pair,
+            child: const Text('Update computer connection'),
+          ),
+        ],
+        const SizedBox(height: 20),
+        Text('Inspections', style: Theme.of(context).textTheme.titleLarge),
+        if (store.jobs.isEmpty)
+          notice(
+            store.office
+                ? (store.equipment.isEmpty
+                      ? 'Add your first equipment, then author its checklist and prepare an inspection.'
+                      : store.templates.isEmpty
+                      ? 'Author and publish a checklist, then prepare an inspection for your equipment.'
+                      : 'Your equipment and checklist are ready. Prepare an inspection to start work.')
+                : 'No inspections have been prepared yet. The office coordinator prepares work and sends it when both devices connect.',
+          ),
+        if (store.office &&
+            store.equipment.isNotEmpty &&
+            store.templates.isNotEmpty)
+          FilledButton.icon(
+            onPressed: working ? null : () => prepare(PreparationStep.work),
+            icon: const Icon(Icons.playlist_add),
+            label: const Text('Prepare inspection'),
+          ),
+        for (final job in store.jobs) jobCard(job),
+        if (store.office) ...[
+          const SizedBox(height: 20),
+          Text('Equipment', style: Theme.of(context).textTheme.titleLarge),
+          OutlinedButton.icon(
+            onPressed: working
+                ? null
+                : () => prepare(PreparationStep.equipment),
+            icon: const Icon(Icons.add),
+            label: const Text('Add equipment'),
+          ),
+          for (final equipment in store.equipment)
+            Card(
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Text(
+                      equipmentName(equipment),
+                      style: Theme.of(context).textTheme.titleMedium,
+                    ),
+                    if ((equipment['serial'] ?? '').toString().isNotEmpty)
+                      Text('Equipment ID: ${equipment['serial']}'),
+                    Text('Meter: ${meterUnitLabel(equipment['meterUnit'])}'),
+                  ],
+                ),
+              ),
+            ),
+          const SizedBox(height: 20),
+          Text('Checklists', style: Theme.of(context).textTheme.titleLarge),
+          OutlinedButton.icon(
+            onPressed: working
+                ? null
+                : () => prepare(PreparationStep.checklist),
+            icon: const Icon(Icons.edit_note),
+            label: const Text('Author checklist'),
+          ),
+          for (final template in store.templates)
+            Card(
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Text(
+                      template['title'] as String,
+                      style: Theme.of(context).textTheme.titleMedium,
+                    ),
+                    Text(
+                      'Published v${template['version']} · ${(template['items'] as List).length} steps · Company-authored',
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          const SizedBox(height: 20),
+          OutlinedButton.icon(
+            onPressed: server == null
+                ? null
+                : () => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => DevicesPage(server: server!),
+                    ),
+                  ),
+            icon: const Icon(Icons.devices),
+            label: const Text('Connect or replace a phone'),
+          ),
+          OutlinedButton.icon(
+            onPressed: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => BackupPage(store: store)),
+            ),
+            icon: const Icon(Icons.backup_outlined),
+            label: const Text('Back up office computer'),
+          ),
+          if (store.setting('officeRestore') != null)
+            notice(
+              'Office backup restored. Create a new invitation for each retained phone, compare its code and confirm it again under Connect or replace a phone. Revoked phones remain blocked. Work saved after the backup is not included.',
+            ),
+        ],
+        const SizedBox(height: 24),
+        Text(
+          store.office ? 'Review submitted work' : 'Submitted versions',
+          style: Theme.of(context).textTheme.titleLarge,
+        ),
+        if (store.submissions.isEmpty)
+          const Padding(
+            padding: EdgeInsets.symmetric(vertical: 12),
+            child: Text(
+              'No submitted work yet. Open an inspection, record its checks and readings, add notes and a photo, then submit for review.',
+            ),
+          ),
+        for (final submission in store.submissions.reversed)
+          submissionCard(submission),
+        if (store.receipts.isNotEmpty)
+          const Padding(
+            padding: EdgeInsets.only(top: 12),
+            child: Text(
+              'Reviewed versions stay in history when an inspection changes.',
+            ),
+          ),
+        const Padding(
+          padding: EdgeInsets.only(top: 20),
+          child: Text(
+            'An approved inspection records what was inspected. Repairs, equipment availability and recurring maintenance are separate decisions.',
+          ),
+        ),
+      ]),
+    );
+  }
+
+  Widget jobCard(Json job) {
+    final id = (job['id'] ?? job['jobId']) as String;
+    final jobContext = store.jobContextFor(id);
+    final latest = store.submissions.where((p) => p['jobId'] == id).lastOrNull;
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text(
+              equipmentName(jobContext['equipment']),
+              style: Theme.of(context).textTheme.titleLarge,
+            ),
+            const SizedBox(height: 8),
+            Text(jobContext['job'] as String),
+            const SizedBox(height: 8),
+            Text(
+              latest == null
+                  ? 'Prepared · Ready to inspect'
+                  : submissionStatus(latest),
+            ),
+            const SizedBox(height: 16),
+            FilledButton(
+              onPressed: () => openJob(id),
+              child: Text(
+                store.office ? 'Open inspection' : 'Continue inspection',
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  String submissionStatus(Json p) {
     final receipt = store.receipts
         .where((r) => r['submissionId'] == p['id'])
         .firstOrNull;
-    final status = receipt == null
+    return receipt == null
         ? (p['_state'] == 'queued' ? 'Waiting to send' : 'Awaiting review')
         : receipt['decision'] == 'approved'
-        ? 'Approved'
+        ? (p['context'] == null ? 'Approved' : 'Approved inspection')
         : 'Returned — ${receipt['reason']}';
+  }
+
+  Widget submissionCard(Json p) {
+    final submittedContext = jsonMap(p['context']);
+    final values = jsonMap(p['values']);
     return Card(
       child: ListTile(
-        isThreeLine: true,
-        title: Text(status),
+        title: Text(submissionStatus(p)),
         subtitle: Text(
-          'Submitted ${displayTime(p['createdAt'] as String)}\nMeter: ${(p['values'] as Json)['meter']} hours',
+          [
+            if (submittedContext.isNotEmpty)
+              '${equipmentName(submittedContext['equipment'])} · ${submittedContext['job']}',
+            'Submitted ${displayTime(p['createdAt'] as String)}',
+            if (submittedContext.isEmpty ||
+                submittedContext['meterRequired'] == true)
+              'Meter: ${values['meter']} ${submittedContext.isEmpty ? 'hours' : meterUnitLabel(submittedContext['meterUnit'])}',
+            if (submittedContext.isNotEmpty)
+              'Version ${p['submissionRevision'] ?? 1}',
+          ].join('\n'),
         ),
         trailing: const Icon(Icons.chevron_right),
         onTap: () async {
