@@ -391,7 +391,11 @@ void main() {
         expect(find.text('Needs action · 35 psi'), findsOneWidget);
         await _until(
           tester,
-          () => tester.widget<RawImage>(find.byType(RawImage)).image != null,
+          () {
+            final images = find.byType(RawImage);
+            return images.evaluate().isNotEmpty &&
+                tester.widget<RawImage>(images.first).image != null;
+          },
         );
         await _show(tester, find.text('Reviewed by Sam Coordinator'));
         await _capture(tester, 'maintenance-restored-review-${suffix}x');

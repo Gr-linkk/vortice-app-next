@@ -52,7 +52,7 @@ photo publication. `/pair` still requires invitation and explicit office code
 confirmation; address refresh does not authorize a phone.
 
 Pinned TLS, the office's explicit enrollment/revocation authority and all wire
-payloads remain unchanged by the setup port. Production app ID is the separate
+payloads remain unchanged by the setup port. Normal app identity is the separate
 experimental `org.vortice.next.maintenance_local`, office port 47841, default
 directory `maintenance-local-v1`; the lab uses another identity/data/port.
 
