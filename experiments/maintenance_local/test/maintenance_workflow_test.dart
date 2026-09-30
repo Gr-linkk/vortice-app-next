@@ -613,6 +613,9 @@ void main() {
     'Real catalog backup restores every job, version, draft, evidence reference, and authority fence',
     () async {
       final office = await company();
+      // The synthetic office must establish its identity before it acquires
+      // phones or signed history, just as ordinary startup does.
+      final identity = await OfficeIdentity.load(office);
       final a = _id(await prepare(office, name: 'Synthetic recovery asset A'));
       final b = _id(await prepare(office, name: 'Synthetic recovery asset B'));
       await office.addEquipment(
@@ -655,7 +658,6 @@ void main() {
       }
       authority.confirm('active-phone');
       authority.revoke('revoked-phone');
-      final identity = await OfficeIdentity.load(office);
       final catalog = canonical(office.catalog);
       final documents = {
         for (final id in [a, b]) id: digest(office.documentFor(id)!),
