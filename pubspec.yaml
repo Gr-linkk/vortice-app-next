@@ -53,9 +53,6 @@ dependencies:
   pdf: ^3.11.1
   printing: ^5.13.3
 
-  # Signature pad
-  syncfusion_flutter_signaturepad: ^28.1.33
-
   # Excel export
   excel: ^4.0.6
 

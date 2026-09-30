@@ -17,12 +17,15 @@ data, IDs and Field Notes design. No hosted deployment or public release is
 implied. Scope, all seven findings, milestone evidence and cross-branch ID
 reconciliation: [ARCH-001](docs/specs/ARCH-001-architecture-cleanup.md).
 
-First implement shared safe retry classification and regressions for the
-provider action/report defect. Then consolidate readable business commands,
-work execution, membership/capabilities and UI/domain boundaries in reviewed
-slices; prepare independent installation and simple dependency licensing.
-Keep actual maintenance use as the acceptance criterion. Do not substitute
-successful Sync Lab tests for fixing retained application code.
+Shared safe retry classification is implemented. September 29 clarification:
+prioritize portable maintenance rules, small work controllers, a contained
+hosted-role adapter and removing the signature SDK. Defer cosmetic hosted
+SQL/Auth/delivery rewrites that the local-first target will replace. Keep the
+retained app and deferred workflows working. The accepted boundary is
+[decision 0020](docs/decisions/0020-maintenance-domain-and-runtime-boundaries.md);
+[the architecture guide](docs/ARCHITECTURE.md) names the current code and the
+complete-workflow integration gates. Runtime migration, physical acceptance,
+rights clearance and public release remain separately evidenced work.
 
 ## Previously selected launch order — September 24, 2026
 

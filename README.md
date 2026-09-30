@@ -86,6 +86,7 @@ Install to a connected Android device from WSL using the Windows Android SDK:
 ## Useful Docs
 
 - [Project operating brief](PROJECT.md) - direction, authority, and non-goals.
+- [Architecture: maintenance first](docs/ARCHITECTURE.md) - current code boundaries and what the local-first change retains or replaces.
 - [Product backlog](BACKLOG.md) - the sole live Now/Next/Later priority list.
 - [Development workflow](docs/DEVELOPMENT-WORKFLOW.md) - task lifecycle and helper commands.
 - [Decision records](docs/decisions/README.md) - durable choices and template.

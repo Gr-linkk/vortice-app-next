@@ -1,7 +1,7 @@
 # ARCH-001 — Implement the architecture audit
 
-Authorized September 29, 2026. Status: in progress; not a completed architecture
-rewrite or a public-release authorization.
+Authorized September 29, 2026. Status: pre-integration cleanup implemented and
+verified. Full runtime migration and public release remain open.
 
 ## Purpose and source
 
@@ -26,7 +26,8 @@ the ignored local report is background evidence, not the live backlog.
   `codex/architecture-cleanup` in its own worktree. Preserve French, native CAD,
   web/offline support, historical records and existing deployment safeguards.
 - Isolated experiment: `codex/local-first-lab`, from the Build 40-derived
-  planning commit `b75b711`; native integration milestone `3745d37`.
+  planning commit `b75b711`; native integration milestone `3745d37`, offline
+  persistence `0ae4bd7`, sync/approval milestone `ff41931`.
   The task “Review big change idea” owns lab implementation/device testing.
   The architecture task owns retained-app remediation and independent review.
 - Preserved return point: `pre-local-first-build-40`, with the existing
@@ -54,20 +55,29 @@ backlog, update all incoming local links, and record the historical alias.
 Do not silently combine unrelated NEXT-011 specifications or erase completed
 billing work to make a merge appear clean.
 
-## All audit findings and closure requirements
+## Disposition of the seven audit findings
 
-| Finding | Retained-app work | Lab/migration relationship | Closure evidence |
-| --- | --- | --- | --- |
-| 1. Unsafe/duplicated retry handling | Use one conservative write-outcome policy; keep identity/payload through uncertain responses; allow correction after confirmed rejection. | Apply the same invariant to peer commands and submissions; native sync alone does not repair hosted clients. | Provider action and report reopen/retry, parts and shared RPC regressions; account isolation; uncertain SQLSTATE/gateway cases. |
-| 2. SQL wrappers and function-text patches | Derive the current command definitions from replayed history; consolidate one critical command through a new forward migration with characterization contracts. | Document which business commands remain and which a future migration replaces. | A current readable command and equivalent permissions, revision, approval and replay results. No closure from simply omitting SQL in a prototype. |
-| 3. Parallel work execution models | Define a common work-execution contract for checklist/evidence/labour/review while keeping billing and customer publication explicit policies. Migrate one real path, then retire redundant handling. | The lab's one-job fixture is a candidate boundary, not yet a replacement for provider/internal execution. | Ordinary job journey through the shared boundary, unchanged IDs/history, distinct provider billing rules, removed duplicate behavior. |
-| 4. Membership translated into legacy roles | Inventory legacy profiles/routes/policies; make membership/capabilities canonical and contain legacy translation at a documented adapter. | Device possession must not become company ownership; multi-user access remains outside the current lab. | Historical account/access fixtures, revocation and tenant isolation; a named adapter retirement criterion. |
-| 5. Screens own command/persistence logic | Extract small domain/command controllers and parse important response boundaries into explicit types. Avoid generic framework scaffolding. | Keep local storage, evidence, transport and approval independent; do not create another large screen-owned engine. | A behavior can be changed in one place; widget tests exercise outcomes while lower-level tests own persistence/retry. |
-| 6. Private deployment and licensing friction | Replace Syncfusion where retained app code ships; document required dependencies, assets and rights; provide a supported independent bootstrap/build/recovery path. | New deployment direction is company-operated local-first; the earlier audit's proposed hosted packaging path is superseded as the target. | Clean installation without Garrett's credentials, complete ordinary job, restore/export, dependency notices. A project license cannot clear inherited rights automatically. |
-| 7. Product breadth outruns sustained use | Freeze speculative expansion; make equipment -> work -> evidence -> review -> history obvious and reliable. | The experiment proves one technical path, not complete maintenance usefulness. | Garrett uses actual equipment work, then a similar independent crew can repeat it without database/developer intervention. |
+Garrett clarified that cleanup should stop where the big change would make it
+throwaway work. The implementation task confirmed that hosted identity,
+SQL/RLS and cloud delivery are replacement targets. That changes the earlier
+sequence: a readable current SQL wrapper chain is no longer the next milestone.
+[Decision 0020](../decisions/0020-maintenance-domain-and-runtime-boundaries.md)
+and [the architecture guide](../ARCHITECTURE.md) record the resulting boundary.
 
-No full finding is closed solely by this matrix, a plan, a green unit suite, or a
-smaller prototype. A deliberately deferred item stays visible with its reason.
+| Finding | Work done here | Deliberately remaining |
+| --- | --- | --- |
+| 1. Unsafe/duplicated retry handling | Shared rejection policy; exact retries across provider actions/reports, parts, import and shared RPC. Report command freezes nested input. | Existing internal queue remains; lab maintains its own durable exact-retry contract. Neither transport should invent new command IDs on ambiguous outcomes. |
+| 2. SQL wrapper/function-text patches | Preserved history and established 51-contract/restore baseline. | **Deferred:** cosmetic consolidation of hosted SQL is throwaway under the selected target. Fix concrete defects as needed; port business acceptance scenarios when the local workflow is selected. |
+| 3. Parallel work execution | Internal and provider paths now use portable checklist/report completeness rules with one source of truth. | **Deferred:** merging the entire hosted work engines. The next local workflow must use these requirements while keeping inspection, publication and financial policy explicit. No fourth workflow engine. |
+| 4. Membership translated into legacy roles | Portable capability policy; legacy route projection isolated in a named hosted adapter, with access fixtures. | **Deferred:** rewriting hosted identity/RLS/routes. Retire the adapter with the hosted runtime. Device enrollment is not person membership; multi-worker authority is outside the lab. |
+| 5. Screens own persistence/commands | Provider report draft/retry state moved into a work-specific controller; immutable typed command; plain-Dart domain checks added to guarded verification. Checklist rules no longer require importing a widget. | Large existing screens are not all rewritten. Extract boundaries when their actual workflow migrates; do not add a universal repository/controller framework. |
+| 6. Private deployment/licensing friction | Syncfusion signature pad/core removed with no new package. In-app ink preserves PNG callback, clear/save and error recovery. Runtime license inventory regenerated. | Lab owns independently running local runtime/build/recovery gates. Inherited code/asset rights, project license and public packaging remain open; dependency removal does not settle them. |
+| 7. Breadth outruns repeated use | Selected one complete equipment/work/evidence/review/history/recovery path as the next integration scope; preserved deferred product features. | Real maintenance use and a second independent crew are not established by synthetic tests. No speculative billing, inventory, plugin or AI expansion. |
+
+This resolves the sensible cleanup scope before integration, not every historical
+architectural issue. Deferred items have a named replacement boundary; they are
+not silently closed. No merge, dual-write bridge or production cutover follows
+automatically from a passing lab.
 
 ## Milestone A — Shared write-outcome policy
 
@@ -125,25 +135,73 @@ Report captures show disabled editing and the active Retry request at both
 text sizes. Fresh physical acceptance remains open; this task has not displaced
 the lab task's use of the S24 or installed another build.
 
-## Subsequent implementation slices
+## Milestone B — Portable rules and small runtime adapters
 
-1. Characterize the retained approval command, generate a current-schema view
-   locally, then consolidate one wrapper chain. Preserve deployed migration files.
-   A local database/contract-runner failure must be resolved before asserting
-   backend equivalence; a textual SQL rewrite alone is insufficient.
-2. Extract the shared execution/command boundary and typed payloads from one
-   retained workflow. Keep provider financial/publication policy separate. Do not
-   create a fourth parallel work-order engine or change every model at once.
-3. Move membership/capabilities behind a canonical workspace context with legacy
-   adapter fixtures. Coordinate client and server retirement; no privilege widening
-   or account reset is acceptable as a shortcut.
-4. Replace the isolated signature-pad dependency and verify touch, clear/save,
-   generated image and accessibility. Track inherited rights/asset provenance
-   separately; do not invent a blanket MIT grant over other people's work.
-5. After the lab proves its accepted gates, choose an integration base and map the
-   complete first maintenance workflow, its approvals, meter context, checklist
-   snapshots and evidence into the new authority. Define import, rollback and
-   retirement before enabling it for real company records.
+`lib/domain/` contains checklist value rules, report readiness, company
+capabilities and immutable report commands. The rules compile and run under
+plain Dart. `tool/verify_domain.dart` exercises linked photos, backwards/invalid
+meters, out-of-range results, unresolved failures, command immutability and
+capability boundaries; it also rejects domain imports from plugins/UI/adapters.
+The guarded verifier runs it. Existing internal/provider and checklist-builder,
+operator, history and submission paths call the same rule source.
+
+`ProviderReportDraft` owns load/save, original operation/revision, confirmed
+rejection, uncertain retries, flush/clear ordering and account checks. The report
+widget keeps input, presentation and navigation. Failed local writes cannot send
+an unpreserved command; later writes can recover. A damaged saved command stays
+blocked and retained instead of being overwritten with older server data.
+The editor explains the retained draft, offers Reopen saved draft, and stops
+the loading indicator after a failure; saving stays disabled until it can read
+the preserved data. A damaged command may still need separate recovery.
+
+`hostedProfile` contains the old member-to-route translation. It does not change
+server permissions or migrate accounts. Membership capabilities remain separate
+from route roles. Tests preserve old profiles and ensure owner-shaped routes do
+not manufacture owner capabilities for a modern operator.
+
+## Milestone C — Signature dependency removed
+
+The isolated signature pad now uses Flutter drawing primitives and exports an
+opaque black-on-white PNG. Normalized strokes survive resizing; clearing removes
+prior ink, export is independent of the light/dark theme, and a failed save
+retains the drawing for retry. Save/clear are disabled during export. The sheet
+scrolls and the title/actions wrap for large text. Existing callback/upload
+contracts and old saved image bytes are unchanged.
+
+No replacement dependency was added. Syncfusion's signature pad and core are
+absent from `pubspec.yaml`, the lockfile and the resolved runtime graph. The
+regenerated inventory contains 154 reachable packages with available license
+text and no flags from the inventory script. That is not a native binary SBOM,
+a license classification, or clearance of inherited/asset rights.
+
+### Rendered signature acceptance
+
+The ordinary Service report action bar opens Technician Signature, then draw ->
+clear -> draw -> save -> return to report. Checks run at 412 x 915, normal English
+light theme and 2x French dark theme. Exported PNGs are decoded to verify visible
+ink, opaque white background and removal of the cleared stroke. A failed save
+keeps ink and supports retry. Screenshots are in
+`outputs/architecture-cleanup/rendered/signature-*.png`.
+These are actual Flutter widget renders with fixture report persistence; no
+new build was installed on the phone used by the lab task. All three signature
+PNG/clear/retry cases also pass in headless Chromium via `flutter test --platform
+chrome`; browser tests use the harness fonts, while inspected native snapshots
+use the bundled Roboto/Material fonts. The first browser attempt stalled in the
+native-font preload helper; browser checks now skip that screenshot-only setup.
+
+## Next work that depends on the experiment
+
+1. Review the final lab evidence and its unpassed gates (including actual LAN,
+   as distinct from USB-forwarded transport). A two-device synthetic job is not
+   the full maintenance application.
+2. Select a destination base preserving Build 45, reconcile NEXT-011 identifiers,
+   and scope one complete real equipment/work workflow against the portable
+   rules and retained acceptance scenarios.
+3. Define one write authority, import of IDs/history/evidence, rollback, and
+   retirement of the old workflow. Do not merge two independently accepting
+   authorities or delete existing billing/inventory/customer responsibilities.
+4. Establish actual ordinary use, independent setup/restore and rights/notice
+   readiness before calling the complete product ready for open-source release.
 
 ## Evidence and current limits
 
@@ -159,8 +217,14 @@ the lab task's use of the S24 or installed another build.
   its explicit local PostgreSQL backend and a fresh Unix-socket-only cluster.
   The earlier audit's Docker-access limitation no longer blocks these checks.
   No hosted backend was used. This establishes a baseline, not SQL consolidation.
-- Other retained-app findings: open. No SQL/membership/work-engine replacement
-  or public installation/license clearance is claimed.
+- Milestones B/C: full guarded verification passes with clean analysis, plain-Dart
+  domain contracts and all 851 Flutter tests (10 added in this round). Targeted
+  checks cover seven provider retry/reopen paths, three controller failure cases,
+  three hosted-profile access cases and three signature save/render cases.
+  Hosted SQL/Auth/delivery redesign is deliberately deferred under Garrett's
+  latest instruction. No database behavior was changed in this round.
+- No SQL/membership/work-engine replacement or public installation/license
+  clearance is claimed. The remaining migration scope is above.
 - Separate lab review LF-AUDIT-001: partial-photo/final-flush recovery repaired;
   independent nine-case probe passes against evidence store SHA256
   `e2d5b8951a78e3567dfb85cf840c5ef008a351e52f545ea4bec8c989f1dadee2`.

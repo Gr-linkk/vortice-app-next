@@ -106,6 +106,28 @@ void main() {
     });
   }
 
+  testWidgets('unreadable report draft is retained with an explicit retry', (
+    tester,
+  ) async {
+    final data = RejectedOnce('504');
+    final prefs = await SharedPreferences.getInstance();
+    final key = accountStorageKey('actor', 'provider_report:provider:work');
+    const damaged = '{"data":{},"pending":{"id":"keep-me"}}';
+    await prefs.setString(key, damaged);
+    await tester.pumpWidget(fixture.app(data));
+    await tester.pumpAndSettle();
+    await press(tester, 'Continue service report');
+    expect(
+      find.textContaining('The saved draft could not be opened'),
+      findsOneWidget,
+    );
+    expect(find.byType(LinearProgressIndicator), findsNothing);
+    await press(tester, 'Reopen saved draft');
+    expect(prefs.getString(key), damaged);
+    expect(data.calls, isEmpty);
+    await leave(tester);
+  });
+
   testWidgets('provider gateway retry survives account change and reopen', (
     tester,
   ) async {

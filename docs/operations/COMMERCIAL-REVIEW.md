@@ -20,12 +20,14 @@ as required by each applicable license.
 The same tool writes `asset-inventory.json` with tracked asset paths and hashes
 as the starting rights-review ledger; it does not invent missing source rights.
 
-Specific decision: `syncfusion_flutter_signaturepad` and its core dependency
-use Syncfusion licensing. Obtain and retain proof of the applicable Community
-or commercial entitlement, or approve replacement before commercial delivery.
-The [package license](https://pub.dev/packages/syncfusion_flutter_signaturepad/license)
-and [Community program](https://www.syncfusion.com/products/communitylicense)
-are the vendor sources; eligibility cannot be inferred from this repository.
+September 29 ARCH-001 update: the retained application's Syncfusion signature
+pad and transitive core dependency have been removed. Flutter ink capture
+preserves the PNG callback without a replacement package. The refreshed
+runtime inventory contains neither package. This resolves that dependency
+choice; it does not license inherited code, artwork or other dependencies.
+The earlier vendor-entitlement question remains relevant only to old builds
+that still contain those packages.
+
 `assets/fonts/Roboto_LICENSE.txt` exists; confirm all shipped fonts/artwork and
 manual pages against their source/permission records.
 

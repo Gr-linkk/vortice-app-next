@@ -1,3 +1,4 @@
+import 'package:vortice_app/domain/checklist.dart';
 import 'dart:async';
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
@@ -7,7 +8,6 @@ import 'package:vortice_app/core/meter_units.dart';
 import 'package:vortice_app/core/user_feedback.dart';
 import 'package:vortice_app/core/localized_text.dart';
 import 'package:vortice_app/features/auth/auth_provider.dart';
-import 'package:vortice_app/features/checklists/checklist_answer_fields.dart';
 import 'package:vortice_app/features/checklists/checklist_procedure_source.dart';
 import 'package:vortice_app/features/maintenance/maintenance_models.dart';
 import 'package:vortice_app/features/maintenance/maintenance_progress.dart';

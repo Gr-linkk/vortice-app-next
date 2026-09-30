@@ -17,40 +17,46 @@ Future<void> showServiceReportSignatureSheet({
       borderRadius: BorderRadius.vertical(top: Radius.circular(18)),
     ),
     builder: (sheetContext) => SafeArea(
-      child: Padding(
-        padding: EdgeInsets.fromLTRB(
-          16,
-          16,
-          16,
-          16 + MediaQuery.of(sheetContext).viewInsets.bottom,
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Row(
-              children: [
-                Text(
-                  AppLocalizations.of(sheetContext).technicianSignature,
-                  style: Theme.of(sheetContext).textTheme.titleMedium,
-                ),
-                const Spacer(),
-                IconButton(
-                  onPressed: () => Navigator.of(sheetContext).pop(),
-                  icon: const Icon(Icons.close),
-                ),
-              ],
-            ),
-            const SizedBox(height: 8),
-            SignaturePadWidget(
-              onSave: (bytes) async {
-                await onSave(bytes);
-                if (sheetContext.mounted) {
-                  Navigator.of(sheetContext).pop();
-                }
-              },
-            ),
-          ],
+      child: SingleChildScrollView(
+        child: Padding(
+          padding: EdgeInsets.fromLTRB(
+            16,
+            16,
+            16,
+            16 + MediaQuery.of(sheetContext).viewInsets.bottom,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      AppLocalizations.of(sheetContext).technicianSignature,
+                      style: Theme.of(sheetContext).textTheme.titleMedium,
+                    ),
+                  ),
+                  IconButton(
+                    tooltip: MaterialLocalizations.of(
+                      sheetContext,
+                    ).closeButtonTooltip,
+                    onPressed: () => Navigator.of(sheetContext).pop(),
+                    icon: const Icon(Icons.close),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              SignaturePadWidget(
+                onSave: (bytes) async {
+                  await onSave(bytes);
+                  if (sheetContext.mounted) {
+                    Navigator.of(sheetContext).pop();
+                  }
+                },
+              ),
+            ],
+          ),
         ),
       ),
     ),

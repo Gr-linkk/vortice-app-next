@@ -1,3 +1,4 @@
+import 'package:vortice_app/domain/checklist.dart';
 import 'dart:typed_data';
 import 'operator_issue_details.dart';
 

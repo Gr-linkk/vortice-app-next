@@ -1,12 +1,8 @@
-import 'dart:convert';
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:vortice_app/core/app_dropdown_field.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-import 'package:vortice_app/core/rpc_failure.dart';
-import 'package:uuid/uuid.dart';
 import 'package:vortice_app/core/account_storage.dart';
 import 'package:vortice_app/core/meter_units.dart';
 import 'package:vortice_app/core/user_feedback.dart';
@@ -22,6 +18,8 @@ import 'package:vortice_app/sync/field_evidence.dart';
 import 'package:vortice_app/sync/field_work_provider.dart';
 import 'organization_work_execution.dart';
 import 'organization_work_provider.dart';
+import 'provider_report_draft.dart';
+import 'package:vortice_app/domain/report_command.dart';
 
 String _workReportText(
   BuildContext context,
@@ -49,15 +47,11 @@ class _OrganizationWorkReportEditorState
   final _picker = ImagePicker();
   Map<String, dynamic> _answers = {};
   List<String> _evidence = [];
-  Map<String, dynamic>? _pending;
-  bool _ready = false, _busy = false, _requirements = false, _cleared = false;
+  late final ProviderReportDraft _draft;
+  ReportCommand? get _pending => _draft.pending;
+  bool _ready = false, _busy = false, _requirements = false;
   Object? _error;
-  Future<void> _write = Future.value();
   String get _id => (_data['work_order'] as Map)['id'] as String;
-  String get _draftKey => accountStorageKey(
-    _account,
-    'provider_report:${(_data['work_order'] as Map)['provider_organization_id']}:$_id',
-  );
   bool get _frozen => !_ready || _busy || _pending != null;
   Map<String, dynamic> get _order =>
       Map<String, dynamic>.from(_data['work_order'] as Map);
@@ -75,6 +69,20 @@ class _OrganizationWorkReportEditorState
     super.initState();
     _data = Map<String, dynamic>.from(widget.data);
     _account = ref.read(sessionProvider)?.user.id ?? '';
+    final repository = ref.read(organizationWorkRepositoryProvider);
+    _draft = ProviderReportDraft(
+      account: _account,
+      organizationId: _order['provider_organization_id'] as String,
+      workOrderId: _id,
+      currentAccount: () => mounted ? ref.read(sessionProvider)?.user.id : null,
+      send: (command) => repository.changeOperation(
+        _id,
+        command.revision,
+        command.id,
+        command.action,
+        command.data,
+      ),
+    );
     final report = _data['report'] as Map? ?? {};
     _diagnosis.text = report['diagnosis']?.toString() ?? '';
     _repair.text = report['repair']?.toString() ?? '';
@@ -89,13 +97,15 @@ class _OrganizationWorkReportEditorState
   }
 
   Future<void> _load() async {
-    final prefs = await SharedPreferences.getInstance();
-    if (!mounted) return;
-    final raw = prefs.getString(_draftKey);
-    if (raw != null) {
-      try {
-        final saved = jsonDecode(raw) as Map;
-        final data = saved['data'] as Map;
+    if (_busy) return;
+    setState(() {
+      _busy = true;
+      _error = null;
+    });
+    try {
+      final data = await _draft.load();
+      if (!mounted) return;
+      if (data != null) {
         _diagnosis.text = data['diagnosis']?.toString() ?? _diagnosis.text;
         _repair.text = data['repair']?.toString() ?? _repair.text;
         _notes.text = data['notes']?.toString() ?? _notes.text;
@@ -105,28 +115,19 @@ class _OrganizationWorkReportEditorState
         );
         _evidence = (data['evidence_paths'] as List? ?? _evidence)
             .cast<String>();
-        _pending = saved['pending'] is Map
-            ? Map<String, dynamic>.from(saved['pending'] as Map)
-            : null;
-      } catch (_) {
-        /* Retain malformed local draft rather than deleting it. */
       }
+      setState(() => _ready = true);
+    } catch (error) {
+      if (mounted) setState(() => _error = error);
+    } finally {
+      if (mounted) setState(() => _busy = false);
     }
-    if (mounted) setState(() => _ready = true);
   }
 
   void _saveLocal() {
-    if (!_ready || _cleared) return;
-    final key = _draftKey;
-    final raw = jsonEncode({'data': _payload(), 'pending': _pending});
-    _write = _write.catchError((Object _) {}).then((_) async {
-      final prefs = await SharedPreferences.getInstance();
-      if (!await prefs.setString(key, raw)) {
-        throw StateError('Could not save this draft on the device');
-      }
-    });
+    if (!_ready) return;
     unawaited(
-      _write.catchError((Object error) {
+      _draft.save(_payload()).catchError((Object error) {
         if (mounted) setState(() => _error = error);
       }),
     );
@@ -165,55 +166,21 @@ class _OrganizationWorkReportEditorState
       setState(() => _error = const AccountChangedException());
       return;
     }
-    final retrying = _pending != null;
-    _pending ??= {
-      'id': const Uuid().v4(),
-      'revision': _data['revision'],
-      'action': action,
-      'data': jsonDecode(jsonEncode(_payload())),
-    };
     setState(() {
       _busy = true;
       _error = null;
     });
-    var requestStarted = false;
     try {
-      _saveLocal();
-      await _write;
-      if (!mounted || ref.read(sessionProvider)?.user.id != _account) {
-        throw const AccountChangedException();
-      }
-      final pending = _pending!;
-      requestStarted = true;
-      await ref
-          .read(organizationWorkRepositoryProvider)
-          .changeOperation(
-            _id,
-            (pending['revision'] as num).toInt(),
-            pending['id'] as String,
-            pending['action'] as String,
-            Map<String, dynamic>.from(pending['data'] as Map),
-          );
-      _cleared = true;
-      await _write;
-      await (await SharedPreferences.getInstance()).remove(_draftKey);
+      await _draft.submit(
+        revision: (_data['revision'] as num).toInt(),
+        action: action,
+        data: _payload(),
+      );
       if (!mounted) return;
       ref.invalidate(organizationWorkOrderContextProvider(_id));
       Navigator.pop(context, true);
     } catch (error) {
-      if (mounted) {
-        setState(() {
-          _error = error;
-          // A definite server rejection did not commit this request. Preserve all
-          // input, but permit correction or a refreshed revision on the next attempt.
-          if ((!requestStarted && !retrying) ||
-              rpcWriteWasRejected(error) ||
-              (error is FieldEvidencePendingException && !retrying)) {
-            _pending = null;
-          }
-        });
-        _saveLocal();
-      }
+      if (mounted) setState(() => _error = error);
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -274,7 +241,7 @@ class _OrganizationWorkReportEditorState
         }
       });
       _saveLocal();
-      await _write;
+      await _draft.flushed;
     } catch (error) {
       if (mounted) setState(() => _error = error);
     } finally {
@@ -417,7 +384,15 @@ class _OrganizationWorkReportEditorState
               ),
             if (_error != null) ...[
               Text(
-                _error is FieldEvidencePendingException && _pending == null
+                !_ready
+                    ? _workReportText(
+                        context,
+                        'The saved draft could not be opened. It is still kept on this device. Try opening it again.',
+                        'No se pudo abrir el borrador guardado. Sigue en este dispositivo. Intenta abrirlo de nuevo.',
+                        'Le brouillon enregistré n’a pas pu être ouvert. Il est conservé sur cet appareil. Réessayez de l’ouvrir.',
+                      )
+                    : _error is FieldEvidencePendingException &&
+                          _pending == null
                     ? (_error as FieldEvidencePendingException).label(
                         es,
                         french: fr,
@@ -427,18 +402,25 @@ class _OrganizationWorkReportEditorState
               ),
               if (_pending == null)
                 TextButton(
-                  onPressed: _busy ? null : _refresh,
+                  onPressed: _busy ? null : (_ready ? _refresh : _load),
                   child: Text(
-                    _workReportText(
-                      context,
-                      'Refresh work and keep draft',
-                      'Actualizar trabajo y conservar borrador',
-                      'Actualiser le travail et conserver le brouillon',
-                    ),
+                    !_ready
+                        ? _workReportText(
+                            context,
+                            'Reopen saved draft',
+                            'Abrir el borrador guardado',
+                            'Rouvrir le brouillon enregistré',
+                          )
+                        : _workReportText(
+                            context,
+                            'Refresh work and keep draft',
+                            'Actualizar trabajo y conservar borrador',
+                            'Actualiser le travail et conserver le brouillon',
+                          ),
                   ),
                 ),
             ],
-            if (!_ready) const LinearProgressIndicator(),
+            if (!_ready && _error == null) const LinearProgressIndicator(),
             AbsorbPointer(
               absorbing: _frozen,
               child: Column(
@@ -747,9 +729,7 @@ class _OrganizationWorkReportEditorState
             const SizedBox(height: 20),
             if (_pending != null)
               FilledButton(
-                onPressed: _busy
-                    ? null
-                    : () => _save(_pending!['action'] as String),
+                onPressed: _busy ? null : () => _save(_pending!.action),
                 child: Text(
                   _workReportText(
                     context,

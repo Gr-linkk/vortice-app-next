@@ -1,3 +1,4 @@
+import 'package:vortice_app/domain/checklist.dart';
 import 'package:flutter/material.dart';
 import 'package:vortice_app/features/coordination/coordination_entry.dart';
 import 'package:vortice_app/features/operator/operator_evidence_photo.dart';
@@ -12,7 +13,6 @@ import 'package:vortice_app/features/checklists/checklist_attachment_support.dar
 import 'package:vortice_app/features/service_reports/service_report_media.dart';
 import 'package:vortice_app/features/maintenance/maintenance_job_screen.dart'
     show MaintenanceEvidence;
-import 'package:vortice_app/features/checklists/checklist_answer_fields.dart';
 import 'package:vortice_app/features/checklists/saved_checklists_provider.dart';
 import 'package:vortice_app/models/profile.dart';
 import 'package:vortice_app/models/saved_checklist.dart';

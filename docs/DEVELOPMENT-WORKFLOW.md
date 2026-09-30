@@ -10,6 +10,11 @@
 
 ## Work locally
 
+Use [the architecture guide](ARCHITECTURE.md) to find the rule or runtime adapter
+that owns a behavior. Portable maintenance rules live in `lib/domain/`;
+`dart run tool/verify_domain.dart` checks them without a Flutter engine or
+service credentials. This check also runs inside the full guarded verification.
+
 Run setup once, or whenever dependencies change:
 
 ```powershell

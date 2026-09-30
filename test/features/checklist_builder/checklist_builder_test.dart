@@ -1,3 +1,4 @@
+import 'package:vortice_app/domain/checklist.dart';
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -5,7 +6,6 @@ import 'package:vortice_app/features/checklist_builder/checklist_builder_reposit
 import 'package:vortice_app/features/checklist_builder/checklist_editor_screen.dart';
 import 'package:vortice_app/features/checklist_builder/checklist_library_screen.dart';
 import 'package:vortice_app/features/checklist_builder/checklist_preview_screen.dart';
-import 'package:vortice_app/features/checklists/checklist_answer_fields.dart';
 import 'package:vortice_app/features/checklists/asset_checklist_template_filter.dart';
 import 'package:vortice_app/models/checklist_template.dart';
 import '../maintenance/maintenance_screen_test.dart'

@@ -1,3 +1,4 @@
+import 'package:vortice_app/domain/checklist.dart';
 import 'maintenance_progress.dart';
 import 'package:vortice_app/core/rpc_failure.dart';
 import 'package:vortice_app/core/meter_units.dart';
@@ -13,7 +14,6 @@ import 'package:go_router/go_router.dart';
 import 'package:vortice_app/core/user_feedback.dart';
 import 'package:vortice_app/core/localized_text.dart';
 import 'package:vortice_app/features/auth/auth_provider.dart';
-import 'package:vortice_app/features/checklists/checklist_answer_fields.dart';
 import 'package:vortice_app/features/fleet/work_order_fault_card.dart';
 import 'maintenance_models.dart';
 import 'maintenance_report_screen.dart';

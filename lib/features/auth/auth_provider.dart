@@ -7,6 +7,7 @@ import 'package:vortice_app/core/constants.dart';
 import 'package:vortice_app/features/auth/auth_status_logic.dart';
 import 'package:vortice_app/core/supabase_client.dart';
 import 'package:vortice_app/models/profile.dart';
+import 'hosted_profile_adapter.dart';
 import 'package:vortice_app/core/account_storage.dart';
 import 'package:vortice_app/l10n/app_localizations.dart';
 
@@ -61,14 +62,9 @@ final profileProvider = FutureProvider<Profile?>((ref) async {
     );
     final context = Map<String, dynamic>.from(raw as Map);
     await cache.save('profile', row);
-    row['role'] = context['route_role'];
-    row['org_id'] = context['active_organization_id'];
-    row['membership_managed'] = true;
-    row['onboarding_required'] = context['onboarding_required'] == true;
-    row['organization_roles'] = context['roles'] ?? <String>[];
-    row['organization_permissions'] = context['permissions'] ?? <String>[];
+    return hostedProfile(row, membership: context);
   }
-  return Profile.fromJson(row);
+  return hostedProfile(row);
 });
 
 // ── Unified auth status (used by the router) ───────────────────────────────

@@ -1,4 +1,4 @@
-import 'package:vortice_app/features/checklists/checklist_answer_fields.dart';
+import 'package:vortice_app/domain/checklist.dart';
 import 'package:vortice_app/core/user_feedback.dart';
 import 'package:vortice_app/core/account_storage.dart';
 import 'dart:async';

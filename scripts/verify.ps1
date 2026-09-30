@@ -15,6 +15,7 @@ try {
     'build'
   )
   Invoke-ProjectCommand -Command 'flutter' -Arguments @('analyze', 'lib', 'test', 'tool')
+  Invoke-ProjectCommand -Command 'dart' -Arguments @('run', 'tool/verify_domain.dart')
   Invoke-ProjectCommand -Command 'flutter' -Arguments @('test')
   Write-Host 'Project verification passed.'
 } finally {

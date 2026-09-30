@@ -1,7 +1,7 @@
+import 'package:vortice_app/domain/checklist.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'dart:convert';
 import 'dart:typed_data';
-import 'package:vortice_app/features/checklists/checklist_answer_fields.dart';
 import 'package:uuid/uuid.dart';
 import 'package:vortice_app/sync/field_work_queue.dart';
 import 'package:vortice_app/sync/field_work_provider.dart';

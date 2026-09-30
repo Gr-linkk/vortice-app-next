@@ -14,6 +14,9 @@ parts, and invoices.
 
 ## Current direction
 
+The current code map and retain/replace boundaries are in
+[Architecture: maintenance first](docs/ARCHITECTURE.md).
+
 September 29: Garrett authorized implementing the code/architecture audit while
 the isolated local-first experiment proceeds in a separate task/worktree.
 [ARCH-001](docs/specs/ARCH-001-architecture-cleanup.md) owns retained-app cleanup
