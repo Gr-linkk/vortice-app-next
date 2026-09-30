@@ -19,6 +19,10 @@ office and preserve history through coherent same-identity recovery. Independent
 workers own domain, runtime, UI and adversarial tests. The separate lab setup
 UX follow-up is not edited here. Scope and evidence:
 [LF-001](docs/specs/LF-001-local-maintenance-slice.md).
+Its reviewed stable `e6956ae` setup changes are now authorized for selective port
+on top of preserved `7192166`; address/status/UI/probe workers have separate
+ownership. [Runtime boundaries](docs/specs/LF-001-API-BOUNDARIES.md) identify the
+multi-job adapter and authority/recovery differences for independent review.
 
 ## Architecture cleanup — September 29, 2026
 
