@@ -29,6 +29,23 @@ class LocalMaintenanceBoundary(unittest.TestCase):
         self.assertNotIn('VORTICE_LAB_DATA', entrypoint)
         self.assertNotRegex(entrypoint, r'(?i)supabase|firebase')
 
+    def test_progress_domain_has_no_runtime_dependencies(self):
+        projection = (APP / 'lib/job_progress.dart').read_text()
+        self.assertNotRegex(
+            projection,
+            r"(?:import|export)\s+['\"](?:dart:(?:io|ffi|ui)|"
+            r"package:(?:flutter|sqlite3|flutter_rust_bridge)|"
+            r"(?:[^'\"]*/)?(?:lab_store|local_sync|office_backup|"
+            r"work_progress_reader)\.dart|src/rust/)",
+        )
+        reader = (APP / 'lib/work_progress_reader.dart').read_text()
+        self.assertNotRegex(reader, r'\.evidence\.status\(')
+        self.assertNotRegex(
+            reader,
+            r'\.(?:execute|update|attachPhoto|submit|approve|returnSubmission|'
+            r'selectJob|setSetting|importBundle)\(',
+        )
+
 
 if __name__ == '__main__':
     unittest.main()
