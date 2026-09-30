@@ -13,16 +13,28 @@ void check(bool condition, String contract) {
 
 void main() {
   // Keep future additions honest as well as the files compiled above.
-  for (final file in Directory(
-    'lib/domain',
-  ).listSync(recursive: true).whereType<File>()) {
+  final purePackage = File(
+    'packages/maintenance_rules/pubspec.yaml',
+  ).readAsStringSync();
+  check(
+    !RegExp(r'^dependencies:', multiLine: true).hasMatch(purePackage),
+    'Portable maintenance rules must have no runtime package dependencies.',
+  );
+  for (final file in [
+    ...Directory('lib/domain').listSync(recursive: true).whereType<File>(),
+    ...Directory(
+      'packages/maintenance_rules/lib',
+    ).listSync(recursive: true).whereType<File>(),
+  ]) {
     if (!file.path.endsWith('.dart')) continue;
     for (final match in RegExp(
       r'''(?:import|export|part)\s+['"]([^'"]+)['"]''',
     ).allMatches(file.readAsStringSync())) {
       final uri = match.group(1)!;
       check(
-        !uri.startsWith('package:') &&
+        (!uri.startsWith('package:') ||
+                (file.path == 'lib/domain/checklist.dart' &&
+                    uri == 'package:maintenance_rules/checklist.dart')) &&
             !uri.startsWith('dart:ui') &&
             (uri.startsWith('dart:') || !uri.contains('..')),
         'Domain must not depend on UI, plugins or external adapters: ${file.path}: $uri',
