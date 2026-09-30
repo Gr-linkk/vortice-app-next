@@ -9,6 +9,9 @@ This package has its own identity and data. The hosted Vortice app remains intac
 Scope, evidence and physical acceptance gates are in
 [`LF-001`](../../docs/specs/LF-001-local-maintenance-slice.md).
 
+For ordinary camera-free pairing, changed-network recovery and sending status,
+follow [Connect your inspection phone](SETUP.md).
+
 From the repository root, use `bash scripts/local-maintenance.sh verify`,
 `build-linux`, `build-android` or `run -d linux`. Android debug builds require
 `VORTICE_MAINTENANCE_KEYSTORE` pointing at an existing internal debug signer;
