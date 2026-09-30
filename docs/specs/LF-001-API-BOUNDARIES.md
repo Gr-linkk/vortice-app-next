@@ -38,7 +38,7 @@ status. Gallery recovery retains the originating job ID, including after restart
 | --- | --- |
 | Company bundle | `format: maintenance-local-company`, `version: 1`, `catalog`, `officeDevice`, `documents: {jobId: base64Bytes}`, submissions, receipts, referenced blobs, saved time |
 | Sync request | Explicit `jobId`; sessions keyed by authenticated device and job; fields revalidated against that job before persistence |
-| Submission | Frozen document bytes/hash, values, equipment ID, snapshot hash, real context/revision, submission sequence and predecessor ID |
+| Submission | Frozen document bytes/hash, values, equipment ID, snapshot hash, real context/revision, submission sequence and predecessor ID; local SQL `_state` is excluded |
 | Receipt | Office-authoritative exact-version approve/return decision; immutable alongside its frozen submission |
 | Evidence | Separate hashed bytes; only referenced evidence is replicated to enrolled phones; private backup retains all complete evidence |
 
@@ -46,6 +46,13 @@ The phone imports catalog authority only through its authenticated pinned office
 endpoint. Existing company/equipment/template/job context cannot be silently
 replaced or removed. Same-ID retries have one effect; relabelled or changed
 payloads, stale heads, mismatched contexts and cross-job identity markers reject.
+One `(device, jobId, documentHash)` version retains one submission identity:
+changing only its envelope ID, sequence or predecessor cannot reopen review.
+Changed document bytes may extend the chain. Full-history validation enforces the
+same version uniqueness during public import and private backup validation.
+Wire/local `_state` metadata rejects before persistence. Submission validation
+defaults to rejecting this metadata; only the display/getter approval check opts
+into `allowLocalState`, because SQL row state is held separately from the command.
 Complete hash-verified photo bytes are required for approval. Revocation is
 rechecked after body delivery, when queued operations execute and across async
 photo publication. `/pair` still requires invitation and explicit office code
