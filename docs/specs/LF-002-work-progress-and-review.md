@@ -79,8 +79,10 @@ of network acceptance.
 
 ## Actual open gates and choices
 
-Combined LF-001 audit is pending; any findings will be reconciled into this
-isolated descendant without changing its audit target. Physical gallery transfer,
+Combined LF-001 source `45380ae` subsequently received independent PASS: both P2
+findings closed, 78 focused checks, eight rendered cases and four capture-disabled
+repeats passed; source/receipt trees, package hashes, identity and signer matched.
+The independent gates must remain passing in this descendant. Physical gallery transfer,
 exact approval, fresh-computer restore/reconfirmation and unassisted setup remain
 unverified. Startup-failure recovery navigation and older-backup missing-decision
 reconciliation need separately designed bounded flows; no phone receipt promotion
