@@ -26,9 +26,21 @@ class LabStore {
     DateTime Function()? now,
     bool maintenanceOnly = false,
   }) async {
-    if (maintenanceOnly) await _maintenanceLocation(root, office: office);
+    final needsOwner = maintenanceOnly
+        ? await _maintenanceLocation(root, office: office)
+        : false;
     await root.create(recursive: true);
     if (Platform.isLinux) await Process.run('chmod', ['700', root.path]);
+    if (needsOwner) {
+      final owner = File('${root.path}/maintenance-local-owner.json');
+      // Publish app ownership before database initialization so an interrupted
+      // first launch remains recognizable without inspecting a foreign DB.
+      await owner.writeAsString(
+        canonical(_maintenanceOwner(office: office)),
+        flush: true,
+      );
+      if (Platform.isLinux) await Process.run('chmod', ['600', owner.path]);
+    }
     final db = sqlite3.open('${root.path}/workspace.sqlite');
     final version = db.select('PRAGMA user_version').first.values.first as int;
     if (version > 2) {
@@ -70,8 +82,16 @@ class LabStore {
 
   /// Normal startup must never adopt another application's directory. Inspect
   /// existing ownership before chmod, journal setup, schema or identity writes.
+  /// Even SQLite read-only opens can create WAL/SHM sidecars, so ownership is
+  /// checked without opening the database at all.
   /// Legacy runtime fixtures deliberately use the compatibility API instead.
-  static Future<void> _maintenanceLocation(
+  static Json _maintenanceOwner({required bool office}) => {
+    'application': 'org.vortice.next.maintenance_local',
+    'role': office ? 'linux-office' : 'mechanic-phone',
+    'version': 1,
+  };
+
+  static Future<bool> _maintenanceLocation(
     Directory root, {
     required bool office,
   }) async {
@@ -79,35 +99,23 @@ class LabStore {
         'This folder does not belong to this local maintenance app and device role. '
         'Choose a new empty folder or restore a verified maintenance backup. Existing files were retained.';
     final kind = await FileSystemEntity.type(root.path, followLinks: false);
-    if (kind == FileSystemEntityType.notFound) return;
+    if (kind == FileSystemEntityType.notFound) return true;
     if (kind != FileSystemEntityType.directory) throw StateError(retained);
-    if (await root.list(followLinks: false).isEmpty) return;
-    final database = '${root.path}/workspace.sqlite';
-    if (await FileSystemEntity.type(database, followLinks: false) !=
+    if (await root.list(followLinks: false).isEmpty) return true;
+    final owner = File('${root.path}/maintenance-local-owner.json');
+    if (await FileSystemEntity.type(owner.path, followLinks: false) !=
         FileSystemEntityType.file) {
       throw StateError(retained);
     }
-    Database? checked;
     try {
-      checked = sqlite3.open(database, mode: OpenMode.readOnly);
-      dynamic saved(String key) {
-        final rows = checked!.select('SELECT value FROM settings WHERE key=?', [
-          key,
-        ]);
-        return rows.isEmpty ? null : jsonDecode(rows.first['value'] as String);
-      }
-
-      if (saved('localMaintenanceApplication') !=
-              'org.vortice.next.maintenance_local' ||
-          saved('localMaintenanceRole') !=
-              (office ? 'linux-office' : 'mechanic-phone') ||
-          saved('workspace') != null) {
+      if (await owner.length() > 512 ||
+          canonical(jsonDecode(await owner.readAsString())) !=
+              canonical(_maintenanceOwner(office: office))) {
         throw StateError(retained);
       }
+      return false;
     } catch (_) {
       throw StateError(retained);
-    } finally {
-      checked?.close();
     }
   }
 
