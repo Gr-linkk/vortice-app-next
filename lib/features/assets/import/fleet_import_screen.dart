@@ -3,7 +3,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:supabase_flutter/supabase_flutter.dart' show PostgrestException;
+import 'package:vortice_app/core/rpc_failure.dart';
 import 'package:vortice_app/core/app_dropdown_field.dart';
 import 'package:vortice_app/core/user_feedback.dart';
 import 'package:vortice_app/core/localized_text.dart';
@@ -225,11 +225,12 @@ class _FleetImportScreenState extends ConsumerState<FleetImportScreen> {
     Map<String, dynamic> saved;
     try {
       saved = await repo.commit(client!, assets);
-    } on PostgrestException {
-      // A database rejection acknowledges rollback; editing is safe again.
-      await repo.discard();
-      pending = null;
-      step = table == null ? 0 : 1;
+    } catch (error) {
+      if (rpcWriteWasRejected(error)) {
+        await repo.discard();
+        pending = null;
+        step = table == null ? 0 : 1;
+      }
       rethrow;
     }
     if (!mounted || !sameAccount()) return;

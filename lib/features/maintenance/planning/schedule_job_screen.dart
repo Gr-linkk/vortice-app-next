@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:vortice_app/core/rpc_failure.dart';
 import 'package:vortice_app/core/app_dropdown_field.dart';
 import 'package:vortice_app/core/unsaved_form_guard.dart';
 import 'package:vortice_app/core/user_feedback.dart';
@@ -143,7 +144,7 @@ class _ScheduleJobScreenState extends ConsumerState<ScheduleJobScreen> {
       if (mounted) {
         setState(() {
           _error = error;
-          if (maintenanceWriteWasRejected(error)) {
+          if (rpcWriteWasRejected(error)) {
             _pending = null;
           }
         });

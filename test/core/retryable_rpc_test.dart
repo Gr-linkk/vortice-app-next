@@ -3,10 +3,65 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:vortice_app/core/retryable_rpc.dart';
 import 'package:vortice_app/core/account_storage.dart';
+import 'package:supabase_flutter/supabase_flutter.dart' show PostgrestException;
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
   setUp(() => SharedPreferences.setMockInitialValues({}));
+
+  for (final code in ['504', '08007', '40003', 'PGRST003', 'unrecognized']) {
+    test(
+      'uncertain $code preserves the exact command across client restart',
+      () async {
+        final sent = <Map<String, dynamic>>[];
+        var fail = true;
+        RetryableRpc client() => RetryableRpc(
+          account: 'user-a',
+          currentAccount: () => 'user-a',
+          send: (_, params) async {
+            sent.add(params);
+            if (fail) {
+              throw PostgrestException(message: 'Uncertain', code: code);
+            }
+            return null;
+          },
+        );
+        await expectLater(
+          client().call('save', {'value': 3}, captureTime: true),
+          throwsA(isA<PostgrestException>()),
+        );
+        expect((await SharedPreferences.getInstance()).getKeys(), hasLength(1));
+        fail = false;
+        await client().call('save', {'value': 3}, captureTime: true);
+        expect(sent[1], sent[0]);
+        expect((await SharedPreferences.getInstance()).getKeys(), isEmpty);
+      },
+    );
+  }
+
+  for (final code in ['P0001', '40001', '42501', '23505', '22P02', '40P01']) {
+    test('confirmed $code allows a fresh operation after rejection', () async {
+      final sent = <Map<String, dynamic>>[];
+      final client = RetryableRpc(
+        account: 'user-a',
+        currentAccount: () => 'user-a',
+        send: (_, params) async {
+          sent.add(params);
+          if (sent.length == 1) {
+            throw PostgrestException(message: 'Rejected', code: code);
+          }
+          return null;
+        },
+      );
+      await expectLater(
+        client.call('save', {'value': 3}),
+        throwsA(isA<PostgrestException>()),
+      );
+      expect((await SharedPreferences.getInstance()).getKeys(), isEmpty);
+      await client.call('save', {'value': 3});
+      expect(sent[1]['p_operation'], isNot(sent[0]['p_operation']));
+    });
+  }
 
   test(
     'lost response and recreated client retry one identity and capture time',

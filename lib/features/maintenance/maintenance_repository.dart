@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:typed_data';
+import 'package:vortice_app/core/rpc_failure.dart';
 import 'package:vortice_app/core/account_storage.dart';
 import 'package:vortice_app/sync/field_work_queue.dart';
 import 'package:vortice_app/sync/field_work_provider.dart';
@@ -285,17 +286,6 @@ final maintenanceAssetProvider = FutureProvider.autoDispose
       return ref.watch(maintenanceRepositoryProvider).assetContext(id);
     });
 
-bool maintenanceWriteWasRejected(Object error) =>
-    error is PostgrestException &&
-    [
-      'P0001',
-      '40001',
-      '42501',
-      '23505',
-      '23514',
-      '22P02',
-      '22003',
-    ].contains(error.code);
 String maintenanceError(Object error, bool es, {bool french = false}) {
   if (error is AccountChangedException) {
     return french
@@ -320,7 +310,7 @@ String maintenanceError(Object error, bool es, {bool french = false}) {
           : 'A labour session is already running. Pause it first.';
     }
     if (error.code == 'P0001' && !es && !french) return error.message;
-    if (maintenanceWriteWasRejected(error)) {
+    if (rpcWriteWasRejected(error)) {
       return french
           ? 'Enregistrement impossible. Vérifiez les champs, les autorisations et l’état du bon de travail.'
           : es

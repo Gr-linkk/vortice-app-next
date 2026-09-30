@@ -14,6 +14,19 @@ parts, and invoices.
 
 ## Current direction
 
+September 29: Garrett authorized implementing the code/architecture audit while
+the isolated local-first experiment proceeds in a separate task/worktree.
+[ARCH-001](docs/specs/ARCH-001-architecture-cleanup.md) owns retained-app cleanup
+from Build 45, with a complete free/open product and straightforward licensing
+as the intended direction. The experiment remains evidence for a future migration,
+not approval to merge, cut over, publish, or discard later delivered product work.
+The earlier launch context below remains useful domain/delivery history; this
+cleanup adds no subscription, billing-region, telemetry, or AI expansion.
+
+The lab branch's `NEXT-011` names its Sync Lab, whereas this branch's `NEXT-011`
+already names Canadian billing. ARCH-001 records that collision explicitly.
+Use branch-qualified references until a reviewed integration reconciles IDs.
+
 September 24 direction: prepare an Android Google Play launch for Canadian
 general-construction companies; pursue iOS after the Android release. Fleet
 owners retain their own-equipment workflows without needing customer invoicing.

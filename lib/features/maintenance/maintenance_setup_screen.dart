@@ -1,3 +1,4 @@
+import 'package:vortice_app/core/rpc_failure.dart';
 import 'package:vortice_app/core/meter_units.dart';
 import 'package:vortice_app/core/localized_text.dart';
 import 'maintenance_recurrence_fields.dart';
@@ -157,7 +158,7 @@ class _MaintenanceSetupScreenState
       if (mounted) {
         setState(() {
           _error = error;
-          if (maintenanceWriteWasRejected(error)) _pending = null;
+          if (rpcWriteWasRejected(error)) _pending = null;
         });
       }
     } finally {

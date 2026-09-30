@@ -4,6 +4,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:uuid/uuid.dart';
 import 'package:vortice_app/core/supabase_client.dart';
+import 'package:vortice_app/core/rpc_failure.dart';
 import 'package:vortice_app/features/auth/auth_provider.dart';
 import 'parts_readiness_models.dart';
 
@@ -101,9 +102,8 @@ class SupabasePartsReadinessRepository implements PartsReadinessRepository {
           .rpc('parts_change', params: operation)
           .timeout(const Duration(seconds: 20));
     } on PostgrestException catch (error) {
-      // Only a SQLSTATE rejection proves rollback. Gateway errors can arrive
-      // after commit, so keep their identity just like a lost connection.
-      if (RegExp(r'^[0-9A-Z]{5}$').hasMatch(error.code ?? '')) {
+      // Gateway failures and unknown transaction outcomes retain exact retries.
+      if (rpcWriteWasRejected(error)) {
         await (await SharedPreferences.getInstance()).remove(_key);
       }
       rethrow;

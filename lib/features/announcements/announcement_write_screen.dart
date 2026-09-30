@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:uuid/uuid.dart';
+import 'package:vortice_app/core/rpc_failure.dart';
 import 'package:vortice_app/core/unsaved_form_guard.dart';
 import 'package:vortice_app/core/user_feedback.dart';
 import 'package:vortice_app/features/auth/auth_provider.dart';
@@ -124,7 +125,7 @@ class _AnnouncementWriteScreenState
       if (mounted) {
         setState(() {
           _error = error;
-          if (maintenanceWriteWasRejected(error) ||
+          if (rpcWriteWasRejected(error) ||
               error is StorageException &&
                   [
                     '400',

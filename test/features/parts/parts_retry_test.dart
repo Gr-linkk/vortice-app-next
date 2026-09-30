@@ -41,6 +41,44 @@ Map<String, dynamic> _session(String actor) {
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
   setUp(() => SharedPreferences.setMockInitialValues({}));
+  for (final code in ['08007', '40003']) {
+    test('unknown SQL completion $code retains the parts operation', () async {
+      final sent = <Map<String, dynamic>>[];
+      var fail = true;
+      final client = SupabaseClient(
+        'https://example.invalid',
+        'fixture',
+        authOptions: const AuthClientOptions(autoRefreshToken: false),
+        httpClient: MockClient((request) async {
+          sent.add(jsonDecode(request.body) as Map<String, dynamic>);
+          return http.Response(
+            fail
+                ? jsonEncode({'message': 'Completion unknown', 'code': code})
+                : '{}',
+            fail ? 500 : 200,
+            request: request,
+            headers: {'content-type': 'application/json'},
+          );
+        }),
+      );
+      try {
+        await client.auth.recoverSession(jsonEncode(_session('manager-a')));
+        final first = SupabasePartsReadinessRepository(client, 'manager-a');
+        await expectLater(
+          first.change('job-a', 'reserve', {'quantity': 1}),
+          throwsA(isA<PostgrestException>()),
+        );
+        expect(await first.pending(), isNotNull);
+        fail = false;
+        final restarted = SupabasePartsReadinessRepository(client, 'manager-a');
+        await restarted.retry();
+        expect(sent[1], sent[0]);
+        expect(await restarted.pending(), isNull);
+      } finally {
+        await client.dispose();
+      }
+    });
+  }
   test(
     'concurrent saves cannot replace an in-flight operation and input is frozen',
     () async {

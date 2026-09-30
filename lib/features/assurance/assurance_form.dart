@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:uuid/uuid.dart';
+import 'package:vortice_app/core/rpc_failure.dart';
 import 'package:vortice_app/core/app_dropdown_field.dart';
 import 'package:vortice_app/core/unsaved_form_guard.dart';
 import 'package:vortice_app/core/user_feedback.dart';
@@ -206,7 +207,7 @@ class _AssuranceFormState extends ConsumerState<AssuranceForm> {
       if (mounted) {
         setState(() {
           _error = e;
-          if (maintenanceWriteWasRejected(e)) _pending = null;
+          if (rpcWriteWasRejected(e)) _pending = null;
         });
       }
     } finally {

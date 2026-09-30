@@ -1,3 +1,4 @@
+import 'package:vortice_app/core/rpc_failure.dart';
 import 'package:vortice_app/core/meter_units.dart';
 import 'package:vortice_app/core/app_dropdown_field.dart';
 import 'package:flutter/material.dart';
@@ -161,7 +162,7 @@ class _MaintenanceCreateScreenState
       if (mounted) {
         setState(() {
           _error = error;
-          if (maintenanceWriteWasRejected(error)) {
+          if (rpcWriteWasRejected(error)) {
             _pending = null;
             _pendingRevision = null;
             if (widget.faultId != null) {

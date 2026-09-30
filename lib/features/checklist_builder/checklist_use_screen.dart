@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:uuid/uuid.dart';
+import 'package:vortice_app/core/rpc_failure.dart';
 import 'package:vortice_app/core/app_dropdown_field.dart';
 import 'package:vortice_app/core/unsaved_form_guard.dart';
 import 'package:vortice_app/core/user_feedback.dart';
@@ -91,7 +92,7 @@ class _ChecklistUseScreenState extends ConsumerState<ChecklistUseScreen> {
       if (mounted) {
         setState(() {
           _error = error;
-          if (maintenanceWriteWasRejected(error)) _pending = null;
+          if (rpcWriteWasRejected(error)) _pending = null;
         });
       }
     } finally {

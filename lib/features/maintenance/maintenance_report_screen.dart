@@ -1,6 +1,7 @@
 import 'maintenance_recurrence.dart';
 import 'maintenance_progress.dart';
 import 'package:vortice_app/features/parts/work_parts_progress.dart';
+import 'package:vortice_app/core/rpc_failure.dart';
 import 'package:vortice_app/core/meter_units.dart';
 import 'package:vortice_app/features/checklists/checklist_answer_fields.dart';
 import 'package:vortice_app/core/app_dropdown_field.dart';
@@ -239,7 +240,7 @@ class _MaintenanceReportScreenState
       if (mounted) {
         setState(() {
           _error = error;
-          if (maintenanceWriteWasRejected(error)) {
+          if (rpcWriteWasRejected(error)) {
             _pending = null;
             _action = null;
           }

@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:uuid/uuid.dart';
 import 'package:intl/intl.dart';
+import 'package:vortice_app/core/rpc_failure.dart';
 import 'package:vortice_app/core/app_dropdown_field.dart';
 import 'package:vortice_app/core/user_feedback.dart';
 import 'package:vortice_app/features/auth/auth_provider.dart';
@@ -10,7 +11,6 @@ import 'package:vortice_app/features/membership/membership_provider.dart';
 import 'package:vortice_app/features/membership/organization_work_provider.dart';
 import 'package:vortice_app/features/work_orders/work_order_provider.dart';
 import 'planning/planning_repository.dart';
-import 'maintenance_repository.dart';
 import 'work_focus.dart';
 
 Future<void> openNewWorkOrder(
@@ -181,7 +181,7 @@ class _CustomerWorkCreateScreenState
       if (mounted) {
         setState(() {
           _error = friendlyError(context, error);
-          if (maintenanceWriteWasRejected(error)) _pending = false;
+          if (rpcWriteWasRejected(error)) _pending = false;
         });
       }
     } finally {

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:uuid/uuid.dart';
+import 'package:vortice_app/core/rpc_failure.dart';
 import 'package:vortice_app/core/app_dropdown_field.dart';
 import 'package:vortice_app/core/unsaved_form_guard.dart';
 import 'package:vortice_app/core/user_feedback.dart';
@@ -115,7 +116,7 @@ class _ChecklistEditorScreenState extends ConsumerState<ChecklistEditorScreen> {
       if (mounted) {
         _error = error;
         _stale = error is PostgrestException && error.code == '40001';
-        if (maintenanceWriteWasRejected(error)) {
+        if (rpcWriteWasRejected(error)) {
           _pending = null;
           _pendingAction = null;
         }

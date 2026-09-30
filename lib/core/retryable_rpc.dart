@@ -8,6 +8,7 @@ import 'package:uuid/uuid.dart';
 import 'package:vortice_app/core/account_storage.dart';
 import 'package:vortice_app/core/constants.dart';
 import 'package:vortice_app/core/supabase_client.dart';
+import 'package:vortice_app/core/rpc_failure.dart';
 
 /// Retains the operation identity until the server acknowledges the transaction.
 /// Reopening a form and retrying identical input also resolves a lost response.
@@ -70,7 +71,16 @@ class RetryableRpc {
       throw StateError('Could not preserve the save for retry.');
     }
     _check();
-    final result = await send(method, params);
+    dynamic result;
+    try {
+      result = await send(method, params);
+    } catch (error) {
+      if (rpcWriteWasRejected(error)) {
+        _check();
+        await prefs.remove(key);
+      }
+      rethrow;
+    }
     _check();
     await prefs.remove(key);
     return result;

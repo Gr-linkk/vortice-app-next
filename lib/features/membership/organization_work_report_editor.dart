@@ -5,7 +5,7 @@ import 'package:vortice_app/core/app_dropdown_field.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:supabase_flutter/supabase_flutter.dart' show PostgrestException;
+import 'package:vortice_app/core/rpc_failure.dart';
 import 'package:uuid/uuid.dart';
 import 'package:vortice_app/core/account_storage.dart';
 import 'package:vortice_app/core/meter_units.dart';
@@ -165,6 +165,7 @@ class _OrganizationWorkReportEditorState
       setState(() => _error = const AccountChangedException());
       return;
     }
+    final retrying = _pending != null;
     _pending ??= {
       'id': const Uuid().v4(),
       'revision': _data['revision'],
@@ -179,6 +180,9 @@ class _OrganizationWorkReportEditorState
     try {
       _saveLocal();
       await _write;
+      if (!mounted || ref.read(sessionProvider)?.user.id != _account) {
+        throw const AccountChangedException();
+      }
       final pending = _pending!;
       requestStarted = true;
       await ref
@@ -202,9 +206,9 @@ class _OrganizationWorkReportEditorState
           _error = error;
           // A definite server rejection did not commit this request. Preserve all
           // input, but permit correction or a refreshed revision on the next attempt.
-          if (!requestStarted ||
-              error is PostgrestException ||
-              error is FieldEvidencePendingException) {
+          if ((!requestStarted && !retrying) ||
+              rpcWriteWasRejected(error) ||
+              (error is FieldEvidencePendingException && !retrying)) {
             _pending = null;
           }
         });
@@ -413,7 +417,7 @@ class _OrganizationWorkReportEditorState
               ),
             if (_error != null) ...[
               Text(
-                _error is FieldEvidencePendingException
+                _error is FieldEvidencePendingException && _pending == null
                     ? (_error as FieldEvidencePendingException).label(
                         es,
                         french: fr,

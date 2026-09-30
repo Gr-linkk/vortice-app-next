@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:uuid/uuid.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:vortice_app/core/rpc_failure.dart';
 import 'package:vortice_app/core/app_dropdown_field.dart';
 import 'package:vortice_app/core/localized_text.dart';
 import 'package:vortice_app/core/unsaved_form_guard.dart';
@@ -148,7 +149,7 @@ class _DiscussionWriteScreenState extends ConsumerState<DiscussionWriteScreen> {
       if (mounted) {
         setState(() {
           _error = error;
-          if (maintenanceWriteWasRejected(error) ||
+          if (rpcWriteWasRejected(error) ||
               (error is StorageException &&
                   [
                     '400',

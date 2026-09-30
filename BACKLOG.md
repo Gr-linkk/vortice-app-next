@@ -5,7 +5,26 @@ elsewhere, but substantive product/implementation tasks must be represented
 here with a stable ID. Incidental mechanical fixes may reference existing scope
 without creating a new backlog item.
 
-## Launch order — September 24, 2026
+## Architecture cleanup — September 29, 2026
+
+### ARCH-001 — Implement the architecture audit
+
+Garrett requested the original DHH-style code/architecture audit be implemented
+alongside the local-first investigation, and clarified that Sync Lab review
+alone does not satisfy this work. Retained-app cleanup starts from Build 45
+(`9a3b5d3`) in `codex/architecture-cleanup`. Preserve the existing workspaces,
+data, IDs and Field Notes design. No hosted deployment or public release is
+implied. Scope, all seven findings, milestone evidence and cross-branch ID
+reconciliation: [ARCH-001](docs/specs/ARCH-001-architecture-cleanup.md).
+
+First implement shared safe retry classification and regressions for the
+provider action/report defect. Then consolidate readable business commands,
+work execution, membership/capabilities and UI/domain boundaries in reviewed
+slices; prepare independent installation and simple dependency licensing.
+Keep actual maintenance use as the acceptance criterion. Do not substitute
+successful Sync Lab tests for fixing retained application code.
+
+## Previously selected launch order — September 24, 2026
 
 1. **NEXT-011 (release blocker):** make Canadian company costs and provider
    invoices native CAD with explicit, configurable tax treatment. Keep Fleet

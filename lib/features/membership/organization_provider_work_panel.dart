@@ -6,7 +6,7 @@ import 'package:vortice_app/models/invoice.dart';
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:supabase_flutter/supabase_flutter.dart' show PostgrestException;
+import 'package:vortice_app/core/rpc_failure.dart';
 import 'package:uuid/uuid.dart';
 import 'package:vortice_app/core/account_storage.dart';
 import 'package:vortice_app/core/localized_text.dart';
@@ -58,14 +58,22 @@ class _OrganizationProviderWorkPanelState
   }
 
   Future<void> _persist() async {
-    if (ref.read(sessionProvider)?.user.id != _account) {
+    if (!mounted || ref.read(sessionProvider)?.user.id != _account) {
       throw const AccountChangedException();
     }
     final prefs = await SharedPreferences.getInstance();
+    if (!mounted || ref.read(sessionProvider)?.user.id != _account) {
+      throw const AccountChangedException();
+    }
     if (_pending == null) {
       await prefs.remove(_pendingKey);
     } else {
-      await prefs.setString(_pendingKey, jsonEncode(_pending));
+      if (!await prefs.setString(_pendingKey, jsonEncode(_pending))) {
+        throw StateError('Could not preserve this action for safe retry.');
+      }
+    }
+    if (!mounted || ref.read(sessionProvider)?.user.id != _account) {
+      throw const AccountChangedException();
     }
   }
 
@@ -79,6 +87,7 @@ class _OrganizationProviderWorkPanelState
     setState(() => _busy = true);
     try {
       await action();
+      if (mounted) ScaffoldMessenger.of(context).hideCurrentSnackBar();
       ref.invalidate(organizationWorkOrderContextProvider(widget.workOrderId));
       ref.invalidate(workOrderByIdProvider(widget.workOrderId));
       ref.invalidate(workOrdersProvider);
@@ -133,9 +142,11 @@ class _OrganizationProviderWorkPanelState
             );
         _pending = null;
         await _persist();
-      } on PostgrestException {
-        _pending = null;
-        await _persist();
+      } catch (error) {
+        if (rpcWriteWasRejected(error)) {
+          _pending = null;
+          await _persist();
+        }
         rethrow;
       }
     });
