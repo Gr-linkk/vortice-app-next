@@ -24,7 +24,9 @@ class LabStore {
     Directory root, {
     required bool office,
     DateTime Function()? now,
+    bool maintenanceOnly = false,
   }) async {
+    if (maintenanceOnly) await _maintenanceLocation(root, office: office);
     await root.create(recursive: true);
     if (Platform.isLinux) await Process.run('chmod', ['700', root.path]);
     final db = sqlite3.open('${root.path}/workspace.sqlite');
@@ -53,7 +55,60 @@ class LabStore {
     if (store.setting('device') == null) {
       store.setSetting('device', const Uuid().v4());
     }
+    if (maintenanceOnly) {
+      store.setSetting(
+        'localMaintenanceApplication',
+        'org.vortice.next.maintenance_local',
+      );
+      store.setSetting(
+        'localMaintenanceRole',
+        office ? 'linux-office' : 'mechanic-phone',
+      );
+    }
     return store;
+  }
+
+  /// Normal startup must never adopt another application's directory. Inspect
+  /// existing ownership before chmod, journal setup, schema or identity writes.
+  /// Legacy runtime fixtures deliberately use the compatibility API instead.
+  static Future<void> _maintenanceLocation(
+    Directory root, {
+    required bool office,
+  }) async {
+    const retained =
+        'This folder does not belong to this local maintenance app and device role. '
+        'Choose a new empty folder or restore a verified maintenance backup. Existing files were retained.';
+    final kind = await FileSystemEntity.type(root.path, followLinks: false);
+    if (kind == FileSystemEntityType.notFound) return;
+    if (kind != FileSystemEntityType.directory) throw StateError(retained);
+    if (await root.list(followLinks: false).isEmpty) return;
+    final database = '${root.path}/workspace.sqlite';
+    if (await FileSystemEntity.type(database, followLinks: false) !=
+        FileSystemEntityType.file) {
+      throw StateError(retained);
+    }
+    Database? checked;
+    try {
+      checked = sqlite3.open(database, mode: OpenMode.readOnly);
+      dynamic saved(String key) {
+        final rows = checked!.select('SELECT value FROM settings WHERE key=?', [
+          key,
+        ]);
+        return rows.isEmpty ? null : jsonDecode(rows.first['value'] as String);
+      }
+
+      if (saved('localMaintenanceApplication') !=
+              'org.vortice.next.maintenance_local' ||
+          saved('localMaintenanceRole') !=
+              (office ? 'linux-office' : 'mechanic-phone') ||
+          saved('workspace') != null) {
+        throw StateError(retained);
+      }
+    } catch (_) {
+      throw StateError(retained);
+    } finally {
+      checked?.close();
+    }
   }
 
   String get device => setting('device') as String;

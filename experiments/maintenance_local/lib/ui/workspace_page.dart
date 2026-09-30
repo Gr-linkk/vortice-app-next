@@ -136,7 +136,7 @@ class _WorkspacePageState extends State<WorkspacePage>
         MaterialPageRoute(builder: (_) => const RestorePage()),
       );
       if (target == null || !mounted) return;
-      next = await LabStore.open(target, office: true);
+      next = await LabStore.open(target, office: true, maintenanceOnly: true);
       final fingerprint = (await OfficeIdentity.load(next)).fingerprint;
       timer?.cancel();
       server?.onChange = null;

@@ -8,8 +8,13 @@ import 'model.dart';
 Future<LabStore> openLabWorkspace(
   Directory root, {
   required bool office,
+  bool maintenanceOnly = false,
 }) async {
-  final original = await LabStore.open(root, office: office);
+  final original = await LabStore.open(
+    root,
+    office: office,
+    maintenanceOnly: maintenanceOnly,
+  );
   LabStore? restored;
   try {
     final pointer = original.setting('officeRestoredTo');
@@ -39,7 +44,11 @@ Future<LabStore> openLabWorkspace(
         'The restored office folder is unavailable. Reconnect its storage or use another verified backup. Existing files have been retained.',
       );
     }
-    restored = await LabStore.open(target, office: true);
+    restored = await LabStore.open(
+      target,
+      office: true,
+      maintenanceOnly: maintenanceOnly,
+    );
     final marker = restored.setting('officeRestore');
     if (restored.device != pointer['device'] ||
         marker is! Json ||

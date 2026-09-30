@@ -29,6 +29,7 @@ Future<void> main() async {
     final store = await openLabWorkspace(
       Directory(override ?? '${base.path}/maintenance-local-v1'),
       office: Platform.isLinux,
+      maintenanceOnly: true,
     );
     if (Platform.isAndroid) {
       try {
