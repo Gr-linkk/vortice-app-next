@@ -1,16 +1,25 @@
 import 'dart:io';
-import 'dart:typed_data';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import '../lab_store.dart';
 import '../model.dart';
+import '../local_sync.dart';
 import 'common.dart';
 import 'inspection_content.dart';
 
 class InspectionPage extends StatefulWidget {
-  const InspectionPage({super.key, required this.store, this.jobId});
+  const InspectionPage({
+    super.key,
+    required this.store,
+    this.jobId,
+    this.sync,
+    this.updates,
+  });
   final LabStore store;
   final String? jobId;
+  final PhoneSync? sync;
+  final ValueListenable<int>? updates;
   @override
   State<InspectionPage> createState() => _InspectionPageState();
 }
@@ -116,6 +125,8 @@ class _InspectionPageState extends State<InspectionPage> {
         await store.submit(jobId: jobId);
         message = store.office
             ? 'Submitted for computer review.'
+            : widget.sync != null
+            ? 'Version saved for review. Its sending status is shown above.'
             : 'Saved on this phone—waiting to send.';
       } else {
         message = 'Work saved on this ${store.office ? 'computer' : 'phone'}.';
@@ -273,6 +284,18 @@ class _InspectionPageState extends State<InspectionPage> {
                       ? 'Complete both checks, record the meter, add notes and a photo. Saving work keeps it on this device; submit when it is ready for review.'
                       : 'Record what you inspect, add notes and a photo, then submit for office review. Needs action records a finding; approval of this inspection does not confirm a repair.',
                 ),
+                if (widget.sync != null)
+                  if (widget.updates != null)
+                    ValueListenableBuilder<int>(
+                      valueListenable: widget.updates!,
+                      builder: (_, value, child) => dirty.isNotEmpty
+                          ? notice('Changes are not saved yet.')
+                          : phoneSaveNotice(widget.sync!),
+                    )
+                  else if (dirty.isNotEmpty)
+                    notice('Changes are not saved yet.')
+                  else
+                    phoneSaveNotice(widget.sync!),
                 if (message != null) notice(message!),
                 if (dirty.isNotEmpty)
                   notice(
@@ -348,7 +371,7 @@ class _InspectionPageState extends State<InspectionPage> {
                     labelText: 'Inspection notes',
                     helperText:
                         'Describe the inspection and anything needing action.',
-                    helperMaxLines: 3,
+                    helperMaxLines: 6,
                   ),
                   onChanged: (value) => setState(() => dirty['notes'] = value),
                 ),

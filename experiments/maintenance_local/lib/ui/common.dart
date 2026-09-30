@@ -1,5 +1,9 @@
 import 'package:flutter/material.dart';
 import '../lab_store.dart';
+import '../local_sync.dart';
+
+const phoneInvitationInstructions =
+    'Copy the complete invitation on this phone, then paste it below and choose Continue. Copying on the computer alone does not transfer it. Keep it private; it expires after 10 minutes.';
 
 Widget page(List<Widget> children) => SafeArea(
   child: SingleChildScrollView(
@@ -26,11 +30,37 @@ Widget notice(String text, {bool error = false}) => Container(
 );
 String displayTime(String iso) =>
     DateTime.tryParse(iso)?.toLocal().toString().split('.').first ?? iso;
+Widget connectionNotice(ConnectionGuidance guidance) => Column(
+  crossAxisAlignment: CrossAxisAlignment.stretch,
+  children: [
+    notice('${guidance.message}\n${guidance.nextStep}', error: true),
+    if (guidance.details != null)
+      ExpansionTile(
+        title: const Text('More connection help'),
+        children: [
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: Text(guidance.details!),
+          ),
+        ],
+      ),
+  ],
+);
+
+Widget phoneSaveNotice(PhoneSync sync) => Column(
+  crossAxisAlignment: CrossAxisAlignment.stretch,
+  children: [
+    notice(sync.visibleMessage),
+    if (sync.lastGuidance != null) connectionNotice(sync.lastGuidance!),
+  ],
+);
+
 Future<String?> askText(
   BuildContext context,
   String title,
   String label, {
   bool multiline = false,
+  String? instructions,
 }) async {
   final text = TextEditingController();
   final result = await showDialog<String>(
@@ -38,11 +68,21 @@ Future<String?> askText(
     builder: (c) => AlertDialog(
       scrollable: true,
       title: Text(title),
-      content: TextField(
-        controller: text,
-        minLines: multiline ? 3 : 1,
-        maxLines: multiline ? 6 : 1,
-        decoration: InputDecoration(labelText: label),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          if (instructions != null) ...[
+            Text(instructions),
+            const SizedBox(height: 16),
+          ],
+          TextField(
+            controller: text,
+            minLines: multiline ? 3 : 1,
+            maxLines: multiline ? 6 : 1,
+            decoration: InputDecoration(labelText: label),
+          ),
+        ],
       ),
       actions: [
         TextButton(

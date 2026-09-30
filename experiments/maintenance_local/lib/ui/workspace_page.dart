@@ -20,10 +20,12 @@ class WorkspacePage extends StatefulWidget {
     required this.store,
     this.onRestored,
     this.officePort = 47841,
+    this.phoneSyncFactory = PhoneSync.new,
   });
   final LabStore store;
   final ValueChanged<LabStore>? onRestored;
   final int officePort;
+  final PhoneSync Function(LabStore) phoneSyncFactory;
   @override
   State<WorkspacePage> createState() => _WorkspacePageState();
 }
@@ -37,10 +39,15 @@ class _WorkspacePageState extends State<WorkspacePage>
   final reviewUpdates = ValueNotifier<int>(0);
   bool active = true, working = false;
   String? error;
+  ConnectionGuidance? guidance;
+  bool responseClearsGuidance = false;
+  int guidanceResponse = 0;
   @override
   void initState() {
     super.initState();
-    error = store.setting('photoRecoveryError') as String?;
+    active =
+        WidgetsBinding.instance.lifecycleState == null ||
+        WidgetsBinding.instance.lifecycleState == AppLifecycleState.resumed;
     WidgetsBinding.instance.addObserver(this);
     start();
   }
@@ -51,19 +58,48 @@ class _WorkspacePageState extends State<WorkspacePage>
         server = await OfficeServer.start(store, port: widget.officePort);
         server!.onChange = refresh;
       } catch (e) {
-        error = 'Local connections are unavailable: $e';
+        if (e is SocketException) {
+          guidance = const ConnectionGuidance(
+            'Phone connections are unavailable on this computer.',
+            'Close any other local maintenance window, then reopen this app.',
+            details:
+                'If it still fails, ask whoever manages this computer to check local app connections on port 47841. Your saved work stays on this computer.',
+          );
+        } else {
+          error = connectionProblem(e);
+        }
       }
     } else {
-      sync = PhoneSync(store)..onChange = refresh;
+      sync = widget.phoneSyncFactory(store)..onChange = refreshAfterSync;
     }
     timer = Timer.periodic(const Duration(seconds: 4), (_) {
-      if (active) {
+      if (active && !working) {
         sync?.sync().catchError((Object e) {});
         refresh();
       }
     });
     refresh();
   }
+
+  void refreshAfterSync() {
+    final current = sync;
+    if (responseClearsGuidance &&
+        current != null &&
+        current.connectionResponses > guidanceResponse) {
+      // A new response resolves only this action's connection guidance. Persisted
+      // photo recovery and unrelated application failures remain independent.
+      guidance = null;
+      responseClearsGuidance = false;
+    }
+    refresh();
+  }
+
+  List<Widget> errorNotices() => [
+    if (store.setting('photoRecoveryError') case final String photoError)
+      notice(photoError, error: true),
+    if (error != null) notice(error!, error: true),
+    if (guidance != null) connectionNotice(guidance!),
+  ];
 
   void refresh() {
     if (mounted) {
@@ -75,7 +111,7 @@ class _WorkspacePageState extends State<WorkspacePage>
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     active = state == AppLifecycleState.resumed;
-    if (active) refresh();
+    if (active) refreshAfterSync();
   }
 
   @override
@@ -89,37 +125,52 @@ class _WorkspacePageState extends State<WorkspacePage>
     super.dispose();
   }
 
-  Future<void> act(Future<void> Function() fn) async {
+  Future<void> act(Future<void> Function() fn, {bool showError = true}) async {
+    if (!mounted || working) return;
     setState(() {
       working = true;
-      error = null;
     });
     try {
       await fn();
     } catch (e) {
-      error = connectionProblem(e);
+      if (showError) {
+        final help = connectionGuidance(e);
+        if (help != null) {
+          guidance = help;
+          responseClearsGuidance = true;
+          guidanceResponse = sync?.connectionResponses ?? 0;
+        } else {
+          error = connectionProblem(e);
+        }
+      }
     }
     if (mounted) setState(() => working = false);
   }
 
   Future<void> pair({bool scan = false}) async {
-    String? value;
-    if (scan) {
-      value = await Navigator.push<String>(
-        context,
-        MaterialPageRoute(builder: (_) => const InvitationScanner()),
-      );
-    } else {
-      value = await askText(
-        context,
-        'Paste computer invitation',
-        'Invitation',
-        multiline: true,
-      );
-    }
-    if (value != null && value.trim().isNotEmpty) {
-      await act(() => sync!.enroll(value!));
-    }
+    if (working || sync == null || sync!.busy) return;
+    // Fence the whole manual action, including the time spent entering an
+    // invitation. The automatic timer must not start an exchange behind it.
+    await act(() async {
+      String? value;
+      if (scan) {
+        value = await Navigator.push<String>(
+          context,
+          MaterialPageRoute(builder: (_) => const InvitationScanner()),
+        );
+      } else {
+        value = await askText(
+          context,
+          'Paste computer invitation',
+          'Invitation',
+          multiline: true,
+          instructions: phoneInvitationInstructions,
+        );
+      }
+      if (mounted && value != null && value.trim().isNotEmpty) {
+        await sync!.enroll(value);
+      }
+    });
   }
 
   Future<void> restoreOffice() async {
@@ -152,7 +203,17 @@ class _WorkspacePageState extends State<WorkspacePage>
       await store.close();
     } catch (failure) {
       await next?.close();
-      if (mounted) setState(() => error = connectionProblem(failure));
+      if (mounted) {
+        setState(() {
+          final help = connectionGuidance(failure);
+          if (help != null) {
+            guidance = help;
+            responseClearsGuidance = false;
+          } else {
+            error = connectionProblem(failure);
+          }
+        });
+      }
     } finally {
       if (mounted) setState(() => working = false);
     }
@@ -172,7 +233,7 @@ class _WorkspacePageState extends State<WorkspacePage>
             onPressed: () => showAboutDialog(
               context: context,
               applicationName: 'Vortice Local Maintenance',
-              applicationVersion: '0.2.0 · internal experiment',
+              applicationVersion: '0.2.1 · internal experiment',
               children: [
                 const Text(
                   'A separate local maintenance experiment for one office coordinator and one mechanic phone. Equipment, authored checklists and inspection records stay on your devices.',
@@ -191,7 +252,7 @@ class _WorkspacePageState extends State<WorkspacePage>
         const Text(
           'Local maintenance experiment · Your normal Vortice app is separate.',
         ),
-        if (error != null) notice(error!, error: true),
+        ...errorNotices(),
         if (workspace == null) ...[
           const SizedBox(height: 24),
           Text(
@@ -228,10 +289,12 @@ class _WorkspacePageState extends State<WorkspacePage>
               onPressed: working ? null : () => pair(scan: true),
               child: const Text('Scan invitation'),
             ),
-            if (sync?.pairing != null) notice(sync!.message),
+            if (sync?.pairing != null) phoneSaveNotice(sync!),
             if (sync?.pairing != null)
               OutlinedButton(
-                onPressed: sync!.busy ? null : () => act(sync!.sync),
+                onPressed: working || sync!.busy
+                    ? null
+                    : () => act(sync!.sync, showError: false),
                 child: const Text('Check confirmation'),
               ),
           ],
@@ -242,11 +305,14 @@ class _WorkspacePageState extends State<WorkspacePage>
             style: Theme.of(context).textTheme.headlineSmall,
           ),
           if (!store.office) ...[
-            notice(sync?.message ?? 'Saved on this phone.'),
+            if (sync != null)
+              phoneSaveNotice(sync!)
+            else
+              notice('Saved on this phone.'),
             OutlinedButton.icon(
-              onPressed: sync == null || sync!.busy
+              onPressed: working || sync == null || sync!.busy
                   ? null
-                  : () => act(sync!.sync),
+                  : () => act(sync!.sync, showError: false),
               icon: const Icon(Icons.sync),
               label: const Text('Sync now'),
             ),
@@ -254,7 +320,7 @@ class _WorkspacePageState extends State<WorkspacePage>
               'Automatic sending runs while both apps are open. Only work saved on the computer can be restored to a replacement phone.',
             ),
             TextButton(
-              onPressed: sync == null || sync!.busy ? null : pair,
+              onPressed: working || sync == null || sync!.busy ? null : pair,
               child: const Text('Update computer connection'),
             ),
           ],
@@ -276,7 +342,11 @@ class _WorkspacePageState extends State<WorkspacePage>
                       await Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (_) => InspectionPage(store: store),
+                          builder: (_) => InspectionPage(
+                            store: store,
+                            sync: sync,
+                            updates: reviewUpdates,
+                          ),
                         ),
                       );
                       refresh();
@@ -356,7 +426,12 @@ class _WorkspacePageState extends State<WorkspacePage>
     await Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (_) => InspectionPage(store: store, jobId: id),
+        builder: (_) => InspectionPage(
+          store: store,
+          jobId: id,
+          sync: sync,
+          updates: reviewUpdates,
+        ),
       ),
     );
     refresh();
@@ -374,7 +449,7 @@ class _WorkspacePageState extends State<WorkspacePage>
             onPressed: () => showAboutDialog(
               context: context,
               applicationName: 'Vortice Local Maintenance',
-              applicationVersion: '0.2.0 · internal experiment',
+              applicationVersion: '0.2.1 · internal experiment',
               children: const [
                 Text(
                   'A separate local maintenance experiment for one office coordinator and one mechanic phone. Equipment, authored checklists and inspection records stay on your devices. Your normal Vortice app is separate.',
@@ -393,7 +468,7 @@ class _WorkspacePageState extends State<WorkspacePage>
         const Text(
           'Local maintenance experiment · Your normal Vortice app is separate.',
         ),
-        if (error != null) notice(error!, error: true),
+        ...errorNotices(),
         const SizedBox(height: 20),
         Text(
           catalog['company'] as String,
@@ -401,11 +476,14 @@ class _WorkspacePageState extends State<WorkspacePage>
         ),
         Text('Coordinator: ${catalog['coordinatorName']}'),
         if (!store.office) ...[
-          notice(sync?.message ?? 'Saved on this phone.'),
+          if (sync != null)
+            phoneSaveNotice(sync!)
+          else
+            notice('Saved on this phone.'),
           OutlinedButton.icon(
-            onPressed: sync == null || sync!.busy
+            onPressed: working || sync == null || sync!.busy
                 ? null
-                : () => act(sync!.sync),
+                : () => act(sync!.sync, showError: false),
             icon: const Icon(Icons.sync),
             label: const Text('Sync now'),
           ),
@@ -413,7 +491,7 @@ class _WorkspacePageState extends State<WorkspacePage>
             'Automatic sending runs while both apps are open. Only work saved on the computer can be restored to a replacement phone.',
           ),
           TextButton(
-            onPressed: sync == null || sync!.busy ? null : pair,
+            onPressed: working || sync == null || sync!.busy ? null : pair,
             child: const Text('Update computer connection'),
           ),
         ],
