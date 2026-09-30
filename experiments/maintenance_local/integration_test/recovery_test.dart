@@ -21,7 +21,7 @@ void main() {
       'Office backup, fresh restore and camera-free entry at ${scale}x text',
       (tester) async {
         final root = await Directory.systemTemp.createTemp(
-          'sync-lab-rendered-recovery-',
+          'maintenance-rendered-recovery-',
         );
         final captureKey = GlobalKey();
         tester.view.physicalSize = const Size(412, 915);
@@ -84,22 +84,55 @@ void main() {
         var office = await LabStore.open(
           Directory('${root.path}/source'),
           office: true,
+          maintenanceOnly: true,
         );
-        await office.createWorkspace();
+        // Normal startup establishes the office identity before work is saved.
         final identity = await OfficeIdentity.load(office),
             device = office.device;
+        await office.createCompany(
+          'Synthetic Recovery Construction',
+          coordinatorName: 'Sam Coordinator',
+        );
+        final equipment = await office.addEquipment(
+          name: 'Synthetic recovery excavator',
+          serial: 'SYNTHETIC-R24',
+          meterUnit: 'hours',
+        );
+        final checklist = await office.publishChecklist(
+          title: 'Recovery inspection',
+          items: [
+            {'id': 'guards', 'label': 'Inspect guards', 'input_type': 'check'},
+            {
+              'id': 'pressure',
+              'label': 'Record hydraulic pressure',
+              'input_type': 'number',
+              'unit': 'psi',
+              'min': 10,
+              'max': 30,
+            },
+          ],
+          provenance: {'kind': 'company-authored'},
+        );
+        final job = await office.prepareWork(
+          equipmentId: equipment['id'] as String,
+          templateId: checklist['id'] as String,
+          title: 'Saved inspection for recovery',
+        );
+        final jobId = job['id'] as String;
+        final frozenContext = canonical(office.jobContextFor(jobId));
         await office.update({
-          'fluid': 'pass',
-          'guards': 'attention',
+          'answer:guards': {'result': 'action', 'value': ''},
+          'answer:pressure': {'result': 'action', 'value': '35'},
           'meter': 101.25,
           'notes': 'Synthetic saved-image office recovery.',
-        });
-        await office.attach(
+        }, jobId: jobId);
+        final photoHash = await office.attach(
           base64Decode(
             'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jWL0AAAAASUVORK5CYII=',
           ),
+          jobId: jobId,
         );
-        final submitted = await office.submit();
+        final submitted = await office.submit(jobId: jobId);
         final receipt = await office.decide(
           submitted['id'] as String,
           approve: true,
@@ -135,7 +168,11 @@ void main() {
         await tester.pumpAndSettle();
         await office.close();
         final launcherRoot = Directory('${root.path}/launcher');
-        office = await LabStore.open(launcherRoot, office: true);
+        office = await LabStore.open(
+          launcherRoot,
+          office: true,
+          maintenanceOnly: true,
+        );
         await tester.pumpWidget(
           RepaintBoundary(
             key: captureKey,
@@ -188,6 +225,26 @@ void main() {
         expect(copy.device, device);
         expect(copy.receipts.single, receipt);
         expect(copy.submissions.single['id'], submitted['id']);
+        expect(canonical(copy.jobContextFor(jobId)), frozenContext);
+        expect(
+          copy.setting('localMaintenanceApplication'),
+          'org.vortice.next.maintenance_local',
+        );
+        expect(copy.setting('localMaintenanceRole'), 'linux-office');
+        expect(
+          jsonDecode(
+            await File(
+              '${target.path}/maintenance-local-owner.json',
+            ).readAsString(),
+          ),
+          {
+            'application': 'org.vortice.next.maintenance_local',
+            'role': 'linux-office',
+            'version': 1,
+          },
+        );
+        expect(await copy.evidence.complete(photoHash), isTrue);
+        expect(copy.db.select('SELECT * FROM invites'), isEmpty);
         expect(DeviceAuthority(copy).phones.map((p) => p['status']), [
           'pending',
           'revoked',
@@ -200,16 +257,41 @@ void main() {
         await tester.pumpWidget(const SizedBox.shrink());
         await tester.pumpAndSettle();
         await copy.close();
-        final reopened = await openLabWorkspace(launcherRoot, office: true);
+        final reopened = await openLabWorkspace(
+          launcherRoot,
+          office: true,
+          maintenanceOnly: true,
+        );
         expect(reopened.device, device);
         expect(
           (await OfficeIdentity.load(reopened)).fingerprint,
           identity.fingerprint,
         );
+        expect(canonical(reopened.jobContextFor(jobId)), frozenContext);
+        expect(reopened.receipts.single, receipt);
+        expect(reopened.submissions.single['id'], submitted['id']);
+        expect(await reopened.evidence.complete(photoHash), isTrue);
+        expect(DeviceAuthority(reopened).phones.map((p) => p['status']), [
+          'pending',
+          'revoked',
+        ]);
+        await tester.pumpWidget(
+          RepaintBoundary(
+            key: captureKey,
+            child: LabApp(store: reopened, textScale: scale, officePort: 0),
+          ),
+        );
+        await tester.pumpAndSettle();
+        await tester.ensureVisible(find.text('Approved inspection').last);
+        await capture('office-reopened');
+        expect(tester.takeException(), isNull);
+        await tester.pumpWidget(const SizedBox.shrink());
+        await tester.pumpAndSettle();
         await reopened.close();
         final phone = await LabStore.open(
           Directory('${root.path}/phone'),
           office: false,
+          maintenanceOnly: true,
         );
         await tester.pumpWidget(
           RepaintBoundary(
