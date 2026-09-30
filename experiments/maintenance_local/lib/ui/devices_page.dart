@@ -176,7 +176,7 @@ class _DevicesPageState extends State<DevicesPage> {
         'Replacing a lost phone: revoke it above, create a new invitation and connect the replacement. Keep both apps open until the phone reports that photos are verified. Only the computer’s saved copy can be restored.',
       ),
       notice(
-        'If the phone cannot reach this computer, check the selected Wi-Fi address and local access to TCP 47831. Keep both apps open and retry. No internet service is required.',
+        'If the phone cannot reach this computer, check the selected Wi-Fi address and local access to TCP 47841. Keep both apps open and retry. No internet service is required.',
       ),
     ]),
   );
