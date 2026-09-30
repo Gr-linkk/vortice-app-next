@@ -285,6 +285,18 @@ class OfficeBackup {
         throw StateError('Restore validation failed.');
       }
       await _private('${stage.path}/workspace.sqlite', false);
+      if (requiredFormat == OfficeBackupFormat.maintenance) {
+        await _write(
+          File('${stage.path}/maintenance-local-owner.json'),
+          utf8.encode(
+            canonical({
+              'application': 'org.vortice.next.maintenance_local',
+              'role': 'linux-office',
+              'version': 1,
+            }),
+          ),
+        );
+      }
       await _publish(stage, destination);
       stage = null;
       return OfficeRestoreResult(destination, summary);
