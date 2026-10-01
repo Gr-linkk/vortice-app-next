@@ -7,6 +7,20 @@ without creating a new backlog item.
 
 ## Selected local-first slice — September 30, 2026
 
+### LF-009 — Manual office fault intake
+
+Authorized bounded follow-up on accepted `98deb62`, isolated in
+`codex/local-fault-intake`. The office reports a description and normal/urgent
+severity against existing company equipment, optionally attributing an exact
+saved inspection submission, step or note. Durable frozen intent, an immutable
+receipt and matching event support exact retry, reopen and coherent recovery.
+The status is “Reported — corrective work not planned”. Saved-source state is
+the observation captured when the request was frozen, not a live approval claim.
+No corrective-work linking, fault verification, availability, automatic fault
+generation, phone replication or CLI authority is added. Actual unchanged
+`98deb62` backup preservation, updated semantic refusal, normal-entry 1x/2x
+renders and full regression review are required. [Scope and gates](docs/specs/LF-009-manual-office-fault-intake.md).
+
 ### LF-007 — Linux desktop runtime portability
 
 Built source `0744da8`: fresh offline Linux build and extracted source/Java-hidden

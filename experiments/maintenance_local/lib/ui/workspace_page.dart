@@ -21,6 +21,7 @@ import 'inspection_content.dart';
 import 'work_progress.dart';
 import 'agent_connections_page.dart';
 import 'agent_proposals_page.dart';
+import 'manual_fault_intake_page.dart';
 
 class WorkspacePage extends StatefulWidget {
   const WorkspacePage({
@@ -625,13 +626,30 @@ class _WorkspacePageState extends State<WorkspacePage>
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 for (final job in store.jobs) jobCard(job),
-                if (progress.error != null) notice(progress.error!, error: true),
+                if (progress.error != null)
+                  notice(progress.error!, error: true),
                 if (store.office) ...reviewSections(),
               ],
             ),
           ),
         ),
         if (store.office) ...[
+          const SizedBox(height: 20),
+          OutlinedButton.icon(
+            onPressed: working
+                ? null
+                : () async {
+                    await Navigator.push<void>(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => ManualFaultIntakePage(store: store),
+                      ),
+                    );
+                    if (mounted) refresh();
+                  },
+            icon: const Icon(Icons.report_problem_outlined),
+            label: const Text('Reported faults'),
+          ),
           const SizedBox(height: 20),
           Text('Equipment', style: Theme.of(context).textTheme.titleLarge),
           OutlinedButton.icon(
