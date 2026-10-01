@@ -7,9 +7,16 @@ import 'package:flutter_test/flutter_test.dart';
 Future<void> finishNativeWidgetCleanup(
   WidgetTester tester,
   Future<void> Function() close,
+) => finishNativeWidgetAction(tester, close);
+
+/// Drain native actions queued behind reads created by the widget's fake zone.
+/// This preserves the operation's error and fails after a bounded wait.
+Future<void> finishNativeWidgetAction(
+  WidgetTester tester,
+  Future<void> Function() action,
 ) async {
   var finished = false;
-  final closing = close();
+  final closing = action();
   unawaited(
     closing.then<void>(
       (_) => finished = true,
@@ -22,6 +29,6 @@ Future<void> finishNativeWidgetCleanup(
     );
     await tester.pump(const Duration(milliseconds: 20));
   }
-  expect(finished, isTrue, reason: 'Native fixture cleanup must finish.');
+  expect(finished, isTrue, reason: 'Native fixture action must finish.');
   await closing;
 }

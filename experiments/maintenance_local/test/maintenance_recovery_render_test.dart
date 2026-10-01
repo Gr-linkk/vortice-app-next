@@ -430,6 +430,10 @@ void main() {
           );
         });
         await _mount(tester, reopened, scale);
+        await _until(
+          tester,
+          () => find.text('Approved inspection').evaluate().isNotEmpty,
+        );
         await _show(tester, find.text('Approved inspection').last);
         await _capture(tester, 'maintenance-office-reopened-${suffix}x');
       },

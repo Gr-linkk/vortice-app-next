@@ -438,11 +438,15 @@ void main() {
         expect(first['values']['unit'], 'km');
         expect(canonical(first['context']), frozen);
         await _tap(tester, find.byTooltip('Back'));
+        await _until(
+          tester,
+          () => find.text('Waiting to send').evaluate().isNotEmpty,
+        );
         await _show(tester, find.text('Waiting to send').last);
         await _capture(tester, 'phone-submitted-${suffix}x');
 
         Future<void> deliver(Json submission) async {
-          await tester.runAsync(() async {
+          await finishNativeWidgetAction(tester, () async {
             office.saveDocument(phone.documentFor(jobId)!, jobId: jobId);
             await office.evidence.add(photo);
             // Match the transport envelope: local queue state is not part of
@@ -455,6 +459,10 @@ void main() {
 
         await deliver(first);
         await _mount(tester, office, scale);
+        await _until(
+          tester,
+          () => find.text('Awaiting review').evaluate().isNotEmpty,
+        );
         await _tap(tester, find.text('Awaiting review').last);
         expect(
           find.descendant(
@@ -485,7 +493,7 @@ void main() {
         );
         await _capture(tester, 'office-returned-${suffix}x');
 
-        await tester.runAsync(() async {
+        await finishNativeWidgetAction(tester, () async {
           await phone.importOfficeBundle(await office.publicBundle());
         });
         await _mount(tester, phone, scale);
@@ -503,6 +511,10 @@ void main() {
         expect(canonical(second['context']), frozen);
         await deliver(second);
         await _mount(tester, office, scale);
+        await _until(
+          tester,
+          () => find.text('Awaiting review').evaluate().isNotEmpty,
+        );
         await _tap(tester, find.text('Awaiting review').last);
         await _until(
           tester,
@@ -524,6 +536,10 @@ void main() {
         await _show(tester, find.text('Reviewed by Sam Coordinator'));
         await _capture(tester, 'office-approved-${suffix}x');
         await _tap(tester, find.byTooltip('Back'));
+        await _until(
+          tester,
+          () => find.text('Approved inspection').evaluate().isNotEmpty,
+        );
         expect(find.text('Approved inspection'), findsWidgets);
         expect(
           find.text('Returned — Record the follow-up inspection notes.'),
