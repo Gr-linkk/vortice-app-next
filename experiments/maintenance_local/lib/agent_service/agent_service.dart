@@ -210,6 +210,14 @@ class AgentService {
       }
     }
 
+    Future<void> authorizeReplay() async {
+      final current = await _authorize(token, scope, command);
+      accessible(current);
+      if (current.id != grant.id || current.actorId != grant.actorId) {
+        throw const AgentFailure('unauthorized');
+      }
+    }
+
     accessible(grant);
     final existing = await proposals.lookup(
       grant.id,
@@ -236,9 +244,19 @@ class AgentService {
             accepted['actor_id'] != grant.actorId) {
           throw const AgentFailure('unauthorized');
         }
-        return proposals.replay(accepted, args, scope: scope);
+        return proposals.replay(
+          accepted,
+          args,
+          scope: scope,
+          authorize: authorizeReplay,
+        );
       }
-      return proposals.replay(existing, args, scope: scope);
+      return proposals.replay(
+        existing,
+        args,
+        scope: scope,
+        authorize: authorizeReplay,
+      );
     }
     // Hold the store queue through private publication, so the pinned context
     // and raw document hash cannot change through any ordinary store command.

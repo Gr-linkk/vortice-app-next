@@ -89,7 +89,7 @@ class AgentProposalStore {
         if (existing['actor_id'] != actorId) {
           throw const AgentFailure('unauthorized');
         }
-        return replay(existing, payload, scope: scope);
+        return _replay(existing, payload, scope: scope, authorize: authorize);
       }
       final result = <String, dynamic>{
         'proposal_id': const Uuid().v4(),
@@ -148,12 +148,22 @@ class AgentProposalStore {
           if (collision['actor_id'] != actorId) {
             throw const AgentFailure('unauthorized');
           }
-          return replay(collision, payload, scope: scope);
+          return _replay(
+            collision,
+            payload,
+            scope: scope,
+            authorize: authorize,
+          );
         }
-        final flushExitCode =
-            _syntheticFlushDirectory?.call(root) ??
-            Process.runSync('/usr/bin/sync', ['-f', '--', root.path]).exitCode;
-        if (flushExitCode != 0) throw const AgentFailure('internal_error');
+        _flushDirectory(rootIdentity);
+        try {
+          await authorize();
+          _confirmRecord(record, rootIdentity);
+        } catch (_) {
+          // Publication already happened. A denied or interrupted final
+          // acknowledgement cannot claim this original create was rejected.
+          throw const AgentFailure('internal_error');
+        }
         return jsonDecode(canonical(result)) as Json;
       } finally {
         if (_sameRoot(rootIdentity) && stage.existsSync()) stage.deleteSync();
@@ -161,13 +171,76 @@ class AgentProposalStore {
     });
   }
 
-  Json replay(Json record, Json payload, {required Json scope}) {
+  /// A visible record is not proof that its publication survived a directory
+  /// flush. Exact create retries confirm durability again, then reauthorize.
+  Future<Json> replay(
+    Json record,
+    Json payload, {
+    required Json scope,
+    required Future<void> Function() authorize,
+  }) {
+    record = jsonDecode(canonical(record)) as Json;
+    payload = jsonDecode(canonical(payload)) as Json;
+    scope = jsonDecode(canonical(scope)) as Json;
+    return _queue.run(
+      () => _replay(record, payload, scope: scope, authorize: authorize),
+    );
+  }
+
+  Future<Json> _replay(
+    Json record,
+    Json payload, {
+    required Json scope,
+    required Future<void> Function() authorize,
+  }) async {
     if (canonical(record['payload']) != canonical(payload) ||
         canonical(record['scope']) != canonical(scope) ||
         record['command'] != 'proposals.create') {
       throw const AgentFailure('idempotency_conflict');
     }
+    await authorize();
+    final rootIdentity = _rootIdentity();
+    final current = await lookup(
+      record['grant_id'] as String,
+      payload['idempotency_key'] as String,
+    );
+    if (current == null || canonical(current) != canonical(record)) {
+      throw const AgentFailure('internal_error');
+    }
+    _flushDirectory(rootIdentity);
+    await authorize();
+    _confirmRecord(record, rootIdentity);
     return jsonDecode(canonical(record['result'])) as Json;
+  }
+
+  void _flushDirectory(String rootIdentity) {
+    if (_rootIdentity() != rootIdentity) {
+      throw const AgentFailure('internal_error');
+    }
+    final exitCode =
+        _syntheticFlushDirectory?.call(root) ??
+        Process.runSync('/usr/bin/sync', ['-f', '--', root.path]).exitCode;
+    if (exitCode != 0 || _rootIdentity() != rootIdentity) {
+      throw const AgentFailure('internal_error');
+    }
+  }
+
+  // No async work follows the final authorization. Confirm that the same
+  // immutable record is still present before acknowledging its saved result.
+  void _confirmRecord(Json record, String rootIdentity) {
+    if (_rootIdentity() != rootIdentity) {
+      throw const AgentFailure('internal_error');
+    }
+    final file = File(
+      '${root.path}/${_key(record['grant_id'] as String, record['payload']['idempotency_key'] as String)}.json',
+    );
+    if (FileSystemEntity.typeSync(file.path, followLinks: false) !=
+            FileSystemEntityType.file ||
+        (file.statSync().mode & 0xfff) != 0x180 ||
+        file.lengthSync() > maxRecordBytes ||
+        canonical(jsonDecode(file.readAsStringSync())) != canonical(record)) {
+      throw const AgentFailure('internal_error');
+    }
   }
 
   bool _sameRoot(String identity) {
