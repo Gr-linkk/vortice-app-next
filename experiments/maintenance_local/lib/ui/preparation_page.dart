@@ -4,6 +4,7 @@ import '../lab_store.dart';
 import '../model.dart';
 import 'common.dart';
 import 'inspection_content.dart';
+import 'procedure_library_page.dart';
 
 enum PreparationStep { company, equipment, checklist, work }
 
@@ -168,6 +169,28 @@ class _PreparationPageState extends State<PreparationPage> {
               'Select the equipment and procedure for this inspection. The prepared work keeps this exact equipment and checklist version.',
           }),
           if (error != null) notice(error!, error: true),
+          if (widget.store.office &&
+              (widget.step == PreparationStep.checklist ||
+                  widget.step == PreparationStep.work)) ...[
+            const SizedBox(height: 12),
+            OutlinedButton.icon(
+              key: const Key('preparation-checklist-library'),
+              onPressed: busy
+                  ? null
+                  : () async {
+                      await Navigator.push<void>(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) =>
+                              ProcedureLibraryPage(store: widget.store),
+                        ),
+                      );
+                      if (mounted) setState(() {});
+                    },
+              icon: const Icon(Icons.library_books_outlined),
+              label: const Text('Checklist library'),
+            ),
+          ],
           const SizedBox(height: 20),
           if (widget.step == PreparationStep.work) ...[
             DropdownButtonFormField<String>(
