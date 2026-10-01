@@ -195,6 +195,14 @@ Require unchanged parent probes, independent state-machine review, a boundary
 matrix, and complete source gates before parent audit and another candidate.
 Frozen 0.2.5 and 0.2.6 binaries remain blocked. Scope: `docs/specs/LF-005-displayed-answer-state.md`.
 
+Source `5f9a110` passes the complete 474-case native suite, all nine unchanged
+parent probes, clean analysis, four boundaries and portable verification. The
+same 35-case matrix exposes 14 semantic baseline failures and passes on the
+repair. Independent invariant/source/test/publication review is clear; 58 fresh
+normal/large-text renders are inspected with capture limits recorded. Parent
+independent acceptance remains pending before another
+candidate. [Source receipt](docs/specs/LF-005-displayed-answer-state-receipt.md).
+
 
 ### NEXT-014 — One companion web app for office and field work
 
