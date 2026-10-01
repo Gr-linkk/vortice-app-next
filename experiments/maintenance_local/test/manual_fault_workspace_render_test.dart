@@ -29,7 +29,11 @@ Future<void> _settle(WidgetTester tester) async {
   expect(tester.takeException(), isNull);
 }
 
-Future<void> _tap(WidgetTester tester, Finder target) async {
+Future<void> _tap(
+  WidgetTester tester,
+  Finder target, {
+  String? captureBeforeTap,
+}) async {
   expect(target, findsOneWidget);
   for (var frame = 0; frame < 12; frame++) {
     await Scrollable.ensureVisible(tester.element(target), alignment: 0.5);
@@ -37,6 +41,7 @@ Future<void> _tap(WidgetTester tester, Finder target) async {
     if (target.hitTestable().evaluate().length == 1) break;
   }
   expect(target.hitTestable(), findsOneWidget);
+  if (captureBeforeTap != null) await _capture(tester, captureBeforeTap);
   await tester.runAsync(() async {
     await tester.tap(target);
     await Future<void>.delayed(const Duration(milliseconds: 20));
@@ -137,7 +142,11 @@ void main() {
         ),
       );
       await _settle(tester);
-      await _tap(tester, find.text('Reported faults'));
+      await _tap(
+        tester,
+        find.text('Reported faults'),
+        captureBeforeTap: 'home-fault-entry-${scale.toInt()}x',
+      );
       expect(find.byType(ManualFaultIntakePage), findsOneWidget);
       await _capture(tester, 'home-fault-list-${scale.toInt()}x');
       await _tap(tester, find.byKey(const Key('manual-fault-new')));
