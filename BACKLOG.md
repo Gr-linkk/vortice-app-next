@@ -186,6 +186,16 @@ for later connection; no domain purchase or unselected public identity is implie
 
 ## Now
 
+### LF-005 — Complete displayed-answer ownership repair
+
+Close the full asynchronous answer-state class after parent prepaint N/A/optional-
+clear findings. Separate full nullable presentation from dirty persistence and
+guarded decoded/frame ownership; preserve CRDT and exact submission fences.
+Require unchanged parent probes, independent state-machine review, a boundary
+matrix, and complete source gates before parent audit and another candidate.
+Frozen 0.2.5 and 0.2.6 binaries remain blocked. Scope: `docs/specs/LF-005-displayed-answer-state.md`.
+
+
 ### NEXT-014 — One companion web app for office and field work
 
 September 24–25: Garrett requested a companion web app after mobile completion,

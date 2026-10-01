@@ -38,6 +38,18 @@ class InspectionPage extends StatefulWidget {
   State<InspectionPage> createState() => _InspectionPageState();
 }
 
+/// An answer's full nullable presentation and its latest local event identity.
+/// A durable acknowledgement changes dirty ownership, never this value.
+class _AnswerPresentation {
+  _AnswerPresentation(Object? answer, this.localIdentity)
+    : value = answer == null
+          ? null
+          : Map<String, dynamic>.unmodifiable(jsonMap(answer));
+
+  final Json? value;
+  final int localIdentity;
+}
+
 class _InspectionPageState extends State<InspectionPage> {
   LabStore get store => widget.store;
   late final String? jobId;
@@ -46,10 +58,12 @@ class _InspectionPageState extends State<InspectionPage> {
   Json? alternatives;
   Uint8List? base;
   Uint8List? displayedDocument;
+  Json? displayedFields;
   final notes = TextEditingController(), meter = TextEditingController();
   final answers = <String, TextEditingController>{};
   final dirty = <String, dynamic>{};
-  final acknowledgedAnswers = <String, dynamic>{};
+  final displayedAnswers = <String, _AnswerPresentation>{};
+  Map<String, _AnswerPresentation>? stagedAnswers;
   final editIdentities = <String, int>{};
   int nextEditIdentity = 0;
   String? message;
@@ -114,18 +128,68 @@ class _InspectionPageState extends State<InspectionPage> {
   }
 
   void displayDocument(Uint8List bytes, Json fields) {
-    acknowledgedAnswers.clear();
     alternatives = fields;
-    refill(valuesOf(fields));
+    final values = valuesOf(fields);
+    final candidates = <String, _AnswerPresentation>{};
+    for (final item in inspectionItems(jobContext)) {
+      final key = 'answer:${item['id']}';
+      // A key dirty at installation cannot become eligible merely because
+      // acknowledgement later removes its dirty identity.
+      if (!dirty.containsKey(key)) {
+        candidates[key] = _AnswerPresentation(
+          values[key],
+          displayedAnswers[key]?.localIdentity ?? 0,
+        );
+      }
+    }
+    stagedAnswers = candidates;
+    refill(values);
     final generation = ++formGeneration;
-    // Decoding and setState can finish before the next painted form. Input
-    // arriving in that interval still belongs to the previously shown bytes.
+    // Decoded candidates can be rendered by the replacement form, but input
+    // from the previous form still owns its full answer until that frame ends.
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted || generation != formGeneration) return;
+      for (final entry in candidates.entries) {
+        if (!dirty.containsKey(entry.key) &&
+            (displayedAnswers[entry.key]?.localIdentity ?? 0) ==
+                entry.value.localIdentity) {
+          displayedAnswers[entry.key] = entry.value;
+        }
+      }
+      stagedAnswers = null;
       displayedDocument = bytes;
+      displayedFields = fields;
       // Dirty edits retain their original CRDT base until they are merged.
       if (dirty.isEmpty) base = bytes;
     });
+  }
+
+  void cancelStagedHandoff() {
+    // A command begins against the last painted document. An earlier staged
+    // frame must not overwrite that ownership or our known durable-write base.
+    formGeneration++;
+    if (stagedAnswers == null) return;
+    stagedAnswers = null;
+    // Keep a failed command on one coherent painted snapshot, including the
+    // conflict/photo fields and the notes/meter controllers.
+    final painted = displayedFields;
+    if (painted != null) {
+      alternatives = painted;
+      refill(valuesOf(painted));
+    }
+    for (final entry in displayedAnswers.entries) {
+      if (!dirty.containsKey(entry.key)) {
+        syncAnswerController(entry.key, entry.value.value);
+      }
+    }
+  }
+
+  void syncAnswerController(String key, Object? answer) {
+    final controller = answers[key.substring('answer:'.length)];
+    final raw = (jsonMap(answer)['value'] ?? '').toString();
+    // Avoid disturbing a live platform client's selection/composition when
+    // the raw text is already the same.
+    if (controller != null && controller.text != raw) controller.text = raw;
   }
 
   Future<void> load({bool incoming = false}) async {
@@ -175,8 +239,13 @@ class _InspectionPageState extends State<InspectionPage> {
   }
 
   void recordEdit(String key, Object? value) {
+    final identity = ++nextEditIdentity;
     dirty[key] = value;
-    editIdentities[key] = ++nextEditIdentity;
+    editIdentities[key] = identity;
+    if (key.startsWith('answer:')) {
+      displayedAnswers[key] = _AnswerPresentation(value, identity);
+      syncAnswerController(key, value);
+    }
   }
 
   void incomingChanged() {
@@ -209,9 +278,10 @@ class _InspectionPageState extends State<InspectionPage> {
   }) async {
     if (busy) return false;
     final seenDocument = displayedDocument;
-    final seenFields = alternatives;
+    final seenFields = displayedFields;
     if (seenDocument == null || seenFields == null) return false;
     readGeneration++;
+    cancelStagedHandoff();
     setState(() => busy = true);
     var saved = false;
     try {
@@ -267,11 +337,8 @@ class _InspectionPageState extends State<InspectionPage> {
       // normalized meter values are never compared with raw later input.
       for (final entry in capturedIdentities.entries) {
         if (editIdentities[entry.key] == entry.value) {
-          // The answer's result is still shown with its controller text until
-          // a decoded replacement is installed, including after decode fails.
-          if (entry.key.startsWith('answer:')) {
-            acknowledgedAnswers[entry.key] = capturedEdits[entry.key];
-          }
+          // Full answer presentation survives independently, including null
+          // and N/A, while the captured persistence intent is acknowledged.
           dirty.remove(entry.key);
           editIdentities.remove(entry.key);
         }
@@ -387,31 +454,29 @@ class _InspectionPageState extends State<InspectionPage> {
 
   Json answerFor(Json item, Json values) {
     final key = 'answer:${item['id']}';
-    return jsonMap(
-      dirty.containsKey(key)
-          ? dirty[key]
-          : acknowledgedAnswers.containsKey(key)
-          ? acknowledgedAnswers[key]
-          : values[key],
-    );
+    final owned = displayedAnswers[key];
+    final candidate = stagedAnswers?[key];
+    if (!dirty.containsKey(key) &&
+        candidate != null &&
+        (owned?.localIdentity ?? 0) == candidate.localIdentity) {
+      return jsonMap(candidate.value);
+    }
+    // Presence of an owned nullable answer is distinct from no owner.
+    return jsonMap(owned != null ? owned.value : values[key]);
   }
 
   void changeAnswer(
-    Json item,
-    Json renderedAnswer, {
+    Json item, {
     String? result,
     String? value,
     bool typed = false,
   }) {
     final key = 'answer:${item['id']}';
-    // A callback from the last painted field can outlive acknowledgement and
-    // decoding. Its fallback must include the result painted with that field.
+    final owned = displayedAnswers[key];
+    // Every event extends the full current local presentation. Callback
+    // closures and decoded-but-unpainted candidates cannot reclassify it.
     final answer = jsonMap(
-      dirty.containsKey(key)
-          ? dirty[key]
-          : acknowledgedAnswers.containsKey(key)
-          ? acknowledgedAnswers[key]
-          : renderedAnswer,
+      owned != null ? owned.value : stagedAnswers?[key]?.value,
     );
     final text = value ?? (answer['value'] ?? '').toString();
     Object? next = result ?? answer['result'];
@@ -742,7 +807,7 @@ class _InspectionPageState extends State<InspectionPage> {
                       : 'Response',
                 ),
                 onChanged: (text) =>
-                    changeAnswer(item, answer, value: text, typed: true),
+                    changeAnswer(item, value: text, typed: true),
               ),
             ],
             const SizedBox(height: 8),
@@ -760,7 +825,7 @@ class _InspectionPageState extends State<InspectionPage> {
                     selected: answer['result'] == option,
                     onSelected: busy
                         ? null
-                        : (_) => changeAnswer(item, answer, result: option),
+                        : (_) => changeAnswer(item, result: option),
                   ),
               ],
             ),
