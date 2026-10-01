@@ -135,7 +135,12 @@ class _InspectionPageState extends State<InspectionPage> {
         patch['meter'] = raw.isEmpty ? null : reading;
       }
       if (resolution != null) patch[resolution.key] = resolution.value;
-      if (patch.isNotEmpty) await store.update(patch, base: base, jobId: jobId);
+      if (patch.isNotEmpty) {
+        await store.update(patch, base: base, jobId: jobId);
+        // This draft is already durable even if decoding or submission fails.
+        // Invalidate its earlier exact-version status before the next await.
+        refreshProgress();
+      }
       dirty.clear();
       base = legacy ? store.document : store.documentFor(jobId!);
       alternatives = await store.fields(jobId: jobId);
@@ -163,9 +168,10 @@ class _InspectionPageState extends State<InspectionPage> {
         message = 'Work saved on this ${store.office ? 'computer' : 'phone'}.';
       }
       saved = true;
-      refreshProgress();
     } catch (failure) {
       message = failure.toString().replaceFirst('Bad state: ', '');
+    } finally {
+      refreshProgress();
     }
     if (mounted) setState(() => busy = false);
     return saved;
