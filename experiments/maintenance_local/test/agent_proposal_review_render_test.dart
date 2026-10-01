@@ -257,8 +257,12 @@ void main() {
     });
   });
 
-  for (final scale in [1.0, 1.8]) {
-    final name = scale == 1 ? 'phone' : 'large-text';
+  for (final scale in [1.0, 1.8, 2.0]) {
+    final name = switch (scale) {
+      1.0 => 'phone',
+      1.8 => 'large-text',
+      _ => 'large-text-2x',
+    };
     testWidgets(
       'actual office applies notes with confirmation and safe retry: $name',
       (tester) async {
