@@ -40,7 +40,8 @@ case "$action" in
     cargo build --manifest-path rust/Cargo.toml --locked --offline
     export MAINTENANCE_NATIVE_LIBRARY="${MAINTENANCE_NATIVE_LIBRARY:-$app/rust/target/debug/librust_lib_sync_lab.so}"
     flutter test --no-pub "$@"
-    node --test "$root"/tools/local-agent-cli/test/*.test.mjs
+    node --test "$root"/tools/local-agent-cli/test/*.test.mjs \
+      "$root"/tools/local-agent-cli/distribution/test/*.test.mjs
     bash "$root/scripts/local-maintenance.sh" cli-smoke
     bash "$root/scripts/local-maintenance.sh" agent-host-smoke
     ;;

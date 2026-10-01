@@ -7,6 +7,14 @@ without creating a new backlog item.
 
 ## Selected local-first slice — September 30, 2026
 
+### LF-INTEGRATION-002 — Repaired app and extracted agent CLI
+
+Combine the independently reviewed late-input editor repair and extracted CLI
+on an isolated candidate, with internal metadata `0.2.5+6`. Verify the combined
+workflow, rendered editor, commands and extracted real CLI; build new Android
+and Linux artifacts with existing identities/signing. Original artifacts and
+hosted rollback remain intact. [Scope and gates](docs/specs/LF-INTEGRATION-002-repaired-distribution.md).
+
 ### LF-006 — Usable Linux agent CLI distribution
 
 Implemented at `c64c6c3`: 298 Node and 35 Python checks passed; actual
