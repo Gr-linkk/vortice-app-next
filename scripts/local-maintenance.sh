@@ -66,15 +66,27 @@ case "$action" in
       --ready "$fixture_root/ready.json" --native-library "$library" \
       >"$fixture_root/runner.log" 2>&1 &
     fixture_pid=$!
+    fixture_ready() {
+      [[ -f "$fixture_root/ready.json" && ! -L "$fixture_root/ready.json" ]] || return 1
+      node -e 'try {
+        const fs = require("node:fs");
+        const readyPath = process.argv[1];
+        const stat = fs.statSync(readyPath);
+        if ((stat.mode & 0o777) !== 0o600 || stat.uid !== process.getuid()) process.exit(1);
+        const ready = JSON.parse(fs.readFileSync(readyPath, "utf8"));
+        process.exit(ready.synthetic_fixture === true && ready.protocol_version === 1 ? 0 : 1);
+      } catch { process.exit(1); }' "$fixture_root/ready.json"
+    }
+    fixture_is_ready=0
     for ((attempt=0; attempt<300; attempt++)); do
-      [[ -f "$fixture_root/ready.json" ]] && break
+      if fixture_ready; then fixture_is_ready=1; break; fi
       kill -0 "$fixture_pid" 2>/dev/null || {
         echo 'The synthetic CLI fixture could not start; existing workspaces were not opened.' >&2
         exit 1
       }
       sleep 0.1
     done
-    test -f "$fixture_root/ready.json" || {
+    [[ "$fixture_is_ready" == 1 ]] || {
       echo 'The synthetic CLI fixture did not become ready in time.' >&2
       exit 1
     }
