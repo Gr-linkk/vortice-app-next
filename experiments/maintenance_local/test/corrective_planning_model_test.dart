@@ -19,7 +19,7 @@ Matcher _failure([String? code]) => throwsA(
   isA<CorrectivePlanningFailure>().having(
     (e) => e.code,
     'code',
-    code == null ? isNotEmpty : code,
+    code ?? isNotEmpty,
   ),
 );
 
@@ -330,6 +330,29 @@ void main() {
       final draft = f.apply(f.create()).draft;
       expect(() => f.link(draft, []), _failure('invalid_state'));
       expect(() => f.link(draft, [1, 1]), _failure('invalid_state'));
+      final changedHash = CorrectiveFaultReference.fromJson({
+        'faultId': _uuid(1),
+        'faultRecordHash': contentHash('different record under the same ID'),
+      });
+      expect(
+        () => FrozenCorrectivePlanningCommand.createDraft(
+          id: _uuid(100),
+          companyId: 'company-a',
+          deviceId: _device,
+          equipmentSnapshot: f.equipment,
+          title: 'Plan repair',
+          description: '',
+          faults: [f.ref(1), changedHash],
+          createdAt: _time,
+        ),
+        _failure('invalid_state'),
+      );
+      final reversed = f.create(faults: [1, 2]).toJson();
+      reversed['faults'] = (reversed['faults'] as List).reversed.toList();
+      expect(
+        () => FrozenCorrectivePlanningCommand.fromJson(_rehash(reversed)),
+        _failure('invalid_state'),
+      );
     },
   );
   test(
@@ -494,8 +517,9 @@ void main() {
         'equipmentId': 'missing-engine',
       }.entries) {
         final raw = f.create().toJson()..[mutation.key] = mutation.value;
-        if (mutation.key == 'equipmentId')
+        if (mutation.key == 'equipmentId') {
           raw['equipmentSnapshot']['id'] = mutation.value;
+        }
         final command = FrozenCorrectivePlanningCommand.fromJson(_rehash(raw));
         expect(() => f.apply(command), _failure());
       }

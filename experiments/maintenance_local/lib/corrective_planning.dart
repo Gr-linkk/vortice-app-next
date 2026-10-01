@@ -572,8 +572,9 @@ CorrectivePlanningReceipt applyCorrectivePlanningCommand({
       );
     }
   } else {
-    if (previous == null)
+    if (previous == null) {
       _fail('draft_not_found', 'Choose an existing corrective work draft.');
+    }
     if (previous.equipmentId != command.equipmentId ||
         previous.companyId != command.companyId ||
         previous.deviceId != command.deviceId) {
