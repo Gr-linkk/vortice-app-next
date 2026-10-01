@@ -293,7 +293,7 @@ class _WorkspacePageState extends State<WorkspacePage>
             onPressed: () => showAboutDialog(
               context: context,
               applicationName: 'Vortice Local Maintenance',
-              applicationVersion: '0.2.7 · internal experiment',
+              applicationVersion: '0.2.8 · internal experiment',
               children: [
                 const Text(
                   'A separate local maintenance experiment for one office coordinator and one mechanic phone. Equipment, authored checklists and inspection records stay on your devices.',
@@ -542,7 +542,7 @@ class _WorkspacePageState extends State<WorkspacePage>
             onPressed: () => showAboutDialog(
               context: context,
               applicationName: 'Vortice Local Maintenance',
-              applicationVersion: '0.2.7 · internal experiment',
+              applicationVersion: '0.2.8 · internal experiment',
               children: const [
                 Text(
                   'A separate local maintenance experiment for one office coordinator and one mechanic phone. Equipment, authored checklists and inspection records stay on your devices. Your normal Vortice app is separate.',
@@ -608,9 +608,29 @@ class _WorkspacePageState extends State<WorkspacePage>
             icon: const Icon(Icons.playlist_add),
             label: const Text('Prepare inspection'),
           ),
-        for (final job in store.jobs) jobCard(job),
-        if (progress.error != null) notice(progress.error!, error: true),
-        if (store.office) ...reviewSections(),
+        if (store.jobs.isNotEmpty)
+          Text(
+            progress.loading ? 'Updating work status…' : 'Saved work status',
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+        // Keep the last captured layout while its replacement is read. Editors
+        // still use the fresh snapshot; these displayed records cannot be
+        // opened by pointer or keyboard until the read finishes.
+        AbsorbPointer(
+          absorbing: progress.loading,
+          child: ExcludeFocus(
+            excluding: progress.loading,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                for (final job in store.jobs) jobCard(job),
+                if (progress.error != null) notice(progress.error!, error: true),
+                if (store.office) ...reviewSections(),
+              ],
+            ),
+          ),
+        ),
         if (store.office) ...[
           const SizedBox(height: 20),
           Text('Equipment', style: Theme.of(context).textTheme.titleLarge),
@@ -716,7 +736,7 @@ class _WorkspacePageState extends State<WorkspacePage>
   Widget jobCard(Json job) {
     final id = (job['id'] ?? job['jobId']) as String;
     final jobContext = store.jobContextFor(id);
-    final currentProgress = progress.snapshot?.jobs[id];
+    final currentProgress = progress.displaySnapshot?.jobs[id];
     return Card(
       key: ValueKey('inspection:$id'),
       child: Padding(
@@ -752,7 +772,7 @@ class _WorkspacePageState extends State<WorkspacePage>
   }
 
   List<Widget> reviewSections() {
-    final snapshot = progress.snapshot;
+    final snapshot = progress.displaySnapshot;
     return [
       const SizedBox(height: 24),
       Text(
