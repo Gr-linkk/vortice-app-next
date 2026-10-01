@@ -15,6 +15,12 @@ Checker regressions pass 26; extracted CLI passes 98 checks/18 invocations.
 [Milestone receipt](docs/specs/LF-007-portability-receipt.md) records distinct
 artifacts, actual native identities and the open GTK/fresh-computer gates.
 
+The distinct [0.2.8 GTK follow-up](docs/specs/LF-007-gtk-workflow-receipt.md)
+records actual rendered creation/library/gallery/submission/approval and coherent
+backup/restore/reopen, plus the Home refresh scroll repair. Source, test-only
+and compiled revisions remain explicit. Default GPU, fresh-computer,
+older-runtime, physical-device and unassisted acceptance remain open.
+
 October 1 authorized follow-up: remove checkout-specific native lookup paths and
 the unused desktop Java dependency in a separate Linux distribution from the
 reviewed 0.2.7 source. Add an ordinary launch prerequisite check and verify an

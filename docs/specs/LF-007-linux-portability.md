@@ -77,3 +77,13 @@ The namespace test is a one-host simulation. It cannot establish installation,
 GUI rendering, older-glibc compatibility or recovery on a genuinely fresh
 computer. Those gates remain separate; no running office, physical device,
 network/security setting or persistent access is changed.
+
+## October 1 rendered-workflow follow-up
+
+The distinct 0.2.8 follow-up closes assisted actual packaged GTK workflow and
+recovery checks, repairs Home scroll contraction during saved-work verification,
+and adds bounded checker-unavailable JSON output. Production build and later
+test/documentation revisions are explicitly separated in the
+[GTK workflow receipt](LF-007-gtk-workflow-receipt.md). The original 0.2.7 archives
+and receipt above remain frozen. Default GPU, fresh-computer, older-runtime,
+physical-device and unassisted acceptance remain separate gates.
