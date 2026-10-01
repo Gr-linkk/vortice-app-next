@@ -50,6 +50,15 @@ checklist drafts and external-agent proposals retain their distinct permission
 and recovery boundaries. The hosted app and original reviewed checkpoints
 remain available for rollback.
 
+October 1 follow-up: [LF-005](docs/specs/LF-005-office-agent-connections.md)
+adds normal Linux office agent connection controls, named finite scoped grants,
+revocation and default-disabled startup. [LF-004](docs/specs/LF-004-agent-proposal-review.md)
+adds human-only notes review with authoritative atomic history and recovery.
+The original v1 agent create envelope remains immutable; its pending status is
+creation evidence rather than a current human-decision feed. This implementation
+and verification use synthetic workspaces. No real grant provisioning, physical
+acceptance, production identity/cutover or hosted retirement is implied.
+
 September 29: Garrett authorized implementing the code/architecture audit while
 the isolated local-first experiment proceeds in a separate task/worktree.
 [ARCH-001](docs/specs/ARCH-001-architecture-cleanup.md) owns retained-app cleanup

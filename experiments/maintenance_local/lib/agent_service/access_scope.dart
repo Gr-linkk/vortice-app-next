@@ -17,11 +17,8 @@ class AgentAccessScope {
     if (!store.office || !store.realWorkspace) return null;
     final company = store.catalog!['companyId'] as String;
     final device = store.device;
-    final workspace = 'ws-${contentHash({
-      'application': 'org.vortice.next.maintenance_local',
-      'company_id': company,
-      'office_device_id': device,
-    })}';
+    final workspace =
+        'ws-${contentHash({'application': 'org.vortice.next.maintenance_local', 'company_id': company, 'office_device_id': device})}';
     return AgentAccessScope(
       workspaceId: workspace,
       companyId: company,

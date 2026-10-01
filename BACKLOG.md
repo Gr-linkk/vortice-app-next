@@ -17,6 +17,15 @@ acceptance; real access provisioning remains a separate explicit action.
 LF-004 separately owns human notes-proposal review and its atomic receipts.
 [Ownership, interfaces and acceptance](docs/specs/LF-005-office-agent-connections.md).
 
+### LF-004 — Human review of agent notes
+
+The office reviews pending agent notes against the exact displayed inspection
+version, accepts them into the editable draft or rejects them, and retains a
+separate atomic decision receipt. Those receipts survive coherent office backup;
+unreviewed private sidecars and credentials remain excluded. The agent v1 create
+response stays immutable and does not project current human review decisions.
+[Authority, idempotency and recovery](docs/specs/LF-004-agent-proposal-review.md).
+
 ### LF-002 — Current inspection work and focused exact review
 
 Garrett authorized sustained core local-first development while LF-001's combined

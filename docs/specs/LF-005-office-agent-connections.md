@@ -114,3 +114,39 @@ in ordinary lists, errors, telemetry or screenshots outside synthetic fixtures.
 No policy blocker is needed for these code/synthetic boundaries. Real grant
 provisioning, production personal identity, compromised-key recovery and
 multi-office failover remain explicit future authorization/decisions.
+
+## Follow-up review and integration
+
+The independent architecture audit found two P2 defects at preserved `7e9918c`:
+INT-AUDIT-001 (proposal durability flush bypass on exact retry) and INT-AUDIT-002
+(clean editor submitting unseen stored fields). This branch owns their scoped
+repairs. Original reproductions and reviewed checkpoints remain unchanged.
+Proposal replay now confirms directory durability on every path before success;
+post-publication uncertainty retains the accepted record. Editor repair must
+preserve dirty intent and fence submission against the displayed native version.
+Readiness/source push awaits the combined gates and independent recheck.
+
+The P3 socket-path fix validates both actual bind and public paths in UTF-8
+bytes. The private bind parent limit is 83 bytes; public transport limit is
+107, while the CLI conservatively keeps its existing 100-byte public limit.
+Normal host defaults use a short private runtime directory and a fresh endpoint
+per start. Consumers copy the current settings after reopening; stale socket
+entries are retained and never adopted or deleted as another host's address.
+
+Prepared office initialization may create an empty disabled private config and
+writer lease to enforce a single host. It creates no credentials or grants.
+Constructors and phone/unprepared-company initialization have no access effects.
+Grants never become broader when future equipment or jobs are created; equipment
+context in v1 also requires an accessible selected inspection job.
+
+LF-004's human-reviewed proposal copy lives in the authoritative event receipt
+and is included in office recovery. The separate unreviewed proposal directory
+and access sidecars remain excluded. Restored receipts prevent reapplication
+even if a stale pending envelope is later recreated. Agents' immutable v1
+proposal reads/retries retain the original creation envelope; use the office
+review/history screen for current accept/reject decisions.
+
+`scripts/local-maintenance.sh verify` additionally runs `agent-host-smoke`:
+normal Node CLI subprocesses against real OfficeAgentHost enable/issue/revoke
+code in a fresh guarded synthetic temporary workspace. This complements the
+existing immutable service fixture; it never opens ordinary app storage.

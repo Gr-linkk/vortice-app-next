@@ -42,6 +42,7 @@ case "$action" in
     flutter test --no-pub "$@"
     node --test "$root"/tools/local-agent-cli/test/*.test.mjs
     bash "$root/scripts/local-maintenance.sh" cli-smoke
+    bash "$root/scripts/local-maintenance.sh" agent-host-smoke
     ;;
   cli-smoke)
     command -v node >/dev/null
@@ -93,6 +94,14 @@ case "$action" in
     node "$root/tools/local-agent-cli/integration/service-e2e.mjs" \
       --ready "$fixture_root/ready.json" --socket "$fixture_root/agent.sock"
     ;;
+  agent-host-smoke)
+    command -v node >/dev/null
+    cargo build --manifest-path rust/Cargo.toml --locked --offline
+    library="${MAINTENANCE_NATIVE_LIBRARY:-$app/rust/target/debug/librust_lib_sync_lab.so}"
+    test -f "$library"
+    dart run tool/office_agent_host_acceptance.dart --synthetic-fixture \
+      --native-library "$library"
+    ;;
   build-linux)
     flutter build linux --debug --no-pub "$@"
     ;;
@@ -111,5 +120,5 @@ case "$action" in
     cargo build --manifest-path rust/Cargo.toml --locked --offline
     dart run tool/office_recovery.dart "$@"
     ;;
-  *) echo 'Usage: scripts/local-maintenance.sh {check|verify|cli-smoke|build-linux|build-android|run|recovery} [arguments]' >&2; exit 2 ;;
+  *) echo 'Usage: scripts/local-maintenance.sh {check|verify|cli-smoke|agent-host-smoke|build-linux|build-android|run|recovery} [arguments]' >&2; exit 2 ;;
 esac

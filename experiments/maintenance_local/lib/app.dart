@@ -1,4 +1,6 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
+import 'agent_service/agent_host.dart';
 import 'lab_store.dart';
 import 'ui/workspace_page.dart';
 
@@ -8,20 +10,46 @@ class LabApp extends StatefulWidget {
     required this.store,
     this.textScale,
     this.officePort = 47841,
+    this.agentHostFactory,
   });
   final LabStore store;
   final double? textScale;
   final int officePort;
+  final OfficeAgentHost Function(LabStore)? agentHostFactory;
   @override
   State<LabApp> createState() => _LabAppState();
 }
 
 class _LabAppState extends State<LabApp> {
   late LabStore store = widget.store;
+  OfficeAgentHost? agentHost;
+  OfficeAgentHost? hostFor(LabStore next) => next.office
+      ? (widget.agentHostFactory?.call(next) ?? OfficeAgentHost(store: next))
+      : null;
+  @override
+  void initState() {
+    super.initState();
+    agentHost = hostFor(store);
+  }
+
+  void replaceStore(LabStore next) {
+    final previous = agentHost;
+    if (previous != null) unawaited(previous.close());
+    store = next;
+    agentHost = hostFor(next);
+  }
+
   @override
   void didUpdateWidget(LabApp oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (widget.store != oldWidget.store) store = widget.store;
+    if (widget.store != oldWidget.store) replaceStore(widget.store);
+  }
+
+  @override
+  void dispose() {
+    final current = agentHost;
+    if (current != null) unawaited(current.close());
+    super.dispose();
   }
 
   @override
@@ -63,7 +91,8 @@ class _LabAppState extends State<LabApp> {
       key: ObjectKey(store),
       store: store,
       officePort: widget.officePort,
-      onRestored: (next) => setState(() => store = next),
+      agentHost: agentHost,
+      onRestored: (next) => setState(() => replaceStore(next)),
     ),
   );
 }

@@ -19,10 +19,12 @@ class OfficeAgentHostSnapshot {
     this.problem,
   });
   final OfficeAgentHostState state;
+
   /// Last durably saved owner intent; listening is a separate fact.
   final bool enabled;
   final AgentAccessScope? scope;
   final String? socketPath;
+
   /// Fixed plain-language guidance, without native errors or credentials.
   final String? problem;
 }
@@ -42,6 +44,7 @@ class OfficeAgentGrantSummary {
 
 class IssuedAgentGrant {
   const IssuedAgentGrant({required this.token, required this.summary});
+
   /// Shown once following an explicit owner action. Never persisted plaintext.
   final String token;
   final OfficeAgentGrantSummary summary;

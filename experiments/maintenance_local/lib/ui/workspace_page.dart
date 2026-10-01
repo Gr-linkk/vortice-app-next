@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:io';
 import 'package:flutter/material.dart';
+import '../agent_service/agent_host.dart';
 import '../lab_store.dart';
 import '../local_sync.dart';
 import '../model.dart';
@@ -16,6 +17,7 @@ import 'restore_page.dart';
 import 'preparation_page.dart';
 import 'inspection_content.dart';
 import 'work_progress.dart';
+import 'agent_connections_page.dart';
 
 class WorkspacePage extends StatefulWidget {
   const WorkspacePage({
@@ -26,6 +28,7 @@ class WorkspacePage extends StatefulWidget {
     this.phoneSyncFactory = PhoneSync.new,
     this.progressReader,
     this.progressTokenReader,
+    this.agentHost,
   });
   final LabStore store;
   final ValueChanged<LabStore>? onRestored;
@@ -33,6 +36,7 @@ class WorkspacePage extends StatefulWidget {
   final PhoneSync Function(LabStore) phoneSyncFactory;
   final ProgressReader? progressReader;
   final ProgressTokenReader? progressTokenReader;
+  final OfficeAgentHost? agentHost;
   @override
   State<WorkspacePage> createState() => _WorkspacePageState();
 }
@@ -43,6 +47,9 @@ class _WorkspacePageState extends State<WorkspacePage>
   OfficeServer? server;
   PhoneSync? sync;
   Timer? timer;
+  OfficeAgentHost? agentHost;
+  Future<void>? starting;
+  bool ending = false;
   final reviewUpdates = ValueNotifier<int>(0);
   late final WorkProgressController progress;
   bool active = true, working = false;
@@ -53,6 +60,14 @@ class _WorkspacePageState extends State<WorkspacePage>
   @override
   void initState() {
     super.initState();
+    if (store.office) {
+      if (widget.agentHost != null && widget.agentHost!.store != store) {
+        throw ArgumentError(
+          'Agent connections must use this office workspace.',
+        );
+      }
+      agentHost = widget.agentHost ?? OfficeAgentHost(store: store);
+    }
     progress = WorkProgressController(
       store,
       reader: widget.progressReader ?? readWorkProgress,
@@ -62,13 +77,23 @@ class _WorkspacePageState extends State<WorkspacePage>
         WidgetsBinding.instance.lifecycleState == null ||
         WidgetsBinding.instance.lifecycleState == AppLifecycleState.resumed;
     WidgetsBinding.instance.addObserver(this);
-    start();
+    starting = start();
   }
 
   Future<void> start() async {
     if (store.office) {
+      await agentHost?.initialize();
+      if (ending || !mounted) return;
       try {
-        server = await OfficeServer.start(store, port: widget.officePort);
+        final nextServer = await OfficeServer.start(
+          store,
+          port: widget.officePort,
+        );
+        if (ending || !mounted) {
+          await nextServer.close();
+          return;
+        }
+        server = nextServer;
         server!.onChange = refresh;
       } catch (e) {
         if (e is SocketException) {
@@ -85,6 +110,7 @@ class _WorkspacePageState extends State<WorkspacePage>
     } else {
       sync = widget.phoneSyncFactory(store)..onChange = refreshAfterSync;
     }
+    if (ending || !mounted) return;
     timer = Timer.periodic(const Duration(seconds: 4), (_) {
       if (active && !working) {
         sync?.sync().catchError((Object e) {});
@@ -134,11 +160,16 @@ class _WorkspacePageState extends State<WorkspacePage>
 
   @override
   void dispose() {
+    ending = true;
     WidgetsBinding.instance.removeObserver(this);
     timer?.cancel();
     server?.onChange = null;
     sync?.onChange = null;
     server?.close();
+    if (widget.agentHost == null) {
+      final owned = agentHost;
+      if (owned != null) unawaited(owned.close());
+    }
     reviewUpdates.dispose();
     progress.dispose();
     super.dispose();
@@ -208,7 +239,14 @@ class _WorkspacePageState extends State<WorkspacePage>
       if (target == null || !mounted) return;
       next = await LabStore.open(target, office: true, maintenanceOnly: true);
       final fingerprint = (await OfficeIdentity.load(next)).fingerprint;
+      ending = true;
       timer?.cancel();
+      // Fence and drain agent commands before the previous SQLite workspace
+      // closes. Restored access sidecars are absent and the new host starts off.
+      await agentHost?.close();
+      // Startup may still be awaiting native identity/listener work. Its ending
+      // fence closes any late listener before the old SQLite store is closed.
+      await starting;
       server?.onChange = null;
       await server?.close();
       server = null;
@@ -252,7 +290,7 @@ class _WorkspacePageState extends State<WorkspacePage>
             onPressed: () => showAboutDialog(
               context: context,
               applicationName: 'Vortice Local Maintenance',
-              applicationVersion: '0.2.2 · internal experiment',
+              applicationVersion: '0.2.4 · internal experiment',
               children: [
                 const Text(
                   'A separate local maintenance experiment for one office coordinator and one mechanic phone. Equipment, authored checklists and inspection records stay on your devices.',
@@ -437,6 +475,19 @@ class _WorkspacePageState extends State<WorkspacePage>
         builder: (_) => PreparationPage(store: store, step: step),
       ),
     );
+    await agentHost?.initialize();
+    refresh();
+  }
+
+  Future<void> openAgentConnections() async {
+    final host = agentHost;
+    if (!store.office || !store.realWorkspace || host == null || working) {
+      return;
+    }
+    await Navigator.push<void>(
+      context,
+      MaterialPageRoute(builder: (_) => AgentConnectionsPage(host: host)),
+    );
     refresh();
   }
 
@@ -470,7 +521,7 @@ class _WorkspacePageState extends State<WorkspacePage>
             onPressed: () => showAboutDialog(
               context: context,
               applicationName: 'Vortice Local Maintenance',
-              applicationVersion: '0.2.2 · internal experiment',
+              applicationVersion: '0.2.4 · internal experiment',
               children: const [
                 Text(
                   'A separate local maintenance experiment for one office coordinator and one mechanic phone. Equipment, authored checklists and inspection records stay on your devices. Your normal Vortice app is separate.',
@@ -595,6 +646,11 @@ class _WorkspacePageState extends State<WorkspacePage>
               ),
             ),
           const SizedBox(height: 20),
+          OutlinedButton.icon(
+            onPressed: working ? null : openAgentConnections,
+            icon: const Icon(Icons.terminal),
+            label: const Text('Agent connections'),
+          ),
           OutlinedButton.icon(
             onPressed: server == null
                 ? null
