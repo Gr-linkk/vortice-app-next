@@ -26,7 +26,8 @@ MAX_FILE_BYTES = 256 * 1024 * 1024
 MAX_TOTAL_BYTES = 512 * 1024 * 1024
 MAX_MEMBERS = 4096
 MAX_METADATA_BYTES = 64 * 1024
-MAX_SOURCE_BYTES = 2 * 1024 * 1024
+# Match the packaged entry adapter's per-runtime-file validation limit.
+MAX_SOURCE_BYTES = 512 * 1024
 MAX_UNCOMPRESSED_BYTES = MAX_TOTAL_BYTES + 16 * 1024 * 1024
 FAILURE = "Local CLI distribution could not be safely packaged."
 RUNTIME_INPUTS = {

@@ -204,6 +204,25 @@ class PackageTests(unittest.TestCase):
                 self.assert_refused()
                 source.write_bytes(data)
 
+    def test_each_runtime_input_accepts_512kib_and_refuses_one_extra_byte(self):
+        self.assertEqual(builder.MAX_SOURCE_BYTES, 524288)
+        for index, (name, (relative, _)) in enumerate(builder.RUNTIME_INPUTS.items()):
+            with self.subTest(name=name):
+                source = self.cli / relative if relative else self.help
+                original = source.read_bytes()
+                accepted = self.base / f"boundary-{index}.tar.gz"
+                try:
+                    source.write_bytes(b"x" * 524288)
+                    self.run_package(output=accepted)
+                    with tarfile.open(accepted, "r:gz") as archive:
+                        actual = archive.getmember(ROOT + "/" + name)
+                        self.assertEqual(actual.size, 524288)
+                        self.assertEqual(archive.extractfile(actual).read(), b"x" * 524288)
+                    source.write_bytes(b"x" * 524289)
+                    self.assert_refused()
+                finally:
+                    source.write_bytes(original)
+
     def test_symlink_source_help_archive_parent_and_output_parent_are_refused(self):
         source = self.cli / "client.mjs"
         original = source.read_bytes()
