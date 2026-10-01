@@ -15,6 +15,11 @@ workflow, rendered editor, commands and extracted real CLI; build new Android
 and Linux artifacts with existing identities/signing. Original artifacts and
 hosted rollback remain intact. [Scope and gates](docs/specs/LF-INTEGRATION-002-repaired-distribution.md).
 
+The frozen `55fb96b` candidate and its 0.2.5 binaries are blocked by a later
+independent answer-classification probe despite their existing gate passing.
+The isolated [acknowledgement repair](docs/specs/LF-005-answer-acknowledgement.md)
+must clear review before rebuilt-candidate or physical acceptance.
+
 ### LF-006 — Usable Linux agent CLI distribution
 
 Implemented at `c64c6c3`: 298 Node and 35 Python checks passed; actual
@@ -35,6 +40,12 @@ The later in-flight editor input-loss P2 is repaired at `234865f`; final
 test-only follow-up `e46cc9e` preserves the same editor. Full 408-case app gate,
 18 imported regressions and independent 19-case review pass. Existing 0.2.4
 artifacts are unchanged. [Repair receipt](docs/specs/LF-005-inflight-repair-receipt.md).
+
+Independent follow-up exposed a separate acknowledgement-to-repaint race:
+late reading text retained its value while losing the displayed Needs action
+classification. Production fix `9a15ac6` preserves the full displayed answer
+through this interval; its added regression and full-gate evidence are tracked
+in the acknowledgement repair above. The earlier receipt remains historical.
 
 Implemented and synthetically verified with LF-004 at `b84070f`; the complete
 gate and independent boundary review passed. The separate 0.2.4 debug builds

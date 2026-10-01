@@ -1,5 +1,12 @@
 # LF-INTEGRATION-002 — Repaired app and extracted CLI
 
+**Acceptance blocked:** frozen `55fb96b` completed its existing verification and
+build gates; independent review demonstrated a separate answer-status
+race after Save acknowledgement. Its 0.2.5 binaries remain unchanged and are not
+accepted candidates. [The isolated answer-state repair](LF-005-answer-acknowledgement.md)
+owns corrected source and review evidence. The CLI `c64c6c3` independently passed
+its scoped distribution/service review; that result does not clear the app defect.
+
 Authorized October 1 integration of two source milestones in a new isolated
 candidate: `codex/local-maintenance-repaired-025` at
 `task-8/local-maintenance-repaired`. Base is CLI receipt
