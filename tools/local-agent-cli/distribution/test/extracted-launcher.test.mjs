@@ -68,13 +68,13 @@ test('old and malformed runtime versions are refused without evaluating entry co
 test('minimum major-version probe simulation is separate from actual installed Node execution', async t => {
   const fixture = await bundleFixture(t);
   const bin = await fakeRuntime(fixture,
-    `if [ "$1" = '--version' ]; then printf 'v22.0.0\\n'; exit 0; fi\nexec '${process.execPath}' "$@"`);
+    `if [ "$1" = '--version' ] || [ "$1" = '-e' ]; then [ -z "\${VORTICE_LOCAL_AGENT_TOKEN:-}" ] || exit 91; fi\nif [ "$1" = '--version' ]; then printf 'v22.0.0\\n'; exit 0; fi\nexec '${process.execPath}' "$@"`);
   const result = await fixture.invoke(['--help'], {env: {PATH: bin}});
   assert.equal(result.status, 0); assert.equal(result.stderr, '');
   const help = JSON.parse(result.stdout);
   assert.equal(help.ok, true);
-  // The wrapper simulated only the version probe; real module execution used
-  // this installed Node, rather than making a Node-22 execution claim.
+  // Only the version string is simulated. Both the token-empty inline preflight
+  // and module execution use this installed Node, without a Node-22 run claim.
   assert.equal(help.runtime_version, process.versions.node);
 });
 
@@ -91,10 +91,10 @@ test('Node module and instrumentation overrides are scrubbed before runtime prob
   assert.deepEqual(server.received.map(r => r.command), ['capabilities', 'work.list']);
 });
 
-test('runtime version probe receives no token while actual client retains the synthetic token', async t => {
+test('runtime version and inline preflight receive no token while the client retains the synthetic token', async t => {
   const fixture = await bundleFixture(t), server = await protocolFixture(t, fixture.root);
   const bin = await fakeRuntime(fixture,
-    `if [ "$1" = '--version' ]; then [ -z "\${VORTICE_LOCAL_AGENT_TOKEN:-}" ] || exit 91; printf 'v26.8.2\\n'; exit 0; fi\nexec '${process.execPath}' "$@"`);
+    `if [ "$1" = '--version' ] || [ "$1" = '-e' ]; then [ -z "\${VORTICE_LOCAL_AGENT_TOKEN:-}" ] || exit 91; fi\nexec '${process.execPath}' "$@"`);
   const result = await fixture.invoke(['work', 'list', ...explicit(server.socketPath)], {env: {PATH: bin}});
   assert.equal(result.status, 0); assert.equal(result.stderr, '');
   assert(server.received.every(r => r.credential.token === token));
