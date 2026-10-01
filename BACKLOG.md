@@ -9,6 +9,11 @@ without creating a new backlog item.
 
 ### LF-005 — Office agent connections
 
+Implemented and synthetically verified with LF-004 at `b84070f`; the complete
+gate and independent boundary review passed. The separate 0.2.4 debug builds
+preserve identity/signing and are not installed. [Combined receipt](docs/specs/LF-004-005-integration-receipt.md)
+records source, artifacts and remaining physical/access gates.
+
 In a new isolated follow-up from reviewed integrated receipt `ed79c4f`, add
 normal desktop service controls and named, scoped, expiring/revocable agent
 connections. Fresh workspaces remain disabled and the v1 CLI wire stays intact.
@@ -18,6 +23,10 @@ LF-004 separately owns human notes-proposal review and its atomic receipts.
 [Ownership, interfaces and acceptance](docs/specs/LF-005-office-agent-connections.md).
 
 ### LF-004 — Human review of agent notes
+
+Implemented and included in the same combined verified source; normal office
+navigation and open-editor coherence are checked. Physical acceptance of this
+version and real scoped grant provisioning remain open.
 
 The office reviews pending agent notes against the exact displayed inspection
 version, accepts them into the editable draft or rejects them, and retains a
