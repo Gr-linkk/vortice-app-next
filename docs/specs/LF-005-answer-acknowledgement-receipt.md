@@ -1,5 +1,11 @@
 # LF-005 — Answer acknowledgement repair receipt
 
+**Parent acceptance blocked:** subsequent independent review reproduced prepaint
+N/A and optional-clear status races in `9c88f39`. Its existing evidence below
+remains historical and does not clear those failures. The complete ownership
+repair is scoped in [LF-005 displayed-answer state](LF-005-displayed-answer-state.md);
+0.2.5 and 0.2.6 binaries remain unchanged and blocked.
+
 Verified source milestone on `codex/inspection-answer-ack-repair`. Production
 fix is `9a15ac6758923d3fe14808bc2fcff08f8dfb9e57`; final source/test integration
 is `9c88f39f156baf2dab41b44c631d7a7aa51750df`, based on frozen `55fb96b`.
