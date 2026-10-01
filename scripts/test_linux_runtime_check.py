@@ -432,6 +432,62 @@ class RuntimeCheckTests(unittest.TestCase):
         self.assertIn("application is missing", result.stderr)
         self.assertFalse(self.app_log.exists())
 
+    def test_launcher_missing_checker_has_safe_json(self):
+        (self.bundle / "vortice-runtime-check").unlink()
+        data = self.report(self.run_launcher("--check-runtime", "--json"), 1)
+        self.assertEqual(data["status"], "checker_unavailable")
+        self.assertEqual(data["checks"], [])
+
+    def test_launcher_non_executable_checker_has_safe_json(self):
+        checker = self.bundle / "vortice-runtime-check"
+        checker.chmod(0o644)
+        data = self.report(self.run_launcher("--check-runtime", "--json"), 1)
+        self.assertEqual(data["status"], "checker_unavailable")
+        self.assertEqual(data["checks"], [])
+
+    def test_launcher_unavailable_checker_preserves_human_modes(self):
+        checker = self.bundle / "vortice-runtime-check"
+        for missing in (False, True):
+            if missing:
+                checker.unlink()
+            else:
+                checker.chmod(0o644)
+            for arguments in ((), ("--check-runtime",), ("--json",),
+                              ("--check-runtime", "--json", "PRIVATE-argument"),
+                              ("--check-runtime", "PRIVATE-argument", "--json")):
+                with self.subTest(missing=missing, arguments=arguments):
+                    result = self.run_launcher(*arguments)
+                    self.assertEqual(result.returncode, 1)
+                    self.assertEqual(result.stdout, "")
+                    self.assertEqual(
+                        result.stderr,
+                        "The Vortice Maintenance native runtime checker is missing or not executable.\n")
+                    self.assertFalse(self.app_log.exists())
+
+    def test_launcher_forwards_json_only_for_valid_check_only_invocation(self):
+        checker_log = self.base / "checker-arguments.txt"
+        self.environment["FAKE_CHECKER_LOG"] = str(checker_log)
+        checker = self.bundle / "vortice-runtime-check"
+        checker.write_text(
+            '#!/bin/sh\nprintf "<%s>\\n" "$@" > "$FAKE_CHECKER_LOG"\n'
+            'if [ "${1-}" = "--json" ]; then\n'
+            '  printf "%s\\n" \'{"schema_version":1,"ok":false,"status":"failed","checks":[]}\'\n'
+            'else\n  printf "%s\\n" "Runtime check failed: fixture unavailable." >&2\nfi\n'
+            'exit 1\n')
+        for arguments, forwarded in ((("--check-runtime", "--json"), "<--json>\n"),
+                                     (("--check-runtime",), "<>\n"),
+                                     (("--json",), "<>\n")):
+            with self.subTest(arguments=arguments):
+                result = self.run_launcher(*arguments)
+                self.assertEqual(result.returncode, 1)
+                self.assertEqual(checker_log.read_text(), forwarded)
+                if arguments == ("--check-runtime", "--json"):
+                    self.assertEqual(self.report(result, 1)["status"], "failed")
+                else:
+                    self.assertEqual(result.stdout, "")
+                    self.assertEqual(result.stderr, "Runtime check failed: fixture unavailable.\n")
+                self.assertFalse(self.app_log.exists())
+
     def test_launcher_pre_main_loader_errors_are_private_and_have_safe_json(self):
         checker = self.bundle / "vortice-runtime-check"
         for code in (0, 1, 126, 127):

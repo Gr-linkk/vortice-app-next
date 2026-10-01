@@ -35,7 +35,13 @@ parent=$(dirname "$launcher" 2>/dev/null) ||
 bundle=$(CDPATH= cd -P "$parent" 2>/dev/null && pwd -P 2>/dev/null) ||
   fail 'Unable to locate the Vortice Maintenance bundle.'
 checker=$bundle/vortice-runtime-check
-[ -x "$checker" ] || fail 'The Vortice Maintenance native runtime checker is missing or not executable.'
+if [ ! -x "$checker" ]; then
+  if [ "$#" -eq 2 ] && [ "$1" = '--check-runtime' ] && [ "$2" = '--json' ]; then
+    printf '%s\n' '{"schema_version":1,"ok":false,"status":"checker_unavailable","checks":[]}'
+    exit 1
+  fi
+  fail 'The Vortice Maintenance native runtime checker is missing or not executable.'
+fi
 
 # Capture pre-main dynamic-loader errors too. In particular, an unavailable
 # system C/C++ runtime must not expose dependency search paths or environment.
