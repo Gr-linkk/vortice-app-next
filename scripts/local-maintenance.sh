@@ -38,7 +38,48 @@ case "$action" in
     dart --packages=.dart_tool/package_config.json tool/verify_work_progress.dart
     cargo test --manifest-path rust/Cargo.toml --locked --offline
     cargo build --manifest-path rust/Cargo.toml --locked --offline
+    export MAINTENANCE_NATIVE_LIBRARY="${MAINTENANCE_NATIVE_LIBRARY:-$app/rust/target/debug/librust_lib_sync_lab.so}"
     flutter test --no-pub "$@"
+    node --test "$root"/tools/local-agent-cli/test/*.test.mjs
+    bash "$root/scripts/local-maintenance.sh" cli-smoke
+    ;;
+  cli-smoke)
+    command -v node >/dev/null
+    cargo build --manifest-path rust/Cargo.toml --locked --offline
+    library="${MAINTENANCE_NATIVE_LIBRARY:-$app/rust/target/debug/librust_lib_sync_lab.so}"
+    test -f "$library"
+    fixture_root="$(mktemp -d /tmp/vortice-cli-e2e-XXXXXXXX)"
+    chmod 700 "$fixture_root"
+    fixture_pid=""
+    cleanup_fixture() {
+      if [[ -n "$fixture_pid" ]]; then
+        kill "$fixture_pid" 2>/dev/null || true
+        wait "$fixture_pid" 2>/dev/null || true
+      fi
+      rm -rf -- "$fixture_root"
+    }
+    trap cleanup_fixture EXIT
+    trap 'exit 130' INT
+    trap 'exit 143' TERM
+    dart run tool/local_agent_service_fixture.dart --synthetic-fixture \
+      --workspace "$fixture_root/workspace" --socket "$fixture_root/agent.sock" \
+      --ready "$fixture_root/ready.json" --native-library "$library" \
+      >"$fixture_root/runner.log" 2>&1 &
+    fixture_pid=$!
+    for ((attempt=0; attempt<300; attempt++)); do
+      [[ -f "$fixture_root/ready.json" ]] && break
+      kill -0 "$fixture_pid" 2>/dev/null || {
+        echo 'The synthetic CLI fixture could not start; existing workspaces were not opened.' >&2
+        exit 1
+      }
+      sleep 0.1
+    done
+    test -f "$fixture_root/ready.json" || {
+      echo 'The synthetic CLI fixture did not become ready in time.' >&2
+      exit 1
+    }
+    node "$root/tools/local-agent-cli/integration/service-e2e.mjs" \
+      --ready "$fixture_root/ready.json" --socket "$fixture_root/agent.sock"
     ;;
   build-linux)
     flutter build linux --debug --no-pub "$@"
@@ -58,5 +99,5 @@ case "$action" in
     cargo build --manifest-path rust/Cargo.toml --locked --offline
     dart run tool/office_recovery.dart "$@"
     ;;
-  *) echo 'Usage: scripts/local-maintenance.sh {check|verify|build-linux|build-android|run|recovery} [arguments]' >&2; exit 2 ;;
+  *) echo 'Usage: scripts/local-maintenance.sh {check|verify|cli-smoke|build-linux|build-android|run|recovery} [arguments]' >&2; exit 2 ;;
 esac

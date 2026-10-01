@@ -74,6 +74,16 @@ origin/current branch/remote refs at action time and verify remote SHA afterward
 Existing CI runs on main pushes or pull requests targeting main; a named-branch
 push alone does not establish CI success. Retain local gate evidence explicitly.
 
+`scripts/local-maintenance.sh verify` now supplies the built native library to
+all local tests, runs Node CLI contracts, and invokes the guarded synthetic
+`cli-smoke` action. `cli-smoke` creates only a new private temporary workspace,
+waits a bounded 30 seconds for its Unix endpoint, runs the actual CLI driver,
+then stops its own runner and removes its own fixture. It cannot launch against
+an existing workspace or provision a real grant. Restricted sandboxes need the
+scoped Unix-socket test approval; ordinary development does not change network
+configuration. Seven independently authored combined-boundary companions are
+retained with the main suite.
+
 ## Open acceptance
 
 Physical S24 gallery transfer, exact office approval, fresh-computer restore and
