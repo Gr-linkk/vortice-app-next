@@ -8,6 +8,7 @@ import 'lab_store.dart';
 import 'model.dart';
 import 'maintenance_domain.dart';
 import 'manual_fault_intake.dart';
+import 'corrective_planning.dart';
 import 'agent_service/proposal_review_rules.dart';
 import 'src/rust/api/documents.dart';
 
@@ -58,6 +59,7 @@ class OfficeRestoreResult {
 class OfficeBackup {
   static const version = 1;
   static const maintenanceVersion = 2;
+  static const correctivePlanningVersion = 3;
   static const _maxFiles = 4096;
   static const _maxTotalBytes = 512 * 1024 * 1024;
   static const _maxDatabaseBytes = 128 * 1024 * 1024;
@@ -137,7 +139,7 @@ class OfficeBackup {
           'format': store.realWorkspace
               ? 'maintenance-local-office'
               : 'vortice-sync-lab-office',
-          'version': store.realWorkspace ? maintenanceVersion : version,
+          'version': facts.real ? facts.schemaVersion : version,
           'role': 'linux-office',
           'createdAt': store.stamp(),
           'device': facts.device,
@@ -478,7 +480,8 @@ class OfficeBackup {
         !((manifest['format'] == 'vortice-sync-lab-office' &&
                 manifest['version'] == version) ||
             (manifest['format'] == 'maintenance-local-office' &&
-                manifest['version'] == maintenanceVersion)) ||
+                (manifest['version'] == maintenanceVersion ||
+                    manifest['version'] == correctivePlanningVersion))) ||
         manifest['role'] != 'linux-office' ||
         manifest['createdAt'] is! String ||
         DateTime.tryParse(manifest['createdAt'] as String) == null ||
@@ -489,14 +492,10 @@ class OfficeBackup {
     }
     if (requiredFormat != null) {
       final expected = switch (requiredFormat) {
-        OfficeBackupFormat.syncLab => ('vortice-sync-lab-office', version),
-        OfficeBackupFormat.maintenance => (
-          'maintenance-local-office',
-          maintenanceVersion,
-        ),
+        OfficeBackupFormat.syncLab => 'vortice-sync-lab-office',
+        OfficeBackupFormat.maintenance => 'maintenance-local-office',
       };
-      if (manifest['format'] != expected.$1 ||
-          manifest['version'] != expected.$2) {
+      if (manifest['format'] != expected) {
         throw _WrongBackupFormat(
           requiredFormat == OfficeBackupFormat.maintenance
               ? 'Use a Local Maintenance office backup. Sync Lab backups cannot be restored here.'
@@ -522,6 +521,9 @@ class OfficeBackup {
     }
     final fingerprint = await _identity(root);
     final facts = await _database(root);
+    if (facts.real && manifest['version'] != facts.schemaVersion) {
+      throw StateError('Backup database version does not match its manifest.');
+    }
     if (fingerprint != manifest['fingerprint'] ||
         facts.device != manifest['device'] ||
         facts.real != (manifest['format'] == 'maintenance-local-office')) {
@@ -621,7 +623,10 @@ class OfficeBackup {
     try {
       final schemaVersion =
           db.select('PRAGMA user_version').single.values.single as int;
-      if (schemaVersion != 0 && schemaVersion != 1 && schemaVersion != 2) {
+      if (schemaVersion != 0 &&
+          schemaVersion != 1 &&
+          schemaVersion != 2 &&
+          schemaVersion != correctivePlanningVersion) {
         throw StateError('Unsupported office database version.');
       }
       if (db.select('PRAGMA quick_check').single.values.single != 'ok' ||
@@ -667,13 +672,14 @@ class OfficeBackup {
       if (real) {
         if (catalog is! Json ||
             settings['workspace'] != null ||
-            schemaVersion != 2) {
+            (schemaVersion != 2 &&
+                schemaVersion != correctivePlanningVersion)) {
           throw StateError('Invalid company database format.');
         }
         validateCatalog(catalog);
       } else {
         workspace = settings['workspace'] as Json?;
-        if (schemaVersion == 2 ||
+        if (schemaVersion >= 2 ||
             workspace == null ||
             workspace.keys.toSet().length != 5 ||
             !{
@@ -813,7 +819,7 @@ class OfficeBackup {
           noteReviews.add(payload);
         }
       }
-      validateManualFaultIntake(
+      final manualFaultHistory = validateManualFaultIntake(
         settings: settings,
         events: events,
         catalog: catalog is Json ? catalog : null,
@@ -823,6 +829,14 @@ class OfficeBackup {
           for (final row in receipts)
             jsonDecode(row['payload'] as String) as Json,
         ],
+      );
+      validateCorrectivePlanning(
+        settings: settings,
+        events: events,
+        catalog: catalog is Json ? catalog : null,
+        deviceId: settings['device'] as String,
+        manualFaultHistory: manualFaultHistory,
+        databaseVersion: schemaVersion,
       );
       if (noteReviews.isNotEmpty) {
         if (!real) throw StateError('Invalid suggestion review history.');
@@ -848,6 +862,7 @@ class OfficeBackup {
         revoked,
         invites.length,
         real,
+        schemaVersion,
       );
     } finally {
       db.close();
@@ -865,8 +880,15 @@ class _Facts {
     this.revoked,
     this.invites,
     this.real,
+    this.schemaVersion,
   );
   final String device;
   final bool real;
-  final int submissions, receipts, active, pending, revoked, invites;
+  final int submissions,
+      receipts,
+      active,
+      pending,
+      revoked,
+      invites,
+      schemaVersion;
 }
