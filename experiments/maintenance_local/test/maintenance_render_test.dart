@@ -14,6 +14,7 @@ import 'package:maintenance_local/lab_store.dart';
 import 'package:maintenance_local/model.dart';
 import 'package:maintenance_local/src/rust/frb_generated.dart';
 import 'package:maintenance_local/ui/review_page.dart';
+import 'support/native_widget_cleanup.dart';
 
 class _GalleryPicker extends ImagePickerPlatform {
   XFile? next;
@@ -241,7 +242,7 @@ void main() {
         addTearDown(() async {
           ImagePickerPlatform.instance = originalPicker;
           await tester.pumpWidget(const SizedBox.shrink());
-          await tester.runAsync(() async {
+          await finishNativeWidgetCleanup(tester, () async {
             for (final store in stores) {
               await store.close();
             }

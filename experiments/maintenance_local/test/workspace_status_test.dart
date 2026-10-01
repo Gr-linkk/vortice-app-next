@@ -7,6 +7,7 @@ import 'package:maintenance_local/src/rust/frb_generated.dart';
 import 'package:maintenance_local/lab_store.dart';
 import 'package:maintenance_local/local_sync.dart';
 import 'package:maintenance_local/ui/workspace_page.dart';
+import 'support/native_widget_cleanup.dart';
 
 // Uses actual company, equipment, snapshot and per-job documents. Only the
 // transport below is injected; local persistence and status projection are real.
@@ -51,7 +52,7 @@ Future<LabStore> _store(WidgetTester tester, {String? photoError}) async {
   });
   addTearDown(() async {
     await tester.pumpWidget(const SizedBox.shrink());
-    await tester.runAsync(() async {
+    await finishNativeWidgetCleanup(tester, () async {
       await phone!.close();
       await root.delete(recursive: true);
     });

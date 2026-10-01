@@ -15,6 +15,7 @@ import 'package:maintenance_local/local_sync.dart';
 import 'package:maintenance_local/model.dart';
 import 'package:maintenance_local/src/rust/frb_generated.dart';
 import 'package:maintenance_local/ui/workspace_page.dart';
+import 'support/native_widget_cleanup.dart';
 
 const _captureKey = Key('maintenance-recovery-render-boundary');
 
@@ -176,7 +177,7 @@ void main() {
         });
         addTearDown(() async {
           await tester.pumpWidget(const SizedBox.shrink());
-          await tester.runAsync(() async {
+          await finishNativeWidgetCleanup(tester, () async {
             for (final store in live) {
               await store.close();
             }
@@ -386,22 +387,23 @@ void main() {
         });
         await _show(tester, find.textContaining('Office backup restored.'));
         await _capture(tester, 'maintenance-office-restored-${suffix}x');
+        await _until(
+          tester,
+          () => find.text('Approved inspection').evaluate().isNotEmpty,
+        );
         await _tap(tester, find.text('Approved inspection').last);
         expect(find.text('Recovery inspection · checklist v1'), findsOneWidget);
         expect(find.text('Needs action · 35 psi'), findsOneWidget);
-        await _until(
-          tester,
-          () {
-            final images = find.byType(RawImage);
-            return images.evaluate().isNotEmpty &&
-                tester.widget<RawImage>(images.first).image != null;
-          },
-        );
+        await _until(tester, () {
+          final images = find.byType(RawImage);
+          return images.evaluate().isNotEmpty &&
+              tester.widget<RawImage>(images.first).image != null;
+        });
         await _show(tester, find.text('Reviewed by Sam Coordinator'));
         await _capture(tester, 'maintenance-restored-review-${suffix}x');
         await tester.pumpWidget(const SizedBox.shrink());
         await _settle(tester);
-        await tester.runAsync(() async {
+        await finishNativeWidgetCleanup(tester, () async {
           await copy.close();
           live.remove(copy);
         });
