@@ -140,6 +140,31 @@ class ManualFaultIntakeStore {
         );
       }
     }
+    // Reserve acceptance before saving pending intent. A bounded ledger must
+    // never leave a frozen request that cannot fit its final immutable receipt.
+    final plannedReceipt = ManualFaultReceipt.create(
+      command,
+      reportedAt: command.createdAt,
+    );
+    final acceptedSize = utf8
+        .encode(
+          canonical({
+            'version': 1,
+            'pending': <Json>[],
+            'receipts': [
+              ...state.receipts.map((receipt) => receipt.toJson()),
+              plannedReceipt.toJson(),
+            ],
+          }),
+        )
+        .length;
+    if (state.receipts.length >= manualFaultRecordLimit ||
+        acceptedSize + 64 > manualFaultStateByteLimit) {
+      throw const ManualFaultIntakeFailure(
+        'capacity_reached',
+        'This office fault history has reached its supported size. Saved reports have been retained.',
+      );
+    }
     _store.transaction(() {
       _authority();
       _store.setSetting(manualFaultIntakeSetting, {

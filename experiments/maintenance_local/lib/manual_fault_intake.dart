@@ -7,8 +7,8 @@ const manualFaultIntakeSetting = 'manualFaultIntakeV1';
 const manualFaultReportedEvent = 'manual_fault_reported_v1';
 const manualFaultReportedStatus = 'Reported — corrective work not planned';
 const manualFaultDescriptionLimit = 10000;
-const _maxRecords = 10000;
-const _maxStateBytes = 16 * 1024 * 1024;
+const manualFaultRecordLimit = 10000;
+const manualFaultStateByteLimit = 16 * 1024 * 1024;
 
 enum ManualFaultSeverity { normal, urgent }
 
@@ -71,7 +71,7 @@ abstract class _FrozenJson {
 }
 
 class ManualFaultOrigin extends _FrozenJson {
-  ManualFaultOrigin.fromJson(Json value) : super(value) {
+  ManualFaultOrigin.fromJson(super.value) {
     _validateOriginShape(toJson());
   }
   ManualFaultOriginKind get kind =>
@@ -121,7 +121,7 @@ void _validateOriginShape(Json value) {
       value['submissionRevision'] > 1000000 ||
       value['label'] is! String ||
       (value['label'] as String).isEmpty ||
-      (value['label'] as String).length > 1000 ||
+      (value['label'] as String).length > 1400 ||
       (value['kind'] == 'item'
           ? !_id(value['itemId'])
           : value['itemId'] != null) ||
@@ -133,7 +133,7 @@ void _validateOriginShape(Json value) {
 }
 
 class FrozenManualFaultCommand extends _FrozenJson {
-  FrozenManualFaultCommand.fromJson(Json value) : super(value) {
+  FrozenManualFaultCommand.fromJson(super.value) {
     final data = toJson();
     _shape(data, {
       'version',
@@ -159,10 +159,12 @@ class FrozenManualFaultCommand extends _FrozenJson {
         data['description'] != (data['description'] as String).trim() ||
         (data['description'] as String).length > manualFaultDescriptionLimit ||
         !ManualFaultSeverity.values.any((v) => v.name == data['severity']) ||
-        !_date(data['createdAt']))
+        !_date(data['createdAt'])) {
       _invalid();
-    if (data['origin'] != null)
+    }
+    if (data['origin'] != null) {
       ManualFaultOrigin.fromJson(_map(data['origin']));
+    }
   }
   factory FrozenManualFaultCommand.create({
     required String id,
@@ -201,7 +203,7 @@ class FrozenManualFaultCommand extends _FrozenJson {
 }
 
 class ManualFaultRecord extends _FrozenJson {
-  ManualFaultRecord.fromJson(Json value) : super(value) {
+  ManualFaultRecord.fromJson(super.value) {
     final data = toJson();
     _shape(data, {
       'version',
@@ -220,13 +222,26 @@ class ManualFaultRecord extends _FrozenJson {
     });
     _version(data);
     _checkHash(data);
-    if (data['id'] != data['commandId'] ||
+    if (data['id'] is! String ||
+        !_uuid.hasMatch(data['id'] as String) ||
+        data['id'] != data['commandId'] ||
+        !_id(data['companyId']) ||
+        !_id(data['deviceId']) ||
+        !_id(data['equipmentId']) ||
+        data['description'] is! String ||
+        (data['description'] as String).trim().isEmpty ||
+        data['description'] != (data['description'] as String).trim() ||
+        (data['description'] as String).length > manualFaultDescriptionLimit ||
+        !ManualFaultSeverity.values.any((v) => v.name == data['severity']) ||
         !_hash(data['requestHash']) ||
         data['status'] != manualFaultReportedStatus ||
         !_date(data['reportedAt'])) {
       _invalid();
     }
-    // The receipt validator binds all remaining fields to the frozen command.
+    if (data['origin'] != null) {
+      ManualFaultOrigin.fromJson(_map(data['origin']));
+    }
+    // The receipt validator also binds these fields to the frozen command.
   }
   String get id => toJson()['id'] as String;
   String get commandId => toJson()['commandId'] as String;
@@ -244,7 +259,7 @@ class ManualFaultRecord extends _FrozenJson {
 }
 
 class ManualFaultReceipt extends _FrozenJson {
-  ManualFaultReceipt.fromJson(Json value) : super(value) {
+  ManualFaultReceipt.fromJson(super.value) {
     final data = toJson();
     _shape(data, {'version', 'command', 'record', 'hash'});
     _version(data);
@@ -252,10 +267,7 @@ class ManualFaultReceipt extends _FrozenJson {
     final command = FrozenManualFaultCommand.fromJson(_map(data['command']));
     final record = ManualFaultRecord.fromJson(_map(data['record']));
     final expected = _recordFor(command, record.reportedAt);
-    if (canonical(record.toJson()) != canonical(expected) ||
-        DateTime.parse(
-          record.reportedAt,
-        ).isBefore(DateTime.parse(command.createdAt))) {
+    if (canonical(record.toJson()) != canonical(expected)) {
       _invalid();
     }
   }
@@ -394,20 +406,23 @@ _Sources _sourceIndex(
         source['context'] is! Map ||
         source['companyId'] != catalog['companyId'] ||
         !_id(source['jobId']) ||
-        sources.containsKey(source['id']))
+        sources.containsKey(source['id'])) {
       _invalid();
+    }
     final context = jobContext(catalog, source['jobId'] as String);
     if (canonical(source['context']) != canonical(context) ||
         source['equipmentId'] != context['equipmentId'] ||
         source['snapshotHash'] != context['snapshotHash'] ||
-        source['revision'] != context['revision'])
+        source['revision'] != context['revision']) {
       _invalid();
+    }
     try {
       final bytes = base64Decode(source['document'] as String);
       if (bytes.isEmpty ||
           bytes.length > 16 * 1024 * 1024 ||
-          digest(bytes) != source['documentHash'])
+          digest(bytes) != source['documentHash']) {
         _invalid();
+      }
       final values = _map(source['values']);
       if (incompleteJob({
             for (final entry in values.entries) entry.key: [entry.value],
@@ -448,8 +463,9 @@ _Sources _sourceIndex(
         !_date(receipt['reviewedAt']) ||
         !_id(receipt['reviewerDevice']) ||
         receipt['reviewedBy'] != catalog['coordinatorName'] ||
-        canonical(receipt['values']) != canonical(source['values']))
+        canonical(receipt['values']) != canonical(source['values'])) {
       _invalid();
+    }
     decisions[receipt['submissionId'] as String] = receipt;
   }
   return _Sources(sources, decisions);
@@ -516,10 +532,11 @@ ManualFaultIntakeState validateManualFaultIntake({
   if (data['pending'] is! List ||
       (data['pending'] as List).length > 1 ||
       data['receipts'] is! List ||
-      (data['receipts'] as List).length > _maxRecords ||
-      utf8.encode(canonical(data)).length > _maxStateBytes ||
-      catalog == null)
+      (data['receipts'] as List).length > manualFaultRecordLimit ||
+      utf8.encode(canonical(data)).length > manualFaultStateByteLimit ||
+      catalog == null) {
     _invalid();
+  }
   validateCatalog(catalog);
   if (!_id(deviceId)) _invalid();
   final sources = _sourceIndex(catalog, submissions, receipts);
@@ -538,28 +555,24 @@ ManualFaultIntakeState validateManualFaultIntake({
         command.deviceId != deviceId ||
         !(catalog['equipment'] as List).any(
           (row) => row['id'] == command.equipmentId,
-        ))
+        )) {
       _invalid();
+    }
     final origin = command.origin;
     if (origin == null) return;
     final source = sources.submissions[origin.submissionId];
-    if (source == null ||
-        source['equipmentId'] != command.equipmentId ||
-        DateTime.parse(
-          source['createdAt'] as String,
-        ).isAfter(DateTime.parse(command.createdAt)))
+    if (source == null || source['equipmentId'] != command.equipmentId) {
       _invalid();
+    }
     final decision = sources.receipts[origin.submissionId];
     if (origin.observation != ManualFaultObservation.pending &&
         (decision == null ||
             decision['reviewerDevice'] != deviceId ||
             decision['id'] != origin.receiptId ||
             contentHash(decision) != origin.receiptHash ||
-            decision['decision'] != origin.observation.name ||
-            DateTime.parse(
-              decision['reviewedAt'] as String,
-            ).isAfter(DateTime.parse(command.createdAt))))
+            decision['decision'] != origin.observation.name)) {
       _invalid();
+    }
     try {
       final expected = _originFor(
         source,
@@ -568,8 +581,9 @@ ManualFaultIntakeState validateManualFaultIntake({
         origin.itemId,
         origin.observation.name,
       );
-      if (canonical(expected.toJson()) != canonical(origin.toJson()))
+      if (canonical(expected.toJson()) != canonical(origin.toJson())) {
         _invalid();
+      }
     } on ManualFaultIntakeFailure {
       rethrow;
     } catch (_) {
@@ -591,8 +605,9 @@ ManualFaultIntakeState validateManualFaultIntake({
     final expected = expectedEvents[receipt.commandId];
     if (!seenEvents.add(receipt.commandId) ||
         expected == null ||
-        canonical(receipt.toJson()) != canonical(expected.toJson()))
+        canonical(receipt.toJson()) != canonical(expected.toJson())) {
       _invalid();
+    }
   }
   if (seenEvents.length != expectedEvents.length) _invalid();
   return ManualFaultIntakeState._(data);
