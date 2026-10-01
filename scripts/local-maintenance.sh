@@ -35,7 +35,7 @@ case "$action" in
   verify)
     flutter pub get --offline --enforce-lockfile
     flutter analyze --no-pub
-    dart run tool/verify_work_progress.dart
+    dart --packages=.dart_tool/package_config.json tool/verify_work_progress.dart
     cargo test --manifest-path rust/Cargo.toml --locked --offline
     cargo build --manifest-path rust/Cargo.toml --locked --offline
     flutter test --no-pub "$@"
