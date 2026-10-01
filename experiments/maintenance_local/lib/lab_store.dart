@@ -129,11 +129,10 @@ class LabStore {
       );
     }
     final events = <Json>[
-      for (final row in db.select('SELECT kind,payload FROM events ORDER BY id'))
-        {
-          'kind': row['kind'],
-          'payload': jsonDecode(row['payload'] as String),
-        },
+      for (final row in db.select(
+        'SELECT kind,payload FROM events ORDER BY id',
+      ))
+        {'kind': row['kind'], 'payload': jsonDecode(row['payload'] as String)},
     ];
     final submissions = <Json>[
       for (final row in db.select('SELECT payload FROM submissions'))

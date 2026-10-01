@@ -112,6 +112,20 @@ inspection certificates and review authority remain explicit policies.
 
 ## The next integration must be a complete workflow
 
+LF-010 extends the office side with explicitly typed corrective planning.
+Its pure model derives revisioned drafts and one-per-fault associations from
+immutable command receipts; the adapter composes the existing serial queue
+and SQLite transaction. Corrective drafts live in an office-private ledger,
+outside inspection catalog jobs and native checklist documents. This keeps
+inspection submissions/approvals and existing phone/agent readers truthful.
+The first durable planning intent atomically selects workspace format 3;
+early reader guards and matching backup format prevent unsupported older
+readers from treating repair drafts as inspections. The compatibility proof
+was executed against unchanged prior source before implementation. Creation,
+association, planning edits and recovery are covered together; execution and
+fault verification remain explicit future work. See
+[LF-010](specs/LF-010-corrective-planning.md).
+
 The implemented LF-001 experimental workflow follows equipment -> one inspection/
 work order -> offline evidence -> exact submission -> office review -> history ->
 replacement-device recovery. LF-002 improves its ordinary work visibility using

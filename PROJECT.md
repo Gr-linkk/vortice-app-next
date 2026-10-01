@@ -39,6 +39,15 @@ reader, composed views and executable separation checks.
 The current code map and retain/replace boundaries are in
 [Architecture: maintenance first](docs/ARCHITECTURE.md).
 
+October 1 selected continuation: [LF-010](docs/specs/LF-010-corrective-planning.md)
+adds office corrective-work planning from reviewed LF009. Repair drafts are
+explicitly typed and separate from inspection jobs; same-equipment reported
+faults gain one durable association and revisioned planning descriptions.
+Planning and recovery are the bounded increment. Execution, repair approval,
+verification, fault resolution and availability are not implied. Synthetic
+version compatibility is proven before implementing the new office format;
+no live data migration, phone change or agent access expansion is selected.
+
 October 1: Garrett explicitly authorized committing and pushing tested source
 to named branches in the existing independent Vortice repository. The new
 [local workflow integration](docs/specs/LF-INTEGRATION-001.md) selectively combines

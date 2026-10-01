@@ -7,6 +7,23 @@ without creating a new backlog item.
 
 ## Selected local-first slice — September 30, 2026
 
+### LF-010 — Office corrective-work planning
+
+Authorized continuation from reviewed LF009, isolated in
+`codex/local-corrective-planning` from `fc086136`. Explicitly typed office
+corrective drafts retain title and optional planning description, including
+diagnosis instructions, outside the inspection catalog. Create or atomically
+link one/several same-equipment reported faults to a saved open draft; each
+fault has one durable association with no silent reassignment. Stable frozen
+commands, revision/hash-fenced edits and coherent recovery preserve history.
+Schema/backup 3 require the matching edition; unchanged prior readers refused
+synthetic format-3 fixtures before implementation, while old format-2 controls
+remained usable. Existing inspection/phone/agent authority stays separate.
+Execution, repair approval/verification, fault resolution, availability,
+maintenance advancement, LF008, remote/multiworker and live migration remain
+outside this increment. Implementation and combined review are in progress.
+[Scope and ownership](docs/specs/LF-010-corrective-planning.md).
+
 ### LF-009 — Manual office fault intake
 
 Authorized bounded follow-up on accepted `98deb62`, isolated in

@@ -1,6 +1,7 @@
 # LF-010 — Office corrective-work planning
 
-Status: authorized isolated implementation; compatibility proof precedes code.
+Status: isolated implementation candidate; full combined verification and parent
+publication review remain pending. Compatibility was proven before new code.
 Base: reviewed LF009 plus metadata receipt `fc086136e1cf9cbfc4ab90c844d2cff62e2d2ea9`.
 Coordinator branch: `codex/local-corrective-planning`.
 
@@ -17,7 +18,9 @@ is added. This edition retains the accepted inspection workflow separately.
 
 A **corrective work draft** has explicit `kind: corrective`, `state: draft`,
 existing company/equipment identity, frozen equipment context, title and
-planning description. Diagnosis instructions belong in that description;
+optional planning description, preserving the retained work-order field.
+An empty description means it has not been supplied, not a diagnosis.
+Diagnosis instructions belong in that description;
 there is no completed diagnosis or repair report. Standalone unplanned repair
 drafts may have zero faults. One or several reported same-equipment faults can
 be linked atomically when creating a draft, or to an eligible existing draft.
@@ -82,10 +85,11 @@ Pure `corrective_planning.dart` owns `CorrectiveWorkDraft`,
 `CorrectiveFaultReference`, `FrozenCorrectivePlanningCommand`,
 `CorrectivePlanningReceipt`, `CorrectivePlanningState`, and typed failure.
 `validateCorrectivePlanning(settings, events, catalog, deviceId,
-manualFaultHistory)` receives the already validated `ManualFaultIntakeState`.
+manualFaultHistory, databaseVersion)` receives the already validated
+`ManualFaultIntakeState` and enforces coherent workspace format.
 It derives pending commands, receipts, drafts and `draftForFault` associations.
 Factories `createDraft`, `editDraft`, `linkFaults` validate frozen intent.
-The model owner will freeze exact Dart signatures before adapter/UI coding.
+These signatures were frozen before adapter/UI coding.
 
 `CorrectivePlanningStore(LabStore)` composes the existing serial queue and
 transaction. Public commands are `freezeCreate(equipmentId,title,description,
@@ -133,3 +137,22 @@ controls. Assert no corrective records escape inspection bundles or existing
 scoped agent readers. Render normal entry/create/detail/edit/link/retry/error
 states at phone size and 1x/2x text. Physical/unassisted acceptance remains a
 separate gate; no phone installation or live workspace action is authorized here.
+
+## Ordinary rendered workflow
+
+Home offers **Corrective planning** beside **Reported faults**. Merely browsing
+does not upgrade a workspace. A saved fault's **Plan corrective work** action
+opens its equipment/fault context, then **Create corrective draft** saves a
+title and optional planning description. The saved detail identifies corrective
+work, its draft revision, linked immutable reports and the next planning actions.
+After returning, the fault shows its current corrective association separately
+from the historical “corrective work not planned” fact recorded at reporting.
+**Open corrective draft** reopens the same association after an app restart.
+
+This normal Home/fault path passed actual native widget execution at 412×915
+with 1x and 2x text. It retained inspection catalog/document hashes and the
+original fault ledger; ten screenshots cover entry, editing, saved detail,
+current/historical fault state and reopened detail. Separate UI-owner native
+tests cover standalone/multiple faults, existing-draft selection, edits, stale
+revision recovery and saved-request/lost-reply resume. These are rendered
+synthetic checks, not physical-device or unassisted acceptance.

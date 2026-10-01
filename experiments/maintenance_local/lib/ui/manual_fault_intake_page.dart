@@ -4,9 +4,13 @@ import 'package:uuid/uuid.dart';
 import '../lab_store.dart';
 import '../manual_fault_intake.dart';
 import '../manual_fault_intake_store.dart';
+import '../corrective_planning.dart';
+import '../corrective_planning_store.dart';
 import '../model.dart';
 import 'common.dart';
 import 'inspection_content.dart';
+import 'corrective_planning_page.dart';
+import 'corrective_work_draft_page.dart';
 
 /// Office entry for manual reports and durable requests awaiting confirmation.
 class ManualFaultIntakePage extends StatefulWidget {
@@ -25,6 +29,7 @@ class _ManualFaultIntakePageState extends State<ManualFaultIntakePage> {
   ManualFaultIntakeStore? _intake;
   List<ManualFaultRecord> _records = [];
   List<FrozenManualFaultCommand> _pending = [];
+  Map<String, CorrectiveWorkDraft> _linkedDrafts = {};
   String? _error;
   bool _busy = false, _readable = false;
 
@@ -48,10 +53,15 @@ class _ManualFaultIntakePageState extends State<ManualFaultIntakePage> {
             widget.intake ?? ManualFaultIntakeStore(widget.store);
         final records = await intake.listRecords();
         final pending = await intake.pendingCommands();
+        final drafts = await CorrectivePlanningStore(widget.store).listDrafts();
         if (mounted) {
           setState(() {
             _records = records.reversed.toList();
             _pending = pending;
+            _linkedDrafts = {
+              for (final draft in drafts)
+                for (final fault in draft.faults) fault.faultId: draft,
+            };
           });
         }
       }
@@ -87,7 +97,11 @@ class _ManualFaultIntakePageState extends State<ManualFaultIntakePage> {
       body: page([
         const Text('Record a reported problem against your company equipment.'),
         const SizedBox(height: 12),
-        const Text(manualFaultReportedStatus),
+        Text(
+          _linkedDrafts.isEmpty
+              ? manualFaultReportedStatus
+              : 'Planning a corrective draft does not resolve a reported fault.',
+        ),
         const SizedBox(height: 16),
         FilledButton.icon(
           key: const Key('manual-fault-new'),
@@ -158,7 +172,13 @@ class _ManualFaultIntakePageState extends State<ManualFaultIntakePage> {
               small: true,
             ),
             Text(_severityLabel(record.severity)),
-            const Text(manualFaultReportedStatus),
+            Text(
+              _linkedDrafts[record.id] == null
+                  ? manualFaultReportedStatus
+                  : 'Reported — corrective draft linked',
+            ),
+            if (_linkedDrafts[record.id] case final draft?)
+              Text('Corrective draft: ${draft.title}'),
             Text('Reported ${displayTime(record.reportedAt)}'),
             const SizedBox(height: 8),
             Text(
@@ -581,24 +601,118 @@ class _ManualFaultRequestPageState extends State<_ManualFaultRequestPage> {
   }
 }
 
-class _ManualFaultRecordPage extends StatelessWidget {
+class _ManualFaultRecordPage extends StatefulWidget {
   const _ManualFaultRecordPage({required this.store, required this.record});
   final LabStore store;
   final ManualFaultRecord record;
 
   @override
+  State<_ManualFaultRecordPage> createState() => _ManualFaultRecordPageState();
+}
+
+class _ManualFaultRecordPageState extends State<_ManualFaultRecordPage> {
+  CorrectiveWorkDraft? _draft;
+  String? _planningError;
+  bool _loading = true, _opening = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _readPlanning();
+  }
+
+  Future<void> _readPlanning() async {
+    if (mounted) {
+      setState(() {
+        _loading = true;
+        _planningError = null;
+      });
+    }
+    try {
+      final draft = await CorrectivePlanningStore(
+        widget.store,
+      ).draftForFault(widget.record.id);
+      if (mounted) setState(() => _draft = draft);
+    } catch (failure) {
+      if (mounted) setState(() => _planningError = _message(failure));
+    } finally {
+      if (mounted) setState(() => _loading = false);
+    }
+  }
+
+  Future<void> _openPlanning() async {
+    if (_loading || _opening || _planningError != null || !mounted) return;
+    setState(() {
+      _opening = true;
+      _planningError = null;
+    });
+    try {
+      widget.store.requireOffice();
+      final draft = await CorrectivePlanningStore(
+        widget.store,
+      ).draftForFault(widget.record.id);
+      if (!mounted) return;
+      await Navigator.push<void>(
+        context,
+        MaterialPageRoute(
+          builder: (_) => draft == null
+              ? CorrectivePlanningPage(
+                  store: widget.store,
+                  initialFaultId: widget.record.id,
+                )
+              : CorrectiveWorkDraftPage(store: widget.store, draftId: draft.id),
+        ),
+      );
+      if (mounted) await _readPlanning();
+    } catch (failure) {
+      if (mounted) setState(() => _planningError = _message(failure));
+    } finally {
+      if (mounted) setState(() => _opening = false);
+    }
+  }
+
+  @override
   Widget build(BuildContext context) => Scaffold(
     appBar: AppBar(title: const Text('Fault record')),
     body: page([
-      notice(manualFaultReportedStatus),
-      Text('Reported ${displayTime(record.reportedAt)}'),
+      if (_loading) const LinearProgressIndicator(),
+      if (!_loading && _planningError == null)
+        notice(
+          _draft == null
+              ? manualFaultReportedStatus
+              : 'Reported — corrective draft linked. Work has not started.',
+        ),
+      if (_draft case final draft?) ...[
+        Text('Corrective draft: ${draft.title}'),
+        const Text('At reporting: Reported — corrective work not planned'),
+      ],
+      if (_planningError != null) notice(_planningError!, error: true),
+      if (_planningError != null)
+        TextButton(
+          onPressed: _opening || _loading ? null : _readPlanning,
+          child: const Text('Reload corrective planning'),
+        ),
+      if (widget.store.office)
+        OutlinedButton.icon(
+          key: const Key('manual-fault-corrective-planning'),
+          onPressed: _loading || _opening || _planningError != null
+              ? null
+              : _openPlanning,
+          icon: const Icon(Icons.build_outlined),
+          label: Text(
+            _draft == null ? 'Plan corrective work' : 'Open corrective draft',
+          ),
+        ),
+      Text('Reported ${displayTime(widget.record.reportedAt)}'),
       const SizedBox(height: 16),
       _FaultFacts(
-        store: store,
-        equipmentId: record.equipmentId,
-        description: record.description,
-        severity: record.severity,
-        origin: record.origin,
+        store: widget.store,
+        equipmentId: widget.record.equipmentId,
+        description: widget.record.description,
+        severity: widget.record.severity,
+        origin: widget.record.origin,
+        sourceEnabled: !_opening && !_loading,
+        canOpenSource: () => mounted && !_opening && !_loading,
       ),
     ]),
   );

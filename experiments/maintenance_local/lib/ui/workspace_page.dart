@@ -22,6 +22,7 @@ import 'work_progress.dart';
 import 'agent_connections_page.dart';
 import 'agent_proposals_page.dart';
 import 'manual_fault_intake_page.dart';
+import 'corrective_planning_page.dart';
 
 class WorkspacePage extends StatefulWidget {
   const WorkspacePage({
@@ -649,6 +650,23 @@ class _WorkspacePageState extends State<WorkspacePage>
                   },
             icon: const Icon(Icons.report_problem_outlined),
             label: const Text('Reported faults'),
+          ),
+          OutlinedButton.icon(
+            key: const Key('office-corrective-planning'),
+            onPressed: working
+                ? null
+                : () async {
+                    if (working || !mounted) return;
+                    await Navigator.push<void>(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => CorrectivePlanningPage(store: store),
+                      ),
+                    );
+                    if (mounted) refresh();
+                  },
+            icon: const Icon(Icons.build_outlined),
+            label: const Text('Corrective planning'),
           ),
           const SizedBox(height: 20),
           Text('Equipment', style: Theme.of(context).textTheme.titleLarge),
