@@ -9,6 +9,12 @@ without creating a new backlog item.
 
 ### LF-007 — Linux desktop runtime portability
 
+Built source `0744da8`: fresh offline Linux build and extracted source/Java-hidden
+native checks pass, including actual SQLite and test-runtime Dart bootstrap.
+Checker regressions pass 26; extracted CLI passes 98 checks/18 invocations.
+[Milestone receipt](docs/specs/LF-007-portability-receipt.md) records distinct
+artifacts, actual native identities and the open GTK/fresh-computer gates.
+
 October 1 authorized follow-up: remove checkout-specific native lookup paths and
 the unused desktop Java dependency in a separate Linux distribution from the
 reviewed 0.2.7 source. Add an ordinary launch prerequisite check and verify an
