@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -6,6 +7,7 @@ import 'package:image_picker/image_picker.dart';
 import '../lab_store.dart';
 import '../model.dart';
 import '../local_sync.dart';
+import '../src/rust/api/documents.dart';
 import 'common.dart';
 import 'inspection_content.dart';
 import '../job_progress.dart';
@@ -20,6 +22,7 @@ class InspectionPage extends StatefulWidget {
     this.updates,
     this.progressController,
     this.correctionSubmissionId,
+    this.decodeFields,
   });
   final LabStore store;
   final String? jobId;
@@ -27,6 +30,10 @@ class InspectionPage extends StatefulWidget {
   final ValueListenable<int>? updates;
   final WorkProgressController? progressController;
   final String? correctionSubmissionId;
+
+  /// Lets native/widget tests pause a captured read without replacing storage.
+  @visibleForTesting
+  final Future<Json> Function(Uint8List bytes)? decodeFields;
   @override
   State<InspectionPage> createState() => _InspectionPageState();
 }
@@ -38,6 +45,7 @@ class _InspectionPageState extends State<InspectionPage> {
   late final bool legacy;
   Json? alternatives;
   Uint8List? base;
+  Uint8List? displayedDocument;
   final notes = TextEditingController(), meter = TextEditingController();
   final answers = <String, TextEditingController>{};
   final dirty = <String, dynamic>{};
@@ -45,6 +53,10 @@ class _InspectionPageState extends State<InspectionPage> {
   bool busy = false;
   WorkProgressController? progress;
   bool ownsProgress = false;
+  int readGeneration = 0;
+  bool incomingPending = false;
+  static const changedMessage =
+      'Inspection changed. Review the updated work and submit again.';
 
   @override
   void initState() {
@@ -57,8 +69,8 @@ class _InspectionPageState extends State<InspectionPage> {
     if (!legacy) {
       ownsProgress = widget.progressController == null;
       progress = widget.progressController ?? WorkProgressController(store);
-      if (ownsProgress) widget.updates?.addListener(refreshProgress);
     }
+    widget.updates?.addListener(incomingChanged);
     for (final item in inspectionItems(jobContext)) {
       if (item['input_type'] != 'check') {
         answers[item['id'] as String] = TextEditingController();
@@ -67,16 +79,68 @@ class _InspectionPageState extends State<InspectionPage> {
     load();
   }
 
-  Future<void> load() async {
+  Uint8List? currentDocument() =>
+      legacy ? store.document : store.documentFor(jobId!);
+
+  Future<Uint8List> captureDocument() => store.queue.run(() async {
+    final bytes = currentDocument();
+    if (bytes == null) throw StateError('Connect to the company first.');
+    return Uint8List.fromList(bytes);
+  });
+
+  Future<({Uint8List bytes, Json fields, bool changed})> readDocument({
+    Uint8List? captured,
+  }) async {
+    var bytes = captured ?? await captureDocument();
+    var changed = false;
+    // A decoded form must belong to the captured bytes, never to a later
+    // implicit store selection. Retry reads overtaken by incoming work.
+    for (var attempt = 0; attempt < 8; attempt++) {
+      final fields = widget.decodeFields == null
+          ? jsonDecode(await documentValues(bytes: bytes)) as Json
+          : await widget.decodeFields!(bytes);
+      final current = currentDocument();
+      if (current != null && digest(current) == digest(bytes)) {
+        return (bytes: bytes, fields: fields, changed: changed);
+      }
+      changed = true;
+      bytes = await captureDocument();
+    }
+    throw StateError(changedMessage);
+  }
+
+  void displayDocument(Uint8List bytes, Json fields) {
+    displayedDocument = bytes;
+    alternatives = fields;
+    // Dirty edits retain their original CRDT base until they have been merged.
+    if (dirty.isEmpty) base = bytes;
+    refill(valuesOf(fields));
+  }
+
+  Future<void> load({bool incoming = false}) async {
+    if (!mounted) return;
+    if (busy) {
+      incomingPending = true;
+      return;
+    }
+    final generation = ++readGeneration;
     try {
-      base = legacy ? store.document : store.documentFor(jobId!);
-      final fields = await store.fields(jobId: jobId);
-      if (!mounted) return;
-      refill(valuesOf(fields));
-      setState(() => alternatives = fields);
+      final snapshot = await readDocument();
+      if (!mounted || generation != readGeneration) return;
+      setState(() {
+        final changed =
+            displayedDocument != null &&
+            digest(displayedDocument!) != digest(snapshot.bytes);
+        displayDocument(snapshot.bytes, snapshot.fields);
+        if (incoming && changed) {
+          message = dirty.isEmpty
+              ? changedMessage
+              : 'Inspection changed. Your unsaved changes are still here. Save and review the merged work before submitting.';
+        }
+      });
       refreshProgress();
     } catch (failure) {
-      if (mounted) {
+      if (mounted && generation == readGeneration) {
         setState(
           () => message = failure.toString().replaceFirst('Bad state: ', ''),
         );
@@ -85,12 +149,23 @@ class _InspectionPageState extends State<InspectionPage> {
   }
 
   void refill(Json values) {
-    notes.text = (values['notes'] ?? '').toString();
-    meter.text = values['meter']?.toString() ?? '';
-    for (final entry in answers.entries) {
-      entry.value.text = (jsonMap(values['answer:${entry.key}'])['value'] ?? '')
-          .toString();
+    if (!dirty.containsKey('notes')) {
+      notes.text = (values['notes'] ?? '').toString();
     }
+    if (!dirty.containsKey('meter')) {
+      meter.text = values['meter']?.toString() ?? '';
+    }
+    for (final entry in answers.entries) {
+      if (!dirty.containsKey('answer:${entry.key}')) {
+        entry.value.text =
+            (jsonMap(values['answer:${entry.key}'])['value'] ?? '').toString();
+      }
+    }
+  }
+
+  void incomingChanged() {
+    refreshProgress();
+    unawaited(load(incoming: true));
   }
 
   void refreshProgress() {
@@ -104,8 +179,9 @@ class _InspectionPageState extends State<InspectionPage> {
     for (final controller in answers.values) {
       controller.dispose();
     }
+    widget.updates?.removeListener(incomingChanged);
+    readGeneration++;
     if (ownsProgress) {
-      widget.updates?.removeListener(refreshProgress);
       progress?.dispose();
     }
     super.dispose();
@@ -116,6 +192,10 @@ class _InspectionPageState extends State<InspectionPage> {
     MapEntry<String, dynamic>? resolution,
   }) async {
     if (busy) return false;
+    final seenDocument = displayedDocument;
+    final seenFields = alternatives;
+    if (seenDocument == null || seenFields == null) return false;
+    readGeneration++;
     setState(() => busy = true);
     var saved = false;
     try {
@@ -135,23 +215,50 @@ class _InspectionPageState extends State<InspectionPage> {
         patch['meter'] = raw.isEmpty ? null : reading;
       }
       if (resolution != null) patch[resolution.key] = resolution.value;
+      final expectedFields = <String, dynamic>{
+        ...seenFields,
+        for (final entry in patch.entries) entry.key: [entry.value],
+      };
+      // Enqueue capture/write/capture together. The second capture is the exact
+      // result of our edit, before subsequently queued incoming writes.
+      final before = captureDocument();
+      Future<void>? writing;
+      Future<Uint8List>? after;
       if (patch.isNotEmpty) {
-        await store.update(patch, base: base, jobId: jobId);
+        writing = store.update(patch, base: base, jobId: jobId);
+        after = captureDocument();
+      }
+      final beforeBytes = await before;
+      if (writing != null) {
+        await writing;
         // This draft is already durable even if decoding or submission fails.
         // Invalidate its earlier exact-version status before the next await.
         refreshProgress();
       }
       dirty.clear();
-      base = legacy ? store.document : store.documentFor(jobId!);
-      alternatives = await store.fields(jobId: jobId);
+      final snapshot = await readDocument(
+        captured: after == null ? beforeBytes : await after,
+      );
+      if (!mounted) return false;
+      final unseen =
+          digest(beforeBytes) != digest(seenDocument) ||
+          snapshot.changed ||
+          canonical(snapshot.fields) != canonical(expectedFields);
+      setState(() => displayDocument(snapshot.bytes, snapshot.fields));
       if (resolution != null) {
-        refill(valuesOf(alternatives!));
         message = conflicts(alternatives!).isEmpty
             ? 'Conflict resolved. Review the inspection and submit a new version.'
             : 'Selection saved. Resolve the remaining conflicting work before submitting.';
       } else if (submit) {
+        if (unseen) {
+          message = changedMessage;
+          return false;
+        }
         final existingIds = store.submissions.map((p) => p['id']).toSet();
-        final submitted = await store.submit(jobId: jobId);
+        final submitted = await store.submit(
+          jobId: jobId,
+          expectedDocumentHash: digest(snapshot.bytes),
+        );
         final stored = store.submissions.firstWhere(
           (p) => p['id'] == submitted['id'],
         );
@@ -170,10 +277,26 @@ class _InspectionPageState extends State<InspectionPage> {
       saved = true;
     } catch (failure) {
       message = failure.toString().replaceFirst('Bad state: ', '');
+      if (submit && dirty.isEmpty) {
+        // A queued submit can be overtaken after decoding. Show the rejected
+        // version's successor and leave the next explicit submit to the user.
+        try {
+          final snapshot = await readDocument();
+          if (mounted) {
+            setState(() => displayDocument(snapshot.bytes, snapshot.fields));
+          }
+        } catch (_) {
+          // Keep the original command failure and the last coherent form.
+        }
+      }
     } finally {
       refreshProgress();
+      if (mounted) setState(() => busy = false);
+      if (incomingPending) {
+        incomingPending = false;
+        unawaited(load(incoming: true));
+      }
     }
-    if (mounted) setState(() => busy = false);
     return saved;
   }
 
@@ -198,8 +321,10 @@ class _InspectionPageState extends State<InspectionPage> {
       }
       await store.attach(await file.readAsBytes(), jobId: jobId);
       store.setSetting('photoRecoveryError', null);
-      base = legacy ? store.document : store.documentFor(jobId!);
-      alternatives = await store.fields(jobId: jobId);
+      final snapshot = await readDocument();
+      if (mounted) {
+        setState(() => displayDocument(snapshot.bytes, snapshot.fields));
+      }
       message = 'Photo saved on this ${store.office ? 'computer' : 'phone'}.';
     } catch (failure) {
       message =
@@ -208,6 +333,10 @@ class _InspectionPageState extends State<InspectionPage> {
       store.setSetting('pendingInspectionPhoto', null);
       refreshProgress();
       if (mounted) setState(() => busy = false);
+      if (incomingPending) {
+        incomingPending = false;
+        unawaited(load(incoming: true));
+      }
     }
   }
 

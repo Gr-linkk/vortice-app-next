@@ -592,68 +592,74 @@ class LabStore {
       .map((r) => jsonDecode(r['payload'] as String) as Json)
       .toList();
 
-  Future<Json> submit({String? jobId}) => queue.run(() async {
-    final id = realWorkspace ? _documentId(jobId) : null;
-    final context = realWorkspace ? jobContextFor(id!) : workspace!;
-    final bytes = realWorkspace ? documentFor(id!)! : document!;
-    final view = await fields(jobId: id);
-    final problem = submissionProblem(view, jobId: id);
-    if (problem != null) throw StateError(problem);
-    if (!await evidence.complete(valuesOf(view)['photo'] as String)) {
-      throw StateError('Save the complete photo first.');
-    }
-    final version = digest(bytes);
-    final prior = submissions
-        .where(
-          (p) =>
-              p['documentHash'] == version &&
-              p['device'] == device &&
-              p['jobId'] == context['jobId'],
-        )
-        .firstOrNull;
-    if (prior != null) {
-      return Map<String, dynamic>.from(prior)..remove('_state');
-    }
-    final payload = <String, dynamic>{
-      'id': const Uuid().v4(),
-      'companyId': context['companyId'],
-      'jobId': context['jobId'],
-      'device': device,
-      'createdAt': stamp(),
-      'document': base64Encode(bytes),
-      'documentHash': version,
-      'values': valuesOf(view),
-      if (realWorkspace) ...{
-        'schemaVersion': 1,
-        'equipmentId': context['equipmentId'],
-        'snapshotHash': context['snapshotHash'],
-        'revision': context['revision'],
-        'context': context,
-        'submissionRevision':
-            _previousSubmission(
-                  context['jobId'] as String,
-                  device,
-                )?['submissionRevision'] ==
-                null
-            ? 1
-            : (_previousSubmission(
-                        context['jobId'] as String,
-                        device,
-                      )!['submissionRevision']
-                      as int) +
-                  1,
-        'predecessorId': _previousSubmission(
-          context['jobId'] as String,
-          device,
-        )?['id'],
-      },
-    };
-    transaction(() {
-      _saveSubmission(payload, office ? 'received' : 'queued');
-      event('submitted', {'id': payload['id']});
-    });
-    return payload;
-  });
+  Future<Json> submit({String? jobId, String? expectedDocumentHash}) =>
+      queue.run(() async {
+        final id = realWorkspace ? _documentId(jobId) : null;
+        final context = realWorkspace ? jobContextFor(id!) : workspace!;
+        final bytes = realWorkspace ? documentFor(id!)! : document!;
+        final version = digest(bytes);
+        if (expectedDocumentHash != null && version != expectedDocumentHash) {
+          throw StateError(
+            'Inspection changed. Review the updated work and submit again.',
+          );
+        }
+        final view = jsonDecode(await documentValues(bytes: bytes)) as Json;
+        final problem = submissionProblem(view, jobId: id);
+        if (problem != null) throw StateError(problem);
+        if (!await evidence.complete(valuesOf(view)['photo'] as String)) {
+          throw StateError('Save the complete photo first.');
+        }
+        final prior = submissions
+            .where(
+              (p) =>
+                  p['documentHash'] == version &&
+                  p['device'] == device &&
+                  p['jobId'] == context['jobId'],
+            )
+            .firstOrNull;
+        if (prior != null) {
+          return Map<String, dynamic>.from(prior)..remove('_state');
+        }
+        final payload = <String, dynamic>{
+          'id': const Uuid().v4(),
+          'companyId': context['companyId'],
+          'jobId': context['jobId'],
+          'device': device,
+          'createdAt': stamp(),
+          'document': base64Encode(bytes),
+          'documentHash': version,
+          'values': valuesOf(view),
+          if (realWorkspace) ...{
+            'schemaVersion': 1,
+            'equipmentId': context['equipmentId'],
+            'snapshotHash': context['snapshotHash'],
+            'revision': context['revision'],
+            'context': context,
+            'submissionRevision':
+                _previousSubmission(
+                      context['jobId'] as String,
+                      device,
+                    )?['submissionRevision'] ==
+                    null
+                ? 1
+                : (_previousSubmission(
+                            context['jobId'] as String,
+                            device,
+                          )!['submissionRevision']
+                          as int) +
+                      1,
+            'predecessorId': _previousSubmission(
+              context['jobId'] as String,
+              device,
+            )?['id'],
+          },
+        };
+        transaction(() {
+          _saveSubmission(payload, office ? 'received' : 'queued');
+          event('submitted', {'id': payload['id']});
+        });
+        return payload;
+      });
 
   void _saveSubmission(Json payload, String state) {
     final existing = db.select('SELECT hash FROM submissions WHERE id=?', [
