@@ -57,6 +57,15 @@ The package metadata binds format `vortice-linux-cli-v1`, client/protocol versio
 CLI source revision, original app source/archive digest and explicit file hashes.
 It is corruption evidence, not a signing key or a new trust authority.
 
+The caller trusts the package bootstrap and installed runtime. Before executing
+the packaged entry with a credential, a token-empty builtin runtime probe checks
+code ownership and directory protection. Package directories and files must be
+owned by the caller or root and protected from group/other writes. Canonical
+ancestors have the same trusted owners; sticky shared ancestors such as `/tmp`
+are accepted. Entry repeats the directory checks before client imports. Writable
+code locations are refused rather than repaired. Same-UID changes remain within
+the office operating-account authority; unsigned hashes are not a signature.
+
 Coordinator owns launcher, entry adapter, this spec, user help/backlog and
 integration. Packaging owner owns new `scripts/package-local-linux-cli.py` and
 `scripts/test_package_local_linux_cli.py`. Test owner owns new

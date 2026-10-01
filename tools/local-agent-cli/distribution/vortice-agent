@@ -25,4 +25,29 @@ case "$0" in */*) script_parent=${0%/*} ;; *) script_parent=. ;; esac
 script_dir=$(CDPATH= cd -- "$script_parent" 2>/dev/null && pwd -P) || failure bundle_invalid 'This CLI package is incomplete or changed. Extract a verified package again. Nothing was sent.'
 entry="$script_dir/../agent-cli/distribution/entry.mjs"
 [ ! -L "$0" ] && [ -f "$entry" ] && [ ! -L "$entry" ] || failure bundle_invalid 'This CLI package is incomplete or changed. Extract a verified package again. Nothing was sent.'
+# Check the code location using only builtins from the trusted installed runtime,
+# before handing a capability to any package module. Sticky trusted ancestors
+# such as /tmp protect an owned extraction; writable package directories do not.
+VORTICE_LOCAL_AGENT_TOKEN= "$node_path" -e '
+const fs = require("node:fs"), path = require("node:path"), uid = process.getuid();
+const trusted = owner => owner === uid || owner === 0;
+function directory(file, ancestor = false) {
+  const info = fs.lstatSync(file), mode = info.mode & 0o7777;
+  if (!info.isDirectory() || info.isSymbolicLink() || !trusted(info.uid) ||
+      fs.realpathSync(file) !== file || (mode & 0o6000) ||
+      ((mode & 0o022) && !(ancestor && (mode & 0o1000)))) throw new Error();
+}
+const entry = path.resolve(process.argv[1]), launcher = path.resolve(process.argv[2]);
+const root = path.resolve(path.dirname(entry), "../..");
+for (const name of [root, path.join(root, "bin"), path.join(root, "agent-cli"),
+    path.join(root, "agent-cli/distribution")]) directory(name);
+for (let name = path.dirname(root);; name = path.dirname(name)) {
+  directory(name, true); if (name === path.dirname(name)) break;
+}
+for (const name of [entry, launcher]) {
+  const info = fs.lstatSync(name);
+  if (!info.isFile() || info.isSymbolicLink() || info.nlink !== 1 || !trusted(info.uid) ||
+      (info.mode & 0o7022) || fs.realpathSync(name) !== name) throw new Error();
+}
+' "$entry" "$script_dir/vortice-agent" </dev/null >/dev/null 2>/dev/null || failure bundle_invalid 'Use a verified CLI package in directories protected from changes by other users. Nothing was sent.'
 exec "$node_path" "$entry" "$@" 2>/dev/null

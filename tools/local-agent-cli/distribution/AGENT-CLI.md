@@ -4,6 +4,9 @@ This internal Linux package contains the office app and a separate agent CLI.
 Extract it wherever you keep your apps; the folder may be moved or renamed.
 Nothing is installed system-wide. Use an already installed compatible Node 22
 or newer. No runtime, package manager dependencies or network download is included.
+Keep the package in directories protected from changes by other users. The CLI
+refuses writable code locations before giving a credential to package modules.
+Normal owned extractions are accepted, including an owned folder under `/tmp`.
 
 From the extracted folder:
 

@@ -27,7 +27,7 @@ function regularRead(file, maximum, code, {privateFile = false, sizeCode = code}
     need(prior.isFile() && !prior.isSymbolicLink() && prior.nlink === 1, code);
     const mode = prior.mode & 0o7777;
     need(privateFile ? mode === 0o600 && prior.uid === process.getuid() :
-      (mode & 0o7022) === 0, code);
+      (mode & 0o7022) === 0 && [0, process.getuid()].includes(prior.uid), code);
     need(prior.size <= maximum, sizeCode);
     fd = fs.openSync(file, fs.constants.O_RDONLY | fs.constants.O_NOFOLLOW);
     const opened = fs.fstatSync(fd);
@@ -81,7 +81,23 @@ function uniqueJson(bytes, code) {
     throw new SetupError(code);
   }
 }
+function verifyCodeLocation() {
+  const directory = (file, ancestor = false) => {
+    const info = fs.lstatSync(file), mode = info.mode & 0o7777;
+    need(info.isDirectory() && !info.isSymbolicLink() &&
+      [0, process.getuid()].includes(info.uid) && fs.realpathSync(file) === file &&
+      !(mode & 0o6000) && (!(mode & 0o022) || ancestor && (mode & 0o1000)), 'bundle_invalid');
+  };
+  const packageRoot = path.resolve(root);
+  for (const name of [packageRoot, path.join(packageRoot, 'bin'),
+    path.join(packageRoot, 'agent-cli'), path.join(packageRoot, 'agent-cli/distribution')]) directory(name);
+  for (let name = path.dirname(packageRoot);; name = path.dirname(name)) {
+    directory(name, true);
+    if (name === path.dirname(name)) break;
+  }
+}
 function verifyBundle() {
+  verifyCodeLocation();
   const manifest = uniqueJson(regularRead(path.join(root, 'agent-cli/distribution/bundle.json'), 16 * 1024, 'bundle_invalid'), 'bundle_invalid');
   need(exact(manifest, ['package_format', 'protocol_version', 'client_version', 'client_source_revision',
     'application_source_revision', 'application_archive_sha256', 'files']) &&
