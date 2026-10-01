@@ -40,6 +40,15 @@ including N/A or null. Its exact dirty identity is acknowledged only after the
 chosen write; a later local input remains dirty and extends that chosen answer.
 Remote decoded data still takes ownership only through the guarded frame.
 
+## Preserved engine boundary
+
+The native engine still treats a put equal to its original CRDT base as a no-op.
+Re-selecting that same value does not force a concurrent branch; a later coherent
+paint can show incoming persisted data. This pre-existing same-value-choice
+persistence limitation is not changed or claimed repaired here. Conflict probes
+use genuinely different full values, and submission retains its unseen-document
+fence. Changing same-value intent semantics requires separate engine-policy review.
+
 ## Verification and delivery boundary
 
 The coordinator owns the editor. An independent read-only state-machine review
