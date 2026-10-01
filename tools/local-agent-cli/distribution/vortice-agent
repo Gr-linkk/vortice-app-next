@@ -34,7 +34,7 @@ const trusted = owner => owner === uid || owner === 0;
 function directory(file, ancestor = false) {
   const info = fs.lstatSync(file), mode = info.mode & 0o7777;
   if (!info.isDirectory() || info.isSymbolicLink() || !trusted(info.uid) ||
-      fs.realpathSync(file) !== file || (mode & 0o6000) ||
+      fs.realpathSync(file) !== file || (mode & (ancestor ? 0o6000 : 0o7000)) ||
       ((mode & 0o022) && !(ancestor && (mode & 0o1000)))) throw new Error();
 }
 const entry = path.resolve(process.argv[1]), launcher = path.resolve(process.argv[2]);

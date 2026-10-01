@@ -86,7 +86,8 @@ function verifyCodeLocation() {
     const info = fs.lstatSync(file), mode = info.mode & 0o7777;
     need(info.isDirectory() && !info.isSymbolicLink() &&
       [0, process.getuid()].includes(info.uid) && fs.realpathSync(file) === file &&
-      !(mode & 0o6000) && (!(mode & 0o022) || ancestor && (mode & 0o1000)), 'bundle_invalid');
+      !(mode & (ancestor ? 0o6000 : 0o7000)) &&
+      (!(mode & 0o022) || ancestor && (mode & 0o1000)), 'bundle_invalid');
   };
   const packageRoot = path.resolve(root);
   for (const name of [packageRoot, path.join(packageRoot, 'bin'),
