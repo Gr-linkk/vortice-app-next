@@ -307,7 +307,7 @@ void main() {
       );
       final id = job['id'] as String;
       await store.update({
-        'answer:guard': {'result': 'pass', 'value': null},
+        'answer:guard': {'result': 'pass', 'value': ''},
         'answer:condition': {
           'result': 'pass',
           'value': 'Guard fasteners visible',

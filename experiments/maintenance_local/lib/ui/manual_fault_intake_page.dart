@@ -539,8 +539,9 @@ class _ManualFaultRequestPageState extends State<_ManualFaultRequestPage> {
   @override
   Widget build(BuildContext context) {
     final record = _record;
-    if (record != null)
+    if (record != null) {
       return _ManualFaultRecordPage(store: widget.store, record: record);
+    }
     final command = widget.command;
     return PopScope(
       canPop: !_busy,
@@ -797,10 +798,11 @@ class _SavedSourcePage extends StatelessWidget {
       final saved = store.submissions
           .where((s) => s['id'] == origin.submissionId)
           .firstOrNull;
-      if (saved == null)
+      if (saved == null) {
         throw StateError(
           'This saved inspection source is unavailable. Its reference has been retained. Reload reported faults or use the matching workspace backup.',
         );
+      }
       source = Map<String, dynamic>.from(saved)..remove('_state');
       if (contentHash(source) != origin.submissionHash) {
         throw StateError(
