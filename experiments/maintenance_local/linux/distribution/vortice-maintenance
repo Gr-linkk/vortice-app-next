@@ -1,0 +1,87 @@
+#!/bin/sh
+# Resolve the installed bundle; never depend on a source checkout or caller CWD.
+fail() {
+  printf '%s\n' "$1" >&2
+  exit 1
+}
+
+case $0 in
+  */*) launcher=$0 ;;
+  *) launcher=$(command -v "$0" 2>/dev/null) ||
+       fail 'Unable to locate the Vortice Maintenance launcher.' ;;
+esac
+case $launcher in
+  /*) ;;
+  *) current=$(pwd -P 2>/dev/null) ||
+       fail 'Unable to locate the Vortice Maintenance bundle.'
+     launcher=$current/$launcher ;;
+esac
+
+links=0
+while [ -L "$launcher" ]; do
+  links=$((links + 1))
+  [ "$links" -le 40 ] || fail 'The Vortice Maintenance launcher has too many symbolic links.'
+  target=$(readlink "$launcher" 2>/dev/null) ||
+    fail 'Unable to resolve the Vortice Maintenance launcher.'
+  case $target in
+    /*) launcher=$target ;;
+    *) parent=$(dirname "$launcher" 2>/dev/null) ||
+         fail 'Unable to resolve the Vortice Maintenance launcher.'
+       launcher=$parent/$target ;;
+  esac
+done
+parent=$(dirname "$launcher" 2>/dev/null) ||
+  fail 'Unable to locate the Vortice Maintenance bundle.'
+bundle=$(CDPATH= cd -P "$parent" 2>/dev/null && pwd -P 2>/dev/null) ||
+  fail 'Unable to locate the Vortice Maintenance bundle.'
+checker=$bundle/vortice-runtime-check
+[ -x "$checker" ] || fail 'The Vortice Maintenance native runtime checker is missing or not executable.'
+
+# Capture pre-main dynamic-loader errors too. In particular, an unavailable
+# system C/C++ runtime must not expose dependency search paths or environment.
+run_checker() {
+  if check_output=$("$checker" "$@" 2>&1); then
+    check_status=0
+  else
+    check_status=$?
+  fi
+  check_framed=false
+  if [ "${1-}" = '--json' ]; then
+    case $check_output in
+      '{"schema_version":1,"ok":'*) check_framed=true ;;
+    esac
+  else
+    case $check_output in
+      'Runtime check passed: bundled native libraries and in-memory SQLite are available.'|\
+      'Runtime check failed: '*|'Runtime check failed ['*) check_framed=true ;;
+    esac
+  fi
+  if [ "$check_framed" = false ]; then
+      if [ "${1-}" = '--json' ]; then
+        check_output='{"schema_version":1,"ok":false,"status":"checker_unavailable","checks":[]}'
+      else
+        check_output='Runtime check failed: the native checker cannot start with the available system runtime.'
+      fi
+      check_status=1
+  fi
+  if [ "$check_status" -eq 0 ] || [ "${1-}" = '--json' ]; then
+    printf '%s\n' "$check_output"
+  else
+    printf '%s\n' "$check_output" >&2
+  fi
+  return "$check_status"
+}
+
+if [ "${1-}" = '--check-runtime' ]; then
+  shift
+  case $# in
+    0) run_checker; exit $? ;;
+    1) if [ "$1" = '--json' ]; then run_checker --json; exit $?; fi ;;
+  esac
+  printf '%s\n' 'Usage: vortice-maintenance --check-runtime [--json]' >&2
+  exit 2
+fi
+
+run_checker || exit $?
+[ -x "$bundle/maintenance_local" ] || fail 'The Vortice Maintenance application is missing or not executable.'
+exec "$bundle/maintenance_local" "$@"
