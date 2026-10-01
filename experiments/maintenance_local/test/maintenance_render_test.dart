@@ -56,8 +56,13 @@ Future<void> _settle(WidgetTester tester) async {
 
 Future<void> _show(WidgetTester tester, Finder target) async {
   expect(target, findsOneWidget);
-  await tester.ensureVisible(target);
-  await tester.pump(const Duration(milliseconds: 250));
+  // Progress arrives asynchronously and can change the card height. Center the
+  // ordinary action after that layout settles, retaining the hit-test gate.
+  for (var attempt = 0; attempt < 6; attempt++) {
+    await Scrollable.ensureVisible(tester.element(target), alignment: 0.5);
+    await _settle(tester);
+    if (target.hitTestable().evaluate().isNotEmpty) break;
+  }
   expect(
     target.hitTestable(),
     findsOneWidget,
