@@ -292,12 +292,15 @@ Future<void> _capture(WidgetTester tester, String name) async {
   final boundary = tester.renderObject<RenderRepaintBoundary>(
     find.byKey(_render),
   );
-  final image = await boundary.toImage(pixelRatio: 1);
-  final bytes = (await image.toByteData(format: ui.ImageByteFormat.png))!;
-  image.dispose();
   await tester.runAsync(() async {
-    await Directory(output).create(recursive: true);
-    await File('$output/$name.png').writeAsBytes(bytes.buffer.asUint8List());
+    final image = await boundary.toImage(pixelRatio: 1);
+    try {
+      final bytes = (await image.toByteData(format: ui.ImageByteFormat.png))!;
+      await Directory(output).create(recursive: true);
+      await File('$output/$name.png').writeAsBytes(bytes.buffer.asUint8List());
+    } finally {
+      image.dispose();
+    }
   });
 }
 
