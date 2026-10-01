@@ -20,14 +20,15 @@ function failure(code) {
   return {protocol_version: 1, request_id: null, ok: false,
     error: {code, message: messages[code] ?? messages.bundle_invalid, retryable: false, outcome: 'not_sent'}};
 }
-function regularRead(file, maximum, code, {privateFile = false} = {}) {
+function regularRead(file, maximum, code, {privateFile = false, sizeCode = code} = {}) {
   let fd;
   try {
     const prior = fs.lstatSync(file);
-    need(prior.isFile() && !prior.isSymbolicLink() && prior.nlink === 1 && prior.size <= maximum, code);
+    need(prior.isFile() && !prior.isSymbolicLink() && prior.nlink === 1, code);
     const mode = prior.mode & 0o7777;
     need(privateFile ? mode === 0o600 && prior.uid === process.getuid() :
       (mode & 0o7022) === 0, code);
+    need(prior.size <= maximum, sizeCode);
     fd = fs.openSync(file, fs.constants.O_RDONLY | fs.constants.O_NOFOLLOW);
     const opened = fs.fstatSync(fd);
     need(opened.dev === prior.dev && opened.ino === prior.ino && opened.size === prior.size &&
@@ -111,7 +112,8 @@ function connectionArguments(argv, contract) {
     const directory = path.dirname(file), before = fs.lstatSync(directory);
     need(before.isDirectory() && !before.isSymbolicLink() && before.uid === process.getuid() &&
       (before.mode & 0o7777) === 0o700 && fs.realpathSync(directory) === directory, 'connection_unsafe');
-    const content = regularRead(file, 16 * 1024, 'connection_unsafe', {privateFile: true});
+    const content = regularRead(file, 16 * 1024, 'connection_unsafe',
+      {privateFile: true, sizeCode: 'connection_invalid'});
     parent = fs.lstatSync(directory);
     need(parent.dev === before.dev && parent.ino === before.ino && parent.mode === before.mode &&
       parent.uid === before.uid && fs.realpathSync(directory) === directory, 'connection_unsafe');
@@ -144,7 +146,7 @@ async function main(argv) {
     return {...help, ok: true, status: 'packaged_client', package_format: manifest.package_format,
       client_source_revision: manifest.client_source_revision, runtime_version: process.versions.node,
       runtime_requirement: 'Already installed compatible Node 22 or newer; no runtime is bundled.',
-      connection_option: '--connection /absolute/private/connection.json; copied from Agent connections',
+      connection_option: '--connection /absolute/private/connection.json supplies all required scope/socket options; copied from Agent connections',
       setup: ['Open the office app and explicitly enable Agent connections.',
         'Create a scoped connection with finite expiry. Supply its credential privately through the agent host environment.',
         'Copy current token-free settings into a private file. Recopy after the office service restarts.'],
