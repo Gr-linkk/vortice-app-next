@@ -7,6 +7,14 @@ without creating a new backlog item.
 
 ## Selected local-first slice — September 30, 2026
 
+### LF-006 — Usable Linux agent CLI distribution
+
+Package a relocatable CLI launcher with the preserved Linux app, using an
+already installed Node 22+ and explicit private connection settings. Verify real
+invocation from a moved extracted package, safe runtime/protocol/capability
+refusal and actual synthetic service operations. No auto-provisioning, runtime
+download, system installation or authority/API changes. [Boundaries and acceptance](docs/specs/LF-006-cli-distribution.md).
+
 ### LF-005 — Office agent connections
 
 Implemented and synthetically verified with LF-004 at `b84070f`; the complete
