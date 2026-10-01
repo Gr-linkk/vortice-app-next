@@ -7,6 +7,7 @@ import 'evidence_store.dart';
 import 'lab_store.dart';
 import 'model.dart';
 import 'maintenance_domain.dart';
+import 'manual_fault_intake.dart';
 import 'agent_service/proposal_review_rules.dart';
 import 'src/rust/api/documents.dart';
 
@@ -801,15 +802,28 @@ class OfficeBackup {
         }
       }
       final noteReviews = <Json>[];
+      final events = <Json>[];
       for (final row in db.select('SELECT * FROM events')) {
-        if (row['kind'] is! String ||
-            jsonDecode(row['payload'] as String) is! Map) {
+        final payload = jsonDecode(row['payload'] as String);
+        if (row['kind'] is! String || payload is! Json) {
           throw StateError('Invalid event history.');
         }
+        events.add({'kind': row['kind'], 'payload': payload});
         if (row['kind'] == notesReviewEvent) {
-          noteReviews.add(jsonDecode(row['payload'] as String) as Json);
+          noteReviews.add(payload);
         }
       }
+      validateManualFaultIntake(
+        settings: settings,
+        events: events,
+        catalog: catalog is Json ? catalog : null,
+        deviceId: settings['device'] as String,
+        submissions: submitted.values.toList(),
+        receipts: [
+          for (final row in receipts)
+            jsonDecode(row['payload'] as String) as Json,
+        ],
+      );
       if (noteReviews.isNotEmpty) {
         if (!real) throw StateError('Invalid suggestion review history.');
         validateNotesReviewHistory(
