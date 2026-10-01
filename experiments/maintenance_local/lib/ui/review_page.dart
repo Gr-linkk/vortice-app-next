@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../lab_store.dart';
 import '../model.dart';
+import '../work_progress_reader.dart';
 import 'common.dart';
 import 'inspection_content.dart';
 
@@ -10,10 +11,14 @@ class ReviewPage extends StatefulWidget {
     required this.store,
     required this.submission,
     this.updates,
+    this.onOpenCurrentInspection,
   });
   final LabStore store;
   final Json submission;
   final Listenable? updates;
+
+  /// Opens the job pinned by the caller, without changing this frozen record.
+  final Future<void> Function()? onOpenCurrentInspection;
   @override
   State<ReviewPage> createState() => _ReviewPageState();
 }
@@ -21,10 +26,12 @@ class ReviewPage extends StatefulWidget {
 class _ReviewPageState extends State<ReviewPage> {
   String? message;
   bool busy = false;
+  Future<String?>? approvalCheck;
   @override
   void initState() {
     super.initState();
     widget.updates?.addListener(refresh);
+    readApprovalCheck();
   }
 
   @override
@@ -34,10 +41,39 @@ class _ReviewPageState extends State<ReviewPage> {
       oldWidget.updates?.removeListener(refresh);
       widget.updates?.addListener(refresh);
     }
+    if (oldWidget.store != widget.store ||
+        oldWidget.submission['id'] != widget.submission['id']) {
+      readApprovalCheck();
+    }
   }
 
   void refresh() {
-    if (mounted) setState(() {});
+    if (mounted) {
+      readApprovalCheck();
+      setState(() {});
+    }
+  }
+
+  void readApprovalCheck() {
+    if (!widget.store.office ||
+        widget.store.receipts.any(
+          (r) => r['submissionId'] == widget.submission['id'],
+        )) {
+      return;
+    }
+    approvalCheck = checkCapturedVersion();
+  }
+
+  Future<String?> checkCapturedVersion() async {
+    final real = widget.store.realWorkspace;
+    final token = real ? await workProgressToken(widget.store) : null;
+    final problem = await widget.store.queue.run(
+      () => widget.store.approvalProblem(widget.submission),
+    );
+    if (real && token != await workProgressToken(widget.store)) {
+      return 'Work changed while this review was loading. Reopen this submitted version to check its current review status.';
+    }
+    return problem;
   }
 
   @override
@@ -113,7 +149,9 @@ class _ReviewPageState extends State<ReviewPage> {
           Text((job['company'] ?? '').toString()),
           if ((equipment['serial'] ?? '').toString().isNotEmpty)
             Text('Equipment ID: ${equipment['serial']}'),
-          Text('Submitted version ${submission['submissionRevision'] ?? 1}'),
+          Text(
+            'Submitted device version ${submission['submissionRevision'] ?? 1}',
+          ),
         ],
         Text('Submitted ${displayTime(submission['createdAt'] as String)}'),
         const SizedBox(height: 12),
@@ -206,9 +244,17 @@ class _ReviewPageState extends State<ReviewPage> {
           const Text(
             'This decision is saved with this version. Any corrections must be submitted as a new version.',
           ),
+          if (receipt['decision'] == 'returned' &&
+              widget.onOpenCurrentInspection != null) ...[
+            const SizedBox(height: 12),
+            OutlinedButton(
+              onPressed: busy ? null : widget.onOpenCurrentInspection,
+              child: const Text('Open current inspection'),
+            ),
+          ],
         ] else if (widget.store.office)
           FutureBuilder<String?>(
-            future: widget.store.approvalProblem(submission),
+            future: approvalCheck,
             builder: (c, state) => Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
@@ -266,6 +312,7 @@ class _ReviewPageState extends State<ReviewPage> {
           Text(
             'Prepared revision: ${submission['revision'] ?? job['revision']}',
           ),
+          SelectableText('Submitting device: ${submission['device']}'),
           if (submission['predecessorId'] != null)
             SelectableText(
               'Previous submitted version: ${submission['predecessorId']}',

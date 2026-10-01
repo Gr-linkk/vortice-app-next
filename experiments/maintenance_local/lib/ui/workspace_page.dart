@@ -4,6 +4,8 @@ import 'package:flutter/material.dart';
 import '../lab_store.dart';
 import '../local_sync.dart';
 import '../model.dart';
+import '../job_progress.dart';
+import '../work_progress_reader.dart';
 import '../qr_scanner.dart';
 import 'common.dart';
 import 'inspection_page.dart';
@@ -13,6 +15,7 @@ import 'backup_page.dart';
 import 'restore_page.dart';
 import 'preparation_page.dart';
 import 'inspection_content.dart';
+import 'work_progress.dart';
 
 class WorkspacePage extends StatefulWidget {
   const WorkspacePage({
@@ -21,11 +24,15 @@ class WorkspacePage extends StatefulWidget {
     this.onRestored,
     this.officePort = 47841,
     this.phoneSyncFactory = PhoneSync.new,
+    this.progressReader,
+    this.progressTokenReader,
   });
   final LabStore store;
   final ValueChanged<LabStore>? onRestored;
   final int officePort;
   final PhoneSync Function(LabStore) phoneSyncFactory;
+  final ProgressReader? progressReader;
+  final ProgressTokenReader? progressTokenReader;
   @override
   State<WorkspacePage> createState() => _WorkspacePageState();
 }
@@ -37,6 +44,7 @@ class _WorkspacePageState extends State<WorkspacePage>
   PhoneSync? sync;
   Timer? timer;
   final reviewUpdates = ValueNotifier<int>(0);
+  late final WorkProgressController progress;
   bool active = true, working = false;
   String? error;
   ConnectionGuidance? guidance;
@@ -45,6 +53,11 @@ class _WorkspacePageState extends State<WorkspacePage>
   @override
   void initState() {
     super.initState();
+    progress = WorkProgressController(
+      store,
+      reader: widget.progressReader ?? readWorkProgress,
+      tokenReader: widget.progressTokenReader ?? workProgressToken,
+    )..addListener(progressChanged);
     active =
         WidgetsBinding.instance.lifecycleState == null ||
         WidgetsBinding.instance.lifecycleState == AppLifecycleState.resumed;
@@ -105,7 +118,12 @@ class _WorkspacePageState extends State<WorkspacePage>
     if (mounted) {
       reviewUpdates.value++;
       setState(() {});
+      if (store.realWorkspace) unawaited(progress.refresh());
     }
+  }
+
+  void progressChanged() {
+    if (mounted) setState(() {});
   }
 
   @override
@@ -122,6 +140,7 @@ class _WorkspacePageState extends State<WorkspacePage>
     sync?.onChange = null;
     server?.close();
     reviewUpdates.dispose();
+    progress.dispose();
     super.dispose();
   }
 
@@ -233,7 +252,7 @@ class _WorkspacePageState extends State<WorkspacePage>
             onPressed: () => showAboutDialog(
               context: context,
               applicationName: 'Vortice Local Maintenance',
-              applicationVersion: '0.2.1 · internal experiment',
+              applicationVersion: '0.2.2 · internal experiment',
               children: [
                 const Text(
                   'A separate local maintenance experiment for one office coordinator and one mechanic phone. Equipment, authored checklists and inspection records stay on your devices.',
@@ -421,7 +440,7 @@ class _WorkspacePageState extends State<WorkspacePage>
     refresh();
   }
 
-  Future<void> openJob(String id) async {
+  Future<void> openJob(String id, {String? correctionSubmissionId}) async {
     store.selectJob(id);
     await Navigator.push(
       context,
@@ -431,6 +450,8 @@ class _WorkspacePageState extends State<WorkspacePage>
           jobId: id,
           sync: sync,
           updates: reviewUpdates,
+          progressController: progress,
+          correctionSubmissionId: correctionSubmissionId,
         ),
       ),
     );
@@ -449,7 +470,7 @@ class _WorkspacePageState extends State<WorkspacePage>
             onPressed: () => showAboutDialog(
               context: context,
               applicationName: 'Vortice Local Maintenance',
-              applicationVersion: '0.2.1 · internal experiment',
+              applicationVersion: '0.2.2 · internal experiment',
               children: const [
                 Text(
                   'A separate local maintenance experiment for one office coordinator and one mechanic phone. Equipment, authored checklists and inspection records stay on your devices. Your normal Vortice app is separate.',
@@ -516,6 +537,8 @@ class _WorkspacePageState extends State<WorkspacePage>
             label: const Text('Prepare inspection'),
           ),
         for (final job in store.jobs) jobCard(job),
+        if (progress.error != null) notice(progress.error!, error: true),
+        if (store.office) ...reviewSections(),
         if (store.office) ...[
           const SizedBox(height: 20),
           Text('Equipment', style: Theme.of(context).textTheme.titleLarge),
@@ -597,27 +620,7 @@ class _WorkspacePageState extends State<WorkspacePage>
               'Office backup restored. Create a new invitation for each retained phone, compare its code and confirm it again under Connect or replace a phone. Revoked phones remain blocked. Work saved after the backup is not included.',
             ),
         ],
-        const SizedBox(height: 24),
-        Text(
-          store.office ? 'Review submitted work' : 'Submitted versions',
-          style: Theme.of(context).textTheme.titleLarge,
-        ),
-        if (store.submissions.isEmpty)
-          const Padding(
-            padding: EdgeInsets.symmetric(vertical: 12),
-            child: Text(
-              'No submitted work yet. Open an inspection, record its checks and readings, add notes and a photo, then submit for review.',
-            ),
-          ),
-        for (final submission in store.submissions.reversed)
-          submissionCard(submission),
-        if (store.receipts.isNotEmpty)
-          const Padding(
-            padding: EdgeInsets.only(top: 12),
-            child: Text(
-              'Reviewed versions stay in history when an inspection changes.',
-            ),
-          ),
+        if (!store.office) ...reviewSections(),
         const Padding(
           padding: EdgeInsets.only(top: 20),
           child: Text(
@@ -631,8 +634,9 @@ class _WorkspacePageState extends State<WorkspacePage>
   Widget jobCard(Json job) {
     final id = (job['id'] ?? job['jobId']) as String;
     final jobContext = store.jobContextFor(id);
-    final latest = store.submissions.where((p) => p['jobId'] == id).lastOrNull;
+    final currentProgress = progress.snapshot?.jobs[id];
     return Card(
+      key: ValueKey('inspection:$id'),
       child: Padding(
         padding: const EdgeInsets.all(20),
         child: Column(
@@ -645,11 +649,13 @@ class _WorkspacePageState extends State<WorkspacePage>
             const SizedBox(height: 8),
             Text(jobTitle(jobContext['job'])),
             const SizedBox(height: 8),
-            Text(
-              latest == null
-                  ? 'Prepared · Ready to inspect'
-                  : submissionStatus(latest),
-            ),
+            if (currentProgress != null)
+              DraftProgressView(
+                progress: currentProgress,
+                localDevice: store.device,
+              )
+            else
+              const Text('Reading current work status…'),
             const SizedBox(height: 16),
             FilledButton(
               onPressed: () => openJob(id),
@@ -663,6 +669,42 @@ class _WorkspacePageState extends State<WorkspacePage>
     );
   }
 
+  List<Widget> reviewSections() {
+    final snapshot = progress.snapshot;
+    return [
+      const SizedBox(height: 24),
+      Text(
+        store.office
+            ? 'Awaiting review (${snapshot?.undecided.length ?? '…'})'
+            : 'Submitted versions',
+        style: Theme.of(context).textTheme.titleLarge,
+      ),
+      if (snapshot == null)
+        const Text('Reading submitted versions…')
+      else ...[
+        if (snapshot.undecided.isEmpty)
+          Text(
+            store.office
+                ? 'No submitted versions are awaiting a decision.'
+                : 'No versions are waiting to send or be reviewed.',
+          ),
+        for (final version in snapshot.undecided.reversed)
+          submissionCard(version.submission, version: version),
+        const SizedBox(height: 20),
+        Text(
+          'Reviewed history (${snapshot.reviewed.length})',
+          style: Theme.of(context).textTheme.titleLarge,
+        ),
+        const Text(
+          'Each decision belongs to its exact submitted record. Device version numbers belong to separate device histories.',
+        ),
+        if (snapshot.reviewed.isEmpty) const Text('No reviewed versions yet.'),
+        for (final version in snapshot.reviewed.reversed)
+          submissionCard(version.submission, version: version),
+      ],
+    ];
+  }
+
   String submissionStatus(Json p) {
     final receipt = store.receipts
         .where((r) => r['submissionId'] == p['id'])
@@ -674,12 +716,15 @@ class _WorkspacePageState extends State<WorkspacePage>
         : 'Returned — ${receipt['reason']}';
   }
 
-  Widget submissionCard(Json p) {
+  Widget submissionCard(Json p, {SubmittedVersion? version}) {
     final submittedContext = jsonMap(p['context']);
     final values = jsonMap(p['values']);
     return Card(
+      key: ValueKey('submitted-version:${p['id']}'),
       child: ListTile(
-        title: Text(submissionStatus(p)),
+        title: Text(
+          version == null ? submissionStatus(p) : versionStatus(version),
+        ),
         subtitle: Text(
           [
             if (submittedContext.isNotEmpty)
@@ -689,7 +734,11 @@ class _WorkspacePageState extends State<WorkspacePage>
                 submittedContext['meterRequired'] == true)
               'Meter: ${values['meter']} ${submittedContext.isEmpty ? 'hours' : meterUnitLabel(submittedContext['meterUnit'])}',
             if (submittedContext.isNotEmpty)
-              'Version ${p['submissionRevision'] ?? 1}',
+              'Device version ${p['submissionRevision'] ?? 1}',
+            if (version != null &&
+                version.decision == null &&
+                version.photoState != PhotoState.complete)
+              photoStateLabel(version.photoState),
           ].join('\n'),
         ),
         trailing: const Icon(Icons.chevron_right),
@@ -701,6 +750,12 @@ class _WorkspacePageState extends State<WorkspacePage>
                 store: store,
                 submission: p,
                 updates: reviewUpdates,
+                onOpenCurrentInspection: store.realWorkspace
+                    ? () => openJob(
+                        p['jobId'] as String,
+                        correctionSubmissionId: p['id'] as String,
+                      )
+                    : null,
               ),
             ),
           );

@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -7,6 +8,8 @@ import '../model.dart';
 import '../local_sync.dart';
 import 'common.dart';
 import 'inspection_content.dart';
+import '../job_progress.dart';
+import 'work_progress.dart';
 
 class InspectionPage extends StatefulWidget {
   const InspectionPage({
@@ -15,11 +18,15 @@ class InspectionPage extends StatefulWidget {
     this.jobId,
     this.sync,
     this.updates,
+    this.progressController,
+    this.correctionSubmissionId,
   });
   final LabStore store;
   final String? jobId;
   final PhoneSync? sync;
   final ValueListenable<int>? updates;
+  final WorkProgressController? progressController;
+  final String? correctionSubmissionId;
   @override
   State<InspectionPage> createState() => _InspectionPageState();
 }
@@ -36,6 +43,8 @@ class _InspectionPageState extends State<InspectionPage> {
   final dirty = <String, dynamic>{};
   String? message;
   bool busy = false;
+  WorkProgressController? progress;
+  bool ownsProgress = false;
 
   @override
   void initState() {
@@ -45,6 +54,11 @@ class _InspectionPageState extends State<InspectionPage> {
     jobContext = legacy
         ? Map<String, dynamic>.from(store.workspace!)
         : store.jobContextFor(jobId!);
+    if (!legacy) {
+      ownsProgress = widget.progressController == null;
+      progress = widget.progressController ?? WorkProgressController(store);
+      if (ownsProgress) widget.updates?.addListener(refreshProgress);
+    }
     for (final item in inspectionItems(jobContext)) {
       if (item['input_type'] != 'check') {
         answers[item['id'] as String] = TextEditingController();
@@ -60,6 +74,7 @@ class _InspectionPageState extends State<InspectionPage> {
       if (!mounted) return;
       refill(valuesOf(fields));
       setState(() => alternatives = fields);
+      refreshProgress();
     } catch (failure) {
       if (mounted) {
         setState(
@@ -78,12 +93,20 @@ class _InspectionPageState extends State<InspectionPage> {
     }
   }
 
+  void refreshProgress() {
+    if (mounted && progress != null) unawaited(progress!.refresh());
+  }
+
   @override
   void dispose() {
     notes.dispose();
     meter.dispose();
     for (final controller in answers.values) {
       controller.dispose();
+    }
+    if (ownsProgress) {
+      widget.updates?.removeListener(refreshProgress);
+      progress?.dispose();
     }
     super.dispose();
   }
@@ -122,16 +145,25 @@ class _InspectionPageState extends State<InspectionPage> {
             ? 'Conflict resolved. Review the inspection and submit a new version.'
             : 'Selection saved. Resolve the remaining conflicting work before submitting.';
       } else if (submit) {
-        await store.submit(jobId: jobId);
-        message = store.office
-            ? 'Submitted for computer review.'
-            : widget.sync != null
-            ? 'Version saved for review. Its sending status is shown above.'
-            : 'Saved on this phone—waiting to send.';
+        final existingIds = store.submissions.map((p) => p['id']).toSet();
+        final submitted = await store.submit(jobId: jobId);
+        final stored = store.submissions.firstWhere(
+          (p) => p['id'] == submitted['id'],
+        );
+        final receipt = store.receipts
+            .where((r) => r['submissionId'] == submitted['id'])
+            .firstOrNull;
+        message = submissionSavedMessage(
+          SubmittedVersion(submission: stored, receipt: receipt),
+          existing: existingIds.contains(submitted['id']),
+          office: store.office,
+          sendingStatusShown: widget.sync != null,
+        );
       } else {
         message = 'Work saved on this ${store.office ? 'computer' : 'phone'}.';
       }
       saved = true;
+      refreshProgress();
     } catch (failure) {
       message = failure.toString().replaceFirst('Bad state: ', '');
     }
@@ -168,6 +200,7 @@ class _InspectionPageState extends State<InspectionPage> {
           'Could not save the photo. Your notes and readings are saved. Choose the photo again. ${failure.toString().replaceFirst('Bad state: ', '')}';
     } finally {
       store.setSetting('pendingInspectionPhoto', null);
+      refreshProgress();
       if (mounted) setState(() => busy = false);
     }
   }
@@ -284,6 +317,40 @@ class _InspectionPageState extends State<InspectionPage> {
                       ? 'Complete both checks, record the meter, add notes and a photo. Saving work keeps it on this device; submit when it is ready for review.'
                       : 'Record what you inspect, add notes and a photo, then submit for office review. Needs action records a finding; approval of this inspection does not confirm a repair.',
                 ),
+                if (progress != null)
+                  AnimatedBuilder(
+                    animation: progress!,
+                    builder: (_, child) {
+                      final current = progress!.snapshot?.jobs[jobId];
+                      return Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        child: current == null
+                            ? Text(
+                                progress!.error ??
+                                    'Reading current work status…',
+                              )
+                            : Column(
+                                crossAxisAlignment: CrossAxisAlignment.stretch,
+                                children: [
+                                  if (dirty.isNotEmpty)
+                                    const Text('Current draft: Unsaved changes')
+                                  else
+                                    DraftProgressView(
+                                      progress: current,
+                                      localDevice: store.device,
+                                    ),
+                                  ReturnedWorkView(
+                                    progress: current,
+                                    correctionSubmissionId:
+                                        widget.correctionSubmissionId,
+                                  ),
+                                ],
+                              ),
+                      );
+                    },
+                  ),
+                if (widget.sync != null)
+                  const Text('Sending status for this phone (all inspections)'),
                 if (widget.sync != null)
                   if (widget.updates != null)
                     ValueListenableBuilder<int>(
