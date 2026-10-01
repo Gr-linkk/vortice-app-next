@@ -201,7 +201,7 @@ class _ManualFaultFormState extends State<_ManualFaultForm> {
   ManualFaultOrigin? _origin;
   FrozenManualFaultCommand? _command;
   bool _busy = false, _uncertain = false, _dirty = false, _leaving = false;
-  bool get _locked => _busy || _uncertain || _command != null;
+  bool get _locked => _busy || _uncertain || _command != null || _leaving;
 
   @override
   void dispose() {
@@ -210,6 +210,7 @@ class _ManualFaultFormState extends State<_ManualFaultForm> {
   }
 
   Future<void> _chooseEquipment() async {
+    if (!mounted || _locked) return;
     FocusManager.instance.primaryFocus?.unfocus();
     final id = await Navigator.push<String>(
       context,
@@ -226,7 +227,7 @@ class _ManualFaultFormState extends State<_ManualFaultForm> {
 
   Future<void> _chooseSource() async {
     final equipment = _equipmentId;
-    if (equipment == null || _locked) return;
+    if (!mounted || equipment == null || _locked) return;
     FocusManager.instance.primaryFocus?.unfocus();
     final origin = await Navigator.push<ManualFaultOrigin>(
       context,
@@ -280,7 +281,7 @@ class _ManualFaultFormState extends State<_ManualFaultForm> {
   }
 
   Future<void> _record() async {
-    if (_busy) return;
+    if (!mounted || _busy || _leaving) return;
     if (_equipmentId == null || _description.text.trim().isEmpty) {
       setState(
         () => _error = 'Select equipment and describe the reported problem.',
@@ -420,6 +421,7 @@ class _ManualFaultFormState extends State<_ManualFaultForm> {
             store: widget.store,
             origin: _origin!,
             enabled: !_busy,
+            canOpen: () => mounted && !_busy && !_leaving,
           ),
           TextButton(
             key: const Key('manual-fault-clear-source'),
@@ -526,6 +528,7 @@ class _ManualFaultRequestPageState extends State<_ManualFaultRequestPage> {
   bool _busy = false;
 
   Future<void> _resume() async {
+    if (!mounted || _busy || _record != null) return;
     setState(() {
       _busy = true;
       _error = null;
@@ -562,6 +565,7 @@ class _ManualFaultRequestPageState extends State<_ManualFaultRequestPage> {
             severity: command.severity,
             origin: command.origin,
             sourceEnabled: !_busy,
+            canOpenSource: () => mounted && !_busy,
           ),
           Text('Request saved ${displayTime(command.createdAt)}'),
           if (_error != null) notice(_error!, error: true),
@@ -608,12 +612,14 @@ class _FaultFacts extends StatelessWidget {
     required this.severity,
     required this.origin,
     this.sourceEnabled = true,
+    this.canOpenSource,
   });
   final LabStore store;
   final String equipmentId, description;
   final ManualFaultSeverity severity;
   final ManualFaultOrigin? origin;
   final bool sourceEnabled;
+  final bool Function()? canOpenSource;
 
   @override
   Widget build(BuildContext context) => Column(
@@ -626,7 +632,12 @@ class _FaultFacts extends StatelessWidget {
       SelectableText(description),
       const SizedBox(height: 20),
       if (origin != null)
-        _OriginSummary(store: store, origin: origin!, enabled: sourceEnabled)
+        _OriginSummary(
+          store: store,
+          origin: origin!,
+          enabled: sourceEnabled,
+          canOpen: canOpenSource,
+        )
       else
         const Text('No inspection source was linked.'),
     ],
@@ -638,10 +649,12 @@ class _OriginSummary extends StatelessWidget {
     required this.store,
     required this.origin,
     this.enabled = true,
+    this.canOpen,
   });
   final LabStore store;
   final ManualFaultOrigin origin;
   final bool enabled;
+  final bool Function()? canOpen;
 
   @override
   Widget build(BuildContext context) => _card([
@@ -652,12 +665,18 @@ class _OriginSummary extends StatelessWidget {
       key: const Key('manual-fault-view-source'),
       onPressed: !enabled
           ? null
-          : () => Navigator.push<void>(
-              context,
-              MaterialPageRoute(
-                builder: (_) => _SavedSourcePage(store: store, origin: origin),
-              ),
-            ),
+          : () {
+              // A callback from the previous frame may still run after save
+              // starts. Check live state before pushing a competing route.
+              if (!context.mounted || canOpen?.call() == false) return;
+              Navigator.push<void>(
+                context,
+                MaterialPageRoute(
+                  builder: (_) =>
+                      _SavedSourcePage(store: store, origin: origin),
+                ),
+              );
+            },
       child: const Text('View saved source'),
     ),
   ]);
