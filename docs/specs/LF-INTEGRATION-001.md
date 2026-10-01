@@ -28,6 +28,10 @@ The source checkpoints, binary receipts and original running workspaces are
 unchanged. Disposable tests, builds, screenshots, synthetic workspaces, keys
 and recovery bundles must remain outside tracked publication.
 
+The combined internal build is `0.2.3+4` under the unchanged dedicated
+`org.vortice.next.maintenance_local` identity and existing internal signer.
+It receives separate local artifacts; earlier validated binaries are retained.
+
 ## Combined behavior and boundaries
 
 The office creates equipment and immutable checklists, prepares frozen jobs,
