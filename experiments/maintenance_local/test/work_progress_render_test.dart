@@ -437,7 +437,7 @@ void main() {
         final frozenA = canonical(office.jobContextFor(a));
         final frozenB = canonical(office.jobContextFor(b));
         await _show(tester, _in(_jobCard(a), find.textContaining('Prepared')));
-        await _capture(tester, 'office-prepared-${suffix}x');
+        await _capture(tester, 'progress-office-prepared-${suffix}x');
 
         late Uint8List photo;
         late File gallery;
