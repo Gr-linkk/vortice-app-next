@@ -1,6 +1,6 @@
-import '../lib/job_progress.dart';
-import '../lib/maintenance_domain.dart';
-import '../lib/model.dart';
+import 'package:maintenance_local/job_progress.dart';
+import 'package:maintenance_local/maintenance_domain.dart';
+import 'package:maintenance_local/model.dart';
 
 void require(bool condition, String message) {
   if (!condition) throw StateError(message);
@@ -108,5 +108,7 @@ void main() {
     immutable = true;
   }
   require(immutable, 'Captured projection context is immutable.');
+  // This standalone verification command reports its one completed gate.
+  // ignore: avoid_print
   print('Pure Dart work progress and exact history boundary passed.');
 }

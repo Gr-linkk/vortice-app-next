@@ -88,3 +88,35 @@ unverified. Startup-failure recovery navigation and older-backup missing-decisio
 reconciliation need separately designed bounded flows; no phone receipt promotion
 is permitted. Existing-company import, multi-coordinator failover, engine-cache
 ownership and production identity compromise/rotation remain deferred choices.
+
+## Desktop CLI coordination
+
+Garrett subsequently chose a desktop CLI for external agents in the future
+local-first edition, preserving hosted MCP as rollback/reference. A separate
+research task owns the isolated CLI contract and adapter. LF-002 owns only the
+progress modules, composed work UI and their tests; it adds no CLI or credentials.
+
+Use the existing serial runtime command boundary, rather than exposing SQLite,
+mutable catalog JSON, native documents or private recovery files. Read adapters
+can reuse captured frozen work context and this increment's typed progress. Agent
+reads must be scoped to the granted company/jobs and must not expose private
+identity or backup material. Published-checklist provenance is available; this
+slice does not yet provide a general manual repository or hosted MCP parity.
+
+`LabStore` currently distinguishes office versus mechanic. It does not implement
+scoped external-agent credentials. An explicit permission-checked service must
+precede agent calls; possession of the office filesystem or a mechanic token is
+not a new agent grant. Office publication, enrollment/revocation and immutable
+approval/return authority stay separate. Consequential proposals need human
+review. Use synthetic actors and credentials until a real grant is approved.
+
+Existing submission and decision replay preserve exact frozen identity. Ordinary
+`update` is a draft edit, not a general idempotent CLI operation: reapplying an
+edit can create different Automerge bytes. The CLI owner must design frozen
+operation-ID/payload/result semantics before treating that method as retry safe.
+New durable command storage must reconcile the strict recovery schema; it cannot
+be appended silently to the reviewed database. Local state, verified whole-job
+transfer and immutable approval are distinct outputs. Progress is not evidence
+of a fresh successful transfer; use the existing verified-send proof for synced
+status. Unsaved human-editor checkpoints remain local UI recovery, outside an
+agent's implicit mutation authority.
