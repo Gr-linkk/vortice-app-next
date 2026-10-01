@@ -416,7 +416,11 @@ class _ManualFaultFormState extends State<_ManualFaultForm> {
         ),
         if (_origin != null) ...[
           const SizedBox(height: 12),
-          _OriginSummary(store: widget.store, origin: _origin!),
+          _OriginSummary(
+            store: widget.store,
+            origin: _origin!,
+            enabled: !_busy,
+          ),
           TextButton(
             key: const Key('manual-fault-clear-source'),
             onPressed: _locked
@@ -557,6 +561,7 @@ class _ManualFaultRequestPageState extends State<_ManualFaultRequestPage> {
             description: command.description,
             severity: command.severity,
             origin: command.origin,
+            sourceEnabled: !_busy,
           ),
           Text('Request saved ${displayTime(command.createdAt)}'),
           if (_error != null) notice(_error!, error: true),
@@ -602,11 +607,13 @@ class _FaultFacts extends StatelessWidget {
     required this.description,
     required this.severity,
     required this.origin,
+    this.sourceEnabled = true,
   });
   final LabStore store;
   final String equipmentId, description;
   final ManualFaultSeverity severity;
   final ManualFaultOrigin? origin;
+  final bool sourceEnabled;
 
   @override
   Widget build(BuildContext context) => Column(
@@ -619,7 +626,7 @@ class _FaultFacts extends StatelessWidget {
       SelectableText(description),
       const SizedBox(height: 20),
       if (origin != null)
-        _OriginSummary(store: store, origin: origin!)
+        _OriginSummary(store: store, origin: origin!, enabled: sourceEnabled)
       else
         const Text('No inspection source was linked.'),
     ],
@@ -627,9 +634,14 @@ class _FaultFacts extends StatelessWidget {
 }
 
 class _OriginSummary extends StatelessWidget {
-  const _OriginSummary({required this.store, required this.origin});
+  const _OriginSummary({
+    required this.store,
+    required this.origin,
+    this.enabled = true,
+  });
   final LabStore store;
   final ManualFaultOrigin origin;
+  final bool enabled;
 
   @override
   Widget build(BuildContext context) => _card([
@@ -638,12 +650,14 @@ class _OriginSummary extends StatelessWidget {
     Text('Captured observation: ${_observation(origin.observation)}'),
     TextButton(
       key: const Key('manual-fault-view-source'),
-      onPressed: () => Navigator.push<void>(
-        context,
-        MaterialPageRoute(
-          builder: (_) => _SavedSourcePage(store: store, origin: origin),
-        ),
-      ),
+      onPressed: !enabled
+          ? null
+          : () => Navigator.push<void>(
+              context,
+              MaterialPageRoute(
+                builder: (_) => _SavedSourcePage(store: store, origin: origin),
+              ),
+            ),
       child: const Text('View saved source'),
     ),
   ]);
@@ -979,5 +993,9 @@ String _observation(ManualFaultObservation observation) =>
       ManualFaultObservation.approved => 'Approved',
       ManualFaultObservation.returned => 'Returned',
     };
-String _message(Object failure) =>
-    failure.toString().replaceFirst('Bad state: ', '');
+String _message(Object failure) {
+  if (failure is ManualFaultIntakeFailure) return failure.message;
+  if (failure is StateError) return failure.message.toString();
+  return 'Fault history could not be saved or checked on this computer. '
+      'Existing files have been retained. Try again.';
+}

@@ -1,4 +1,3 @@
-import 'dart:convert';
 import 'dart:io';
 import 'dart:ui' as ui;
 
@@ -17,8 +16,57 @@ import 'package:maintenance_local/ui/manual_fault_intake_page.dart';
 const _boundary = Key('manual-fault-render');
 const _description =
     'Operator reported a loose guard fastener. Check the guard before planning corrective work.';
-const _photo =
-    'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jRZkAAAAASUVORK5CYII=';
+late final List<int> _photo;
+
+Future<List<int>> _syntheticPng() async {
+  final recorder = ui.PictureRecorder();
+  final canvas = Canvas(recorder);
+  canvas.drawColor(const Color(0xffe4ece6), BlendMode.src);
+  canvas.drawRRect(
+    RRect.fromRectAndRadius(
+      const Rect.fromLTWH(40, 40, 400, 240),
+      const Radius.circular(16),
+    ),
+    Paint()..color = const Color(0xff103d3c),
+  );
+  final caption = TextPainter(
+    text: const TextSpan(
+      text: 'SYNTHETIC SAVED EVIDENCE\nGenerator guard',
+      style: TextStyle(fontFamily: 'Roboto', fontSize: 24, color: Colors.white),
+    ),
+    textDirection: TextDirection.ltr,
+    textAlign: TextAlign.center,
+  )..layout(maxWidth: 350);
+  caption.paint(canvas, const Offset(65, 120));
+  caption.dispose();
+  final picture = recorder.endRecording();
+  final image = await picture.toImage(480, 320);
+  try {
+    final bytes = await image.toByteData(format: ui.ImageByteFormat.png);
+    return bytes!.buffer.asUint8List();
+  } finally {
+    image.dispose();
+    picture.dispose();
+  }
+}
+
+Future<void> _close(WidgetTester tester, LabStore store) async {
+  var finished = false;
+  final closing = store.close().then((_) => finished = true);
+  for (var i = 0; i < 20 && !finished; i++) {
+    await tester.pump(const Duration(milliseconds: 20));
+    await tester.runAsync(
+      () => Future<void>.delayed(const Duration(milliseconds: 10)),
+    );
+  }
+  expect(
+    finished,
+    isTrue,
+    reason:
+        'Drain fake-zone queue callbacks before awaiting real SQLite close.',
+  );
+  await closing;
+}
 
 /// Inject only a reply failure around actual persistence. No records, commands
 /// or receipts are mocked; retries must use the durable store's real result.
@@ -243,6 +291,7 @@ void main() {
     await (FontLoader(
       'MaterialIcons',
     )..addFont(rootBundle.load('fonts/MaterialIcons-Regular.otf'))).load();
+    _photo = await _syntheticPng();
   });
 
   late Directory root;
@@ -314,7 +363,7 @@ void main() {
         },
         'notes': '$title: mechanic recorded the original guard condition.',
       }, jobId: id);
-      await store.attach(base64Decode(_photo), jobId: id);
+      await store.attach(_photo, jobId: id);
       return store.submit(jobId: id);
     }
 
@@ -339,9 +388,7 @@ void main() {
     tester.view.resetDevicePixelRatio();
     await tester.pumpWidget(const SizedBox.shrink());
     await _settle(tester);
-    final closing = store.close();
-    await tester.pump();
-    await closing;
+    await _close(tester, store);
     await tester.runAsync(() => root.delete(recursive: true));
   });
 
@@ -600,9 +647,7 @@ void main() {
         expect(find.text('Discard this report?'), findsNothing);
         await tester.pumpWidget(const SizedBox.shrink());
         await _settle(tester);
-        final closing = store.close();
-        await tester.pump();
-        await closing;
+        await _close(tester, store);
         store = (await tester.runAsync(
           () => LabStore.open(
             Directory('${root.path}/office'),
@@ -773,9 +818,7 @@ void main() {
       await _capture(tester, 'large-text-phone-denied');
       await tester.pumpWidget(const SizedBox.shrink());
       await _settle(tester);
-      final closing = phone.close();
-      await tester.pump();
-      await closing;
+      await _close(tester, phone);
     },
   );
 }
