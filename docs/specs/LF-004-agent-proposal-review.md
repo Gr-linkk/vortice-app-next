@@ -127,5 +127,22 @@ owns the editor fix. LF-004 additionally requires clean and dirty already-open
 editor acceptance around human proposal application, preserving local edits and
 refreshing visibly or fencing submission until the user reviews current values.
 This downstream submission gate remains pending until the reviewed fix is
-combined; LF-004 does not duplicate that owner’s editor edits. Rendered review
-screen acceptance is still running at this checkpoint.
+combined; LF-004 does not duplicate that owner’s editor edits.
+
+October 1 screen checkpoint: all five actual-native UI tests pass, with clean
+Dart analysis. The review route, comparison, explicit confirmation, uncertain
+same-operation retry, stale refusal, rejection reason and terminal history are
+rendered at 412 × 915 with 1× and 1.8× text. Nineteen real-font PNG receipts are
+in ignored `outputs/proposal-review-renders/`; normal and large-text screens were
+visually inspected for readability and reachable actions. No overflow or
+framework errors remain. Pending-directory removal preserves readable history.
+
+Independent UI review caught a historical/live-text ambiguity before delivery:
+after an external review and later draft edit, detail could label live notes as
+historically reviewed. Completed details now render the immutable review-record
+screen using only the original proposal embedded in the terminal receipt. The
+fifth native regression opens a pending detail, accepts elsewhere, changes the
+draft again, then refreshes and verifies original historical text with no live
+comparison or actions. This fix also preserves terminal meaning for recreated
+sidecars joined by their original creation key. Actual workspace navigation and
+the already-open inspection editor integration gate remain coordinator-owned.
