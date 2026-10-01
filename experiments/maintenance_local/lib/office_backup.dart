@@ -7,6 +7,7 @@ import 'evidence_store.dart';
 import 'lab_store.dart';
 import 'model.dart';
 import 'maintenance_domain.dart';
+import 'agent_service/proposal_review_rules.dart';
 import 'src/rust/api/documents.dart';
 
 /// Product entry points require [maintenance]. A null requirement retains the
@@ -799,10 +800,29 @@ class OfficeBackup {
           throw StateError('Required evidence is incomplete.');
         }
       }
+      final noteReviews = <Json>[];
       for (final row in db.select('SELECT * FROM events')) {
         if (row['kind'] is! String ||
             jsonDecode(row['payload'] as String) is! Map) {
           throw StateError('Invalid event history.');
+        }
+        if (row['kind'] == notesReviewEvent) {
+          noteReviews.add(jsonDecode(row['payload'] as String) as Json);
+        }
+      }
+      if (noteReviews.isNotEmpty) {
+        if (!real) throw StateError('Invalid suggestion review history.');
+        validateNotesReviewHistory(
+          noteReviews,
+          companyId: (catalog as Json)['companyId'] as String,
+          reviewerDevice: settings['device'] as String,
+        );
+        for (final review in noteReviews) {
+          final proposal = NotesProposal.fromRecord(review['proposal'] as Json);
+          if (canonical(jobContext(catalog, proposal.jobId)) !=
+              canonical(proposal.context)) {
+            throw StateError('Invalid suggestion review context.');
+          }
         }
       }
       return _Facts(

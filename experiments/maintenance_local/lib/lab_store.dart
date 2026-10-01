@@ -7,6 +7,7 @@ import 'evidence_store.dart';
 import 'approval_rules.dart';
 import 'model.dart';
 import 'maintenance_domain.dart';
+import 'agent_service/proposal_review_rules.dart';
 import 'src/rust/api/documents.dart';
 
 /// Company storage and durable capture. Office authority never enters documents.
@@ -380,24 +381,34 @@ class LabStore {
         : jsonDecode(await documentValues(bytes: bytes)) as Json;
   }
 
+  Future<Uint8List> _prepareEdit(
+    Json patch, {
+    Uint8List? base,
+    String? jobId,
+  }) async {
+    final id = _documentId(jobId);
+    if (realWorkspace && patch.keys.any((key) => key.startsWith('_'))) {
+      throw StateError('Work-order identity cannot be edited.');
+    }
+    final bytes = realWorkspace ? documentFor(id) : document;
+    if (bytes == null) throw StateError('Connect to the company first.');
+    final edited = await editDocument(
+      bytes: base ?? bytes,
+      actor: base == null ? device : '$device:${const Uuid().v4()}',
+      fieldsJson: canonical(patch),
+    );
+    final updated = base == null
+        ? edited
+        : await mergeDocuments(left: bytes, right: edited);
+    final view = jsonDecode(await documentValues(bytes: updated)) as Json;
+    validateFields(view, jobId: realWorkspace ? id : null);
+    return updated;
+  }
+
   Future<void> update(Json patch, {Uint8List? base, String? jobId}) =>
       queue.run(() async {
         final id = _documentId(jobId);
-        if (realWorkspace && patch.keys.any((key) => key.startsWith('_'))) {
-          throw StateError('Work-order identity cannot be edited.');
-        }
-        final bytes = realWorkspace ? documentFor(id) : document;
-        if (bytes == null) throw StateError('Connect to the company first.');
-        final edited = await editDocument(
-          bytes: base ?? bytes,
-          actor: base == null ? device : '$device:${const Uuid().v4()}',
-          fieldsJson: canonical(patch),
-        );
-        final updated = base == null
-            ? edited
-            : await mergeDocuments(left: bytes, right: edited);
-        final view = jsonDecode(await documentValues(bytes: updated)) as Json;
-        validateFields(view, jobId: realWorkspace ? id : null);
+        final updated = await _prepareEdit(patch, base: base, jobId: jobId);
         transaction(() {
           saveDocument(updated, jobId: realWorkspace ? id : null);
           setSetting('savedAt', stamp());
@@ -407,6 +418,160 @@ class LabStore {
           });
         });
       });
+
+  /// Human office history, distinct from immutable inspection approvals. The
+  /// existing events table participates in the same strict database backup.
+  List<Json> get agentNotesReviews {
+    requireOffice();
+    if (!realWorkspace) return [];
+    final receipts = db
+        .select('SELECT payload FROM events WHERE kind=? ORDER BY id', [
+          notesReviewEvent,
+        ])
+        .map((row) => jsonDecode(row['payload'] as String) as Json)
+        .toList();
+    validateNotesReviewHistory(
+      receipts,
+      companyId: catalog!['companyId'] as String,
+      reviewerDevice: device,
+    );
+    return receipts;
+  }
+
+  /// No agent transport command calls this human-only office command. A terminal
+  /// decision and a notes-only draft edit commit together; submission/approval,
+  /// work selection and enrollment are untouched.
+  Future<Json> reviewAgentNotes(
+    NotesProposal proposal, {
+    required String operationId,
+    required bool accept,
+    required String reason,
+    required String reviewedDocumentHash,
+    required String workspaceId,
+    required String serviceDeviceId,
+  }) {
+    final key = operationId.toLowerCase(), explanation = reason.trim();
+    return queue.run(() async {
+      requireOffice();
+      if (!realWorkspace ||
+          proposal.scope['company_id'] != catalog!['companyId'] ||
+          proposal.scope['workspace_id'] != workspaceId ||
+          proposal.scope['device_id'] != serviceDeviceId ||
+          serviceDeviceId != device) {
+        throw const ProposalReviewFailure(
+          'scope_mismatch',
+          'This suggestion belongs to another workspace, company or computer.',
+        );
+      }
+      if (!reviewUuid.hasMatch(key) ||
+          !hashPattern.hasMatch(reviewedDocumentHash) ||
+          explanation.length > 2000 ||
+          (accept ? explanation.isNotEmpty : explanation.isEmpty)) {
+        throw const ProposalReviewFailure(
+          'invalid_request',
+          'Choose a valid review action and give a reason when rejecting notes.',
+        );
+      }
+      final requestHash = notesReviewRequestHash(
+        proposal,
+        operationId: key,
+        accept: accept,
+        reason: explanation,
+        reviewedHash: reviewedDocumentHash,
+      );
+      Json? prior(List<Json> history) {
+        final sameOperation = history
+            .where((r) => r['operationId'] == key)
+            .firstOrNull;
+        if (sameOperation != null) {
+          if (sameOperation['requestHash'] != requestHash) {
+            throw const ProposalReviewFailure(
+              'idempotency_conflict',
+              'This review operation was already used for a different action.',
+            );
+          }
+          return sameOperation;
+        }
+        if (history.any((r) {
+          final original = NotesProposal.fromRecord(r['proposal'] as Json);
+          return original.id == proposal.id ||
+              (original.grantId == proposal.grantId &&
+                  original.creationKey == proposal.creationKey);
+        })) {
+          throw const ProposalReviewFailure(
+            'already_decided',
+            'These suggested notes have already been reviewed.',
+          );
+        }
+        return null;
+      }
+
+      final replay = prior(agentNotesReviews);
+      if (replay != null) return replay;
+      final context = jobContextFor(proposal.jobId);
+      final bytes = documentFor(proposal.jobId);
+      if (canonical(context) != canonical(proposal.context) ||
+          bytes == null ||
+          digest(bytes) != reviewedDocumentHash ||
+          (accept && reviewedDocumentHash != proposal.expectedHash)) {
+        throw const ProposalReviewFailure(
+          'stale_context',
+          'The inspection changed. Refresh and review its current notes before deciding.',
+        );
+      }
+      final updated = accept
+          ? await _prepareEdit({'notes': proposal.notes}, jobId: proposal.jobId)
+          : bytes;
+      final receipt = <String, dynamic>{
+        'version': 1,
+        'operationId': key,
+        'proposal': proposal.record,
+        'reviewerDevice': device,
+        'decision': accept ? 'applied' : 'rejected',
+        'reason': explanation,
+        'reviewedDocumentHash': reviewedDocumentHash,
+        'beforeDocumentHash': digest(bytes),
+        'afterDocumentHash': digest(updated),
+        'reviewedAt': stamp(),
+        'requestHash': requestHash,
+      };
+      receipt['hash'] = contentHash(receipt);
+      validateNotesReviewHistory(
+        [receipt],
+        companyId: catalog!['companyId'] as String,
+        reviewerDevice: device,
+      );
+      Json result = receipt;
+      transaction(() {
+        // This final fence also covers an independent local SQLite writer. No
+        // await separates the freshness check from the atomic persistence.
+        final existing = prior(agentNotesReviews);
+        if (existing != null) {
+          result = existing;
+          return;
+        }
+        if (canonical(jobContextFor(proposal.jobId)) !=
+                canonical(proposal.context) ||
+            digest(documentFor(proposal.jobId)!) != reviewedDocumentHash) {
+          throw const ProposalReviewFailure(
+            'stale_context',
+            'The inspection changed. Refresh and review its current notes before deciding.',
+          );
+        }
+        if (accept) {
+          saveDocument(updated, jobId: proposal.jobId);
+          setSetting('savedAt', stamp());
+          event('edited', {
+            'jobId': proposal.jobId,
+            'fields': ['notes'],
+          });
+        }
+        event(notesReviewEvent, receipt);
+      });
+      return result;
+    });
+  }
+
   Future<String> attach(List<int> bytes, {String? jobId}) async {
     final hash = await evidence.add(bytes);
     await update({'photo': hash}, jobId: jobId);
