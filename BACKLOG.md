@@ -34,6 +34,29 @@ on top of preserved `7192166`; address/status/UI/probe workers have separate
 ownership. [Runtime boundaries](docs/specs/LF-001-API-BOUNDARIES.md) identify the
 multi-job adapter and authority/recovery differences for independent review.
 
+### LF-003 — Independent saved checklist copies
+
+Garrett authorized a separate retained-workflow slice while LF-002 progress and
+the local CLI/service work continue. In isolated `codex/local-procedure-library`
+from reviewed `45380ae`, the office can preview a publication, save and reopen
+an attributed editable copy, then publish an independent v1 and prepare an
+inspection through the existing authority. Optimistic saves and durable retry
+receipts preserve concurrent editing and recovery. This bounded port does not
+introduce procedure families, replacement/retirement, new roles, or changes to
+issued inspections. Source, parity, tests and rendered acceptance:
+[LF-003](docs/specs/LF-003-independent-checklist-copies.md).
+
+### Reviewed local workflow integration
+
+Combine frozen LF-002, the scoped desktop CLI/service, and LF-003 in a new
+`codex/local-maintenance-integrated-20261001` branch. Preserve their original
+reviewed checkpoints and verify the actual combined tree, private-draft
+boundaries, recovery, renders and CLI transport before source publication.
+Garrett authorized tested source commits and named-branch pushes on October 1;
+default-branch merge, deployment, cutover and live-data migration remain outside
+this scope. [Integration](docs/specs/LF-INTEGRATION-001.md) records provenance,
+verification and remaining acceptance.
+
 ## Architecture cleanup — September 29, 2026
 
 ### ARCH-001 — Implement the architecture audit

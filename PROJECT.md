@@ -39,6 +39,17 @@ reader, composed views and executable separation checks.
 The current code map and retain/replace boundaries are in
 [Architecture: maintenance first](docs/ARCHITECTURE.md).
 
+October 1: Garrett explicitly authorized committing and pushing tested source
+to named branches in the existing independent Vortice repository. The new
+[local workflow integration](docs/specs/LF-INTEGRATION-001.md) selectively combines
+the reviewed LF-002 app, permission-checked desktop CLI/service and LF-003 saved
+checklist copies. This supersedes the earlier no-push scope for named source
+branches; it does not authorize default-branch merge, force push, deployment,
+public app release, Supabase retirement or live-data migration. Office-only
+checklist drafts and external-agent proposals retain their distinct permission
+and recovery boundaries. The hosted app and original reviewed checkpoints
+remain available for rollback.
+
 September 29: Garrett authorized implementing the code/architecture audit while
 the isolated local-first experiment proceeds in a separate task/worktree.
 [ARCH-001](docs/specs/ARCH-001-architecture-cleanup.md) owns retained-app cleanup
