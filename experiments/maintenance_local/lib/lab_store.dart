@@ -55,13 +55,7 @@ class LabStore {
     try {
       if (version == 3) {
         _validateCorrectiveWorkspace(db, office: office);
-      } else if (version == 2 &&
-          (db.select('SELECT key FROM settings WHERE key=?', [
-                correctivePlanningSetting,
-              ]).isNotEmpty ||
-              db.select('SELECT id FROM events WHERE kind=? LIMIT 1', [
-                correctivePlanningRecordedEvent,
-              ]).isNotEmpty)) {
+      } else if (_hasCorrectiveState(db)) {
         throw StateError(
           'Saved corrective planning does not match this workspace format. '
           'Its files have been retained. Use its matching office edition.',
@@ -100,6 +94,25 @@ class LabStore {
       );
     }
     return store;
+  }
+
+  /// Older layouts, including legacy 0/1, cannot contain corrective data. A
+  /// fresh schema-0 database has no tables yet, so inspect table presence first.
+  static bool _hasCorrectiveState(Database db) {
+    final tables = db
+        .select(
+          "SELECT name FROM sqlite_master WHERE type='table' AND name IN ('settings','events')",
+        )
+        .map((row) => row['name'])
+        .toSet();
+    return (tables.contains('settings') &&
+            db.select('SELECT key FROM settings WHERE key=?', [
+              correctivePlanningSetting,
+            ]).isNotEmpty) ||
+        (tables.contains('events') &&
+            db.select('SELECT id FROM events WHERE kind=? LIMIT 1', [
+              correctivePlanningRecordedEvent,
+            ]).isNotEmpty);
   }
 
   /// Schema 3 belongs to the office's typed planning ledger. Validate it before
