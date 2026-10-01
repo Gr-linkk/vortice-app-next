@@ -15,7 +15,10 @@ saved inspection submission, individual step or saved note can optionally
 provide exact source attribution. Drafts are not source choices. The office
 explicitly records the report; this does not create corrective work.
 
-Every record shows **Reported — corrective work not planned**. The saved-source
+Each LF009 record captures **Reported — corrective work not planned** at
+reporting. The later [LF-010](LF-010-corrective-planning.md) planning workflow
+shows its current corrective association separately while preserving that
+original reporting fact. The saved-source
 observation is captured as pending, approved or returned when the command is
 frozen. A subsequent inspection decision does not rewrite that observation.
 Source detail is read-only. It retains the exact saved document/snapshot/item
