@@ -19,7 +19,12 @@ the observation captured when the request was frozen, not a live approval claim.
 No corrective-work linking, fault verification, availability, automatic fault
 generation, phone replication or CLI authority is added. Actual unchanged
 `98deb62` backup preservation, updated semantic refusal, normal-entry 1x/2x
-renders and full regression review are required. [Scope and gates](docs/specs/LF-009-manual-office-fault-intake.md).
+renders and full regression review passed on source `36f3a4d`. The bounded
+independent static review is closed; full Flutter verification passed 531/531
+with no skips or errors. Source implementation is complete; physical/unassisted
+acceptance and any new binary remain separate gates.
+[Scope](docs/specs/LF-009-manual-office-fault-intake.md) ·
+[Milestone receipt](docs/specs/LF-009-milestone-receipt.md).
 
 ### LF-007 — Linux desktop runtime portability
 
