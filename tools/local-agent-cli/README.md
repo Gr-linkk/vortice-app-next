@@ -75,3 +75,11 @@ supplies durable pending proposals; human application UI is not yet included.
 There is no client-only permission emulation or raw-SQL fallback that substitutes
 for that integration. Pending proposals are local-only and excluded from current
 office backups; this first version must not claim their recovery coverage.
+
+The combined `7e9918c` source has passed 155 Node tests and 21 actual
+native-service/Unix checks. From an appropriately prepared development checkout,
+`scripts/local-maintenance.sh cli-smoke` creates a fresh guarded synthetic
+workspace and runs the actual CLI driver; `verify` includes the complete local
+suite and this smoke. These actions never open an existing workspace or create
+a real grant. Normal desktop service provisioning and human proposal application
+remain open; see `docs/specs/LF-INTEGRATION-001.md` for the verified milestone.

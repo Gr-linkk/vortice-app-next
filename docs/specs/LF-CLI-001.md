@@ -1,6 +1,8 @@
 # LF-CLI-001 — Scoped desktop agent client
 
-Status: client implemented; real shared-service integration pending.
+Status: client and actual synthetic native-service/Unix integration verified in
+the combined `7e9918c` milestone. Normal desktop service launch, real grant
+provisioning and human proposal application remain open.
 Authorization: Garrett's October 1 request for a desktop CLI for external agents.
 Base: `45380ae6b093a400e8a5f589b19359fe822bfc28`, LF-001 inspection runtime.
 Owner: `codex/local-agent-cli`; main workflow owns shared service/runtime.
@@ -73,7 +75,9 @@ A tested milestone additionally requires actual shared-service Unix IO with its
 native SQLite/domain fixtures and synthetic grants: scoped reads, proposals,
 restart/exact replay, changed-payload rejection and partial failure after durable
 acceptance. Never use a real company, persistent grant, running office data or
-real private key. No deployment/installation/merge/push/cutover is authorized.
+real private key for synthetic acceptance. October 1 authorization permits
+tested named-source-branch pushes; deployment, installation, default-branch
+merge and cutover remain outside this milestone.
 
 ## Client milestone — October 1, 2026 UTC
 
@@ -86,7 +90,13 @@ fields now reject. Normal replies and legitimate user free text still pass.
 
 The opt-in `integration/service-e2e.mjs` attaches only the main service's guarded
 synthetic fixture, with a private `/tmp/vortice-cli-e2e-*` ready/socket directory.
-It is prepared but has not yet run. Fixture/unit authorization and replay tests
-are not native shared-service integration proof. No app screen, ordinary service
-launcher, real grant provisioning, human application UI or backup/replication of
-proposals is delivered by this client checkpoint.
+The combined source `7e9918c966cbdeed5894cd05f00aaefbf62d8d0d` now passes its
+21 actual native/Unix checks, including a CLI subprocess, lost observed reply
+after durable acceptance, exact replay, payload conflict and unchanged inspection.
+The combined self-service verifier runs all 155 Node tests and this driver.
+Seven independently authored combined-boundary regressions and a deterministic
+readiness-race probe verify private library isolation, fresh authority, recovery
+and complete private fixture readiness. Component mock tests remain distinct
+from this actual service evidence. No ordinary service launcher, real grant
+provisioning, human application UI or proposal backup/replication is delivered.
+See [combined receipt](LF-INTEGRATION-001.md) for exact scope and evidence.

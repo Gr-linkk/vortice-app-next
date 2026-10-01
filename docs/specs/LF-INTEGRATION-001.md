@@ -64,7 +64,8 @@ restored-office authority or broaden permission from the office flag.
 Source-only receipts establish component evidence: LF-002 205 Flutter/4 Rust and
 136 phone-size 1x/2x PNGs; service 56 native/SQLite/Unix/recovery tests and 21 actual
 CLI checks; client 155 Node tests; LF-003 197 Flutter/4 Rust/3 boundaries and
-42 renders. These counts are not yet combined-tree proof.
+42 renders. These component counts remain provenance; combined counts below
+come from the actual combined revision.
 
 Run combined analysis, native/Flutter/Node and repository boundaries, genuine
 CLI subprocess/Unix acceptance, distinct library/service privacy and recovery
@@ -83,6 +84,91 @@ an existing workspace or provision a real grant. Restricted sandboxes need the
 scoped Unix-socket test approval; ordinary development does not change network
 configuration. Seven independently authored combined-boundary companions are
 retained with the main suite.
+
+## Completed combined milestone
+
+Frozen tested application/CLI/helper source:
+`7e9918c966cbdeed5894cd05f00aaefbf62d8d0d`. The corrected whole verifier exits 0:
+295 Flutter tests (including seven independent combined-boundary companions),
+4 Rust, 155 Node tests with zero skips, and 21 actual CLI/native/Unix checks.
+Whole local analysis, portable progress/domain, service isolation and four
+repository boundary checks pass. Twelve ordinary render cases produce 178 unique
+412x915 PNGs, 89 per text scale, with no name collisions and critical 2x layouts
+inspected. Fresh Linux and Android debug builds pass at this exact source.
+
+Independent combined review is clear. Its readiness race is retained as evidence:
+the old helper fails with a one-second pause between ready-file writing and
+private permissions; the fixed helper passes the same 21 actual CLI checks and
+cleans up its own runner. Initial symlink-environment rejection and interrupted
+preliminary shell execution are preserved separately and are not final gates.
+No product module or reviewed authority rule was changed to hide those failures.
+
+Local ignored `outputs/integration/` holds the build/gate, screenshot, package,
+native dependency, independent review and remote verification manifests. These
+deliverables are not tracked or pushed. Artifact identity:
+
+| Artifact | SHA-256 |
+| --- | --- |
+| `Vortice-Local-Maintenance-0.2.3-internal.apk` | `ed887911ab3cd6cffa300b755d5aa877314bd56f50e98f6395962d9b4f0bad26` |
+| `Vortice-Local-Maintenance-0.2.3-linux-x64.tar.gz` | `4d3a9767bb50f273bad4dd0d2f6c5b86ad91b9da608662aeb3c3472f0d34bb92` |
+
+The APK is `org.vortice.next.maintenance_local`, `0.2.3+4`, existing certificate
+SHA-256 `9b46bb98db0519dbb53c5e17086cc8b16459157275561dcc68174a6cec463b81`.
+The application runtime is arm64; additional vendor JNI ABI copies do not prove
+other-ABI execution. All 17 regular Linux archive files match the built bundle;
+its runtime asset manifest and `$ORIGIN/lib` are verified. The prior optional
+build-path manifest is absent from the fresh bundle and is not required runtime
+evidence. Earlier validated 0.2.2 artifacts were rehashed and remain unchanged.
+
+The tested source was atomically pushed to
+`codex/local-maintenance-integrated-20261001` on the verified existing repository.
+Remote source SHA and three separately named snapshot refs were confirmed:
+`codex/rollback-build45-9a3b5d3`,
+`codex/reviewed-local-maintenance-45380ae`, and
+`codex/reviewed-maintenance-progress-bf6960a`. Default main remains
+`f6c54e80c2f4e097c7d028c37e7348427517b26d`; repository visibility was unchanged.
+GitHub run lookup returns no branch runs, matching the existing workflow's
+main/PR trigger rules. Local gate success is recorded independently of remote CI.
+This receipt update changes documentation only; it does not rebuild artifacts.
+
+## Physical owner handoff
+
+The separate physical owner controls all ADB/UI work. Compare the actual installed
+package/version/certificate before any separately authorized installation. The
+new APK can coexist with the lab source's `com.example.vortice_app_next`; same-ID
+maintenance 0.2.1/0.2.2 uses this same certificate, but installed compatibility
+must be read from the device rather than inferred from source.
+
+After the necessary device/install/enrollment permission, use only a fresh
+synthetic company/workspace: create equipment and a checklist, copy/edit/reopen
+and independently publish it, prepare two jobs, pair through current-address
+manual paste and explicit office confirmation, then save readings/notes/gallery
+photo offline and reopen. Submit offline, reconnect foreground and verify the
+whole photo hash, exact return/edited successor/approval and history, including
+returning job A while job B is selected. Restore a private same-identity backup
+to a fresh synthetic office computer and verify old-phone reconfirmation and
+revocation fencing. Unassisted setup/hotspot refresh is a separate physical gate.
+No camera capture is required for the broken-camera S24; use gallery evidence.
+
+Current sync is foreground/resumed four-second polling plus manual actions;
+there is no Android background sender or exponential backoff. Pinned TLS accepts
+private IPv4/loopback, not an internet relay. Office mediation remains the topology;
+phone-to-phone and near-live multiworker acceptance are future scope.
+
+## Next bounded increment
+
+Preserve this milestone while closing the physical gates through their owner.
+The safe next core recovery increment is a private, job/base-hash pinned editor
+checkpoint that preserves raw unsaved input across restart and offers explicit
+resume/compare/discard. It must not silently apply, submit, approve or merge an
+outdated draft, or change the existing strict backup/sync format. The earlier
+LF-002 local design provides acceptance cases; use a new isolated branch with
+separate storage, UI and adversarial-test ownership.
+
+Real CLI use still requires explicit scoped grant provisioning and a human
+proposal-review/application path. Keep agents separate from office/mechanic
+authority; do not create real grants while the user is asleep or silently decide
+who may replace a mechanic's inspection notes. Current proposals remain pending.
 
 ## Open acceptance
 
