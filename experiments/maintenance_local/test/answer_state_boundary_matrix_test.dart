@@ -1044,7 +1044,7 @@ void main() {
               ? null
               : const {'result': 'na', 'value': '19'};
           final label = optional
-              ? 'Use: Not answered'
+              ? 'Use: Not recorded'
               : 'Use: Not applicable · 19 psi';
           await tester.runAsync(() async {
             if (optional) {
