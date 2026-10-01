@@ -25,6 +25,7 @@ Future<void> _settle(WidgetTester tester) async {
     );
     await tester.pump(const Duration(milliseconds: 20));
   }
+  await tester.pump(const Duration(milliseconds: 400));
   expect(tester.takeException(), isNull);
 }
 
