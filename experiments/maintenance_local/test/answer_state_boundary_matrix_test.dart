@@ -111,13 +111,13 @@ const _cases = <_Case>[
     expected: {'result': 'action', 'value': '24,5'},
   ),
   _Case(
-    'identical repeated value still has a newer edit identity',
+    'return to captured value retains newer edit identity',
     'pressure',
     _Boundary.decoding,
     initialRaw: '35',
     initialResult: 'action',
     captured: {'result': 'action', 'value': '35'},
-    events: [_Event.type('35'), _Event.type('35')],
+    events: [_Event.type('25'), _Event.type('35'), _Event.type('35')],
     expected: {'result': 'action', 'value': '35'},
   ),
   _Case(
@@ -522,6 +522,15 @@ Future<void> _race(
       row.captured,
       reason: 'The durable write contains only frozen captured intent.',
     );
+    if (row.captured == null) {
+      final fields = await _fields(tester, fixture);
+      expect(fields.containsKey('answer:${row.id}'), isTrue);
+      expect(
+        fields['answer:${row.id}'],
+        [null],
+        reason: 'Optional clearing persists an explicit tombstone.',
+      );
+    }
     if (row.boundary == _Boundary.installed) {
       await tester.runAsync(() async {
         releaseDecode!.complete();
@@ -594,6 +603,34 @@ Future<void> _persist(
   expect(find.textContaining('Unsaved changes —'), findsNothing);
 }
 
+// An incoming load has no public completion future. The decoder gate proves
+// native decoding completed; a real event-loop turn plus idle drains its load
+// continuation, while deliberately leaving the scheduled frame unpainted.
+Future<void> _incomingPrepaint(
+  WidgetTester tester,
+  EditorFixture fixture,
+  _DecodeGate decoder,
+  Json patch,
+) async {
+  Completer<void>? release;
+  try {
+    await tester.runAsync(() async {
+      decoder.arm();
+      release = decoder.release!;
+      if (patch.isNotEmpty) {
+        await fixture.store.update(patch, jobId: fixture.job);
+      }
+      fixture.updates.value++;
+      await decoder.entered!.future.timeout(const Duration(seconds: 8));
+      release!.complete();
+      await Future<void>.delayed(Duration.zero);
+    });
+    await tester.idle();
+  } finally {
+    if (release != null && !release!.isCompleted) release!.complete();
+  }
+}
+
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
   setUpAll(initializeEditorNative);
@@ -664,4 +701,483 @@ void main() {
       expect(canonical(fixture.store.submissions.single), frozen);
     },
   );
+
+  for (final variant in [
+    'number input',
+    'text input',
+    'result-only selection',
+  ]) {
+    testWidgets(
+      'answer-state matrix: incoming prepaint $variant uses shown intent',
+      (tester) async {
+        addTearDown(tester.view.resetPhysicalSize);
+        addTearDown(tester.view.resetDevicePixelRatio);
+        final fixture = await _fixture(tester);
+        final decoder = _DecodeGate();
+        final text = variant == 'text input';
+        final id = text ? 'condition' : 'pressure';
+        final shown = {
+          'result': 'action',
+          'value': text ? 'Shown finding' : '35',
+        };
+        final incoming = {
+          'result': 'pass',
+          'value': text ? 'Incoming response' : '18',
+        };
+        final selected = variant == 'result-only selection';
+        final expected = {
+          'result': selected ? 'pass' : 'action',
+          'value': selected
+              ? '35'
+              : text
+              ? 'Later finding'
+              : '25',
+        };
+        final row = _Case(
+          'incoming',
+          id,
+          _Boundary.installed,
+          initialRaw: shown['value']!,
+          initialResult: 'action',
+          captured: shown,
+          events: [],
+          expected: shown,
+        );
+        await _open(tester, fixture, decoder);
+        await _prepare(tester, row);
+        await _persist(tester, fixture, row);
+        final painted = await _focus(tester, id);
+        await _incomingPrepaint(tester, fixture, decoder, {
+          'answer:$id': incoming,
+        });
+        _activeClient(tester, id, painted);
+        expect(
+          editorController(tester, 'answer:$id').text,
+          incoming['value'],
+          reason: 'The incoming replacement is installed but not painted.',
+        );
+        await _events(
+          tester,
+          id,
+          painted,
+          selected
+              ? const [_Event.select('Pass')]
+              : [_Event.type(expected['value']!)],
+        );
+        expect(
+          editorController(tester, 'answer:$id').text,
+          expected['value'],
+          reason:
+              'The local callback synchronizes its full raw intent immediately.',
+        );
+        await settleEditor(tester);
+        _displayed(tester, id, expected);
+        await tapEditor(tester, find.text('Submit for review'));
+        await _finished(tester);
+        final fields = await _fields(tester, fixture);
+        expect(conflicts(fields), contains('answer:$id'));
+        expect(fields['answer:$id'], containsAll([incoming, expected]));
+        expect(fixture.store.submissions, isEmpty);
+      },
+    );
+  }
+
+  for (final remote in [false, true]) {
+    testWidgets(
+      'answer-state matrix: pending ${remote ? "remote" : "benign"} load cannot adopt on ack',
+      (tester) async {
+        addTearDown(tester.view.resetPhysicalSize);
+        addTearDown(tester.view.resetDevicePixelRatio);
+        final fixture = await _fixture(tester);
+        final decoder = _DecodeGate();
+        const shown = {'result': 'action', 'value': '35'};
+        const later = {'result': 'action', 'value': '25'};
+        const incoming = {'result': 'pass', 'value': '18'};
+        const row = _Case(
+          'pending',
+          'pressure',
+          _Boundary.installed,
+          initialRaw: '35',
+          initialResult: 'action',
+          captured: shown,
+          events: [],
+          expected: shown,
+        );
+        await _open(tester, fixture, decoder);
+        await _prepare(tester, row);
+        final painted = await _focus(tester, 'pressure');
+        final command = _command(tester);
+        await _incomingPrepaint(
+          tester,
+          fixture,
+          decoder,
+          remote ? {'answer:pressure': incoming} : {},
+        );
+        _activeClient(tester, 'pressure', painted);
+        Completer<void>? release;
+        Future<bool>? operation;
+        try {
+          await tester.runAsync(() async {
+            decoder.arm();
+            release = decoder.release!;
+            operation = Function.apply(command, const []) as Future<bool>;
+            await decoder.entered!.future.timeout(const Duration(seconds: 8));
+          });
+          if (remote) {
+            // Keep newer input dirty before the merged conflict ever paints;
+            // its original base must retain the still-unseen remote answer.
+            await _events(tester, 'pressure', painted, const [
+              _Event.type('25'),
+            ]);
+          } else {
+            // Ack cleared dirty membership. Paint the pending benign load while
+            // the Save replacement is still blocked: it cannot adopt old data.
+            await tester.pump();
+            expect(editorController(tester, 'answer:pressure').text, '35');
+            expect(
+              tester
+                  .widget<ChoiceChip>(_chip('pressure', 'Needs action'))
+                  .selected,
+              isTrue,
+            );
+          }
+          await tester.runAsync(() async {
+            release!.complete();
+            await operation!.timeout(const Duration(seconds: 8));
+          });
+        } finally {
+          if (release != null && !release!.isCompleted) release!.complete();
+        }
+        await _finished(tester);
+        _displayed(tester, 'pressure', remote ? later : shown);
+        if (!remote) {
+          final focused = await _focus(tester, 'pressure');
+          await _events(tester, 'pressure', focused, const [_Event.type('25')]);
+          await settleEditor(tester);
+        }
+        _displayed(tester, 'pressure', later);
+        await tapEditor(tester, find.text('Save work'));
+        await _finished(tester);
+        final fields = await _fields(tester, fixture);
+        if (remote) {
+          expect(conflicts(fields), contains('answer:pressure'));
+          expect(fields['answer:pressure'], containsAll([later, incoming]));
+        } else {
+          expect(
+            conflicts(fields),
+            isEmpty,
+            reason:
+                'A pending paint must not restore the pre-write merge base.',
+          );
+          expect(valuesOf(fields)['answer:pressure'], later);
+        }
+        expect(fixture.store.submissions, isEmpty);
+      },
+    );
+  }
+
+  testWidgets(
+    'answer-state matrix: early validation failure rolls back coherent shown form',
+    (tester) async {
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+      final fixture = await _fixture(tester);
+      final decoder = _DecodeGate();
+      await _open(tester, fixture, decoder);
+      await enterEditor(tester, 'meter', 'invalid');
+      final command = _command(tester);
+      final painted = await _focus(tester, 'pressure');
+      const incoming = {'result': 'action', 'value': '35'};
+      await _incomingPrepaint(tester, fixture, decoder, {
+        'answer:pressure': incoming,
+        'notes': 'Incoming notes',
+        'photo': null,
+      });
+      _activeClient(tester, 'pressure', painted);
+      await tester.runAsync(() async {
+        expect(
+          await (Function.apply(command, const []) as Future<bool>),
+          isFalse,
+        );
+      });
+      await _finished(tester);
+      _displayed(tester, 'pressure', {'result': 'pass', 'value': '19'});
+      expect(editorController(tester, 'notes').text, 'Guard inspected.');
+      expect(editorController(tester, 'meter').text, 'invalid');
+      expect(find.text('Replace inspection photo'), findsOneWidget);
+      expect(find.text('Choose a saved photo'), findsNothing);
+      expect(fixture.store.submissions, isEmpty);
+      expect(
+        valuesOf(await _fields(tester, fixture))['answer:pressure'],
+        incoming,
+      );
+      await enterEditor(tester, 'meter', '102');
+      fixture.updates.value++;
+      await untilEditor(
+        tester,
+        () => editorController(tester, 'answer:pressure').text == '35',
+      );
+      _displayed(tester, 'pressure', incoming);
+      expect(editorController(tester, 'notes').text, 'Incoming notes');
+      expect(find.text('Choose a saved photo'), findsOneWidget);
+      expect(find.text('Replace inspection photo'), findsNothing);
+      await tapEditor(tester, find.text('Save work'));
+      await _finished(tester);
+      final fields = await _fields(tester, fixture);
+      expect(valuesOf(fields)['answer:pressure'], incoming);
+      expect(valuesOf(fields)['meter'], 102);
+      expect(conflicts(fields), isEmpty);
+      expect(fixture.store.submissions, isEmpty);
+    },
+  );
+
+  for (final late in [false, true]) {
+    testWidgets(
+      'answer-state matrix: answer resolution ${late ? "is superseded by later input" : "adopts chosen full answer at paint"}',
+      (tester) async {
+        addTearDown(tester.view.resetPhysicalSize);
+        addTearDown(tester.view.resetDevicePixelRatio);
+        final fixture = await _fixture(tester);
+        final decoder = _DecodeGate();
+        const action = {'result': 'action', 'value': '35'};
+        const pass = {'result': 'pass', 'value': '18'};
+        await tester.runAsync(() async {
+          final base = Uint8List.fromList(
+            fixture.store.documentFor(fixture.job)!,
+          );
+          await fixture.store.update({
+            'answer:pressure': action,
+          }, jobId: fixture.job);
+          await fixture.store.update(
+            {'answer:pressure': pass},
+            base: base,
+            jobId: fixture.job,
+          );
+        });
+        final conflicted = await _fields(tester, fixture);
+        expect(conflicts(conflicted), contains('answer:pressure'));
+        expect(conflicted['answer:pressure'], containsAll([action, pass]));
+        // CRDT alternative ordering is intentionally unspecified. Resolve to the
+        // other known full answer so every run exercises a visible handoff.
+        final shown = Map<String, dynamic>.from(
+          valuesOf(conflicted)['answer:pressure'] as Map,
+        );
+        final chosen = shown['result'] == 'action' ? pass : action;
+        final label = chosen == pass
+            ? 'Use: Pass · 18 psi'
+            : 'Use: Needs action · 35 psi';
+        await _open(tester, fixture, decoder);
+        _displayed(tester, 'pressure', shown);
+        final resolution = find.widgetWithText(OutlinedButton, label);
+        final command = tester.widget<OutlinedButton>(resolution).onPressed!;
+        final painted = await _focus(tester, 'pressure');
+        Completer<void>? release;
+        Future<bool>? operation;
+        try {
+          await tester.runAsync(() async {
+            decoder.arm();
+            release = decoder.release!;
+            operation = Function.apply(command, const []) as Future<bool>;
+            await decoder.entered!.future.timeout(const Duration(seconds: 8));
+            final fields = await fixture.store.fields(jobId: fixture.job);
+            expect(conflicts(fields), isEmpty);
+            expect(valuesOf(fields)['answer:pressure'], chosen);
+          });
+          if (late) {
+            await _events(tester, 'pressure', painted, const [
+              _Event.type('25'),
+            ]);
+          }
+          await tester.runAsync(() async {
+            release!.complete();
+            await operation!.timeout(const Duration(seconds: 8));
+          });
+        } finally {
+          if (release != null && !release!.isCompleted) release!.complete();
+        }
+        await _finished(tester);
+        final expected = late
+            ? {'result': chosen['result'], 'value': '25'}
+            : chosen;
+        _displayed(tester, 'pressure', expected);
+        expect(
+          find.textContaining('Unsaved changes —'),
+          late ? findsOneWidget : findsNothing,
+        );
+        expect(
+          valuesOf(await _fields(tester, fixture))['answer:pressure'],
+          chosen,
+        );
+        if (late) {
+          await tapEditor(tester, find.text('Save work'));
+          await _finished(tester);
+          expect(
+            valuesOf(await _fields(tester, fixture))['answer:pressure'],
+            expected,
+          );
+        }
+        expect(fixture.store.submissions, isEmpty);
+      },
+    );
+  }
+
+  for (final optional in [false, true]) {
+    for (final boundary in [
+      _Boundary.decoding,
+      _Boundary.installed,
+      _Boundary.repainted,
+      _Boundary.failedRebuilt,
+    ]) {
+      testWidgets(
+        'answer-state matrix: chosen ${optional ? "optional clear" : "N/A"} resolution at ${boundary.name}',
+        (tester) async {
+          addTearDown(tester.view.resetPhysicalSize);
+          addTearDown(tester.view.resetDevicePixelRatio);
+          final fixture = await _fixture(tester);
+          final decoder = _DecodeGate();
+          final id = optional ? 'optional' : 'pressure';
+          final shown = {
+            'result': 'action',
+            'value': optional ? 'Earlier finding' : '35',
+          };
+          final Object? chosen = optional
+              ? null
+              : const {'result': 'na', 'value': '19'};
+          final label = optional
+              ? 'Use: Not answered'
+              : 'Use: Not applicable · 19 psi';
+          await tester.runAsync(() async {
+            if (optional) {
+              // Clearing a known answer creates a real concurrent tombstone;
+              // clearing a key absent from the base is a native no-op.
+              await fixture.store.update({
+                'answer:$id': {
+                  'result': 'pass',
+                  'value': 'Initial optional response',
+                },
+              }, jobId: fixture.job);
+            }
+            final base = Uint8List.fromList(
+              fixture.store.documentFor(fixture.job)!,
+            );
+            await fixture.store.update({
+              'answer:$id': shown,
+            }, jobId: fixture.job);
+            await fixture.store.update(
+              {'answer:$id': chosen},
+              base: base,
+              jobId: fixture.job,
+            );
+          });
+          expect(
+            conflicts(await _fields(tester, fixture)),
+            contains('answer:$id'),
+          );
+          await _open(tester, fixture, decoder);
+          // CRDT ordering may initially display N/A/null. Establish an enabled,
+          // focused prior Action through the ordinary result/value controls.
+          await tapEditor(tester, _chip(id, 'Needs action'));
+          final row = _Case(
+            'resolution',
+            id,
+            boundary,
+            initialRaw: shown['value']!,
+            initialResult: 'action',
+            captured: chosen,
+            events: [],
+            expected: chosen,
+          );
+          await _prepare(tester, row);
+          final command = tester
+              .widget<OutlinedButton>(
+                find.widgetWithText(OutlinedButton, label),
+              )
+              .onPressed!;
+          final painted = await _focus(tester, id);
+          Completer<void>? release;
+          Future<bool>? operation;
+          final raw = optional ? 'Fresh optional response' : '25';
+          try {
+            await tester.runAsync(() async {
+              decoder.arm(fail: boundary == _Boundary.failedRebuilt);
+              release = decoder.release!;
+              operation = Function.apply(command, const []) as Future<bool>;
+              expect(
+                editorController(tester, 'answer:$id').text,
+                optional ? '' : '19',
+                reason:
+                    'The human resolution synchronizes its raw choice before awaiting.',
+              );
+              await decoder.entered!.future.timeout(const Duration(seconds: 8));
+              final fields = await fixture.store.fields(jobId: fixture.job);
+              expect(conflicts(fields), isEmpty);
+              expect(valuesOf(fields)['answer:$id'], chosen);
+              if (optional) expect(fields['answer:$id'], [null]);
+            });
+            if (boundary == _Boundary.installed) {
+              await tester.runAsync(() async {
+                release!.complete();
+                await operation!.timeout(const Duration(seconds: 8));
+              });
+            }
+            if (boundary == _Boundary.decoding ||
+                boundary == _Boundary.installed) {
+              await _events(tester, id, painted, [
+                _Event.type(raw),
+                _Event.type('$raw '),
+              ]);
+            }
+            await tester.runAsync(() async {
+              if (!release!.isCompleted) release!.complete();
+              await operation!.timeout(const Duration(seconds: 8));
+            });
+          } finally {
+            if (release != null && !release!.isCompleted) release!.complete();
+          }
+          await _finished(tester);
+          final prepaint =
+              boundary == _Boundary.decoding || boundary == _Boundary.installed;
+          if (!prepaint) {
+            _displayed(tester, id, chosen);
+            expect(find.textContaining('Unsaved changes —'), findsNothing);
+            if (boundary == _Boundary.failedRebuilt) {
+              expect(
+                find.text('Synthetic matrix decode failure.'),
+                findsOneWidget,
+              );
+              final state = tester.state(find.byType(InspectionPage));
+              await _open(tester, fixture, decoder);
+              expect(tester.state(find.byType(InspectionPage)), same(state));
+              _displayed(tester, id, chosen);
+            }
+            // A painted N/A field is disabled. The user's explicit Pass choice
+            // enables the next normal platform event; null is already enabled.
+            if (!optional) await tapEditor(tester, _chip(id, 'Pass'));
+            final focused = await _focus(tester, id);
+            await _events(tester, id, focused, [_Event.type(raw)]);
+            await settleEditor(tester);
+          }
+          final expected = {
+            'result': prepaint && !optional ? 'na' : 'pass',
+            'value': prepaint ? '$raw ' : raw,
+          };
+          _displayed(tester, id, expected);
+          expect(
+            valuesOf(await _fields(tester, fixture))['answer:$id'],
+            chosen,
+            reason: 'Only the explicit resolution was captured by its Save.',
+          );
+          await tapEditor(tester, find.text('Save work'));
+          await _finished(tester);
+          final finalFields = await _fields(tester, fixture);
+          expect(valuesOf(finalFields)['answer:$id'], expected);
+          expect(conflicts(finalFields), isEmpty);
+          expect(valuesOf(finalFields)['notes'], 'Guard inspected.');
+          expect(valuesOf(finalFields)['meter'], 101);
+          expect(find.text('Replace inspection photo'), findsOneWidget);
+          expect(fixture.store.submissions, isEmpty);
+        },
+      );
+    }
+  }
 }
