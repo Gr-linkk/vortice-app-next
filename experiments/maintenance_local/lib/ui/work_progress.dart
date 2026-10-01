@@ -20,6 +20,12 @@ class WorkProgressController extends ChangeNotifier {
   final ProgressTokenReader tokenReader;
   WorkProgressSnapshot? snapshot;
   WorkProgressSnapshot? _cached;
+
+  /// Last verified layout data while Home checks current status. Display only:
+  /// callers must use [snapshot] for current status and consequential actions.
+  /// Failed reads hide this data instead of presenting it as available.
+  WorkProgressSnapshot? get displaySnapshot =>
+      snapshot ?? (loading ? _cached : null);
   String? error;
   bool loading = false;
   int _generation = 0;

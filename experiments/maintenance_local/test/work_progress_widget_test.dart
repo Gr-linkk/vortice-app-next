@@ -13,6 +13,7 @@ import 'package:maintenance_local/ui/inspection_page.dart';
 import 'package:maintenance_local/ui/review_page.dart';
 import 'package:maintenance_local/ui/work_progress.dart';
 import 'package:maintenance_local/ui/workspace_page.dart';
+import 'package:maintenance_local/work_progress_reader.dart';
 
 SubmittedVersion _version(
   String id, {
@@ -164,6 +165,123 @@ void main() {
       ),
     );
   });
+
+  testWidgets(
+    'Home periodic unchanged refresh keeps Backup hit target and scroll stable',
+    (tester) async {
+      await tester.binding.setSurfaceSize(const Size(412, 915));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+      final fixture = await _fixture(tester);
+      final captured = (await tester.runAsync(() async {
+        await fixture.fill(fixture.first);
+        final submission = await fixture.store.submit(jobId: fixture.first);
+        await fixture.store.decide(submission['id'] as String, approve: true);
+        return readWorkProgress(fixture.store);
+      }))!;
+      var pendingToken = Completer<String>();
+      var holdRefresh = false, tokenReads = 0, progressReads = 0;
+      await tester.pumpWidget(
+        MaterialApp(
+          home: WorkspacePage(
+            store: fixture.store,
+            officePort: 0,
+            progressReader: (_) async {
+              progressReads++;
+              return captured;
+            },
+            progressTokenReader: (_) async {
+              tokenReads++;
+              return holdRefresh ? pendingToken.future : captured.token;
+            },
+          ),
+        ),
+      );
+      await _until(
+        tester,
+        () => find.text('Reviewed history (1)').evaluate().isNotEmpty,
+      );
+      final backup = find.widgetWithText(
+        OutlinedButton,
+        'Back up office computer',
+      );
+      await tester.ensureVisible(backup);
+      await tester.pumpAndSettle();
+      final scroll = tester.state<ScrollableState>(
+        find.byType(Scrollable).first,
+      );
+      final offsetBefore = scroll.position.pixels;
+      final targetBefore = tester.getRect(backup);
+      final readsBefore = tokenReads;
+      expect(offsetBefore, greaterThan(0));
+      expect(backup.hitTestable(), findsOneWidget);
+
+      holdRefresh = true;
+      await tester.pump(const Duration(seconds: 4));
+      await tester.pump();
+      expect(tokenReads, greaterThan(readsBefore));
+      final targetPending = tester.getRect(backup);
+      expect(
+        targetPending.top,
+        closeTo(targetBefore.top, 0.1),
+        reason:
+            'A pending unchanged token read must retain the Backup hit target.',
+      );
+      expect(scroll.position.pixels, closeTo(offsetBefore, 0.1));
+      expect(backup.hitTestable(), findsOneWidget);
+      expect(find.text('Updating work status…'), findsOneWidget);
+      expect(find.text('Reviewed history (1)'), findsOneWidget);
+      expect(find.text('Approved inspection'), findsOneWidget);
+
+      holdRefresh = false;
+      pendingToken.complete(captured.token);
+      await tester.pump();
+      await tester.pump();
+      expect(find.text('Saved work status'), findsOneWidget);
+      expect(tester.getRect(backup).top, closeTo(targetBefore.top, 0.1));
+      expect(scroll.position.pixels, closeTo(offsetBefore, 0.1));
+      expect(
+        progressReads,
+        1,
+        reason: 'An unchanged token reuses the bulk read.',
+      );
+      await tester.tapAt(targetBefore.center);
+      await tester.pumpAndSettle();
+      expect(find.byType(WorkspacePage), findsNothing);
+      expect(find.text('Back up office computer'), findsOneWidget);
+
+      await tester.pageBack();
+      await tester.pumpAndSettle();
+      final inspection = find
+          .widgetWithText(FilledButton, 'Open inspection')
+          .first;
+      await tester.ensureVisible(inspection);
+      await tester.pumpAndSettle();
+      final inspectionTarget = tester.getRect(inspection);
+      final focus = Focus.of(
+        tester.element(find.text('Open inspection').first),
+      );
+      pendingToken = Completer<String>();
+      holdRefresh = true;
+      await tester.pump(const Duration(seconds: 4));
+      await tester.pump();
+      await tester.tapAt(inspectionTarget.center);
+      await tester.pump();
+      expect(find.byType(InspectionPage), findsNothing);
+      expect(focus.canRequestFocus, isFalse);
+      focus.requestFocus();
+      await tester.pump();
+      expect(focus.hasFocus, isFalse);
+
+      holdRefresh = false;
+      pendingToken.complete(captured.token);
+      await tester.pump();
+      await tester.pump();
+      expect(focus.canRequestFocus, isTrue);
+      await tester.tapAt(inspectionTarget.center);
+      await _settle(tester);
+      expect(find.byType(InspectionPage), findsOneWidget);
+    },
+  );
 
   testWidgets(
     'current records are excluded from earlier count and own-device reuse is explicit',
@@ -350,8 +468,95 @@ void main() {
       );
       await first;
       expect(controller.snapshot!.token, 'new');
+      expect(controller.displaySnapshot!.token, 'new');
       await controller.refresh();
       expect(reads, 2);
+    },
+  );
+
+  test(
+    'display progress preserves verified layout while pending and fails closed',
+    () async {
+      final fixture = await _Fixture.create();
+      addTearDown(fixture.close);
+      var reads = 0, fail = false;
+      Completer<String>? pending;
+      final controller = WorkProgressController(
+        fixture.store,
+        tokenReader: (_) async {
+          if (fail) throw StateError('Synthetic token read failure');
+          return pending?.future ?? Future.value('stable');
+        },
+        reader: (_) async {
+          reads++;
+          return WorkProgressSnapshot(
+            token: 'stable',
+            jobs: {},
+            undecided: [],
+            reviewed: [],
+          );
+        },
+      );
+      addTearDown(controller.dispose);
+      expect(controller.displaySnapshot, isNull);
+      await controller.refresh();
+      final verified = controller.snapshot;
+
+      pending = Completer<String>();
+      final refresh = controller.refresh();
+      expect(controller.snapshot, isNull);
+      expect(controller.displaySnapshot, same(verified));
+      expect(controller.loading, isTrue);
+      pending.complete('stable');
+      await refresh;
+      expect(controller.snapshot, same(verified));
+      expect(controller.displaySnapshot, same(verified));
+      expect(reads, 1);
+
+      fail = true;
+      await controller.refresh();
+      expect(controller.snapshot, isNull);
+      expect(controller.displaySnapshot, isNull);
+      expect(controller.loading, isFalse);
+      expect(controller.error, contains('could not be read'));
+
+      fail = false;
+      pending = null;
+      await controller.refresh();
+      expect(controller.snapshot, same(verified));
+      expect(controller.error, isNull);
+      expect(reads, 1);
+    },
+  );
+
+  test(
+    'disposed progress controller ignores a completed pending read',
+    () async {
+      final fixture = await _Fixture.create();
+      addTearDown(fixture.close);
+      final pending = Completer<WorkProgressSnapshot>();
+      var notifications = 0;
+      final controller = WorkProgressController(
+        fixture.store,
+        tokenReader: (_) async => 'pending',
+        reader: (_) => pending.future,
+      )..addListener(() => notifications++);
+      final refresh = controller.refresh();
+      await Future<void>.delayed(Duration.zero);
+      final beforeDispose = notifications;
+      controller.dispose();
+      pending.complete(
+        WorkProgressSnapshot(
+          token: 'pending',
+          jobs: {},
+          undecided: [],
+          reviewed: [],
+        ),
+      );
+      await refresh;
+      expect(controller.snapshot, isNull);
+      expect(controller.displaySnapshot, isNull);
+      expect(notifications, beforeDispose);
     },
   );
 
@@ -382,13 +587,16 @@ void main() {
       );
       addTearDown(controller.dispose);
       await controller.refresh();
+      final approved = controller.snapshot;
       token = 'edited';
       final refresh = controller.refresh();
       expect(controller.snapshot, isNull);
+      expect(controller.displaySnapshot, same(approved));
       expect(controller.loading, isTrue);
       gate.complete();
       await refresh;
       expect(controller.snapshot!.token, 'newer');
+      expect(controller.displaySnapshot!.token, 'newer');
       expect(reads, 3);
     },
   );
