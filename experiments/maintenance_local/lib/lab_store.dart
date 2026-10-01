@@ -7,6 +7,8 @@ import 'evidence_store.dart';
 import 'approval_rules.dart';
 import 'model.dart';
 import 'maintenance_domain.dart';
+import 'manual_fault_intake.dart';
+import 'corrective_planning.dart';
 import 'agent_service/proposal_review_rules.dart';
 import 'src/rust/api/documents.dart';
 
@@ -44,11 +46,30 @@ class LabStore {
     }
     final db = sqlite3.open('${root.path}/workspace.sqlite');
     final version = db.select('PRAGMA user_version').first.values.first as int;
-    if (version > 2) {
+    if (version > 3) {
       db.close();
       throw StateError(
-        'This workspace was saved by a newer Sync Lab. Its files have been retained. Open it with the matching or newer version.',
+        'This workspace was saved by a newer app edition. Its files have been retained. Open it with the matching or newer version.',
       );
+    }
+    try {
+      if (version == 3) {
+        _validateCorrectiveWorkspace(db, office: office);
+      } else if (version == 2 &&
+          (db.select('SELECT key FROM settings WHERE key=?', [
+                correctivePlanningSetting,
+              ]).isNotEmpty ||
+              db.select('SELECT id FROM events WHERE kind=? LIMIT 1', [
+                correctivePlanningRecordedEvent,
+              ]).isNotEmpty)) {
+        throw StateError(
+          'Saved corrective planning does not match this workspace format. '
+          'Its files have been retained. Use its matching office edition.',
+        );
+      }
+    } catch (_) {
+      db.close();
+      rethrow;
     }
     db.execute('PRAGMA journal_mode=WAL');
     db.execute('PRAGMA synchronous=FULL');
@@ -79,6 +100,65 @@ class LabStore {
       );
     }
     return store;
+  }
+
+  /// Schema 3 belongs to the office's typed planning ledger. Validate it before
+  /// journal, schema, role or identity writes; an inspection phone cannot adopt
+  /// the office database, and a downgraded/missing ledger cannot be overlooked.
+  static void _validateCorrectiveWorkspace(
+    Database db, {
+    required bool office,
+  }) {
+    if (!office) {
+      throw StateError(
+        'This workspace contains office corrective planning. '
+        'Its files have been retained. Open it on its office computer.',
+      );
+    }
+    final settings = <String, dynamic>{
+      for (final row in db.select('SELECT key,value FROM settings'))
+        row['key'] as String: jsonDecode(row['value'] as String),
+    };
+    final catalog = settings['catalog'];
+    if (catalog is! Json ||
+        settings['device'] is! String ||
+        settings['workspace'] != null) {
+      throw StateError(
+        'This is not a supported company office planning workspace. '
+        'Its files have been retained.',
+      );
+    }
+    final events = <Json>[
+      for (final row in db.select('SELECT kind,payload FROM events ORDER BY id'))
+        {
+          'kind': row['kind'],
+          'payload': jsonDecode(row['payload'] as String),
+        },
+    ];
+    final submissions = <Json>[
+      for (final row in db.select('SELECT payload FROM submissions'))
+        jsonDecode(row['payload'] as String) as Json,
+    ];
+    final receipts = <Json>[
+      for (final row in db.select('SELECT payload FROM receipts'))
+        jsonDecode(row['payload'] as String) as Json,
+    ];
+    final faults = validateManualFaultIntake(
+      settings: settings,
+      events: events,
+      catalog: catalog,
+      deviceId: settings['device'] as String,
+      submissions: submissions,
+      receipts: receipts,
+    );
+    validateCorrectivePlanning(
+      settings: settings,
+      events: events,
+      catalog: catalog,
+      deviceId: settings['device'] as String,
+      manualFaultHistory: faults,
+      databaseVersion: 3,
+    );
   }
 
   /// Normal startup must never adopt another application's directory. Inspect
