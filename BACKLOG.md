@@ -200,8 +200,15 @@ parent probes, clean analysis, four boundaries and portable verification. The
 same 35-case matrix exposes 14 semantic baseline failures and passes on the
 repair. Independent invariant/source/test/publication review is clear; 58 fresh
 normal/large-text renders are inspected with capture limits recorded. Parent
-independent acceptance remains pending before another
-candidate. [Source receipt](docs/specs/LF-005-displayed-answer-state-receipt.md).
+independent review passes 45 fresh cases on the same source.
+[Source receipt](docs/specs/LF-005-displayed-answer-state-receipt.md).
+
+Distinct candidate `228091a` changes only version metadata to internal 0.2.7+8;
+fresh Android/Linux/extracted-CLI packages pass independent artifact review.
+Same-host fresh-folder recovery passes 72 assertions/four owner CLI cases.
+Approved 0.2.1 sample data and pairing must be preserved during coordinated
+physical validation; updated-device, unassisted setup and fresh-PC gates remain
+open. [Candidate receipt](docs/specs/LF-005-internal-027-candidate.md).
 
 
 ### NEXT-014 — One companion web app for office and field work
