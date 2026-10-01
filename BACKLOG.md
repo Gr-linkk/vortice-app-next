@@ -7,6 +7,16 @@ without creating a new backlog item.
 
 ## Selected local-first slice — September 30, 2026
 
+### LF-005 — Office agent connections
+
+In a new isolated follow-up from reviewed integrated receipt `ed79c4f`, add
+normal desktop service controls and named, scoped, expiring/revocable agent
+connections. Fresh workspaces remain disabled and the v1 CLI wire stays intact.
+Use private credential sidecars, truthful lifecycle state and synthetic-only
+acceptance; real access provisioning remains a separate explicit action.
+LF-004 separately owns human notes-proposal review and its atomic receipts.
+[Ownership, interfaces and acceptance](docs/specs/LF-005-office-agent-connections.md).
+
 ### LF-002 — Current inspection work and focused exact review
 
 Garrett authorized sustained core local-first development while LF-001's combined
