@@ -23,8 +23,11 @@ Execution, repair approval/verification, fault resolution, availability,
 maintenance advancement, LF008, remote/multiworker and live migration remain
 outside this increment. Implementation and combined gates passed on `209970a`:
 620 Flutter tests, clean analysis, applicable platform checks and independent
-static/evidence review. Parent functional/publication review and a matching
-internal build remain pending; physical acceptance is separate.
+static/evidence review. Parent scoped functional/data-preservation review also
+passed 89 fresh focused tests and inspected critical rendered screens. A matching
+internal build and physical acceptance are separate gates. Before a real update,
+explain older-edition refusal and preserve a verified pre-upgrade backup;
+hosted rollback does not downgrade a local workspace.
 [Scope and ownership](docs/specs/LF-010-corrective-planning.md),
 [milestone receipt](docs/specs/LF-010-milestone-receipt.md).
 

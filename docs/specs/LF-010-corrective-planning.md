@@ -1,7 +1,8 @@
 # LF-010 — Office corrective-work planning
 
-Status: implemented and fully tested on `209970a`; parent functional/publication
-review remains pending. Compatibility was proven before new code. Exact source,
+Status: implemented and fully tested on `209970a`; parent scoped functional and
+data-preservation review passed. Matching internal packaging and physical
+acceptance are separate gates. Compatibility was proven before new code. Exact source,
 gate attribution and remaining acceptance are in the
 [milestone receipt](LF-010-milestone-receipt.md).
 Base: reviewed LF009 plus metadata receipt `fc086136e1cf9cbfc4ab90c844d2cff62e2d2ea9`.
@@ -66,6 +67,10 @@ unchanged. Schema 3 is office-only and requires a real company plus valid typed
 planning state; future/unsupported versions fail closed with files retained.
 The unchanged prior LabStore refuses versions above 2. Synthetic fixtures must
 prove this before implementation. There is no live migration or downgrade.
+Before any real update or migration, explain that the first saved planning
+request makes the workspace unreadable by older editions and preserve a
+verified pre-upgrade backup. Hosted Supabase rollback is a separate application
+fallback; it does not downgrade this local workspace or contain its new work.
 
 New backup creation uses Local Maintenance manifest version 3 exactly when its
 database is schema 3. The new reader accepts intact old manifest/schema 2 and

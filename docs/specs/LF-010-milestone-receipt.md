@@ -110,3 +110,21 @@ repair approval/verification, fault resolution, equipment availability,
 inventory/billing, maintenance advancement, multiworker and remote relay need
 separate scope. There is no unresolved product decision blocking this tested
 planning increment; full application conversion remains ongoing.
+
+## Subsequent parent acceptance — October 1
+
+After this receipt was sealed at `194a2f8`, parent scoped functional and
+data-preservation review passed 89 fresh focused tests, clean changed-file
+analysis, and 30 generated renders with seven critical screens inspected.
+Create/edit/reopen, multiple same-equipment faults, one association, immutable
+history, retry and recovery passed. The unchanged LF009 reader refused schema
+3 while preserving file bytes; old-format controls passed. Tested source
+`209970a` and receipt `194a2f8` have the same application tree. The original
+pre-publication receipt and its evidence remain retained unchanged in history.
+
+Named source publication is authorized after remote/delivery checks. Distinct
+0.2.10 internal candidates are being verified separately; packaging does not
+establish physical acceptance. Before any real update or migration, explicitly
+explain older-edition refusal after the first planning freeze and preserve a
+verified pre-upgrade backup. There is no workspace downgrade. Hosted Supabase
+rollback remains a separate fallback and does not contain new local work.
