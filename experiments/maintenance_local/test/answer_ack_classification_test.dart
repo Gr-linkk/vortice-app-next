@@ -1,11 +1,11 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
-import 'dart:typed_data';
 import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:maintenance_local/lab_store.dart';
 import 'package:maintenance_local/model.dart';
@@ -113,6 +113,7 @@ Future<void> _open(
       key: _render,
       child: MaterialApp(
         debugShowCheckedModeBanner: false,
+        theme: ThemeData(fontFamily: 'Roboto'),
         builder: (context, child) => MediaQuery(
           data: MediaQuery.of(
             context,
@@ -287,7 +288,7 @@ Future<void> _afterAck(
 Future<void> _capture(WidgetTester tester, String name) async {
   final output = Platform.environment['ANSWER_ACK_RENDER_DIR'];
   if (output == null) return;
-  await tester.ensureVisible(_field('pressure'));
+  await tester.ensureVisible(_card('pressure'));
   await settleEditor(tester);
   final boundary = tester.renderObject<RenderRepaintBoundary>(
     find.byKey(_render),
@@ -306,7 +307,24 @@ Future<void> _capture(WidgetTester tester, String name) async {
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
-  setUpAll(initializeEditorNative);
+  setUpAll(() async {
+    await initializeEditorNative();
+    final fonts = FontLoader('Roboto')
+      ..addFont(
+        File(
+          '../../assets/fonts/Roboto-Regular.ttf',
+        ).readAsBytes().then(ByteData.sublistView),
+      )
+      ..addFont(
+        File(
+          '../../assets/fonts/Roboto-Bold.ttf',
+        ).readAsBytes().then(ByteData.sublistView),
+      );
+    await fonts.load();
+    await (FontLoader(
+      'MaterialIcons',
+    )..addFont(rootBundle.load('fonts/MaterialIcons-Regular.otf'))).load();
+  });
 
   testWidgets(
     'numeric explicit Action survives ack and two late platform events',
