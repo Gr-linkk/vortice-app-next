@@ -3,7 +3,7 @@
 Current cleanup: [ARCH-001](specs/ARCH-001-architecture-cleanup.md).
 Selected experimental local workflow: [LF-001](specs/LF-001-local-maintenance-slice.md),
 with [LF-002](specs/LF-002-work-progress-and-review.md) continuing current-work
-clarity on a separate descendant while LF-001's immutable source is audited.
+clarity on a separate descendant of LF-001's independently reviewed source.
 Boundary decision: [0020](decisions/0020-maintenance-domain-and-runtime-boundaries.md).
 The hosted application remains the rollback path. The experimental local app has
 its own identity, storage and launch/build helper; no production migration,

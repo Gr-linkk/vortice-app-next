@@ -10,7 +10,7 @@ multi-company sharing or automatic failover is authorized.
 
 Base: receipt `b6d1c8d86950439be33921a2c4b6cf1638e71d95`, whose application source
 is verified `45380ae6b093a400e8a5f589b19359fe822bfc28`. Parent's independent audit
-continues against that immutable target. Worktree: `task-8/maintenance-progress`;
+passed against that immutable target. Worktree: `task-8/maintenance-progress`;
 branch: `codex/maintenance-progress-slice`. The earlier maintenance checkout,
 receipt, binaries, rollback and running physical workspaces stay untouched.
 

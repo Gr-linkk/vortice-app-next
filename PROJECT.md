@@ -28,6 +28,14 @@ installation, Supabase retirement, a public release or persistent changes to
 real-device access. Decision [0022](docs/decisions/0022-local-inspection-authority.md)
 records this slice's authority and recovery limits.
 
+The independently reviewed `45380ae` application is preserved with receipt
+`b6d1c8d` in its original checkout. [LF-002](docs/specs/LF-002-work-progress-and-review.md)
+continues on separate `codex/maintenance-progress-slice`: read-only current-draft
+progress, focused exact-version review and correction routing. It preserves the
+same command, photo-integrity, office authority and recovery boundaries. The
+architecture audit is applied through portable rules, a small captured-data
+reader, composed views and executable separation checks.
+
 The current code map and retain/replace boundaries are in
 [Architecture: maintenance first](docs/ARCHITECTURE.md).
 
