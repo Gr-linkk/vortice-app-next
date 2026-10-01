@@ -1048,8 +1048,8 @@ void main() {
               : 'Use: Not applicable · 19 psi';
           await tester.runAsync(() async {
             if (optional) {
-              // Clearing a known answer creates a real concurrent tombstone;
-              // clearing a key absent from the base is a native no-op.
+              // Clearing a non-null answer creates a concurrent tombstone;
+              // writing the base's existing null is a native same-value no-op.
               await fixture.store.update({
                 'answer:$id': {
                   'result': 'pass',
