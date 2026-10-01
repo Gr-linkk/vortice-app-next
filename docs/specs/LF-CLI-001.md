@@ -38,6 +38,12 @@ socket path and workspace/company/device IDs are required. The host supplies
 generates, configures or persists a credential. Authentication and every live
 permission/expiry/revocation/record filter check belong to the service.
 
+The client accepts socket paths up to 100 UTF-8 bytes, including the absolute
+parent and filename. Service startup checks both its public endpoint and its
+private bind anchor against Linux's 107-byte limit. Its current 24-byte anchor
+suffix requires a canonical private parent of at most 83 UTF-8 bytes. Use a
+short private runtime folder; characters can occupy more than one UTF-8 byte.
+
 ```json
 {"protocol_version":1,"request_id":"uuid","scope":{"workspace_id":"id","company_id":"id","device_id":"id"},"credential":{"token":"opaque"},"command":"work.show","args":{"job_id":"id"}}
 ```

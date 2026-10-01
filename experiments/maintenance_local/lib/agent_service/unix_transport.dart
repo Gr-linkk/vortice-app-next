@@ -68,15 +68,17 @@ class UnixAgentTransport {
         maxConnections > 64) {
       throw StateError(failure);
     }
-    String path;
+    String path, anchor;
     try {
       final file = File(socketPath).absolute;
       path = file.path;
       final parent = file.parent;
+      anchor = '${parent.path}/.agent-${secret().substring(0, 16)}';
       if (socketPath.isEmpty ||
           socketPath.contains('\u0000') ||
           !socketPath.startsWith('/') ||
           utf8.encode(socketPath).length > 107 ||
+          utf8.encode(anchor).length > 107 ||
           path != socketPath ||
           FileSystemEntity.typeSync(parent.path, followLinks: false) !=
               FileSystemEntityType.directory ||
@@ -98,8 +100,6 @@ class UnixAgentTransport {
       // Dart unlinks its original AF_UNIX address on close. Bind a private,
       // unpredictable anchor so it cannot unlink a replacement of the public
       // name. Linux Unix sockets can be reached through an inode hardlink.
-      final anchor =
-          '${File(path).parent.path}/.agent-${secret().substring(0, 16)}';
       if (FileSystemEntity.typeSync(anchor, followLinks: false) !=
           FileSystemEntityType.notFound) {
         throw StateError(failure);

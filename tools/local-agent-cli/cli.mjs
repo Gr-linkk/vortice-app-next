@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 import {pathToFileURL} from 'node:url';
-import {CliError, COMMANDS, safeError, validateScope, PROTOCOL_VERSION} from './contract.mjs';
+import {CliError, COMMANDS, safeError, validateScope, validateSocketPath, PROTOCOL_VERSION} from './contract.mjs';
 import {execute} from './client.mjs';
 import {socketTransport} from './transport.mjs';
 
@@ -37,7 +37,7 @@ export function parseArgs(argv, input = '', preflight = false) {
   const scope = {workspace_id: opts.get('--workspace'), company_id: opts.get('--company'), device_id: opts.get('--device')};
   validateScope(scope);
   const socketPath = opts.get('--socket');
-  if (!socketPath?.startsWith('/') || socketPath.includes('\0') || socketPath.length > 100) throw new CliError('invalid_input');
+  validateSocketPath(socketPath);
   let args = {};
   if (def.args === 'id') args[def.idKey] = opts.get('--id');
   if (def.args === 'list') {

@@ -1,5 +1,6 @@
 export const PROTOCOL_VERSION = 1;
 export const MAX_BYTES = 1024 * 1024;
+export const MAX_SOCKET_PATH_BYTES = 100;
 const ID = /^[a-zA-Z0-9_-]{1,100}$/;
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const scopeKeys = ['workspace_id', 'company_id', 'device_id'];
@@ -29,6 +30,10 @@ export const messages = Object.freeze({
   internal_error: 'The command could not be completed.',
 });
 function requireInput(condition) { if (!condition) throw new CliError('invalid_input'); }
+export function validateSocketPath(socketPath) {
+  requireInput(typeof socketPath === 'string' && socketPath.startsWith('/') && !socketPath.includes('\0') &&
+    Buffer.byteLength(socketPath, 'utf8') <= MAX_SOCKET_PATH_BYTES);
+}
 function shape(value, required, allowed = required) {
   requireInput(object(value) && required.every(k => Object.hasOwn(value, k)) &&
     Object.keys(value).every(k => allowed.includes(k)));
