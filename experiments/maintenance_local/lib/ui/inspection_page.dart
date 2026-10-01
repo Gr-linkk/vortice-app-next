@@ -49,6 +49,8 @@ class _InspectionPageState extends State<InspectionPage> {
   final notes = TextEditingController(), meter = TextEditingController();
   final answers = <String, TextEditingController>{};
   final dirty = <String, dynamic>{};
+  final editIdentities = <String, int>{};
+  int nextEditIdentity = 0;
   String? message;
   bool busy = false;
   WorkProgressController? progress;
@@ -170,6 +172,11 @@ class _InspectionPageState extends State<InspectionPage> {
     }
   }
 
+  void recordEdit(String key, Object? value) {
+    dirty[key] = value;
+    editIdentities[key] = ++nextEditIdentity;
+  }
+
   void incomingChanged() {
     refreshProgress();
     unawaited(load(incoming: true));
@@ -206,9 +213,12 @@ class _InspectionPageState extends State<InspectionPage> {
     setState(() => busy = true);
     var saved = false;
     try {
-      final patch = Map<String, dynamic>.from(dirty);
+      final capturedEdits = Map<String, dynamic>.from(dirty);
+      final capturedIdentities = Map<String, int>.from(editIdentities);
+      final editBase = base;
+      final patch = Map<String, dynamic>.from(capturedEdits);
       if (patch.containsKey('meter') && resolution?.key != 'meter') {
-        final raw = meter.text.trim();
+        final raw = capturedEdits['meter'].toString().trim();
         final reading = num.tryParse(raw.replaceAll(',', '.'));
         if (raw.isNotEmpty &&
             (reading == null ||
@@ -232,7 +242,7 @@ class _InspectionPageState extends State<InspectionPage> {
       Future<void>? writing;
       Future<Uint8List>? after;
       if (patch.isNotEmpty) {
-        writing = store.update(patch, base: base, jobId: jobId);
+        writing = store.update(patch, base: editBase, jobId: jobId);
         after = captureDocument();
       }
       final beforeBytes = await before;
@@ -242,10 +252,24 @@ class _InspectionPageState extends State<InspectionPage> {
         // Invalidate its earlier exact-version status before the next await.
         refreshProgress();
       }
-      dirty.clear();
-      final snapshot = await readDocument(
-        captured: after == null ? beforeBytes : await after,
-      );
+      final capturedBytes = after == null ? beforeBytes : await after;
+      // A late edit extends our own known durable write without creating a
+      // self-conflict. Unseen queued writes retain the original merge base.
+      if (editBase != null &&
+          digest(editBase) == digest(beforeBytes) &&
+          digest(beforeBytes) == digest(seenDocument)) {
+        base = capturedBytes;
+      }
+      // The enabled, last-painted field can receive platform input while this
+      // operation waits. Acknowledge only the exact captured edit identities;
+      // normalized meter values are never compared with raw later input.
+      for (final entry in capturedIdentities.entries) {
+        if (editIdentities[entry.key] == entry.value) {
+          dirty.remove(entry.key);
+          editIdentities.remove(entry.key);
+        }
+      }
+      final snapshot = await readDocument(captured: capturedBytes);
       if (!mounted) return false;
       final unseen =
           digest(beforeBytes) != digest(seenDocument) ||
@@ -272,16 +296,23 @@ class _InspectionPageState extends State<InspectionPage> {
         final receipt = store.receipts
             .where((r) => r['submissionId'] == submitted['id'])
             .firstOrNull;
-        message = submissionSavedMessage(
+        final submittedMessage = submissionSavedMessage(
           SubmittedVersion(submission: stored, receipt: receipt),
           existing: existingIds.contains(submitted['id']),
           office: store.office,
           sendingStatusShown: widget.sync != null,
         );
+        message = dirty.isEmpty
+            ? submittedMessage
+            : '$submittedMessage Newer changes are still unsaved.';
       } else {
-        message = 'Work saved on this ${store.office ? 'computer' : 'phone'}.';
+        message = dirty.isEmpty
+            ? 'Work saved on this ${store.office ? 'computer' : 'phone'}.'
+            : 'Earlier changes saved. Newer changes are still unsaved.';
       }
-      saved = true;
+      // Leaving or choosing a photo must not discard an edit received while
+      // the completed operation was saving an earlier version.
+      saved = dirty.isEmpty;
     } catch (failure) {
       message = failure.toString().replaceFirst('Bad state: ', '');
       if (submit && dirty.isEmpty) {
@@ -380,7 +411,7 @@ class _InspectionPageState extends State<InspectionPage> {
       }
     }
     setState(
-      () => dirty['answer:${item['id']}'] = {'result': next, 'value': text},
+      () => recordEdit('answer:${item['id']}', {'result': next, 'value': text}),
     );
   }
 
@@ -562,7 +593,7 @@ class _InspectionPageState extends State<InspectionPage> {
                       helperMaxLines: 3,
                     ),
                     onChanged: (value) =>
-                        setState(() => dirty['meter'] = value),
+                        setState(() => recordEdit('meter', value)),
                   ),
                 ] else ...[
                   const SizedBox(height: 12),
@@ -582,7 +613,8 @@ class _InspectionPageState extends State<InspectionPage> {
                         'Describe the inspection and anything needing action.',
                     helperMaxLines: 6,
                   ),
-                  onChanged: (value) => setState(() => dirty['notes'] = value),
+                  onChanged: (value) =>
+                      setState(() => recordEdit('notes', value)),
                 ),
                 if (values['photo'] is String)
                   evidenceImage(store, values['photo'] as String),
@@ -644,7 +676,7 @@ class _InspectionPageState extends State<InspectionPage> {
                   selected: (dirty[entry.key] ?? values[entry.key]) == option,
                   onSelected: busy
                       ? null
-                      : (_) => setState(() => dirty[entry.key] = option),
+                      : (_) => setState(() => recordEdit(entry.key, option)),
                 ),
             ],
           ),
@@ -724,7 +756,7 @@ class _InspectionPageState extends State<InspectionPage> {
                 onPressed: busy
                     ? null
                     : () => setState(() {
-                        dirty['answer:$id'] = null;
+                        recordEdit('answer:$id', null);
                         answers[id]?.clear();
                       }),
                 child: const Text('Leave optional step unanswered'),
