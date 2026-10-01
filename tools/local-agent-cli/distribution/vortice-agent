@@ -1,0 +1,28 @@
+#!/bin/sh
+# Relocatable, dependency-free launcher. Credentials are never command arguments.
+failure() {
+  printf '{"protocol_version":1,"request_id":null,"ok":false,"error":{"code":"%s","message":"%s","retryable":false,"outcome":"not_sent"}}\n' "$1" "$2"
+  exit 2
+}
+
+# Caller-selected Node must not preload other code or create instrumentation files.
+unset NODE_OPTIONS NODE_PATH NODE_DEBUG NODE_DEBUG_NATIVE NODE_V8_COVERAGE
+unset NODE_COMPILE_CACHE NODE_REDIRECT_WARNINGS NODE_EXTRA_CA_CERTS NODE_ICU_DATA
+unset OPENSSL_CONF OPENSSL_MODULES
+NODE_DISABLE_COMPILE_CACHE=1
+export NODE_DISABLE_COMPILE_CACHE
+
+node_path=$(command -v node 2>/dev/null) || failure runtime_missing 'Node 22 or newer is required. Use an already installed supported Node runtime, then run this launcher again. Nothing was installed or sent.'
+# Version probing gets no capability, and must not consume proposal stdin.
+node_version=$(VORTICE_LOCAL_AGENT_TOKEN= "$node_path" --version </dev/null 2>/dev/null) || failure runtime_unsupported 'The installed Node runtime could not be checked. Use a supported Node 22 or newer. Nothing was sent.'
+case "$node_version" in v*.*.*) ;; *) failure runtime_unsupported 'The installed Node runtime could not be checked. Use a supported Node 22 or newer. Nothing was sent.' ;; esac
+node_major=${node_version#v}
+node_major=${node_major%%.*}
+case "$node_major" in ''|*[!0-9]*) failure runtime_unsupported 'Use a supported Node 22 or newer. Nothing was sent.' ;; esac
+[ "${#node_major}" -le 4 ] && [ "$node_major" -ge 22 ] || failure runtime_unsupported 'Use a supported Node 22 or newer. Nothing was sent.'
+
+case "$0" in */*) script_parent=${0%/*} ;; *) script_parent=. ;; esac
+script_dir=$(CDPATH= cd -- "$script_parent" 2>/dev/null && pwd -P) || failure bundle_invalid 'This CLI package is incomplete or changed. Extract a verified package again. Nothing was sent.'
+entry="$script_dir/../agent-cli/distribution/entry.mjs"
+[ ! -L "$0" ] && [ -f "$entry" ] && [ ! -L "$entry" ] || failure bundle_invalid 'This CLI package is incomplete or changed. Extract a verified package again. Nothing was sent.'
+exec "$node_path" "$entry" "$@" 2>/dev/null
