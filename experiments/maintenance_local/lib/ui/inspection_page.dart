@@ -49,6 +49,7 @@ class _InspectionPageState extends State<InspectionPage> {
   final notes = TextEditingController(), meter = TextEditingController();
   final answers = <String, TextEditingController>{};
   final dirty = <String, dynamic>{};
+  final acknowledgedAnswers = <String, dynamic>{};
   final editIdentities = <String, int>{};
   int nextEditIdentity = 0;
   String? message;
@@ -113,6 +114,7 @@ class _InspectionPageState extends State<InspectionPage> {
   }
 
   void displayDocument(Uint8List bytes, Json fields) {
+    acknowledgedAnswers.clear();
     alternatives = fields;
     refill(valuesOf(fields));
     final generation = ++formGeneration;
@@ -265,6 +267,11 @@ class _InspectionPageState extends State<InspectionPage> {
       // normalized meter values are never compared with raw later input.
       for (final entry in capturedIdentities.entries) {
         if (editIdentities[entry.key] == entry.value) {
+          // The answer's result is still shown with its controller text until
+          // a decoded replacement is installed, including after decode fails.
+          if (entry.key.startsWith('answer:')) {
+            acknowledgedAnswers[entry.key] = capturedEdits[entry.key];
+          }
           dirty.remove(entry.key);
           editIdentities.remove(entry.key);
         }
@@ -380,17 +387,32 @@ class _InspectionPageState extends State<InspectionPage> {
 
   Json answerFor(Json item, Json values) {
     final key = 'answer:${item['id']}';
-    return jsonMap(dirty.containsKey(key) ? dirty[key] : values[key]);
+    return jsonMap(
+      dirty.containsKey(key)
+          ? dirty[key]
+          : acknowledgedAnswers.containsKey(key)
+          ? acknowledgedAnswers[key]
+          : values[key],
+    );
   }
 
   void changeAnswer(
     Json item,
-    Json values, {
+    Json renderedAnswer, {
     String? result,
     String? value,
     bool typed = false,
   }) {
-    final answer = answerFor(item, values);
+    final key = 'answer:${item['id']}';
+    // A callback from the last painted field can outlive acknowledgement and
+    // decoding. Its fallback must include the result painted with that field.
+    final answer = jsonMap(
+      dirty.containsKey(key)
+          ? dirty[key]
+          : acknowledgedAnswers.containsKey(key)
+          ? acknowledgedAnswers[key]
+          : renderedAnswer,
+    );
     final text = value ?? (answer['value'] ?? '').toString();
     Object? next = result ?? answer['result'];
     if (typed && next != 'na') {
@@ -410,9 +432,7 @@ class _InspectionPageState extends State<InspectionPage> {
             : (next == 'action' ? 'action' : 'pass');
       }
     }
-    setState(
-      () => recordEdit('answer:${item['id']}', {'result': next, 'value': text}),
-    );
+    setState(() => recordEdit(key, {'result': next, 'value': text}));
   }
 
   String conflictName(String key) {
@@ -686,7 +706,7 @@ class _InspectionPageState extends State<InspectionPage> {
   );
 
   Widget stepCard(Json item, Json values) {
-    final answer = answerFor(item, values);
+    final answer = Map<String, dynamic>.unmodifiable(answerFor(item, values));
     final id = item['id'] as String;
     final type = item['input_type'];
     return Card(
@@ -722,7 +742,7 @@ class _InspectionPageState extends State<InspectionPage> {
                       : 'Response',
                 ),
                 onChanged: (text) =>
-                    changeAnswer(item, values, value: text, typed: true),
+                    changeAnswer(item, answer, value: text, typed: true),
               ),
             ],
             const SizedBox(height: 8),
@@ -740,7 +760,7 @@ class _InspectionPageState extends State<InspectionPage> {
                     selected: answer['result'] == option,
                     onSelected: busy
                         ? null
-                        : (_) => changeAnswer(item, values, result: option),
+                        : (_) => changeAnswer(item, answer, result: option),
                   ),
               ],
             ),
