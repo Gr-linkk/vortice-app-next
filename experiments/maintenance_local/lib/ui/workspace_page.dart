@@ -2,6 +2,8 @@ import 'dart:async';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import '../agent_service/agent_host.dart';
+import '../agent_service/access_scope.dart';
+import '../agent_service/proposal_review.dart';
 import '../lab_store.dart';
 import '../local_sync.dart';
 import '../model.dart';
@@ -18,6 +20,7 @@ import 'preparation_page.dart';
 import 'inspection_content.dart';
 import 'work_progress.dart';
 import 'agent_connections_page.dart';
+import 'agent_proposals_page.dart';
 
 class WorkspacePage extends StatefulWidget {
   const WorkspacePage({
@@ -491,6 +494,24 @@ class _WorkspacePageState extends State<WorkspacePage>
     refresh();
   }
 
+  Future<void> openAgentSuggestions() async {
+    final scope = AgentAccessScope.forOffice(store);
+    if (scope == null || working) return;
+    await Navigator.push<void>(
+      context,
+      MaterialPageRoute(
+        builder: (_) => AgentProposalsPage(
+          reviewer: AgentProposalReviewer(
+            store: store,
+            workspaceId: scope.workspaceId,
+            serviceDeviceId: store.device,
+          ),
+        ),
+      ),
+    );
+    refresh();
+  }
+
   Future<void> openJob(String id, {String? correctionSubmissionId}) async {
     store.selectJob(id);
     await Navigator.push(
@@ -650,6 +671,11 @@ class _WorkspacePageState extends State<WorkspacePage>
             onPressed: working ? null : openAgentConnections,
             icon: const Icon(Icons.terminal),
             label: const Text('Agent connections'),
+          ),
+          OutlinedButton.icon(
+            onPressed: working ? null : openAgentSuggestions,
+            icon: const Icon(Icons.fact_check_outlined),
+            label: const Text('Agent suggestions'),
           ),
           OutlinedButton.icon(
             onPressed: server == null

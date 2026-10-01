@@ -1,8 +1,10 @@
 # LF-CLI-001 — Scoped desktop agent client
 
 Status: client and actual synthetic native-service/Unix integration verified in
-the combined `7e9918c` milestone. Normal desktop service launch, real grant
-provisioning and human proposal application remain open.
+the combined `7e9918c` milestone. That historical checkpoint left normal desktop
+launch and human application open. [LF-005](LF-005-office-agent-connections.md)
+and [LF-004](LF-004-agent-proposal-review.md) add their code and synthetic
+acceptance; real grant provisioning and physical acceptance remain open.
 Authorization: Garrett's October 1 request for a desktop CLI for external agents.
 Base: `45380ae6b093a400e8a5f589b19359fe822bfc28`, LF-001 inspection runtime.
 Owner: `codex/local-agent-cli`; main workflow owns shared service/runtime.
@@ -103,6 +105,10 @@ The combined self-service verifier runs all 155 Node tests and this driver.
 Seven independently authored combined-boundary regressions and a deterministic
 readiness-race probe verify private library isolation, fresh authority, recovery
 and complete private fixture readiness. Component mock tests remain distinct
-from this actual service evidence. No ordinary service launcher, real grant
-provisioning, human application UI or proposal backup/replication is delivered.
+from this actual service evidence. At that checkpoint, no ordinary service
+launcher, real grant provisioning, human application UI or proposal recovery
+was delivered. LF-004/LF-005 now add normal Linux office launch and human review;
+authoritative review receipts survive recovery, while unreviewed proposals and
+grant sidecars remain excluded. V1 pending responses stay immutable creation
+evidence and do not become a current human-decision feed.
 See [combined receipt](LF-INTEGRATION-001.md) for exact scope and evidence.

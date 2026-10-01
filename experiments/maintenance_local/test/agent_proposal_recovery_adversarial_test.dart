@@ -49,8 +49,11 @@ Future<void> main(List<String> args) async {
     // explicit event source until the parent kills this exact paused process.
     final keepAlive = ReceivePort();
     try {
-      await File('${control.path}/ready').writeAsString(
+      final readyStage = File('${control.path}/ready.stage');
+      await readyStage.writeAsString(
         canonical({'phase': phase, 'pid': pid}), flush: true);
+      // Existence is the parent's gate: publish only complete readiness JSON.
+      await readyStage.rename('${control.path}/ready');
       await Completer<void>().future;
     } finally {
       keepAlive.close();

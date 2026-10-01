@@ -70,16 +70,25 @@ messages and debug diagnostics are not printed.
 
 Manual pages, recurring plans, assignment/scheduling, inventory, invoicing,
 approval and publication are not implemented commands. See the scoped contract
-and evidence requirements in `docs/specs/LF-CLI-001.md`. The shared service owner
-supplies durable pending proposals; human application UI is not yet included.
+and evidence requirements in `docs/specs/LF-CLI-001.md`. The shared service
+supplies durable pending proposals. The Linux office UI provides explicit
+connection management and human apply/reject review; see
+`docs/specs/LF-005-office-agent-connections.md` and
+`docs/specs/LF-004-agent-proposal-review.md`.
 There is no client-only permission emulation or raw-SQL fallback that substitutes
 for that integration. Pending proposals are local-only and excluded from current
-office backups; this first version must not claim their recovery coverage.
+office backups. Authoritative human review receipts include their original
+suggestion and survive coherent office recovery. Agents' v1 proposal responses
+remain immutable creation evidence; current human decisions are in office
+review/history, rather than those original pending envelopes.
 
 The combined `7e9918c` source has passed 155 Node tests and 21 actual
 native-service/Unix checks. From an appropriately prepared development checkout,
 `scripts/local-maintenance.sh cli-smoke` creates a fresh guarded synthetic
 workspace and runs the actual CLI driver; `verify` includes the complete local
 suite and this smoke. These actions never open an existing workspace or create
-a real grant. Normal desktop service provisioning and human proposal application
-remain open; see `docs/specs/LF-INTEGRATION-001.md` for the verified milestone.
+a real grant. Normal desktop launch and human application were open at that
+historical checkpoint; LF-004/LF-005 add their code and synthetic acceptance.
+Real grant provisioning and physical acceptance remain open. See
+`docs/specs/LF-INTEGRATION-001.md` for the preserved milestone and the follow-up
+specs above for current scope.

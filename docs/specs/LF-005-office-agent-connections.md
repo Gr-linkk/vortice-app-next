@@ -126,6 +126,13 @@ post-publication uncertainty retains the accepted record. Editor repair must
 preserve dirty intent and fence submission against the displayed native version.
 Readiness/source push awaits the combined gates and independent recheck.
 
+The audit fixes reserve `proposal_store.dart`, the service fast-replay hunk,
+`inspection_page.dart` and only `LabStore.submit`'s optional displayed-hash
+fence. These additions do not overlap LF-004's validated-edit/review receipt
+seams. The independently authored source checkpoints are `da095d6` for durable
+replay and `a156955` plus painted-form fence `dd608aa` for editor coherence;
+final combined acceptance is recorded separately from their component results.
+
 The P3 socket-path fix validates both actual bind and public paths in UTF-8
 bytes. The private bind parent limit is 83 bytes; public transport limit is
 107, while the CLI conservatively keeps its existing 100-byte public limit.
