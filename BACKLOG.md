@@ -9,6 +9,11 @@ without creating a new backlog item.
 
 ### LF-005 — Office agent connections
 
+The later in-flight editor input-loss P2 is repaired at `234865f`; final
+test-only follow-up `e46cc9e` preserves the same editor. Full 408-case app gate,
+18 imported regressions and independent 19-case review pass. Existing 0.2.4
+artifacts are unchanged. [Repair receipt](docs/specs/LF-005-inflight-repair-receipt.md).
+
 Implemented and synthetically verified with LF-004 at `b84070f`; the complete
 gate and independent boundary review passed. The separate 0.2.4 debug builds
 preserve identity/signing and are not installed. [Combined receipt](docs/specs/LF-004-005-integration-receipt.md)
