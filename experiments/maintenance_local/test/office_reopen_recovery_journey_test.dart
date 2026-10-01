@@ -65,6 +65,15 @@ Future<void> _show(WidgetTester tester, Finder finder) async {
   expect(finder, findsOneWidget);
   await tester.ensureVisible(finder);
   await tester.pump(const Duration(milliseconds: 250));
+  // A periodic refresh temporarily fences saved controls until native status
+  // reads finish. Yield to that I/O before checking ordinary action readiness.
+  for (
+    var attempt = 0;
+    attempt < 8 && finder.hitTestable().evaluate().length != 1;
+    attempt++
+  ) {
+    await _settle(tester);
+  }
   expect(
     finder.hitTestable(),
     findsOneWidget,
