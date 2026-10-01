@@ -9,7 +9,7 @@ All existing 0.2.5/0.2.6 artifacts remain unchanged and blocked.
 ## Invariant and implementation
 
 Each configured answer has one immutable full nullable presentation and a
-monotonic local event identity. Selection, typing and optional clear replace
+monotonic local event identity. Selection, typing, optional clear and human full-answer conflict choices replace
 that full value synchronously, including raw text. Acknowledgement can remove
 only matching dirty persistence identities. It never removes presentation.
 An explicit null answer is an owned cleared value, distinct from no owner.
@@ -35,8 +35,10 @@ pair. Existing queue serialization, captured-edit identities, original CRDT
 base, known self-write base extension, incoming generations, conflict checks,
 unseen-version rejection and exact-document submission hashes remain enforced.
 A staged incoming frame cannot overwrite the command's durable-write base.
-A chosen conflict resolution is adopted from its decoded candidate at paint
-unless a newer local edit supersedes it.
+A human full-answer conflict choice takes local ownership before capture,
+including N/A or null. Its exact dirty identity is acknowledged only after the
+chosen write; a later local input remains dirty and extends that chosen answer.
+Remote decoded data still takes ownership only through the guarded frame.
 
 ## Verification and delivery boundary
 

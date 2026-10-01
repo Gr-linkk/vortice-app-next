@@ -282,6 +282,11 @@ class _InspectionPageState extends State<InspectionPage> {
     if (seenDocument == null || seenFields == null) return false;
     readGeneration++;
     cancelStagedHandoff();
+    if (resolution != null && resolution.key.startsWith('answer:')) {
+      // A human's full-answer choice owns presentation immediately, just like
+      // a result chip or an optional clear, before any durable acknowledgement.
+      recordEdit(resolution.key, resolution.value);
+    }
     setState(() => busy = true);
     var saved = false;
     try {
