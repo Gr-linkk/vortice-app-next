@@ -7,6 +7,16 @@ without creating a new backlog item.
 
 ## Selected local-first slice — September 30, 2026
 
+### LF-007 — Linux desktop runtime portability
+
+October 1 authorized follow-up: remove checkout-specific native lookup paths and
+the unused desktop Java dependency in a separate Linux distribution from the
+reviewed 0.2.7 source. Add an ordinary launch prerequisite check and verify an
+extracted bundle with source/Java unavailable, spaces and clean HOME/XDG. Keep
+GTK/system-runtime and CLI Node prerequisites explicit; use independent runtime
+provenance and portability review. Original artifacts, physical owner/session,
+Android, permissions and hosted rollback remain unchanged. [Scope and gates](docs/specs/LF-007-linux-portability.md).
+
 ### LF-INTEGRATION-002 — Repaired app and extracted agent CLI
 
 Combine the independently reviewed late-input editor repair and extracted CLI

@@ -15,6 +15,8 @@ cmake_policy(SET CMP0063 NEW)
 
 # Load bundled libraries from the lib/ directory relative to the binary.
 set(CMAKE_INSTALL_RPATH "$ORIGIN/lib")
+set(CMAKE_BUILD_RPATH_USE_ORIGIN TRUE)
+set(CMAKE_INSTALL_RPATH_USE_LINK_PATH FALSE)
 
 # Root filesystem for cross-building.
 if(FLUTTER_TARGET_PLATFORM_SYSROOT)
@@ -72,7 +74,32 @@ set_target_properties(${BINARY_NAME}
 
 # Generated plugin build rules, which manage building the plugins and adding
 # them to the application.
+# The locked Android path-provider implementation brings JNI into Flutter's
+# transitive FFI list. Linux uses PathProviderLinux and never calls that JNI
+# implementation. The upstream JNI plugin supports an optional, absent JVM;
+# keep desktop builds independent of whichever JDK happens to be installed.
+set(CMAKE_DISABLE_FIND_PACKAGE_JNI TRUE)
+set(JNI_FOUND FALSE)
 include(flutter/generated_plugins.cmake)
+if(TARGET jni)
+  message(FATAL_ERROR "Local maintenance Linux must not bundle an unused JNI/JVM runtime.")
+endif()
+
+# Flutter's generated plugin is installed with install(FILES), so CMake does
+# not rewrite its build RUNPATH during installation. Its sibling Flutter
+# library must be found beside it, including when this checkout is unavailable.
+set_target_properties(file_selector_linux_plugin PROPERTIES
+  BUILD_RPATH "$ORIGIN"
+  INSTALL_RPATH "$ORIGIN"
+  BUILD_WITH_INSTALL_RPATH TRUE
+  INSTALL_RPATH_USE_LINK_PATH FALSE
+)
+
+# Check the actual bundled native libraries without opening a display or saved
+# workspace. The launcher runs this before the ordinary desktop application.
+add_executable(vortice-runtime-check "runner/runtime_check.cc")
+apply_standard_settings(vortice-runtime-check)
+target_link_libraries(vortice-runtime-check PRIVATE ${CMAKE_DL_LIBS})
 
 
 # === Installation ===
@@ -91,8 +118,11 @@ install(CODE "
 set(INSTALL_BUNDLE_DATA_DIR "${CMAKE_INSTALL_PREFIX}/data")
 set(INSTALL_BUNDLE_LIB_DIR "${CMAKE_INSTALL_PREFIX}/lib")
 
-install(TARGETS ${BINARY_NAME} RUNTIME DESTINATION "${CMAKE_INSTALL_PREFIX}"
+install(TARGETS ${BINARY_NAME} vortice-runtime-check
+  RUNTIME DESTINATION "${CMAKE_INSTALL_PREFIX}"
   COMPONENT Runtime)
+install(PROGRAMS "distribution/vortice-maintenance"
+  DESTINATION "${CMAKE_INSTALL_PREFIX}" COMPONENT Runtime)
 
 install(FILES "${FLUTTER_ICU_DATA_FILE}" DESTINATION "${INSTALL_BUNDLE_DATA_DIR}"
   COMPONENT Runtime)
