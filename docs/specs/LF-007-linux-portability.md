@@ -66,7 +66,7 @@ portability reviewers own read-only evidence in separate output directories.
    independent dependency caches, unchanged locks and locked offline Cargo.
 4. Extract to a path containing spaces. In a process mount namespace expose only
    the extracted bundle and compatible system dependencies; hide all source/home
-   paths and Java, use clean HOME/XDG and no display/session sockets. Test each
+   paths and the host JVM, use clean HOME/XDG and no display/session sockets. Test each
    plugin independently, the normal launcher check and actual in-memory SQLite.
 5. Exercise missing required system libraries. Reproduce old absolute-plugin
    and JVM failures under the same isolation, preserving the old archives.

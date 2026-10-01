@@ -73,7 +73,7 @@ claimed for this Linux build configuration change.
 
 Independent relocation execution passed 18 recorded entries, including its
 isolation/environment checks and failure controls. The extracted package lives
-at a path containing spaces. Source/home/cache paths and all Java are hidden;
+at a path containing spaces. Source/home/cache paths and the host JVM are hidden;
 HOME/XDG are clean, display/session sockets absent, and the child-only network
 namespace is empty. Separate processes load each library, preventing a previously
 loaded Flutter SONAME from concealing a broken plugin search path. The old
@@ -86,8 +86,9 @@ into the distribution or modified on the host.
 An optional existing `flutter_tester` test runtime, mounted beside the actual
 packaged libraries without source paths or preloads, executed the exact packaged
 Dart kernel through Rust initialization, Linux path provider and SQLite schema/
-settings creation in temporary tmpfs storage. No company, office key/certificate
-or grant files were created. The process was intentionally terminated after
+settings creation in temporary tmpfs storage. The observation recorded only the
+app ownership marker and SQLite files; no office key/certificate or grant files
+appeared. The process was intentionally terminated after
 12 seconds. This establishes test-runtime bootstrap, not actual GTK embedding
 parity, rendered desktop workflow, device or fresh-computer acceptance.
 
