@@ -294,7 +294,7 @@ class _WorkspacePageState extends State<WorkspacePage>
             onPressed: () => showAboutDialog(
               context: context,
               applicationName: 'Vortice Local Maintenance',
-              applicationVersion: '0.2.8 · internal experiment',
+              applicationVersion: '0.2.9 · internal experiment',
               children: [
                 const Text(
                   'A separate local maintenance experiment for one office coordinator and one mechanic phone. Equipment, authored checklists and inspection records stay on your devices.',
@@ -543,7 +543,7 @@ class _WorkspacePageState extends State<WorkspacePage>
             onPressed: () => showAboutDialog(
               context: context,
               applicationName: 'Vortice Local Maintenance',
-              applicationVersion: '0.2.8 · internal experiment',
+              applicationVersion: '0.2.9 · internal experiment',
               children: const [
                 Text(
                   'A separate local maintenance experiment for one office coordinator and one mechanic phone. Equipment, authored checklists and inspection records stay on your devices. Your normal Vortice app is separate.',
