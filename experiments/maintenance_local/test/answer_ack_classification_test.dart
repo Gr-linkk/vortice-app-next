@@ -575,6 +575,79 @@ void main() {
   );
 
   testWidgets(
+    'acknowledged answer alone survives decode failure and benign rebuild',
+    (tester) async {
+      final fixture = await _fixture(tester);
+      final decoder = _DecodeGate();
+      await _open(tester, fixture, decoder, phone: true);
+      await tapEditor(tester, _chip('pressure', 'Needs action'));
+      await enterEditor(tester, 'answer:pressure', '35');
+      _displayed(tester, 'pressure', '35', 'action');
+
+      final command = _command(tester);
+      Completer<void>? release;
+      try {
+        await tester.runAsync(() async {
+          decoder.arm(failure: true);
+          final gate = decoder.release!;
+          release = gate;
+          final operation = Function.apply(command, const []) as Future<bool>;
+          await decoder.entered!.future.timeout(const Duration(seconds: 8));
+          expect(
+            valuesOf(
+              await fixture.store.fields(jobId: fixture.job),
+            )['answer:pressure'],
+            {'result': 'action', 'value': '35'},
+          );
+          // No keyboard event or other edit arrives after the captured write.
+          // The result shown after failure must come from its acknowledgement.
+          gate.complete();
+          expect(await operation.timeout(const Duration(seconds: 8)), isFalse);
+        });
+      } finally {
+        if (release != null && !release!.isCompleted) release!.complete();
+      }
+      await _finished(tester);
+      expect(find.text('Synthetic postwrite decode failure.'), findsOneWidget);
+      expect(find.textContaining('Unsaved changes —'), findsNothing);
+      _displayed(tester, 'pressure', '35', 'action');
+
+      // Rebuild the surrounding app without a store update, incoming signal,
+      // or new InspectionPage state. This must not reload the saved document.
+      final state = tester.state(find.byType(InspectionPage));
+      await _open(tester, fixture, decoder, phone: true);
+      expect(tester.state(find.byType(InspectionPage)), same(state));
+      expect(find.text('Synthetic postwrite decode failure.'), findsOneWidget);
+      expect(find.textContaining('Unsaved changes —'), findsNothing);
+      _displayed(tester, 'pressure', '35', 'action');
+      await _capture(tester, 'overlay-only-failure-action35-1x');
+
+      final field = _field('pressure');
+      await tester.ensureVisible(field);
+      await tester.showKeyboard(field);
+      await settleEditor(tester);
+      final editable = find.descendant(
+        of: field,
+        matching: find.byType(EditableText),
+      );
+      expect(tester.widget<TextField>(field).enabled, isTrue);
+      expect(tester.widget<EditableText>(editable).focusNode.hasFocus, isTrue);
+      expect(tester.testTextInput.isRegistered, isTrue);
+      expect(tester.testTextInput.hasAnyClients, isTrue);
+      await tester.runAsync(() async {
+        tester.testTextInput.enterText('25');
+        await Future<void>.delayed(Duration.zero);
+        expect(editorController(tester, 'answer:pressure').text, '25');
+      });
+      await settleEditor(tester);
+      _displayed(tester, 'pressure', '25', 'action');
+      await _saved(tester, fixture, 'pressure', '25', 'action');
+      await _capture(tester, 'overlay-only-retry-action25-1x');
+      expect(fixture.store.submissions, isEmpty);
+    },
+  );
+
+  testWidgets(
     'late full answer preserves immutable submission and concurrent conflict fence',
     (tester) async {
       final fixture = await _fixture(tester);
