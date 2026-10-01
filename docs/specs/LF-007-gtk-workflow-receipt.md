@@ -10,6 +10,11 @@ revision. Later
 documentation commits do not change those inputs. The earlier
 [0.2.7 receipt](LF-007-portability-receipt.md) remains a separate frozen result.
 
+This records the original GTK milestone. Later execution against the current
+CLI archive and the new Android candidate is recorded in the
+[0.2.8 artifact supplement](LF-007-028-artifact-gates.md); the original local
+receipts and binaries remain frozen.
+
 ## User-visible repair
 
 The Home page periodically verifies saved work. Previously each verification
@@ -20,8 +25,10 @@ rectangle assertion before failing the scroll assertion; it proves scroll
 contraction, not that the Backup target itself moved in that baseline.
 
 Home now preserves the last saved presentation while verification is pending,
-shows `Updating work status…`, and blocks pointer and keyboard actions on the
-cached progress/history section. A completed read shows `Saved work status`;
+shows `Updating work status…`, and blocks pointer and keyboard actions on cached
+inspection rows and the office progress/history section. Phone submitted-history
+links can still open immutable review details. A completed read shows
+`Saved work status`;
 a failed read clears the cached presentation. Backup and setup remain available
 during verification. The strict snapshot is still invalidated immediately, so
 inspection submission, whole-job status, document tokens, authority and error
