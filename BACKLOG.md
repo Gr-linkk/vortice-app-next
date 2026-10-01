@@ -9,6 +9,12 @@ without creating a new backlog item.
 
 ### LF-006 — Usable Linux agent CLI distribution
 
+Implemented at `c64c6c3`: 298 Node and 35 Python checks passed; actual
+extracted-package service acceptance passed 98 assertions across 18 CLI calls.
+[Distribution receipt](docs/specs/LF-006-distribution-receipt.md) records the
+unchanged 0.2.4 app and its separately repaired editor issue. No installation,
+real grant provisioning or runtime redistribution occurred.
+
 Package a relocatable CLI launcher with the preserved Linux app, using an
 already installed Node 22+ and explicit private connection settings. Verify real
 invocation from a moved extracted package, safe runtime/protocol/capability
