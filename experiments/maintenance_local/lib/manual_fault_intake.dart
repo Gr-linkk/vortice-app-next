@@ -36,6 +36,10 @@ bool _id(dynamic value) => value is String && _identity.hasMatch(value);
 bool _hash(dynamic value) => value is String && hashPattern.hasMatch(value);
 bool _date(dynamic value) =>
     value is String && DateTime.tryParse(value)?.isUtc == true;
+// Existing inspection timestamps follow the accepted submission/receipt rules.
+// Their original spelling and offset remain part of the exact source hash.
+bool _sourceDate(dynamic value) =>
+    value is String && DateTime.tryParse(value) != null;
 Json _map(dynamic value) {
   if (value is! Map || value.keys.any((key) => key is! String)) _invalid();
   return Map<String, dynamic>.from(value);
@@ -395,7 +399,7 @@ _Sources _sourceIndex(
     });
     if (!_id(source['id']) ||
         !_id(source['device']) ||
-        !_date(source['createdAt']) ||
+        !_sourceDate(source['createdAt']) ||
         source['schemaVersion'] != 1 ||
         source['submissionRevision'] is! int ||
         source['submissionRevision'] < 1 ||
@@ -460,7 +464,7 @@ _Sources _sourceIndex(
         (receipt['reason'] as String).length > 10000 ||
         (receipt['decision'] == 'returned' &&
             (receipt['reason'] as String).trim().isEmpty) ||
-        !_date(receipt['reviewedAt']) ||
+        !_sourceDate(receipt['reviewedAt']) ||
         !_id(receipt['reviewerDevice']) ||
         receipt['reviewedBy'] != catalog['coordinatorName'] ||
         canonical(receipt['values']) != canonical(source['values'])) {

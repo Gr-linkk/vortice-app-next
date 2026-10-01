@@ -137,6 +137,27 @@ Matcher get _invalid => throwsA(isA<ManualFaultIntakeFailure>());
 
 void main() {
   test(
+    'accepted source timestamp offsets retain their exact original hashes',
+    () {
+      final fixture = _Fixture();
+      fixture.submission['createdAt'] = '2026-10-01T12:00:00+02:00';
+      final sourceReceipt = fixture.review(
+        'returned',
+        time: '2026-10-01T12:30:00',
+      );
+      final origin = fixture.origins([sourceReceipt]).first;
+      fixture.validate(
+        _pending(fixture.command(origin: origin)),
+        sourceReceipts: [sourceReceipt],
+      );
+      expect(origin.submissionHash, contentHash(fixture.submission));
+      expect(origin.receiptHash, contentHash(sourceReceipt));
+      expect(fixture.submission['createdAt'], '2026-10-01T12:00:00+02:00');
+      expect(sourceReceipt['reviewedAt'], '2026-10-01T12:30:00');
+    },
+  );
+
+  test(
     'accepted 1000-character step and 200-character job labels preserve all origins',
     () {
       final fixture = _Fixture();
