@@ -239,6 +239,11 @@ Future<Json> _values(WidgetTester tester, _Fixture fixture) async => valuesOf(
   (await tester.runAsync(() => fixture.store.fields(jobId: fixture.job)))!,
 );
 
+Future<void> _show(WidgetTester tester, Finder finder) async {
+  await Scrollable.ensureVisible(tester.element(finder), alignment: 0.12);
+  await tester.pump();
+}
+
 Future<void> _capture(WidgetTester tester, String name) async {
   final destination = Platform.environment['VORTICE_RENDER_OUTPUT'];
   if (destination == null || destination.isEmpty) return;
@@ -287,7 +292,10 @@ Future<void> _heldCommand(
   expect(_controller(tester, field).text, late);
   release.complete();
   await finishNativeWidgetAction(tester, () => holding);
+  // Repaint the actual busy state before waiting for its terminal controls.
+  await _settle(tester);
   await _until(tester, () => _ready(tester));
+  await _settle(tester);
 }
 
 Future<void> _runCommand(WidgetTester tester, {bool submit = false}) async {
@@ -366,12 +374,12 @@ Future<void> _fieldCase(
   }
   final originalRecords = canonical(fixture.store.submissions);
   if (key == 'notes') {
-    await tester.ensureVisible(find.byKey(const Key('notes')));
+    await _show(tester, find.byKey(const Key('notes')));
     await _capture(
       tester,
       'notes-${submit ? 'submit' : 'save'}-retained-${scale.toInt()}x',
     );
-    await tester.ensureVisible(find.textContaining('Unsaved changes —'));
+    await _show(tester, find.textContaining('Unsaved changes —'));
     await _capture(
       tester,
       'notes-${submit ? 'submit' : 'save'}-unsaved-${scale.toInt()}x',
@@ -575,7 +583,7 @@ void main() {
             _firstNotes,
           );
         }
-        await tester.ensureVisible(finder);
+        await _show(tester, finder);
         await _capture(
           tester,
           '${submit ? 'submit' : 'save'}-postwrite-decode-retained-2x',
@@ -789,12 +797,31 @@ void main() {
       );
       await _assertRetained(tester, fixture, 'notes', _lateNotes, _lateNotes);
       expect(fixture.store.setting('pendingInspectionPhoto'), isNull);
-      await tester.ensureVisible(find.byKey(const Key('notes')));
+      await _show(tester, find.byKey(const Key('notes')));
       await _capture(tester, 'photo-intent-late-notes-unsaved-2x');
-      tester.widget<OutlinedButton>(button).onPressed!();
+      final retry = tester.widget<OutlinedButton>(button).onPressed!;
+      await tester.runAsync(() async {
+        retry();
+        for (
+          var attempt = 0;
+          attempt < 80 && !picker.entered.isCompleted;
+          attempt++
+        ) {
+          await Future<void>.delayed(const Duration(milliseconds: 20));
+        }
+      });
       await _settle(tester);
-      await _until(tester, () => _ready(tester));
-      expect(picker.entered.isCompleted, isTrue);
+      expect(
+        picker.entered.isCompleted,
+        isTrue,
+        reason: 'The explicit retry must reach the platform photo picker.',
+      );
+      await _until(
+        tester,
+        () =>
+            _ready(tester) &&
+            fixture.store.setting('pendingInspectionPhoto') == null,
+      );
       expect((await _values(tester, fixture))['notes'], _lateNotes);
       expect(fixture.store.setting('pendingInspectionPhoto'), isNull);
       expect(fixture.store.submissions, isEmpty);
@@ -845,7 +872,7 @@ void main() {
       expect(fixture.store.setting('pendingInspectionPhoto'), isNull);
       await _runCommand(tester);
       expect((await _values(tester, fixture))['notes'], _lateNotes);
-      await tester.ensureVisible(find.byKey(const Key('notes')));
+      await _show(tester, find.byKey(const Key('notes')));
       await _capture(tester, 'photo-followup-late-notes-2x');
     },
   );
