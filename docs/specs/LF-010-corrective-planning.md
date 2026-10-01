@@ -1,7 +1,9 @@
 # LF-010 — Office corrective-work planning
 
-Status: isolated implementation candidate; full combined verification and parent
-publication review remain pending. Compatibility was proven before new code.
+Status: implemented and fully tested on `209970a`; parent functional/publication
+review remains pending. Compatibility was proven before new code. Exact source,
+gate attribution and remaining acceptance are in the
+[milestone receipt](LF-010-milestone-receipt.md).
 Base: reviewed LF009 plus metadata receipt `fc086136e1cf9cbfc4ab90c844d2cff62e2d2ea9`.
 Coordinator branch: `codex/local-corrective-planning`.
 

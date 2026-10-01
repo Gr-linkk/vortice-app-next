@@ -21,8 +21,12 @@ synthetic format-3 fixtures before implementation, while old format-2 controls
 remained usable. Existing inspection/phone/agent authority stays separate.
 Execution, repair approval/verification, fault resolution, availability,
 maintenance advancement, LF008, remote/multiworker and live migration remain
-outside this increment. Implementation and combined review are in progress.
-[Scope and ownership](docs/specs/LF-010-corrective-planning.md).
+outside this increment. Implementation and combined gates passed on `209970a`:
+620 Flutter tests, clean analysis, applicable platform checks and independent
+static/evidence review. Parent functional/publication review and a matching
+internal build remain pending; physical acceptance is separate.
+[Scope and ownership](docs/specs/LF-010-corrective-planning.md),
+[milestone receipt](docs/specs/LF-010-milestone-receipt.md).
 
 ### LF-009 — Manual office fault intake
 
