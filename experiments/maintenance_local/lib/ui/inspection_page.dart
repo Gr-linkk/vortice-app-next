@@ -54,6 +54,7 @@ class _InspectionPageState extends State<InspectionPage> {
   WorkProgressController? progress;
   bool ownsProgress = false;
   int readGeneration = 0;
+  int formGeneration = 0;
   bool incomingPending = false;
   static const changedMessage =
       'Inspection changed. Review the updated work and submit again.';
@@ -110,11 +111,17 @@ class _InspectionPageState extends State<InspectionPage> {
   }
 
   void displayDocument(Uint8List bytes, Json fields) {
-    displayedDocument = bytes;
     alternatives = fields;
-    // Dirty edits retain their original CRDT base until they have been merged.
-    if (dirty.isEmpty) base = bytes;
     refill(valuesOf(fields));
+    final generation = ++formGeneration;
+    // Decoding and setState can finish before the next painted form. Input
+    // arriving in that interval still belongs to the previously shown bytes.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || generation != formGeneration) return;
+      displayedDocument = bytes;
+      // Dirty edits retain their original CRDT base until they are merged.
+      if (dirty.isEmpty) base = bytes;
+    });
   }
 
   Future<void> load({bool incoming = false}) async {

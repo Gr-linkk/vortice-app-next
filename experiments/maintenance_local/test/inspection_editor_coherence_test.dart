@@ -121,6 +121,66 @@ void main() {
   );
 
   testWidgets(
+    'submit before an incoming repaint still fences the last shown version',
+    (tester) async {
+      final fixture = await editorFixture(tester);
+      final pause = PausedEditorDecode();
+      await tester.pumpWidget(fixture.page(decoder: pause.call));
+      await untilEditor(
+        tester,
+        () => find.byKey(const Key('notes')).evaluate().isNotEmpty,
+      );
+      final submit = tester
+          .widget<FilledButton>(
+            find.widgetWithText(FilledButton, 'Submit for review'),
+          )
+          .onPressed!;
+      pause.arm();
+      final release = pause.release!;
+      await finishNativeWidgetAction(
+        tester,
+        () => fixture.store.update({
+          'notes': 'Incoming before repaint.',
+        }, jobId: fixture.job),
+      );
+      fixture.updates.value++;
+      await untilEditor(tester, () => pause.entered!.isCompleted);
+      release.complete();
+      // Drain the decode continuation without drawing the changed form. Invoke
+      // the still-rendered action to model an input event before the next frame.
+      await tester.idle();
+      expect(
+        editorController(tester, 'notes').text,
+        'Incoming before repaint.',
+      );
+      submit();
+      await untilEditor(
+        tester,
+        () =>
+            fixture.store.submissions.isNotEmpty ||
+            (find.text(changedInspectionMessage).evaluate().isNotEmpty &&
+                tester
+                        .widget<FilledButton>(
+                          find.widgetWithText(
+                            FilledButton,
+                            'Submit for review',
+                          ),
+                        )
+                        .onPressed !=
+                    null),
+      );
+      expect(
+        fixture.store.submissions,
+        isEmpty,
+        reason:
+            'Decoding newer bytes does not mean that the operator saw them.',
+      );
+      await tapEditor(tester, find.text('Submit for review'));
+      await untilEditor(tester, () => fixture.store.submissions.isNotEmpty);
+    },
+  );
+
+  testWidgets(
     'dirty save merges intent but does not submit unseen clean fields',
     (tester) async {
       final fixture = await editorFixture(tester);
@@ -159,6 +219,51 @@ void main() {
       expect(
         fixture.store.submissions.single['values']['photo'],
         digest([...EditorFixture.png, 3]),
+      );
+    },
+  );
+
+  testWidgets(
+    'typing before an incoming repaint retains the original merge base',
+    (tester) async {
+      final fixture = await editorFixture(tester);
+      final pause = PausedEditorDecode();
+      await tester.pumpWidget(fixture.page(decoder: pause.call));
+      await untilEditor(
+        tester,
+        () => find.byKey(const Key('notes')).evaluate().isNotEmpty,
+      );
+      final priorField = tester.widget<TextField>(
+        find.byKey(const Key('notes')),
+      );
+      pause.arm();
+      final release = pause.release!;
+      await finishNativeWidgetAction(
+        tester,
+        () => fixture.store.update({
+          'notes': 'Concurrent before repaint.',
+        }, jobId: fixture.job),
+      );
+      fixture.updates.value++;
+      await untilEditor(tester, () => pause.entered!.isCompleted);
+      release.complete();
+      await tester.idle();
+      priorField.controller!.text = 'Typed before repaint.';
+      priorField.onChanged!('Typed before repaint.');
+      await settleEditor(tester);
+      expect(editorController(tester, 'notes').text, 'Typed before repaint.');
+      await tapEditor(tester, find.text('Submit for review'));
+      await untilEditor(
+        tester,
+        () => find.text('Resolve Inspection notes').evaluate().isNotEmpty,
+      );
+      expect(fixture.store.submissions, isEmpty);
+      final fields = (await tester.runAsync(
+        () => fixture.store.fields(jobId: fixture.job),
+      ))!;
+      expect(
+        fields['notes'],
+        containsAll(['Typed before repaint.', 'Concurrent before repaint.']),
       );
     },
   );
