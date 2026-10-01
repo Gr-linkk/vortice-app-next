@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 import 'dart:ui' as ui;
 
@@ -128,6 +129,21 @@ class _LostFreezeReplyIntake extends ManualFaultIntakeStore {
       throw const FileSystemException('Synthetic recovery read interruption');
     }
     return super.pendingCommands();
+  }
+}
+
+/// Pause acceptance after the real durable freeze, then release the real store
+/// command. This exposes callbacks still rendered before the next busy frame.
+class _DeferredIntake extends ManualFaultIntakeStore {
+  _DeferredIntake(super.store);
+  final release = Completer<void>();
+  final commands = <FrozenManualFaultCommand>[];
+
+  @override
+  Future<ManualFaultReceipt> record(FrozenManualFaultCommand command) async {
+    commands.add(command);
+    await release.future;
+    return super.record(command);
   }
 }
 
@@ -819,6 +835,149 @@ void main() {
       await tester.pumpWidget(const SizedBox.shrink());
       await _settle(tester);
       await _close(tester, phone);
+    },
+  );
+
+  for (final action in ['view-source', 'equipment', 'source']) {
+    testWidgets(
+      'navigation during recording: stale form $action callback keeps acceptance on its route',
+      (tester) async {
+        cleanup(tester);
+        final intake = _DeferredIntake(store);
+        await _mount(tester, store, 2, intake: intake);
+        await _new(tester, equipment);
+        await _enter(tester, _description);
+        await _source(tester, pendingSubmission, 'item', itemId: 'guard');
+        final oldAction = switch (action) {
+          'view-source' =>
+            tester
+                .widget<TextButton>(
+                  find.byKey(const Key('manual-fault-view-source')),
+                )
+                .onPressed!,
+          'equipment' =>
+            tester
+                .widget<OutlinedButton>(
+                  find.byKey(const Key('manual-fault-equipment')),
+                )
+                .onPressed!,
+          _ =>
+            tester
+                .widget<OutlinedButton>(
+                  find.byKey(const Key('manual-fault-source')),
+                )
+                .onPressed!,
+        };
+        final record = tester
+            .widget<FilledButton>(find.byKey(const Key('manual-fault-submit')))
+            .onPressed!;
+        try {
+          // Invoke the ordinary callbacks in the same frame, before disabled
+          // widgets replace the controls that were visible to the user.
+          record();
+          oldAction();
+          await _settle(tester);
+          expect(intake.commands, hasLength(1));
+          intake.release.complete();
+          await _settle(tester);
+          expect(
+            await tester.runAsync(
+              () => ManualFaultIntakeStore(store).listRecords(),
+            ),
+            hasLength(1),
+          );
+          await _capture(
+            tester,
+            'large-text-stale-form-$action-after-acceptance',
+          );
+          expect(
+            find.widgetWithText(AppBar, 'Reported faults'),
+            findsOneWidget,
+            reason:
+                'Acceptance must close the form, with no stale callback opening another route.',
+          );
+        } finally {
+          if (!intake.release.isCompleted) intake.release.complete();
+          await _settle(tester);
+        }
+      },
+    );
+  }
+
+  testWidgets(
+    'navigation during recording: stale saved-request source callback keeps acceptance visible',
+    (tester) async {
+      cleanup(tester);
+      final origins = (await tester.runAsync(
+        () => ManualFaultIntakeStore(store).availableOrigins(equipment),
+      ))!;
+      final origin = origins.firstWhere(
+        (o) =>
+            o.submissionId == pendingSubmission &&
+            o.kind == ManualFaultOriginKind.item &&
+            o.itemId == 'guard',
+      );
+      final command = (await tester.runAsync(
+        () => ManualFaultIntakeStore(store).freeze(
+          equipmentId: equipment,
+          description: _description,
+          severity: ManualFaultSeverity.normal,
+          originSelection: origin,
+          commandId: '99999999-9999-4999-8999-999999999999',
+        ),
+      ))!;
+      final intake = _DeferredIntake(store);
+      await _mount(tester, store, 2, intake: intake);
+      await _tap(
+        tester,
+        find.byKey(ValueKey('manual-fault-resume-${command.id}')),
+      );
+      // Frozen requests may still view their exact source while idle.
+      await _tap(tester, find.byKey(const Key('manual-fault-view-source')));
+      expect(
+        find.widgetWithText(AppBar, 'Saved inspection source'),
+        findsOneWidget,
+      );
+      await _tap(tester, find.byType(BackButton));
+      final oldView = tester
+          .widget<TextButton>(find.byKey(const Key('manual-fault-view-source')))
+          .onPressed!;
+      final resume = tester
+          .widget<FilledButton>(
+            find.byKey(const Key('manual-fault-resume-request')),
+          )
+          .onPressed!;
+      try {
+        resume();
+        oldView();
+        await _settle(tester);
+        expect(intake.commands, hasLength(1));
+        intake.release.complete();
+        await _settle(tester);
+        expect(
+          await tester.runAsync(
+            () => ManualFaultIntakeStore(store).listRecords(),
+          ),
+          hasLength(1),
+        );
+        await _capture(
+          tester,
+          'large-text-stale-saved-request-source-after-acceptance',
+        );
+        expect(
+          find.widgetWithText(AppBar, 'Fault record'),
+          findsOneWidget,
+          reason: 'A stale source action must not hide the accepted result.',
+        );
+        await _tap(tester, find.byKey(const Key('manual-fault-view-source')));
+        expect(
+          find.widgetWithText(AppBar, 'Saved inspection source'),
+          findsOneWidget,
+        );
+      } finally {
+        if (!intake.release.isCompleted) intake.release.complete();
+        await _settle(tester);
+      }
     },
   );
 }
